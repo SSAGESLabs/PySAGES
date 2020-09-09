@@ -11,3 +11,8 @@ def register_pytree_namedtuple(cls):
         lambda _, xs: cls(*xs)         # tell JAX how to pack back
     )
     return cls
+
+
+#def wrap_around(boxsize, r):
+#    half_boxsize = boxsize / 2
+#    return np.mod(r + half_boxsize, boxsize) - half_boxsize
