@@ -2,22 +2,25 @@
 # Copyright (c) 2020: SSAGES Team
 
 
-import jax.numpy as np
-
 from collections import namedtuple
+
+import jax.numpy as np
 from jax import jit, pmap, vmap
-from jax.numpy import linag
+from jax.numpy import linalg
+from jax.ops import index, index_add, index_update
+
+from .grids import get_index
 from .utils import register_pytree_namedtuple
 
 
 ABFData = namedtuple(
     "ABFData",
-    ["grid", "histogram", "accumulator", "F", "Wp", "Wp_", "N", "dt"]
+    ["snapshot", "bias", "grid", "hist", "Fsum", "F", "Wp", "Wp_", "N", "dt"]
 )
 
 FUNNData = namedtuple(
     "FUNNData",
-    ["grid", "nn", "histogram", "accumulator", "F", "Wp", "Wp_", "N", "dt"]
+    ["snapshot", "bias", "grid", "nn", "hist", "Fsum", "F", "Wp", "Wp_", "N", "dt"]
 )
 
 
@@ -33,61 +36,80 @@ class FUNNState(FUNNData):
         return repr("PySAGES " + type(self).__name__)
 
 
-def abf(sysview, grid, cv, N = 200):
+def abf(snapshot, grid, cv, N = 200):
+    N = np.asarray(N)
+    #
     def initialize():
-        histogram = np.zeros(grid.shape, dtype = uint32)
-        accumulator = np.zeros(grid.shape)
+        bias = np.zeros_like(snapshot.forces)
+        hist = np.zeros(grid.shape, dtype = np.uint32)
+        Fsum = np.zeros(grid.shape)
         F = np.zeros(cv.dims)
         Wp = np.zeros(cv.dims)
         Wp_ = np.zeros(cv.dims)
-        return ABFState(grid, histogram, accumulator, F, Wp, Wp_, N, sysview.dt)
+        dt = snapshot.dt
+        return ABFState(snapshot, bias, grid, hist, Fsum, F, Wp, Wp_, N, dt)
     #
-    def update(state, ξ, Jξ, M, p):
-        grid, histogram, accumulator, F, Wp_, Wp__, N, dt = state
-        #
+    def update(state, timestep):
+        snapshot, bias, grid, hist, Fsum, F, Wp_, Wp__, N, dt = state
+        M = snapshot.vel_mass[:, 3:4]
+        V = snapshot.vel_mass
+        # Compute the collective variable
+        ξ, Jξ = cv.ξ(snapshot.positions, snapshot.tags)
+        # Compute momenta
         p = np.multiply(M, V).flatten()
-        Wp = linalg.tensorsolve(jξ @ Jξ.transpose(), Jξ @ p)
-        F = (1.5 * Wp - 2 * Wp_ + 0.5 * Wp__) / dt + F
+        # The following could equivalently be computed by np.pinv(Jξ.transpose()) @ p,
+        # but it does not work when ξ is scalar.
+        Wp = linalg.tensorsolve(Jξ @ Jξ.transpose(), Jξ @ p)
+        # Second order backward finite difference
+        dWp_dt = (1.5 * Wp - 2 * Wp_ + 0.5 * Wp__) / dt + F
         #
-        ind = index(grid, ξ)
-        n = histogram[ind]
-        histogram[ind] = n + 1
-        accumulator[ind] += F
+        I = get_index(grid, ξ)
+        hist = hist.at[I].add(1)
+        Fsum = Fsum.at[I].add(dWp_dt)
+        n = hist[I]
+        F = dWp_dt / np.maximum(n, N)
         #
-        bias = -Jξ.transpose() @ (F / np.max(n, N))
+        bias = np.reshape(-Jξ.transpose() @ F, snapshot.forces.shape)
         #
-        return ABFState(grid, histogram, accumulator, F, Wp, Wp_, N, dt)
+        return ABFState(snapshot, bias, grid, hist, Fsum, F, Wp, Wp_, N, dt)
     #
     return jit(initialize), jit(update)
 
 
-def funn(sysview, grid, topology, cv, N = 200):
+def funn(snapshot, grid, topology, cv, N = 200):
+    N = np.asarray(N)
+    #
     def initialize():
-        histogram = np.zeros(grid.shape, dtype = uint32)
-        accumulator = np.zeros(grid.shape)
+        bias = np.zeros_like(snapshot.forces)
+        hist = np.zeros(grid.shape, dtype = np.uint32)
+        Fsum = np.zeros(grid.shape)
         F = np.zeros(cv.dims)
         Wp = np.zeros(cv.dims)
         Wp_ = np.zeros(cv.dims)
         nn = neural_network(topology)
-        return FUNNState(grid, nn, histogram, accumulator)
+        dt = snapshot.dt
+        return FUNNState(snapshot, bias, grid, nn, hist, Fsum, F, Wp, Wp_, N, dt)
     #
     def update(state, ξ, Jξ):
-        grid, histogram, accumulator, F, Wp_, Wp__, N, dt = state
+        snapshot, grid, hist, Fsum, F, Wp_, Wp__, N, dt = state
+        M = snapshot.vel_mass[:, 3:4]
+        V = snapshot.vel_mass
         #
         nn.train()
-        Q = nn.predict(accumulator)
+        Q = nn.predict(Fsum)
         #
         p = np.multiply(M, V).flatten()
         Wp = linalg.tensorsolve(jξ @ Jξ.transpose(), Jξ @ p)
-        F = (1.5 * Wp - 2 * Wp_ + 0.5 * Wp__) / dt + F + Q
+        dWp_dt = (1.5 * Wp - 2 * Wp_ + 0.5 * Wp__) / dt + F + Q
         #
-        ind = index(grid, ξ)
-        n = histogram[ind]
-        histogram[ind] = n + 1
-        accumulator[ind] += F
+        I = get_index(grid, ξ)
+        hist = hist.at[I].add(1)
+        Fsum = Fsum.at[I].add(dWp_dt)
+        n = hist[I]
+        F = dWp_dt / np.maximum(n, N)
         #
         bias = -Jξ.transpose() @ (F / np.max(n, N))
         #
-        return FUNNState(grid, nn, histogram, accumulator, F, Wp, Wp_, N, dt)
+        return FUNNState(snapshot, bias, grid, nn, hist, Fsum, F, Wp, Wp_, N, dt)
     #
     return jit(initialize), jit(update)
