@@ -3,17 +3,19 @@
 
 
 import importlib
+
+import cupy
 import jax
-
-from . import cvs
-from .cvs import collective_variable
-from .grids import Grid
-from .snapshot import Box, SystemView
-
 from jax import numpy as np
 from jax.dlpack import from_dlpack
 #
 jax.config.update("jax_enable_x64", True)
+
+from . import cvs
+from . import methods
+from .cvs import collective_variable
+from .grids import Grid
+from .snapshot import Box, SystemView
 
 
 # Visible exports
@@ -55,8 +57,17 @@ def view(backend, simulation):
     return SystemView(positions, vel_mass, forces, tags, box, dt)
 
 
+def bias(state):
+    cp_forces = cupy.asarray(state.snapshot.forces)
+    cp_bias = cupy.asarray(state.bias)
+    cp_forces += cp_bias
+    return None
+
+
 def link(backend, simulation, sampler):
     hook = backend.Hook()
-    hook.initalize_from(sampler)
+    hook.initialize_from(sampler, bias)
     backend.attach(simulation, hook)
-    return None
+    # Return the hook to ensure it doesn't get garbage collected
+    # within the scope of this function
+    return hook
