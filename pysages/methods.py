@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-# Copyright (c) 2020: SSAGES Team
+# Copyright (c) 2020: SSAGES Team (see LICENSE.md)
 
 
 from collections import namedtuple

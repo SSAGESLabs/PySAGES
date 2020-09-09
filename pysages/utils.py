@@ -1,7 +1,11 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2020: Pablo Zubieta (see LICENSE.md)
+
+
 from jax.tree_util import register_pytree_node
 
 
-# See the suggestions on:
+# From:
 # - https://github.com/google/jax/issues/446
 # - https://github.com/google/jax/issues/806
 def register_pytree_namedtuple(cls):

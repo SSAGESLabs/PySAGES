@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2020: Pablo Zubieta
+# Copyright (c) 2020: Pablo Zubieta (see LICENSE.md)
 
 
 from collections import namedtuple
@@ -27,8 +27,7 @@ def value_and_jac_over(indices, J = grad, ξ = None):
         return np.asarray(ξ(*ps, **kwargs))
     #
     return jit(wrapper), jit(J(wrapper))
-
-
+#
 def value_and_jac_over_array(indices, J = grad, ξ = None):
     # For reaction_coordinates that take an array of positions
     # (e.g., RadiusOfGyration, Barycenter).

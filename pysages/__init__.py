@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2020: Pablo Zubieta
+# Copyright (c) 2020: Pablo Zubieta (see LICENSE.md)
 
 
 import importlib
@@ -43,7 +43,7 @@ def set_backend(name):
 
 
 def view(backend, simulation):
-    """Create a view of the simulation data from the active backend."""
+    """Create a view of the simulation data (dynamic snapshot) for the provided backend."""
     #
     convert = jax.dlpack.from_dlpack
     #
@@ -58,16 +58,21 @@ def view(backend, simulation):
 
 
 def bias(state):
+    """Adds the computed bias to the forces."""
+    # JAX is not designed to modify the underlying memory of arrays so we need to use
+    # another library. Here we use CuPy, but might as well consider NumPy + Numba
+    # (we need NumPy anyway for doing this on the CPU).
     cp_forces = cupy.asarray(state.snapshot.forces)
-    cp_bias = cupy.asarray(state.bias)
+    cp_bias = cupy.asarray(state.bias.block_until_ready())
     cp_forces += cp_bias
     return None
 
 
 def link(backend, simulation, sampler):
+    """Creates a hook that couples the simulation to the sampling method."""
     hook = backend.Hook()
     hook.initialize_from(sampler, bias)
     backend.attach(simulation, hook)
-    # Return the hook to ensure it doesn't get garbage collected
-    # within the scope of this function
+    # Return the hook to ensure it doesn't get garbage collected within the scope
+    # of this function (another option is to store it in a global).
     return hook

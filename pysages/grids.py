@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2020: Pablo Zubieta
+# Copyright (c) 2020: Pablo Zubieta (see LICENSE.md)
 
 
 from collections import namedtuple
