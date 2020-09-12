@@ -55,36 +55,44 @@ def collective_variable(cv0, *cvs):
     #
     if len(cvs) == 0 and n0 <= 3:
         def wrapper(positions, tags):
-            return ξ0(positions, tags).flatten(), Jξ0(positions, tags).flatten()
-        return CollectiveVariableData(n0, jit(wrapper), None)
+            ξs = ξ0(positions, tags).flatten()
+            Jξs = np.expand_dims(Jξ0(positions, tags).flatten(), 0)
+            return ξs, Jξs
+        return CollectiveVariableData(
+            np.array(n0, dtype = np.uint32), jit(wrapper), None
+        )
     #
     if len(cvs) == 1 and n0 + n1 <= 3:
         def wrapper(positions, tags):
-            ξs = np.stack((
+            ξs = np.hstack([
                 ξ0(positions, tags).flatten(),
                 ξ1(positions, tags).flatten()
-            ))
-            Jξs = np.vstack((
+            ])
+            Jξs = np.vstack([
                 Jξ0(positions, tags).flatten(),
                 Jξ1(positions, tags).flatten()
-            ))
+            ])
             return ξs, Jξs
-        return CollectiveVariableData(n0 + n1, jit(wrapper), None)
+        return CollectiveVariableData(
+            np.array(n0 + n1, dtype = np.uint32), jit(wrapper), None
+        )
     #
     if len(cvs) == 2 and n0 + n1 + n2 == 3:
         def wrapper(positions, tags):
-            ξs = np.stack((
+            ξs = np.hstack([
                 ξ0(positions, tags),
                 ξ1(positions, tags),
                 ξ2(positions, tags)
-            ))
-            Jξs = np.vstack((
+            ])
+            Jξs = np.vstack([
                 Jξ0(positions, tags).flatten(),
                 Jξ1(positions, tags).flatten(),
                 Jξ2(positions, tags).flatten()
-            ))
+            ])
             return ξs, Jξs
-        return CollectiveVariableData(n0 + n1 + n2, jit(wrapper), None)
+        return CollectiveVariableData(
+            np.array(n0 + n1 + n2, dtype = np.uint32), jit(wrapper), None
+        )
     #
     raise ValueError(
         "Collective variable spaces of more than "
