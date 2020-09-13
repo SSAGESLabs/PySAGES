@@ -90,7 +90,7 @@ def abf(snapshot, grid, cv, N = 200):
         #
         return ABFState(bias, hist, Fsum, F, Wp, state.Wp)
     #
-    return initialize, generic_update(cv.ξ, update)
+    return snapshot, initialize, generic_update(cv.ξ, update)
 
 
 def funn(snapshot, grid, cv, topology, N = 200):
@@ -130,4 +130,4 @@ def funn(snapshot, grid, cv, topology, N = 200):
         #
         return FUNNState(bias, nn, hist, Fsum, F, Wp, Wp_)
     #
-    return initialize, generic_update(cv, update)
+    return snapshot, initialize, generic_update(cv, update)

@@ -6,6 +6,7 @@ import importlib
 
 import cupy
 import jax
+#
 from jax import numpy as np
 from jax.dlpack import from_dlpack
 #
@@ -57,12 +58,12 @@ def view(backend, simulation):
     return SystemView(positions, vel_mass, forces, tags, box, dt)
 
 
-def bias(state):
+def bias(snapshot, state):
     """Adds the computed bias to the forces."""
     # JAX is not designed to modify the underlying memory of arrays so we need to use
     # another library. Here we use CuPy, but might as well consider NumPy + Numba
     # (we need NumPy anyway for doing this on the CPU).
-    cp_forces = cupy.asarray(state.snapshot.forces)
+    cp_forces = cupy.asarray(snapshot.forces)
     cp_bias = cupy.asarray(state.bias.block_until_ready())
     cp_forces += cp_bias
     return None
