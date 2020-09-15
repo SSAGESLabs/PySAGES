@@ -47,11 +47,12 @@ def generic_update(cv, concrete_update):
     def update(snapshot, state):
         M = snapshot.vel_mass[:, 3:]
         V = snapshot.vel_mass
-        # Compute the collective variable
-        ξ, Jξ = cv.ξ(snapshot.positions, snapshot.tags)
+        R = snapshot.positions
+        T = snapshot.tags
         #
-        return _update(M, V, ξ, Jξ, state)
+        return _update(M, V, R, T, state)
     #
+    # Evaluate if `return jit(update)` works here
     return update
 
 
@@ -70,11 +71,14 @@ def abf(snapshot, grid, cv, N = 200):
         Wp_ = np.zeros(cv.dims)
         return ABFState(bias, hist, Fsum, F, Wp, Wp_)
     #
-    def update(M, V, ξ, Jξ, state):
+    def update(M, V, R, T, state):
+        # Compute the collective variable
+        ξ, Jξ = cv.ξ(R, T)
         # Compute momenta
         p = np.multiply(M, V).flatten()
         # The following could equivalently be computed as `linalg.pinv(Jξ.T) @ p`
         # (both seem to have the same performance).
+        # Another option to benchmark against is `linalg.solve(Jξ @ Jξ.T, Jξ @ p)`
         Wp = linalg.tensorsolve(Jξ @ Jξ.T, Jξ @ p)
         # Second order backward finite difference
         dWp_dt = (1.5 * Wp - 2.0 * state.Wp + 0.5 * state.Wp_) / dt + state.F
@@ -109,7 +113,9 @@ def funn(snapshot, grid, cv, topology, N = 200):
         nn = neural_network(topology)
         return FUNNState(bias, nn, hist, Fsum, F, Wp, Wp_)
     #
-    def update(M, V, ξ, Jξ, state):
+    def update(M, V, R, T, state):
+        # Compute the collective variable
+        ξ, Jξ = cv.ξ(R, T)
         #
         nn.train()
         Q = nn.predict(Fsum)
