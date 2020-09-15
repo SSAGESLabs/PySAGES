@@ -41,7 +41,7 @@ def check_dims(grid, cv):
         raise ValueError("Grid and Collective Variable dimensions must match.")
 
 
-def generic_update(cv, concrete_update):
+def generic_update(concrete_update):
     _update = jit(concrete_update)
     #
     def update(snapshot, state):
@@ -52,8 +52,8 @@ def generic_update(cv, concrete_update):
         #
         return _update(M, V, R, T, state)
     #
-    # Evaluate if `return jit(update)` works here
-    return update
+    # TODO: Validate that jitting here gives correct results
+    return jit(update)
 
 
 def abf(snapshot, grid, cv, N = 200):
@@ -94,7 +94,7 @@ def abf(snapshot, grid, cv, N = 200):
         #
         return ABFState(bias, hist, Fsum, F, Wp, state.Wp)
     #
-    return snapshot, initialize, generic_update(cv, update)
+    return snapshot, initialize, generic_update(update)
 
 
 def funn(snapshot, grid, cv, topology, N = 200):
@@ -136,4 +136,4 @@ def funn(snapshot, grid, cv, topology, N = 200):
         #
         return FUNNState(bias, nn, hist, Fsum, F, Wp, Wp_)
     #
-    return snapshot, initialize, generic_update(cv, update)
+    return snapshot, initialize, generic_update(update)
