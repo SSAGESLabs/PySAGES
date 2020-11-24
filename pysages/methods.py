@@ -5,7 +5,7 @@
 from collections import namedtuple
 
 import jax.numpy as np
-from jax import jit, pmap, vmap
+from jax import jit, pmap, vmap, scipy
 from jax.numpy import linalg
 from jax.ops import index, index_add, index_update
 
@@ -78,14 +78,16 @@ def abf(snapshot, grid, cv, N = 200):
         p = np.multiply(M, V).flatten()
         # The following could equivalently be computed as `linalg.pinv(Jξ.T) @ p`
         # (both seem to have the same performance).
-        # Another option to benchmark against is `linalg.solve(Jξ @ Jξ.T, Jξ @ p)`
-        Wp = linalg.tensorsolve(Jξ @ Jξ.T, Jξ @ p)
+        # Another option to benchmark against is
+        # Wp = linalg.tensorsolve(Jξ @ Jξ.T, Jξ @ p)
+        Wp = scipy.linalg.solve(Jξ @ Jξ.T, Jξ @ p, sym_pos = "sym")
         # Second order backward finite difference
-        dWp_dt = (1.5 * Wp - 2.0 * state.Wp + 0.5 * state.Wp_) / dt + state.F
+        dWp_dt = (1.5 * Wp - 2.0 * state.Wp + 0.5 * state.Wp_) / dt
         #
         I = get_index(grid, ξ)
         H_I = state.hist[I] + 1
-        ΣF_I = state.Fsum[I] + dWp_dt
+        # Add previous force to remove bias
+        ΣF_I = state.Fsum[I] + dWp_dt + state.F
         hist = state.hist.at[I].set(H_I)
         Fsum = state.Fsum.at[I].set(ΣF_I)
         F = ΣF_I / np.maximum(H_I, N)
@@ -117,17 +119,17 @@ def funn(snapshot, grid, cv, topology, N = 200):
         # Compute the collective variable
         ξ, Jξ = cv.ξ(R, T)
         #
-        nn.train()
-        Q = nn.predict(Fsum)
+        nn.train(Fsum / hist)
+        Q = nn.predict(ξ)
         #
         # Compute momenta
         p = np.multiply(M, V).flatten()
         Wp = linalg.tensorsolve(Jξ @ Jξ.T, Jξ @ p)
-        dWp_dt = (1.5 * Wp - 2.0 * state.Wp_ + 0.5 * state.Wp_) / dt + state.F + Q
+        dWp_dt = (1.5 * Wp - 2.0 * state.Wp_ + 0.5 * state.Wp_) / dt
         #
         I = get_index(grid, ξ)
         H_I = state.hist[I] + 1
-        ΣF_I = state.Fsum[I] + dWp_dt
+        ΣF_I = state.Fsum[I] + dWp_dt + Q
         hist = state.hist.at[I].set(H_I)
         Fsum = state.Fsum.at[I].set(ΣF_I)
         F = ΣF_I / np.maximum(H_I, N)
