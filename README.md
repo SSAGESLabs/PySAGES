@@ -7,7 +7,7 @@ implementation of [SSAGES](https://ssagesproject.github.io) with support for GPU
 
 ## Installation
 
-Currently, ther is only support for
+Currently, there is only support for
 [HOOMD-blue](https://glotzerlab.engin.umich.edu/hoomd-blue), but gradual support for other
 molecular dynamics engines is planned (for instance, for all engines already supported by
 the original SSAGES).
@@ -20,3 +20,13 @@ guide to set it up.
 
 To test GPU support HOOMD-blue, HOOMD-dlext and JAX need to be built or installed with
 GPU support.
+
+## Usage
+
+PySAGES provide a straightforward interface to setup Collective Variables and Enhaced
+Sampling methods to you MD simulations. See the documentation to learn more.
+
+
+<div align="center">
+  <img src="doc/assets/pysages.png" alt="PySAGES" height="200">
+</div>
