@@ -28,5 +28,5 @@ Sampling methods to you MD simulations. See the documentation to learn more.
 
 
 <div align="center">
-  <img src="doc/assets/pysages.png" alt="PySAGES" height="200">
+  <img src="docs/assets/pysages.png" alt="PySAGES" height="200">
 </div>
