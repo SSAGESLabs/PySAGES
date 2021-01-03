@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2020: Pablo Zubieta (see LICENSE.md)
+
+
 import cupy
 import matplotlib.pyplot as plt
 import numba
