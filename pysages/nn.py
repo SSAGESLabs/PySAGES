@@ -197,21 +197,6 @@ class LMBTrainingState(
     pass
 #
 @register_pytree_namedtuple
-class LevenbergMaquardtBayes(
-    namedtuple(
-        "LevenbergMaquardtBayes",
-        ("μi", "μs", "μmin", "μmax"),
-        defaults = (
-            np.float32(0.005),  # μi
-            np.float32(10),     # μs
-            np.float32(5e-16),  # μmin
-            np.float32(1e10)    # μmax
-        )
-    )
-):
-    pass
-#
-@register_pytree_namedtuple
 class LMState(namedtuple("LMState", ["θ", "e", "G", "C", "R", "μ"])):
     pass
 #
@@ -254,7 +239,7 @@ def initialize(opt: LevenbergMaquardtBayes, obj: RBObjective, x, n):
         return G, (α, β), μ, τ
     #
     def _bl_restart(G, state):
-        _, _, μ, τ = state
+        _, _, _, τ = state
         α = np.float32(np.minimum(τ / x.size, 1) / x.size)
         β = np.float32(1)
         return G, (α, β), μi, τ + 1
