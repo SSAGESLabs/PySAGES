@@ -10,7 +10,8 @@ from jax.numpy import linalg
 from jax.ops import index, index_add, index_update
 
 from .grids import get_index
-from .utils import register_pytree_namedtuple
+from ..nn import LevenbergMaquardtBayes, mlp, PartialRBObjective, trainer
+from ..utils import register_pytree_namedtuple
 
 
 ABFData = namedtuple(
@@ -104,6 +105,8 @@ def funn(snapshot, grid, cv, topology, N = 200):
     #
     N = np.asarray(N)
     dt = snapshot.dt
+    model = mlp(grid.shape, cv.dims, topology)
+    train = trainer(model, PartialRBObjective(), LevenbergMaquardtBayes(), np.zeros(cv.dims))
     #
     def initialize():
         bias = np.zeros_like(snapshot.forces)
@@ -112,15 +115,14 @@ def funn(snapshot, grid, cv, topology, N = 200):
         F = np.zeros(cv.dims)
         Wp = np.zeros(cv.dims)
         Wp_ = np.zeros(cv.dims)
-        nn = neural_network(topology)
-        return FUNNState(bias, nn, hist, Fsum, F, Wp, Wp_)
+        return FUNNState(bias, model.parameters, hist, Fsum, F, Wp, Wp_)
     #
     def update(M, V, R, T, state):
         # Compute the collective variable
         ξ, Jξ = cv.ξ(R, T)
         #
-        nn.train(Fsum / hist)
-        Q = nn.predict(ξ)
+        θ = train(state.nn, state.Fsum / state.hist).θ
+        Q = model.apply(θ, ξ)
         #
         # Compute momenta
         p = np.multiply(M, V).flatten()
@@ -136,6 +138,6 @@ def funn(snapshot, grid, cv, topology, N = 200):
         #
         bias = np.reshape(-Jξ.T @ F, snapshot.forces.shape)
         #
-        return FUNNState(bias, nn, hist, Fsum, F, Wp, Wp_)
+        return FUNNState(bias, θ, hist, Fsum, F, Wp, state.Wp)
     #
     return snapshot, initialize, generic_update(update)
