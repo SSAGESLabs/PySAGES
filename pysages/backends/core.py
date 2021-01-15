@@ -9,6 +9,8 @@ from jax import numpy as np
 
 from ..ssages import Box, SystemView
 
+
+# Set default floating point type for arrays in `jax` to `jax.f64`
 jax.config.update("jax_enable_x64", True)
 
 
@@ -30,7 +32,7 @@ def set_backend(name):
     global _ACTIVE_BACKEND
     #
     if name in supported_backends():
-        _ACTIVE_BACKEND = importlib.import_module(name + '.dlext')
+        _ACTIVE_BACKEND = importlib.import_module('.hoomd', package="backends")
     else:
         raise ValueError('Invalid backend')
     #
@@ -55,8 +57,8 @@ def view(backend, simulation):
     return SystemView(positions, vel_mass, forces, tags, box, dt)
 
 
-def set_biasing(backend, simulation_context):
-    device = backend.get_device_type(simulation_context)
+def _set_bias(backend, simulation):
+    device = backend.get_device_type(simulation)
     xp = importlib.import_module("cupy" if device == "gpu" else "numpy")
     #
     def bias(snapshot, state):
@@ -73,7 +75,7 @@ def set_biasing(backend, simulation_context):
 def link(backend, simulation, sampler):
     """Creates a hook that couples the simulation to the sampling method."""
     hook = backend.Hook()
-    bias = set_biasing(backend, simulation)
+    bias = _set_bias(backend, simulation)
     hook.initialize_from(sampler, bias)
     backend.attach(simulation, hook)
     # Return the hook to ensure it doesn't get garbage collected within the scope
