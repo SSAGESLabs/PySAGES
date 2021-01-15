@@ -183,7 +183,7 @@ def _radius_of_gyration(positions):
     n = positions.shape[0]
     S = np.zeros((3,))
     # TODO: Replace by `np.sum` and `vmap`
-    for i in range(n):
+    for r in positions:
         S[:] += np.dot(r, r)
     return S / n
 
@@ -253,7 +253,7 @@ def acylindricity(indices, weights = None):
             return _principal_moments(_weighted_gyration_tensor(rs, ws))
     #
     def acylindricity(positions):
-        λ1, λ2, λ3 = reaction_coordinate(positions)
+        λ1, λ2, _ = reaction_coordinate(positions)
         return (λ2 - λ1)
     #
     ξ, Jξ = value_and_jac_over_array(indices)(acylindricity)
@@ -303,7 +303,7 @@ def barycenter(indices, weights = None):
         def reaction_coordinate(rs):
             return _weighted_barycenter(rs, ws)
     #
-    ξ, Jξ = value_and_jac_over(indices)(_barycenter)
+    ξ, Jξ = value_and_jac_over(indices)(reaction_coordinate)
     return CollectiveVariableData(3, jit(ξ), jit(Jξ))
 
 
