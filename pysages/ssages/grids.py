@@ -7,8 +7,7 @@ from collections import namedtuple
 import jax.numpy as np
 from jax import jit
 from jax.lax import convert_element_type
-
-from .utils import register_pytree_namedtuple
+from pysages.utils import register_pytree_namedtuple
 
 
 GridInfo = namedtuple("GridInfo", ["lower", "upper", "shape", "periodicity", "Δ"])

@@ -3,7 +3,7 @@
 
 
 from collections import namedtuple
-from ..utils import register_pytree_namedtuple
+from pysages.utils import register_pytree_namedtuple
 
 
 @register_pytree_namedtuple
