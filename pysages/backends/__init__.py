@@ -2,15 +2,10 @@
 # Copyright (c) 2020: Pablo Zubieta (see LICENSE.md)
 
 
-from .backends import (
+from .api import (
+    active_backend,
     link,
     set_backend,
+    supported_backends,
     view,
-)
-
-from .ssages import (
-    Grid,
-    collective_variable,
-    cvs,
-    methods,
 )
