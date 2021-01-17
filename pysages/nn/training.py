@@ -138,7 +138,7 @@ def trainer(model, objective, optimizer, inputs):
     n = p.size  # Number of network parameters
     #
     obj = objectives.initialize(objective, model)
-    opt = optimizers.initialize(optimizer, obj, inputs, n)
+    opt = initialize(optimizer, obj, inputs, n)
 
     # Trainer state initialization
     # ----------------------------
