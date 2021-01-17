@@ -7,7 +7,8 @@ import jax
 
 from jax import numpy as np
 
-from ..ssages import Box, SystemView
+from jax import dlpack
+from pysages.ssages import Box, SystemView
 
 
 # Set default floating point type for arrays in `jax` to `jax.f64`
@@ -32,7 +33,7 @@ def set_backend(name):
     global _ACTIVE_BACKEND
     #
     if name in supported_backends():
-        _ACTIVE_BACKEND = importlib.import_module('.hoomd', package="backends")
+        _ACTIVE_BACKEND = importlib.import_module('.hoomd', package="pysages.backends")
     else:
         raise ValueError('Invalid backend')
     #
@@ -45,7 +46,7 @@ def view(backend, simulation):
     if backend.get_device_type(simulation) != "gpu":
         jax.config.update("jax_platform_name", "cpu")
     #
-    convert = jax.dlpack.from_dlpack
+    convert = dlpack.from_dlpack
     #
     R, V_M, F, I, B, dt = backend.view(simulation)
     positions = convert(R)
@@ -58,14 +59,21 @@ def view(backend, simulation):
 
 
 def _set_bias(backend, simulation):
-    device = backend.get_device_type(simulation)
-    xp = importlib.import_module("cupy" if device == "gpu" else "numpy")
+    # Depending on the device being used we need to use either cupy or numpy
+    # (or numba) to generate a view of jax's DeviceArrays
+    if backend.get_device_type(simulation) == "gpu":
+        cupy = importlib.import_module("cupy")
+        view = cupy.asarray
+    else:
+        utils = importlib.import_module(".utils", package="pysages.backends")
+        view = utils.view
     #
     def bias(snapshot, state):
         """Adds the computed bias to the forces."""
-        # TODO: Check if this can be JIT compiled with numba.
-        cp_forces = xp.asarray(snapshot.forces)
-        cp_bias = xp.asarray(state.bias.block_until_ready())
+        # TODO: Factor out the views so we can eliminate two function calls here.
+        # Also, check if this can be JIT compiled with numba.
+        cp_forces = view(snapshot.forces)
+        cp_bias = view(state.bias.block_until_ready())
         cp_forces += cp_bias
         return None
     #

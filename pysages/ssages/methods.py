@@ -8,10 +8,13 @@ import jax.numpy as np
 from jax import jit, pmap, vmap, scipy
 from jax.numpy import linalg
 from jax.ops import index, index_add, index_update
+from pysages.nn.models import mlp
+from pysages.nn.objectives import PartialRBObjective
+from pysages.nn.optimizers import LevenbergMaquardtBayes
+from pysages.nn.training import trainer
+from pysages.utils import register_pytree_namedtuple
 
 from .grids import get_index
-from ..nn import LevenbergMaquardtBayes, mlp, PartialRBObjective, trainer
-from ..utils import register_pytree_namedtuple
 
 
 ABFData = namedtuple(
