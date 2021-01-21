@@ -6,8 +6,6 @@ import importlib
 import jax
 
 from jax import numpy as np
-
-from jax import dlpack
 from pysages.ssages import Box, SystemView
 
 
@@ -43,19 +41,13 @@ def set_backend(name):
 def view(backend, simulation):
     """Create a view of the simulation data (dynamic snapshot) for the provided backend."""
     #
-    if backend.get_device_type(simulation) != "gpu":
+    if not backend.is_on_gpu(simulation):
         jax.config.update("jax_platform_name", "cpu")
     #
-    convert = dlpack.from_dlpack
+    positions, momenta, forces, tags, H, origin, dt = backend.view(simulation)
+    box = Box(np.asarray(H), np.asarray(origin))
     #
-    R, V_M, F, I, B, dt = backend.view(simulation)
-    positions = convert(R)
-    vel_mass = convert(V_M)
-    forces = convert(F)
-    tags = convert(I)
-    box = Box(np.asarray(B[0]), np.asarray(B[1]))
-    #
-    return SystemView(positions, vel_mass, forces, tags, box, dt)
+    return SystemView(positions, momenta, forces, tags, box, dt)
 
 
 def _set_bias(backend, simulation):
@@ -63,18 +55,18 @@ def _set_bias(backend, simulation):
     # (or numba) to generate a view of jax's DeviceArrays
     if backend.get_device_type(simulation) == "gpu":
         cupy = importlib.import_module("cupy")
-        view = cupy.asarray
+        wrap = cupy.asarray
     else:
         utils = importlib.import_module(".utils", package="pysages.backends")
-        view = utils.view
+        wrap = utils.view
     #
     def bias(snapshot, state):
         """Adds the computed bias to the forces."""
         # TODO: Factor out the views so we can eliminate two function calls here.
         # Also, check if this can be JIT compiled with numba.
-        cp_forces = view(snapshot.forces)
-        cp_bias = view(state.bias.block_until_ready())
-        cp_forces += cp_bias
+        forces = wrap(snapshot.forces)
+        biases = wrap(state.bias.block_until_ready())
+        forces += biases
         return None
     #
     return bias
