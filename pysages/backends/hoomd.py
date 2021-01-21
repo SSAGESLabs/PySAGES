@@ -2,10 +2,14 @@
 # This file is part of `hoomd-dlext`, see LICENSE.md
 
 
+import jax
+
 from hoomd.dlext import (
     AccessLocation, AccessMode, HalfStepHook, SystemView,
     net_forces, positions_types, tags, velocities_masses,
 )
+
+from jax.dlpack import from_dlpack as wrap
 
 
 if hasattr(AccessLocation, 'OnDevice'):
@@ -14,18 +18,19 @@ else:
     DEFAULT_DEVICE = AccessLocation.OnHost
 
 
-def get_device_type(context):
-    return "gpu" if context.on_gpu() else "cpu"
+def is_on_gpu(context):
+    return context.on_gpu()
 
 
 def view(context):
+    #
     dt = context.integrator.dt
     system_view = SystemView(context.system_definition)
     #
-    positions = positions_types(system_view, DEFAULT_DEVICE, AccessMode.ReadWrite)
-    vel_mass = velocities_masses(system_view, DEFAULT_DEVICE, AccessMode.ReadWrite)
-    forces = net_forces(system_view, DEFAULT_DEVICE, AccessMode.ReadWrite)
-    ids = tags(system_view, DEFAULT_DEVICE, AccessMode.ReadWrite)
+    positions = wrap(positions_types(system_view, DEFAULT_DEVICE, AccessMode.ReadWrite))
+    momenta = wrap(velocities_masses(system_view, DEFAULT_DEVICE, AccessMode.ReadWrite))
+    forces = wrap(net_forces(system_view, DEFAULT_DEVICE, AccessMode.ReadWrite))
+    ids = wrap(tags(system_view, DEFAULT_DEVICE, AccessMode.ReadWrite))
     #
     box = system_view.particle_data().getGlobalBox()
     L  = box.getL()
@@ -40,7 +45,7 @@ def view(context):
     )
     origin = (lo.x, lo.y, lo.z)
     #
-    return (positions, vel_mass, forces, ids, (H, origin), dt)
+    return (positions, momenta, forces, ids, H, origin, dt)
 
 
 class Hook(HalfStepHook):
