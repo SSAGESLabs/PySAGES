@@ -53,7 +53,7 @@ def view(backend, simulation):
 def _set_bias(backend, simulation):
     # Depending on the device being used we need to use either cupy or numpy
     # (or numba) to generate a view of jax's DeviceArrays
-    if backend.get_device_type(simulation) == "gpu":
+    if backend.is_on_gpu(simulation):
         cupy = importlib.import_module("cupy")
         wrap = cupy.asarray
     else:
