@@ -3,9 +3,10 @@
 
 
 from .backends import (
-    link,
+    bind,
     set_backend,
-    view,
+    supported_backends,
+    wrap,
 )
 
 from .ssages import (
