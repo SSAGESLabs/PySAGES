@@ -2,10 +2,10 @@
 # Copyright (c) 2020: Pablo Zubieta (see LICENSE.md)
 
 
-from .api import (
-    active_backend,
-    link,
+from .core import (
+    bind,
+    current_backend,
     set_backend,
     supported_backends,
-    view,
+    wrap,
 )
