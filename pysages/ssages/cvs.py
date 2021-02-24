@@ -23,7 +23,7 @@ def value_and_jac_over(indices, J = grad, ξ = None):
     #
     ξ = jit(ξ)
     def wrapper(positions, tags, **kwargs):
-        ps = positions[tags.argsort()[indices], 0:3]
+        ps = positions[tags[indices], 0:3]
         return np.asarray(ξ(*ps, **kwargs))
     #
     return jit(wrapper), jit(J(wrapper))
@@ -37,7 +37,7 @@ def value_and_jac_over_array(indices, J = grad, ξ = None):
     #
     ξ = jit(ξ)
     def wrapper(positions, tags, **kwargs):
-        ps = positions[tags.argsort()[indices], 0:3]
+        ps = positions[tags[indices], 0:3]
         return np.asarray(ξ(ps, **kwargs))
     #
     return jit(wrapper), jit(J(wrapper))

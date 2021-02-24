@@ -6,7 +6,7 @@ import jax
 
 from hoomd.dlext import (
     AccessLocation, AccessMode, HalfStepHook, SystemView,
-    net_forces, positions_types, tags, velocities_masses,
+    net_forces, positions_types, rtags, tags, velocities_masses,
 )
 
 from jax.dlpack import from_dlpack as wrap
@@ -27,10 +27,10 @@ def view(context):
     dt = context.integrator.dt
     system_view = SystemView(context.system_definition)
     #
-    positions = wrap(positions_types(system_view, DEFAULT_DEVICE, AccessMode.ReadWrite))
-    momenta = wrap(velocities_masses(system_view, DEFAULT_DEVICE, AccessMode.ReadWrite))
+    positions = wrap(positions_types(system_view, DEFAULT_DEVICE, AccessMode.Read))
+    momenta = wrap(velocities_masses(system_view, DEFAULT_DEVICE, AccessMode.Read))
     forces = wrap(net_forces(system_view, DEFAULT_DEVICE, AccessMode.ReadWrite))
-    ids = wrap(tags(system_view, DEFAULT_DEVICE, AccessMode.ReadWrite))
+    ids = wrap(rtags(system_view, DEFAULT_DEVICE, AccessMode.Read))
     #
     box = system_view.particle_data().getGlobalBox()
     L  = box.getL()
