@@ -2,6 +2,7 @@
 # This file is part of `hoomd-dlext`, see LICENSE.md
 
 
+import importlib
 import jax
 
 from hoomd.dlext import (
@@ -63,6 +64,29 @@ class Hook(HalfStepHook):
         return None
 
 
-def attach(context, hook):
+def bind(context, sampler):
+    # Depending on the device being used we need to use either cupy or numpy
+    # (or numba) to generate a view of jax's DeviceArrays
+    if is_on_gpu(context):
+        cupy = importlib.import_module("cupy")
+        wrap = cupy.asarray
+    else:
+        utils = importlib.import_module(".utils", package = "pysages.backends")
+        wrap = utils.view
+    #
+    def bias(snapshot, state):
+        """Adds the computed bias to the forces."""
+        # TODO: Factor out the views so we can eliminate two function calls here.
+        # Also, check if this can be JIT compiled with numba.
+        forces = wrap(snapshot.forces)
+        biases = wrap(state.bias.block_until_ready())
+        forces += biases
+        return None
+    #
+    hook = Hook()
+    hook.initialize_from(sampler, bias)
     context.integrator.cpp_integrator.setHalfStepHook(hook)
-    return None
+    #
+    # Return the hook to ensure it doesn't get garbage collected within the scope
+    # of this function (another option is to store it in a global).
+    return hook
