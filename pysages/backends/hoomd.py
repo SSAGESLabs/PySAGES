@@ -2,11 +2,12 @@
 # This file is part of `hoomd-dlext`, see LICENSE.md
 
 
+import importlib
 import jax
 
 from hoomd.dlext import (
     AccessLocation, AccessMode, HalfStepHook, SystemView,
-    net_forces, positions_types, tags, velocities_masses,
+    net_forces, positions_types, rtags, tags, velocities_masses,
 )
 
 from jax.dlpack import from_dlpack as wrap
@@ -27,10 +28,10 @@ def view(context):
     dt = context.integrator.dt
     system_view = SystemView(context.system_definition)
     #
-    positions = wrap(positions_types(system_view, DEFAULT_DEVICE, AccessMode.ReadWrite))
-    momenta = wrap(velocities_masses(system_view, DEFAULT_DEVICE, AccessMode.ReadWrite))
+    positions = wrap(positions_types(system_view, DEFAULT_DEVICE, AccessMode.Read))
+    momenta = wrap(velocities_masses(system_view, DEFAULT_DEVICE, AccessMode.Read))
     forces = wrap(net_forces(system_view, DEFAULT_DEVICE, AccessMode.ReadWrite))
-    ids = wrap(tags(system_view, DEFAULT_DEVICE, AccessMode.ReadWrite))
+    ids = wrap(rtags(system_view, DEFAULT_DEVICE, AccessMode.Read))
     #
     box = system_view.particle_data().getGlobalBox()
     L  = box.getL()
@@ -63,6 +64,29 @@ class Hook(HalfStepHook):
         return None
 
 
-def attach(context, hook):
+def bind(context, sampler):
+    # Depending on the device being used we need to use either cupy or numpy
+    # (or numba) to generate a view of jax's DeviceArrays
+    if is_on_gpu(context):
+        cupy = importlib.import_module("cupy")
+        wrap = cupy.asarray
+    else:
+        utils = importlib.import_module(".utils", package = "pysages.backends")
+        wrap = utils.view
+    #
+    def bias(snapshot, state):
+        """Adds the computed bias to the forces."""
+        # TODO: Factor out the views so we can eliminate two function calls here.
+        # Also, check if this can be JIT compiled with numba.
+        forces = wrap(snapshot.forces)
+        biases = wrap(state.bias.block_until_ready())
+        forces += biases
+        return None
+    #
+    hook = Hook()
+    hook.initialize_from(sampler, bias)
     context.integrator.cpp_integrator.setHalfStepHook(hook)
-    return None
+    #
+    # Return the hook to ensure it doesn't get garbage collected within the scope
+    # of this function (another option is to store it in a global).
+    return hook

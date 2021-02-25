@@ -44,8 +44,7 @@ def set_backend(name):
 def wrap(simulation):
     """Create a view of the simulation data (dynamic snapshot) for the provided backend."""
     #
-    if _CURRENT_BACKEND is None:
-        raise RuntimeError("No backend has been set")
+    check_backend_initialization()
     #
     if not _CURRENT_BACKEND.is_on_gpu(simulation):
         jax.config.update("jax_platform_name", "cpu")
@@ -56,38 +55,14 @@ def wrap(simulation):
     return SystemView(positions, momenta, forces, tags, box, dt)
 
 
-def _set_bias(simulation):
-    # Depending on the device being used we need to use either cupy or numpy
-    # (or numba) to generate a view of jax's DeviceArrays
-    if _CURRENT_BACKEND.is_on_gpu(simulation):
-        cupy = importlib.import_module("cupy")
-        wrap = cupy.asarray
-    else:
-        utils = importlib.import_module(".utils", package="pysages.backends")
-        wrap = utils.view
-    #
-    def bias(snapshot, state):
-        """Adds the computed bias to the forces."""
-        # TODO: Factor out the views so we can eliminate two function calls here.
-        # Also, check if this can be JIT compiled with numba.
-        forces = wrap(snapshot.forces)
-        biases = wrap(state.bias.block_until_ready())
-        forces += biases
-        return None
-    #
-    return bias
-
-
 def bind(simulation, sampler):
-    """Creates a hook that couples the simulation to the sampling method."""
+    """Couples the sampling method to the simulation."""
     #
+    check_backend_initialization()
+    #
+    return _CURRENT_BACKEND.bind(simulation, sampler)
+
+
+def check_backend_initialization():
     if _CURRENT_BACKEND is None:
         raise RuntimeError("No backend has been set")
-    #
-    hook = _CURRENT_BACKEND.Hook()
-    bias = _set_bias(simulation)
-    hook.initialize_from(sampler, bias)
-    _CURRENT_BACKEND.attach(simulation, hook)
-    # Return the hook to ensure it doesn't get garbage collected within the scope
-    # of this function (another option is to store it in a global).
-    return hook
