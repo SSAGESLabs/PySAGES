@@ -3,7 +3,8 @@
 
 
 import importlib
-import jax
+
+from functools import partial
 
 from hoomd.dlext import (
     AccessLocation, AccessMode, HalfStepHook, SystemView,
@@ -74,8 +75,11 @@ def bind(context, sampler):
         utils = importlib.import_module(".utils", package = "pysages.backends")
         wrap = utils.view
     #
-    def bias(snapshot, state):
+    def bias(snapshot, state, sync):
         """Adds the computed bias to the forces."""
+        # Forces may be computed asynchronously on the GPU, so we need to
+        # synchronize them before applying the bias.
+        sync()
         # TODO: Factor out the views so we can eliminate two function calls here.
         # Also, check if this can be JIT compiled with numba.
         forces = wrap(snapshot.forces)
@@ -83,8 +87,11 @@ def bind(context, sampler):
         forces += biases
         return None
     #
+    system_view = SystemView(context.system_definition)
+    sync_and_bias = partial(bias, sync = system_view.synchronize)
+    #
     hook = Hook()
-    hook.initialize_from(sampler, bias)
+    hook.initialize_from(sampler, sync_and_bias)
     context.integrator.cpp_integrator.setHalfStepHook(hook)
     #
     # Return the hook to ensure it doesn't get garbage collected within the scope
