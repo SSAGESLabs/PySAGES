@@ -8,7 +8,7 @@ import jax
 from functools import partial
 from hoomd.dlext import (
     AccessLocation, AccessMode, HalfStepHook, SystemView,
-    net_forces, positions_types, rtags, tags, velocities_masses,
+    net_forces, positions_types, rtags, velocities_masses,
 )
 from pysages.backends.snapshot import Box, Snapshot
 
@@ -102,22 +102,25 @@ def build_helpers(context):
         biases = view(state.bias.block_until_ready())
         forces += biases
     #
+    def indices(ids):
+        return ids
+    #
     def momenta(vel_mass):
         M = vel_mass[:, 3:]
         V = vel_mass
         return jax.numpy.multiply(M, V).flatten()
     #
-    return view, bias, jax.jit(momenta)
+    return view, bias, jax.jit(indices), jax.jit(momenta)
 
 
 def bind(context, sampling_method, **kwargs):
     #
-    view, bias, momenta = build_helpers(context)
+    view, bias, indices, momenta = build_helpers(context)
     #
     wrapped_context = ContextWrapper(context)
     snapshot = take_snapshot(wrapped_context)
     forces = view(snapshot.forces)
-    method_bundle = sampling_method(snapshot, momenta)
+    method_bundle = sampling_method(snapshot, (indices, momenta))
     sync_and_bias = partial(bias, forces = forces, sync = wrapped_context.synchronize)
     #
     sampler = Sampler(method_bundle, sync_and_bias)
