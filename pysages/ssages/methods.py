@@ -7,7 +7,7 @@ import jax.numpy as np
 from jax import jit, pmap, vmap, scipy
 from jax.numpy import linalg
 from jax.ops import index, index_add, index_update
-from pysages.ssages.cvs import collective_variable
+from pysages.ssages.cvs import build
 from pysages.nn.models import mlp
 from pysages.nn.objectives import PartialRBObjective
 from pysages.nn.optimizers import LevenbergMaquardtBayes
@@ -17,8 +17,8 @@ from pysages.utils import register_pytree_namedtuple
 from .grids import get_index
 
 
-def check_dims(grid, cv):
-    if grid.shape.size != cv.dims:
+def check_dims(grid, cvs):
+    if grid.shape.size != len(cvs):
         raise ValueError("Grid and Collective Variable dimensions must match.")
 
 
@@ -37,9 +37,9 @@ def generic_update(concrete_update):
 
 
 class ABF:
-    def __init__(self, grid, cv, N = 200):
-        ξ = collective_variable(*cv)
-        check_dims(grid, ξ)
+    def __init__(self, grid, cvs, N = 200):
+        check_dims(grid, cvs)
+        ξ = build(*cvs)
 
         self.grid = grid
         self.cv = ξ
@@ -67,10 +67,10 @@ def abf(snapshot, grid, cv, N, helpers):
     def initialize():
         bias = np.zeros_like(snapshot.forces)
         hist = np.zeros(grid.shape, dtype = np.uint32)
-        Fsum = np.zeros(np.hstack([grid.shape, cv.dims]))
-        F = np.zeros(cv.dims)
-        Wp = np.zeros(cv.dims)
-        Wp_ = np.zeros(cv.dims)
+        Fsum = np.zeros(np.hstack([grid.shape, dims]))
+        F = np.zeros(dims)
+        Wp = np.zeros(dims)
+        Wp_ = np.zeros(dims)
         return ABFState(bias, hist, Fsum, F, Wp, Wp_)
     #
     def update(VM, R, T, state):
@@ -102,9 +102,9 @@ def abf(snapshot, grid, cv, N, helpers):
 
 
 class FUNN:
-    def __init__(self, grid, cv, topology, N = 200):
-        ξ = collective_variable(*cv)
-        check_dims(grid, ξ)
+    def __init__(self, grid, cvs, topology, N = 200):
+        check_dims(grid, cvs)
+        ξ = build(*cvs)
 
         self.grid = grid
         self.cv = ξ
@@ -135,10 +135,10 @@ def funn(snapshot, grid, cv, topology, N, helpers):
     def initialize():
         bias = np.zeros_like(snapshot.forces)
         hist = np.zeros(grid.shape, dtype = np.uint32)
-        Fsum = np.zeros(np.hstack([grid.shape, cv.dims]))
-        F = np.zeros(cv.dims)
-        Wp = np.zeros(cv.dims)
-        Wp_ = np.zeros(cv.dims)
+        Fsum = np.zeros(np.hstack([grid.shape, dims]))
+        F = np.zeros(dims)
+        Wp = np.zeros(dims)
+        Wp_ = np.zeros(dims)
         return FUNNState(bias, model.parameters, hist, Fsum, F, Wp, Wp_)
     #
     def update(VM, R, T, state):
