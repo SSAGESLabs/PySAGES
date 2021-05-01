@@ -6,7 +6,6 @@ from .backends import (
     bind,
     set_backend,
     supported_backends,
-    wrap,
 )
 
 from .ssages import (

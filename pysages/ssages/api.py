@@ -6,4 +6,3 @@ from . import cvs
 from . import methods
 from .cvs import collective_variable
 from .grids import Grid
-from .snapshot import Box, SystemView

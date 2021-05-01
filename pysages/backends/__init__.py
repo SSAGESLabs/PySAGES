@@ -7,5 +7,4 @@ from .core import (
     current_backend,
     set_backend,
     supported_backends,
-    wrap,
 )

@@ -3,10 +3,8 @@
 
 
 from .api import (
-    Box,
+    Grid,
     collective_variable,
     cvs,
-    Grid,
-    SystemView,
     methods,
 )

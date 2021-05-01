@@ -3,38 +3,70 @@
 
 
 import importlib
+import jax
 
 from functools import partial
-
 from hoomd.dlext import (
     AccessLocation, AccessMode, HalfStepHook, SystemView,
     net_forces, positions_types, rtags, tags, velocities_masses,
 )
+from pysages.backends.snapshot import Box, Snapshot
 
-from jax.dlpack import from_dlpack as wrap
+from jax.dlpack import from_dlpack as asarray
 
 
-if hasattr(AccessLocation, 'OnDevice'):
-    DEFAULT_DEVICE = AccessLocation.OnDevice
+class ContextWrapper:
+    def __init__(self, context):
+        self.sysview = SystemView(context.system_definition)
+        self.context = context
+        self.synchronize = self.sysview.synchronize
+
+
+class Sampler(HalfStepHook):
+    def __init__(self, method_bundle, bias):
+        super().__init__()
+        #
+        snapshot, initialize, update = method_bundle
+        self.snapshot = snapshot
+        self.state = initialize()
+        self._update = update
+        self.bias = bias
+    #
+    def update(self, timestep):
+        self.state = self._update(self.snapshot, self.state)
+        self.bias(self.state)
+
+
+if hasattr(AccessLocation, "OnDevice"):
+    def default_location():
+        return AccessLocation.OnDevice
 else:
-    DEFAULT_DEVICE = AccessLocation.OnHost
+    def default_location():
+        return AccessLocation.OnHost
 
 
 def is_on_gpu(context):
     return context.on_gpu()
 
 
-def view(context):
+def choose_backend(context, requested_location):
+    if is_on_gpu(context) and requested_location != AccessLocation.OnHost:
+        return jax.lib.xla_bridge.get_backend("gpu")
+    return jax.lib.xla_bridge.get_backend("cpu")
+
+
+def take_snapshot(wrapped_context, location = default_location()):
     #
-    dt = context.integrator.dt
-    system_view = SystemView(context.system_definition)
+    context = wrapped_context.context
+    sysview = wrapped_context.sysview
+    backend = choose_backend(context, location)
     #
-    positions = wrap(positions_types(system_view, DEFAULT_DEVICE, AccessMode.Read))
-    momenta = wrap(velocities_masses(system_view, DEFAULT_DEVICE, AccessMode.Read))
-    forces = wrap(net_forces(system_view, DEFAULT_DEVICE, AccessMode.ReadWrite))
-    ids = wrap(rtags(system_view, DEFAULT_DEVICE, AccessMode.Read))
+    positions = asarray(positions_types(sysview, location, AccessMode.Read), backend)
+    vel_mass = asarray(velocities_masses(sysview, location, AccessMode.Read), backend)
+    forces = asarray(net_forces(sysview, location, AccessMode.ReadWrite), backend)
+    ids = asarray(rtags(sysview, location, AccessMode.Read), backend)
     #
-    box = system_view.particle_data().getGlobalBox()
+    box = sysview.particle_data().getGlobalBox()
     L  = box.getL()
     xy = box.getTiltFactorXY()
     xz = box.getTiltFactorXZ()
@@ -46,54 +78,49 @@ def view(context):
         (0.0,      0.0,      L.z, 0.0)   # gets fixed
     )
     origin = (lo.x, lo.y, lo.z)
+    dt = context.integrator.dt
     #
-    return (positions, momenta, forces, ids, H, origin, dt)
+    return Snapshot(positions, vel_mass, forces, ids, Box(H, origin), dt)
 
 
-class Hook(HalfStepHook):
-    def initialize_from(self, sampler, bias):
-        snapshot, initialize, update = sampler
-        self.snapshot = snapshot
-        self.state = initialize()
-        self.update_from = update
-        self.bias = bias
-        return None
-    #
-    def update(self, timestep):
-        self.state = self.update_from(self.snapshot, self.state)
-        self.bias(self.snapshot, self.state)
-        return None
-
-
-def bind(context, sampler):
+def build_helpers(context):
     # Depending on the device being used we need to use either cupy or numpy
     # (or numba) to generate a view of jax's DeviceArrays
     if is_on_gpu(context):
         cupy = importlib.import_module("cupy")
-        wrap = cupy.asarray
+        view = cupy.asarray
     else:
         utils = importlib.import_module(".utils", package = "pysages.backends")
-        wrap = utils.view
+        view = utils.view
     #
-    def bias(snapshot, state, sync):
+    def bias(state, forces, sync):
         """Adds the computed bias to the forces."""
         # Forces may be computed asynchronously on the GPU, so we need to
         # synchronize them before applying the bias.
         sync()
-        # TODO: Factor out the views so we can eliminate two function calls here.
-        # Also, check if this can be JIT compiled with numba.
-        forces = wrap(snapshot.forces)
-        biases = wrap(state.bias.block_until_ready())
+        # TODO: check if this can be JIT compiled with numba.
+        biases = view(state.bias.block_until_ready())
         forces += biases
-        return None
     #
-    system_view = SystemView(context.system_definition)
-    sync_and_bias = partial(bias, sync = system_view.synchronize)
+    def momenta(vel_mass):
+        M = vel_mass[:, 3:]
+        V = vel_mass
+        return jax.numpy.multiply(M, V).flatten()
     #
-    hook = Hook()
-    hook.initialize_from(sampler, sync_and_bias)
-    context.integrator.cpp_integrator.setHalfStepHook(hook)
+    return view, bias, jax.jit(momenta)
+
+
+def bind(context, sampling_method, **kwargs):
     #
-    # Return the hook to ensure it doesn't get garbage collected within the scope
-    # of this function (another option is to store it in a global).
-    return hook
+    view, bias, momenta = build_helpers(context)
+    #
+    wrapped_context = ContextWrapper(context)
+    snapshot = take_snapshot(wrapped_context)
+    forces = view(snapshot.forces)
+    method_bundle = sampling_method(snapshot, momenta)
+    sync_and_bias = partial(bias, forces = forces, sync = wrapped_context.synchronize)
+    #
+    sampler = Sampler(method_bundle, sync_and_bias)
+    context.integrator.cpp_integrator.setHalfStepHook(sampler)
+    #
+    return sampler
