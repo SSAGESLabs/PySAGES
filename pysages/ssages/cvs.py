@@ -1,151 +1,266 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2020: Pablo Zubieta (see LICENSE.md)
 
+import jax.numpy as np
 
-from collections import namedtuple
-from functools import partial
-
-from jax import numpy as np
-from jax import grad, jacfwd, jacrev, jit, value_and_grad, vmap
+from abc import ABC, abstractproperty
+from jax import grad, jit
 from jax.numpy import linalg
+from inspect import signature
+from plum import dispatch
+from typing import Callable, List, Tuple, Union
+from jaxlib.xla_extension import DeviceArray as JaxArray
 
 
-# Closures that capture the indices of a collective variable and returns the both the
-# reaction coordinate function as well as its gradient or Jacobian, which take as
-# arguments the positions and tags of all particles.
-#
-def value_and_jac_over(indices, J = grad, ξ = None):
-    # For reaction coordinates functions that take a fixed number of particle positions
-    # (e.g. Angle, DihedralAngle).
-    #
-    if ξ is None:
-        return partial(value_and_jac_over, indices, J)
-    #
-    ξ = jit(ξ)
-    def wrapper(positions, tags, **kwargs):
-        ps = positions[tags[indices], 0:3]
-        return np.asarray(ξ(*ps, **kwargs))
-    #
-    return jit(wrapper), jit(J(wrapper))
-#
-def value_and_jac_over_array(indices, J = grad, ξ = None):
-    # For reaction_coordinates that take an array of positions
-    # (e.g., RadiusOfGyration, Barycenter).
-    #
-    if ξ is None:
-        return partial(value_and_jac_over_array, indices, J)
-    #
-    ξ = jit(ξ)
-    def wrapper(positions, tags, **kwargs):
-        ps = positions[tags[indices], 0:3]
-        return np.asarray(ξ(ps, **kwargs))
-    #
-    return jit(wrapper), jit(J(wrapper))
+# =========== #
+#   Classes   #
+# =========== #
+
+UInt32 = np.uint32
+Indices = Union[int, range]
 
 
-CollectiveVariableData = namedtuple("CollectiveVariableData", ["dims", "ξ", "Jξ"])
+class CollectiveVariable(ABC):
+    """
+    Abstract base class for defining collective variables
 
+    Initialization arguments
+    ------------------------
+    indices : Must be a list or tuple of atoms (ints or ranges) or groups of
+        atoms. A group is specified as a nested list or tuple of atoms.
 
-def collective_variable(cv0, *cvs):
-    n0, ξ0, Jξ0 = cv0
-    if len(cvs) >= 1:
-        n1, ξ1, Jξ1 = cvs[0]
-    if len(cvs) == 2:
-        n2, ξ2, Jξ2 = cvs[1]
+    Methods
+    -------
+    __init__ : When defining an new collective variable, override this method
+        if you need to enforce any invariant over the indices. It can
+        otherwise be ommited.
+
+    Properties
+    ----------
+    function : Returns an external method that implements the actual
+        computation of the collective variable.
+    """
+    def __init__(self, indices):
+        indices, groups = process_groups(indices)
+        self.indices = indices
+        self.groups = groups
     #
-    if len(cvs) == 0 and n0 <= 3:
-        def wrapper(positions, tags):
-            ξs = ξ0(positions, tags).flatten()
-            Jξs = np.expand_dims(Jξ0(positions, tags).flatten(), 0)
-            return ξs, Jξs
-        return CollectiveVariableData(
-            np.array(n0, dtype = np.uint32), jit(wrapper), None
+    @abstractproperty
+    def function(self):
+        pass
+
+
+class AxisCV(CollectiveVariable):
+    """
+    Similar to CollectiveVariable, but requires that an axis is provided.
+    """
+    def __init__(self, indices, axis):
+        indices, groups = process_groups(indices)
+        self.indices = indices
+        self.groups = groups
+        self.axis = axis
+    #
+    @abstractproperty
+    def function(self):
+        pass
+
+
+class TwoPointCV(CollectiveVariable):
+    """
+    Similar to CollectiveVariable, but checks at initialization that only two
+    indices or groups are provided.
+    """
+    def __init__(self, indices):
+        indices, groups = process_groups(indices)
+        check_groups_size(indices, groups, 2)
+        self.indices = indices
+        self.groups = groups
+    #
+    @abstractproperty
+    def function(self):
+        pass
+
+
+class ThreePointCV(CollectiveVariable):
+    """
+    Similar to CollectiveVariable, but checks at initialization that only three
+    indices or groups are provided.
+    """
+    def __init__(self, indices):
+        indices, groups = process_groups(indices)
+        check_groups_size(indices, groups, 3)
+        self.indices = indices
+        self.groups = groups
+    #
+    @abstractproperty
+    def function(self):
+        pass
+
+
+class FourPointCV(CollectiveVariable):
+    """
+    Similar to CollectiveVariable, but checks at initialization that only four
+    indices or groups are provided.
+    """
+    def __init__(self, indices):
+        indices, groups = process_groups(indices)
+        check_groups_size(indices, groups, 4)
+        self.indices = indices
+        self.groups = groups
+    #
+    @abstractproperty
+    def function(self):
+        pass
+
+
+# ========= #
+#   Utils   #
+# ========= #
+
+def check_groups_size(indices, groups, n):
+    m = np.size(indices, 0) - sum(np.size(g, 0) - 1 for g in groups)
+    if m != n:
+        error_msg = (
+            f"Exactly {n} indices or groups must be provided " +
+            f"(got {m})"
         )
-    #
-    if len(cvs) == 1 and n0 + n1 <= 3:
-        def wrapper(positions, tags):
-            ξs = np.hstack([
-                ξ0(positions, tags).flatten(),
-                ξ1(positions, tags).flatten()
-            ])
-            Jξs = np.vstack([
-                Jξ0(positions, tags).flatten(),
-                Jξ1(positions, tags).flatten()
-            ])
-            return ξs, Jξs
-        return CollectiveVariableData(
-            np.array(n0 + n1, dtype = np.uint32), jit(wrapper), None
-        )
-    #
-    if len(cvs) == 2 and n0 + n1 + n2 == 3:
-        def wrapper(positions, tags):
-            ξs = np.hstack([
-                ξ0(positions, tags),
-                ξ1(positions, tags),
-                ξ2(positions, tags)
-            ])
-            Jξs = np.vstack([
-                Jξ0(positions, tags).flatten(),
-                Jξ1(positions, tags).flatten(),
-                Jξ2(positions, tags).flatten()
-            ])
-            return ξs, Jξs
-        return CollectiveVariableData(
-            np.array(n0 + n1 + n2, dtype = np.uint32), jit(wrapper), None
-        )
-    #
-    raise ValueError(
-        "Collective variable spaces of more than "
-        "three dimensions currently unsupported."
-    )
+        raise ValueError(error_msg)
 
 
-#==========#
-#  Angles  #
-#==========#
+def get_nargs(f: Callable):
+    return len(signature(f).parameters)
 
-def _angle(p1, p2, p3):
+
+@dispatch
+def build(cv: CollectiveVariable, J = grad):
+    # TODO: Add support for passing weights of compute weights from masses, and
+    # to reduce groups with barycenter
+    ξ = cv.function
+    I = cv.indices
+    #
+    if get_nargs(ξ) == 1:
+        def evaluate(positions: JaxArray, ids: JaxArray, **kwargs):
+            rs = positions[ids[I], 0:3]
+            return np.asarray(ξ(rs, **kwargs))
+    else:
+        def evaluate(positions: JaxArray, ids: JaxArray, **kwargs):
+            rs = positions[ids[I], 0:3]
+            return np.asarray(ξ(*rs, **kwargs))
+    #
+    f, Jf = jit(evaluate), jit(J(evaluate))
+    #
+    def apply(positions: JaxArray, ids: JaxArray):
+        ξ = np.expand_dims(f(positions, ids).flatten(), 0)
+        Jξ = np.expand_dims(Jf(positions, ids).flatten(), 0)
+        return ξ, Jξ
+    #
+    return jit(apply)
+
+
+@dispatch
+def build(cv: CollectiveVariable, *cvs: CollectiveVariable):
+    cvs = [build(cv)] + [build(cv) for cv in cvs]
+    #
+    def apply(positions: JaxArray, ids: JaxArray):
+        ξs, Jξs = [], []
+        for i in range(len(cvs)):
+            ξ, Jξ = cvs[i](positions, ids)
+            ξs.append(ξ)
+            Jξs.append(Jξ)
+        return np.hstack(ξs), np.vstack(Jξs)
+    #
+    return jit(apply)
+
+
+def process_groups(indices: Union[List, Tuple]):
+    n = 0
+    collected = []
+    groups = []
+    for obj in indices:
+        group_found = is_group(obj)
+        if group_found:
+            collected += obj
+        else:
+            collected.append(obj)
+        s = group_size(obj)
+        if group_found:
+            groups.append(np.arange(n, n + s, dtype = UInt32))
+        n += s
+    return UInt32(np.hstack(collected)), groups
+
+
+@dispatch
+def is_group(indices: Indices):
+    return False
+
+
+@dispatch
+def is_group(group: List[Indices]):
+    return True
+
+
+@dispatch
+def is_group(obj):
+    raise ValueError("Invalid indices or group: {}".format(obj))
+
+
+@dispatch
+def group_size(obj: int):
+    return 1
+
+
+@dispatch
+def group_size(obj: range):
+    return len(obj)
+
+
+@dispatch
+def group_size(obj: Union[List, Tuple]):
+    return sum(group_size(o) for o in obj)
+
+
+# ========== #
+#   Angles   #
+# ========== #
+
+class Angle(ThreePointCV):
+    @property
+    def function(self):
+        return angle
+
+
+def angle(p1, p2, p3):
+    """
+    Returns the angle defined by three points in space
+    (around the one in the middle).
+    """
     q = p1 - p2
     r = p3 - p2
     return np.arctan2(linalg.norm(np.cross(q, r)), np.dot(q, r))
 
 
-def angle(indices):
-    """
-    Returns a function that computes the angle defined by three points in space
-    (specified by `indices`) around the one in the middle.
-    """
-    if np.size(indices, 0) != 3:
-        raise ValueError('Exactly three indices must be provided (got {indices.size}).')
-    #
-    ξ, Jξ = value_and_jac_over(indices)(_angle)
-    return CollectiveVariableData(1, jit(ξ), jit(Jξ))
+class DihedralAngle(FourPointCV):
+    @property
+    def function(self):
+        return dihedral_angle
 
 
-def _dihedral_angle(p1, p2, p3, p4):
+def dihedral_angle(p1, p2, p3, p4):
+    """
+    Returns the dihedral angle defined by four points in space
+    (around the line defined by the two central points).
+    """
     q = p3 - p2
     r = np.cross(p2 - p1, q)
     s = np.cross(q, p4 - p3)
     return np.arctan2(np.dot(np.cross(r, s), q), np.dot(r, s) * linalg.norm(q))
 
 
-def dihedral_angle(indices):
-    """
-    Returns a function that computes the dihedral angle, as well as its gradient, defined
-    by four points in space (around the line defined by the two central points).
-    """
-    if np.size(indices, 0) != 4:
-        raise ValueError('Exactly four indices must be provided (got {indices.size}).')
-    #
-    ξ, Jξ = value_and_jac_over(indices)(_dihedral_angle)
-    return CollectiveVariableData(1, jit(ξ), jit(Jξ))
+# ===================== #
+#   Shape Descriptors   #
+# ===================== #
 
-
-#=====================#
-#  Shape Descriptors  #
-#=====================#
-
-def _gyration_tensor(positions):
+def gyration_tensor(positions):
     n = positions.shape[0]
     S = np.zeros((3, 3))
     for r in positions:
@@ -153,33 +268,22 @@ def _gyration_tensor(positions):
     return S / n
 
 
-def _weighted_gyration_tensor(positions, weights):
+def weighted_gyration_tensor(positions, weights):
     n = positions.shape[0]
     S = np.zeros((3, 3))
-    # TODO: Replace by `np.sum` and `vmap`
     for i in range(n):
         w, r = weights[i], positions[i]
         S += w * np.outer(r, r)
     return S
 
 
-def gyration_tensor(indices, weights = None):
-    """
-    Gyration tensor of group of particles. If weights are supplied, the weighted average
-    will be computed.
-    """
-    if weights is None:
-        reaction_coordinate = _gyration_tensor
-    else:
-        ws = weights / np.sum(weights)
-        reaction_coordinate = lambda rs : _weighted_gyration_tensor(rs, ws)
-    #
-    J = jacfwd if np.size(indices, 0) <= 3 else jacrev
-    ξ, Jξ = value_and_jac_over_array(indices, J)(reaction_coordinate)
-    return CollectiveVariableData(9, jit(ξ), jit(Jξ))
+class RadiusOfGyration(CollectiveVariable):
+    @property
+    def function(self):
+        return radius_of_gyration
 
 
-def _radius_of_gyration(positions):
+def radius_of_gyration(positions):
     n = positions.shape[0]
     S = np.zeros((3,))
     # TODO: Replace by `np.sum` and `vmap`
@@ -188,7 +292,7 @@ def _radius_of_gyration(positions):
     return S / n
 
 
-def _weighted_radius_of_gyration(positions, weights):
+def weighted_radius_of_gyration(positions, weights):
     n = positions.shape[0]
     R2 = np.zeros((3,))
     # TODO: Replace by `np.sum` and `vmap`
@@ -198,94 +302,58 @@ def _weighted_radius_of_gyration(positions, weights):
     return R2
 
 
-def radius_of_gyration(indices, weights = None):
-    if weights is None:
-        reaction_coordinate = _radius_of_gyration
-    else:
-        ws = weights / np.sum(weights)
-        def reaction_coordinate(rs):
-            return _weighted_radius_of_gyration(rs, ws)
-    #
-    ξ, Jξ = value_and_jac_over_array(indices)(reaction_coordinate)
-    return CollectiveVariableData(1, jit(ξ), jit(Jξ))
+class PrincipalMoment(AxisCV):
+    @property
+    def function(self):
+        return (lambda rs: principal_moments(rs)[self.axis])
 
 
-_principal_moments = linalg.eigvals
+def principal_moments(positions):
+    return linalg.eigvals(gyration_tensor(positions))
 
 
-def principal_moments(indices, weights = None):
-    if weights is None:
-        def reaction_coordinate(rs):
-            return _principal_moments(_gyration_tensor(rs))
-    else:
-        ws = weights / np.sum(weights)
-        def reaction_coordinate(rs):
-            return _principal_moments(_weighted_gyration_tensor(rs, ws))
-    #
-    ξ, Jξ = value_and_jac_over_array(indices, jacrev)(reaction_coordinate)
-    return CollectiveVariableData(3, jit(ξ), jit(Jξ))
+class Asphericity(CollectiveVariable):
+    @property
+    def function(self):
+        return asphericity
 
 
-def asphericity(indices, weights = None):
-    if weights is None:
-        def reaction_coordinate(rs):
-            return _principal_moments(_gyration_tensor(rs))
-    else:
-        ws = weights / np.sum(weights)
-        def reaction_coordinate(rs):
-            return _principal_moments(_weighted_gyration_tensor(rs, ws))
-    #
-    def asphericity(positions):
-        λ1, λ2, λ3 = reaction_coordinate(positions)
-        return λ3 - (λ1 + λ2) / 2
-    #
-    ξ, Jξ = value_and_jac_over_array(indices)(asphericity)
-    return CollectiveVariableData(1, jit(ξ), jit(Jξ))
+def asphericity(positions):
+    λ1, λ2, λ3 = principal_moments(positions)
+    return λ3 - (λ1 + λ2) / 2
 
 
-def acylindricity(indices, weights = None):
-    if weights is None:
-        def reaction_coordinate(rs):
-            return _principal_moments(_gyration_tensor(rs))
-    else:
-        ws = weights / np.sum(weights)
-        def reaction_coordinate(rs):
-            return _principal_moments(_weighted_gyration_tensor(rs, ws))
-    #
-    def acylindricity(positions):
-        λ1, λ2, _ = reaction_coordinate(positions)
-        return (λ2 - λ1)
-    #
-    ξ, Jξ = value_and_jac_over_array(indices)(acylindricity)
-    return CollectiveVariableData(1, jit(ξ), jit(Jξ))
+class Acylindricity(CollectiveVariable):
+    @property
+    def function(self):
+        return acylindricity
 
 
-def shape_anysotropy(indices, weights = None):
-    if weights is None:
-        def reaction_coordinate(rs):
-            return _principal_moments(_gyration_tensor(rs))
-    else:
-        ws = weights / np.sum(weights)
-        def reaction_coordinate(rs):
-            return _principal_moments(_weighted_gyration_tensor(rs, ws))
-    #
-    def shape_anysotropy(positions):
-        λ1, λ2, λ3 = reaction_coordinate(positions)
-        return (3 * (λ1**2 + λ2**2 + λ3**2) / (λ1 + λ2 + λ3)**2 - 1) / 2
-    #
-    ξ, Jξ = value_and_jac_over(indices)(shape_anysotropy)
-    return CollectiveVariableData(1, jit(ξ), jit(Jξ))
+def acylindricity(positions):
+    λ1, λ2, _ = principal_moments(positions)
+    return (λ2 - λ1)
 
 
-#========================#
-#  Particle Coordinates  #
-#========================#
+class ShapeAnysotropy(CollectiveVariable):
+    @property
+    def function(self):
+        return shape_anysotropy
 
-def _barycenter(positions):
+
+def shape_anysotropy(positions):
+    λ1, λ2, λ3 = principal_moments(positions)
+    return (3 * (λ1**2 + λ2**2 + λ3**2) / (λ1 + λ2 + λ3)**2 - 1) / 2
+
+
+# ======================== #
+#   Particle Coordinates   #
+# ======================== #
+
+def barycenter(positions):
     return np.sum(positions, axis=0) / positions.shape[0]
 
 
-def _weighted_barycenter(positions, weights):
+def weighted_barycenter(positions, weights):
     n = positions.shape[0]
     R = np.zeros(3)
     # TODO: Replace by `np.sum` and `vmap`
@@ -295,43 +363,17 @@ def _weighted_barycenter(positions, weights):
     return R
 
 
-def barycenter(indices, weights = None):
-    if weights is None:
-        reaction_coordinate = _barycenter
-    else:
-        ws = weights / sum(weights)
-        def reaction_coordinate(rs):
-            return _weighted_barycenter(rs, ws)
-    #
-    ξ, Jξ = value_and_jac_over(indices)(reaction_coordinate)
-    return CollectiveVariableData(3, jit(ξ), jit(Jξ))
+class Component(AxisCV):
+    @property
+    def function(self):
+        return (lambda rs: barycenter(rs)[self.axis])
 
 
-def _barycenter_component(positions, axis):
-    return np.sum(positions[:, axis]) / positions.shape[0]
+class Distance(TwoPointCV):
+    @property
+    def function(self):
+        return distance
 
 
-def _weighted_barycenter_component(positions, axis, weights):
-    n = positions.shape[0]
-    R = 0.0
-    # TODO: Replace by `np.sum` and `vmap`
-    for i in range(n):
-        w, r = weights[i], positions[i, axis]
-        R += w * r
-    return R
-
-
-def barycenter_component(indices, axis : int, weights = None):
-    if axis < 0 or axis > 2:
-        raise ValueError('Component out of range, provide an integer from 0 to 2.')
-    #
-    if weights is None:
-        def reaction_coordinate(rs):
-            return _barycenter_component(rs, axis)
-    else:
-        ws = weights / sum(weights)
-        def reaction_coordinate(rs):
-            return _weighted_barycenter_component(rs, axis, ws)
-    #
-    ξ, Jξ = value_and_jac_over(indices)(reaction_coordinate)
-    return CollectiveVariableData(1, jit(ξ), jit(Jξ))
+def distance(r1, r2):
+    return linalg.norm(r1 - r2)

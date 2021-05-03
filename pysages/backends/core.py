@@ -7,7 +7,6 @@ import jax
 import warnings
 
 from jax import numpy as np
-from pysages.ssages import Box, SystemView
 
 
 # Set default floating point type for arrays in `jax` to `jax.f64`
@@ -25,7 +24,7 @@ def current_backend():
 
 
 def supported_backends():
-    return ('hoomd',)
+    return ("hoomd",)
 
 
 def set_backend(name):
@@ -41,26 +40,15 @@ def set_backend(name):
     return _CURRENT_BACKEND
 
 
-def wrap(simulation):
-    """Create a view of the simulation data (dynamic snapshot) for the provided backend."""
-    #
-    check_backend_initialization()
-    #
-    if not _CURRENT_BACKEND.is_on_gpu(simulation):
-        jax.config.update("jax_platform_name", "cpu")
-    #
-    positions, momenta, forces, tags, H, origin, dt = _CURRENT_BACKEND.view(simulation)
-    box = Box(np.asarray(H), np.asarray(origin))
-    #
-    return SystemView(positions, momenta, forces, tags, box, dt)
-
-
-def bind(simulation, sampler):
+def bind(context, sampling_method, **kwargs):
     """Couples the sampling method to the simulation."""
     #
+    if type(context).__module__.startswith("hoomd"):
+        set_backend("hoomd")
+    #
     check_backend_initialization()
     #
-    return _CURRENT_BACKEND.bind(simulation, sampler)
+    return _CURRENT_BACKEND.bind(context, sampling_method, **kwargs)
 
 
 def check_backend_initialization():
