@@ -6,12 +6,10 @@ from .backends import (
     bind,
     set_backend,
     supported_backends,
-    wrap,
 )
 
 from .ssages import (
     Grid,
-    collective_variable,
     cvs,
     methods,
 )
