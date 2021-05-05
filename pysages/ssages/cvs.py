@@ -12,9 +12,9 @@ from typing import Callable, List, Tuple, Union
 from jaxlib.xla_extension import DeviceArray as JaxArray
 
 
-# =========== #
-#   Classes   #
-# =========== #
+# ================ #
+#   Base Classes   #
+# ================ #
 
 UInt32 = np.uint32
 Indices = Union[int, range]
@@ -140,18 +140,19 @@ def build(cv: CollectiveVariable, J = grad):
     #
     if get_nargs(ξ) == 1:
         def evaluate(positions: JaxArray, ids: JaxArray, **kwargs):
-            rs = positions[ids[I], 0:3]
+            rs = positions[ids[I]]
             return np.asarray(ξ(rs, **kwargs))
     else:
         def evaluate(positions: JaxArray, ids: JaxArray, **kwargs):
-            rs = positions[ids[I], 0:3]
+            rs = positions[ids[I]]
             return np.asarray(ξ(*rs, **kwargs))
     #
     f, Jf = jit(evaluate), jit(J(evaluate))
     #
-    def apply(positions: JaxArray, ids: JaxArray):
-        ξ = np.expand_dims(f(positions, ids).flatten(), 0)
-        Jξ = np.expand_dims(Jf(positions, ids).flatten(), 0)
+    def apply(positions: JaxArray, ids: JaxArray, **kwargs):
+        rs = positions[:, :3]
+        ξ = np.expand_dims(f(rs, ids, **kwargs).flatten(), 0)
+        Jξ = np.expand_dims(Jf(rs, ids, **kwargs).flatten(), 0)
         return ξ, Jξ
     #
     return jit(apply)

@@ -73,9 +73,9 @@ def take_snapshot(wrapped_context, location = default_location()):
     yz = box.getTiltFactorYZ()
     lo = box.getLo()
     H = (
-        (L.x, xy * L.y, xz * L.z, 0.0),  # Last column is a hack until
-        (0.0,      L.y, yz * L.z, 0.0),  # https://github.com/google/jax/issues/4196
-        (0.0,      0.0,      L.z, 0.0)   # gets fixed
+        (L.x, xy * L.y, xz * L.z),
+        (0.0,      L.y, yz * L.z),
+        (0.0,      0.0,      L.z)
     )
     origin = (lo.x, lo.y, lo.z)
     dt = context.integrator.dt
@@ -98,6 +98,14 @@ def build_helpers(context):
         #
         def sync_forces(): pass
     #
+    def indices(ids):
+        return ids
+    #
+    def momenta(vel_mass):
+        M = vel_mass[:, 3:]
+        V = vel_mass[:, :3]
+        return jax.numpy.multiply(M, V).flatten()
+    #
     def bias(snapshot, state, sync_backend):
         """Adds the computed bias to the forces."""
         # TODO: check if this can be JIT compiled with numba.
@@ -106,23 +114,15 @@ def build_helpers(context):
         # synchronize them before applying the bias.
         sync_backend()
         forces = view(snapshot.forces)
-        forces += biases
+        forces[:, :3] += biases
         sync_forces()
     #
-    def indices(ids):
-        return ids
-    #
-    def momenta(vel_mass):
-        M = vel_mass[:, 3:]
-        V = vel_mass
-        return jax.numpy.multiply(M, V).flatten()
-    #
-    return bias, jax.jit(indices), jax.jit(momenta)
+    return jax.jit(indices), jax.jit(momenta), bias
 
 
 def bind(context, sampling_method, **kwargs):
     #
-    bias, indices, momenta = build_helpers(context)
+    indices, momenta, bias = build_helpers(context)
     #
     wrapped_context = ContextWrapper(context)
     snapshot = take_snapshot(wrapped_context)
