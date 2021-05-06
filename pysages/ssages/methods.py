@@ -1,53 +1,90 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (c) 2020: SSAGES Team (see LICENSE.md)
 
-from collections import namedtuple
-
 import jax.numpy as np
-from jax import jit, pmap, vmap, scipy
+
+from abc import ABC, abstractmethod
+from collections import namedtuple
+from jax import jit, scipy
 from jax.numpy import linalg
-from jax.ops import index, index_add, index_update
+from plum import dispatch
 from pysages.ssages.cvs import build
 from pysages.nn.models import mlp
 from pysages.nn.objectives import PartialRBObjective
 from pysages.nn.optimizers import LevenbergMaquardtBayes
 from pysages.nn.training import trainer
-from pysages.utils import register_pytree_namedtuple
 
 from .grids import get_index
 
 
-def check_dims(grid, cvs):
-    if grid.shape.size != len(cvs):
+# ================ #
+#   Base Classes   #
+# ================ #
+
+class SamplingMethod(ABC):
+    def __init__(self, cvs, *args, **kwargs):
+        self.cv = build(*cvs)
+        self.args = args
+        self.kwargs = kwargs
+    #
+    @abstractmethod
+    def __call__(self, *args, **kwargs):
+        pass
+
+
+class GriddedSamplingMethod(SamplingMethod):
+    def __init__(self, cvs, grid, *args, **kwargs):
+        check_dims(cvs, grid)
+        self.cv = build(*cvs)
+        self.grid = grid
+        self.args = args
+        self.kwargs = kwargs
+    #
+    @abstractmethod
+    def __call__(self, *args, **kwargs):
+        pass
+
+
+class NNSamplingMethod(SamplingMethod):
+    def __init__(self, cvs, grid, topology, *args, **kwargs):
+        check_dims(cvs, grid)
+        self.cv = build(*cvs)
+        self.grid = grid
+        self.topology = topology
+        self.args = args
+        self.kwargs = kwargs
+    #
+    @abstractmethod
+    def __call__(self, *args, **kwargs):
+        pass
+
+
+# ========= #
+#   Utils   #
+# ========= #
+
+def check_dims(cvs, grid):
+    if len(cvs) != grid.shape.size:
         raise ValueError("Grid and Collective Variable dimensions must match.")
 
 
-def generic_update(concrete_update):
+def generalize(concrete_update):
     _update = jit(concrete_update)
     #
     def update(snapshot, state):
-        VM = snapshot.vel_mass
-        R = snapshot.positions
-        T = snapshot.ids
+        vms = snapshot.vel_mass
+        rs = snapshot.positions
+        ids = snapshot.ids
         #
-        return _update(VM, R, T, state)
+        return _update(state, rs, vms, ids)
     #
     # TODO: Validate that jitting here gives correct results
     return jit(update)
 
 
-class ABF:
-    def __init__(self, grid, cvs, N = 200):
-        check_dims(grid, cvs)
-        ξ = build(*cvs)
-
-        self.grid = grid
-        self.cv = ξ
-        self.N = np.asarray(N)
-    #
-    def __call__(self, snapshot, helpers):
-        return abf(snapshot, self.grid, self.cv, self.N, helpers)
-
+# ======= #
+#   ABF   #
+# ======= #
 
 class ABFState(
     namedtuple(
@@ -59,25 +96,32 @@ class ABFState(
         return repr("PySAGES " + type(self).__name__)
 
 
-def abf(snapshot, grid, cv, N, helpers):
+class ABF(GriddedSamplingMethod):
+    def __call__(self, snapshot, helpers):
+        N = np.asarray(self.kwargs.get('N', 200))
+        return abf(snapshot, self.cv, self.grid, N, helpers)
+
+
+def abf(snapshot, cv, grid, N, helpers):
     dt = snapshot.dt
     dims = grid.shape.size
+    natoms = np.size(snapshot.forces, 0)
     indices, momenta = helpers
     #
     def initialize():
-        bias = np.zeros_like(snapshot.forces)
+        bias = np.zeros((natoms, 3))
         hist = np.zeros(grid.shape, dtype = np.uint32)
-        Fsum = np.zeros(np.hstack([grid.shape, dims]))
+        Fsum = np.zeros((*grid.shape, dims))
         F = np.zeros(dims)
         Wp = np.zeros(dims)
         Wp_ = np.zeros(dims)
         return ABFState(bias, hist, Fsum, F, Wp, Wp_)
     #
-    def update(VM, R, T, state):
+    def update(state, rs, vms, ids):
         # Compute the collective variable and its jacobian
-        ξ, Jξ = cv(R, indices(T))
+        ξ, Jξ = cv(rs, indices(ids))
         #
-        p = momenta(VM)
+        p = momenta(vms)
         # The following could equivalently be computed as `linalg.pinv(Jξ.T) @ p`
         # (both seem to have the same performance).
         # Another option to benchmark against is
@@ -86,33 +130,29 @@ def abf(snapshot, grid, cv, N, helpers):
         # Second order backward finite difference
         dWp_dt = (1.5 * Wp - 2.0 * state.Wp + 0.5 * state.Wp_) / dt
         #
-        I = get_index(grid, ξ)
-        H_I = state.hist[I] + 1
+        I_ξ = get_index(grid, ξ)
+        N_ξ = state.hist[I_ξ] + 1
         # Add previous force to remove bias
-        ΣF_I = state.Fsum[I] + dWp_dt + state.F
-        hist = state.hist.at[I].set(H_I)
-        Fsum = state.Fsum.at[I].set(ΣF_I)
-        F = ΣF_I / np.maximum(H_I, N)
+        F_ξ = state.Fsum[I_ξ] + dWp_dt + state.F
+        hist = state.hist.at[I_ξ].set(N_ξ)
+        Fsum = state.Fsum.at[I_ξ].set(F_ξ)
+        F = F_ξ / np.maximum(N_ξ, N)
         #
-        bias = np.reshape(-Jξ.T @ F, snapshot.forces.shape)
+        bias = np.reshape(-Jξ.T @ F, state.bias.shape)
         #
         return ABFState(bias, hist, Fsum, F, Wp, state.Wp)
     #
-    return snapshot, initialize, generic_update(update)
+    return snapshot, initialize, generalize(update)
 
 
-class FUNN:
-    def __init__(self, grid, cvs, topology, N = 200):
-        check_dims(grid, cvs)
-        ξ = build(*cvs)
+# ======== #
+#   FUNN   #
+# ======== #
 
-        self.grid = grid
-        self.cv = ξ
-        self.topology = topology
-        self.N = np.asarray(N)
-    #
+class FUNN(NNSamplingMethod):
     def __call__(self, snapshot, helpers):
-        return funn(snapshot, self.grid, self.cv, self.topology, self.N, helpers)
+        N = np.asarray(self.kwargs.get('N', 200))
+        return funn(snapshot, self.cv, self.grid, self.topology, N, helpers)
 
 
 class FUNNState(
@@ -125,42 +165,43 @@ class FUNNState(
         return repr("PySAGES " + type(self).__name__)
 
 
-def funn(snapshot, grid, cv, topology, N, helpers):
+def funn(snapshot, cv, grid, topology, N, helpers):
     dt = snapshot.dt
     dims = grid.shape.size
+    natoms = np.size(snapshot.forces, 0)
     indices, momenta = helpers
     model = mlp(grid.shape, dims, topology)
-    train = trainer(model, PartialRBObjective(), LevenbergMaquardtBayes(), np.zeros(cv.dims))
+    train = trainer(model, PartialRBObjective(), LevenbergMaquardtBayes(), np.zeros(dims))
     #
     def initialize():
-        bias = np.zeros_like(snapshot.forces)
+        bias = np.zeros((natoms, dims))
         hist = np.zeros(grid.shape, dtype = np.uint32)
-        Fsum = np.zeros(np.hstack([grid.shape, dims]))
+        Fsum = np.zeros((*grid.shape, dims))
         F = np.zeros(dims)
         Wp = np.zeros(dims)
         Wp_ = np.zeros(dims)
         return FUNNState(bias, model.parameters, hist, Fsum, F, Wp, Wp_)
     #
-    def update(VM, R, T, state):
+    def update(state, rs, vms, ids):
         # Compute the collective variable and its jacobian
-        ξ, Jξ = cv(R, indices(T))
+        ξ, Jξ = cv(rs, indices(ids))
         #
         θ = train(state.nn, state.Fsum / state.hist).θ
         Q = model.apply(θ, ξ)
         #
-        p = momenta(VM)
+        p = momenta(vms)
         Wp = linalg.tensorsolve(Jξ @ Jξ.T, Jξ @ p)
-        dWp_dt = (1.5 * Wp - 2.0 * state.Wp_ + 0.5 * state.Wp_) / dt
+        dWp_dt = (1.5 * Wp - 2.0 * state.Wp + 0.5 * state.Wp_) / dt
         #
-        I = get_index(grid, ξ)
-        H_I = state.hist[I] + 1
-        ΣF_I = state.Fsum[I] + dWp_dt + Q
-        hist = state.hist.at[I].set(H_I)
-        Fsum = state.Fsum.at[I].set(ΣF_I)
-        F = ΣF_I / np.maximum(H_I, N)
+        I_ξ = get_index(grid, ξ)
+        N_ξ = state.hist[I_ξ] + 1
+        F_ξ = state.Fsum[I_ξ] + dWp_dt + Q
+        hist = state.hist.at[I_ξ].set(N_ξ)
+        Fsum = state.Fsum.at[I_ξ].set(F_ξ)
+        F = F_ξ / np.maximum(N_ξ, N)
         #
-        bias = np.reshape(-Jξ.T @ F, snapshot.forces.shape)
+        bias = np.reshape(-Jξ.T @ F, state.bias.shape)
         #
         return FUNNState(bias, θ, hist, Fsum, F, Wp, state.Wp)
     #
-    return snapshot, initialize, generic_update(update)
+    return snapshot, initialize, generalize(update)
