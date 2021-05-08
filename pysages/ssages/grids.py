@@ -31,5 +31,5 @@ class Grid(GridInfo):
 
 @jit
 def get_index(grid, x):
-    I = np.floor_divide(x - grid.lower, grid.Δ)
-    return tuple(convert_element_type(I, np.uint32))
+    I = np.floor_divide(x - grid.lower, grid.Δ).flatten()
+    return (*np.uint32(I),)
