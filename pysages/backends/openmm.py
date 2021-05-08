@@ -5,19 +5,18 @@
 import importlib
 import jax
 
+import jax.numpy as jnp
 import openmm_dlext as dlext
 import simtk.openmm as openmm
 import simtk.unit as unit
 
+from jax.lax import cond
 from functools import partial
 from openmm_dlext import ContextView, DeviceType, Force
 from pysages.backends.snapshot import Box, Snapshot
 
 from jax.dlpack import from_dlpack as asarray
 from jaxlib.xla_extension import DeviceArray as JaxArray
-
-
-Int64 = jax.numpy.int64
 
 
 class ContextWrapper:
@@ -87,49 +86,72 @@ def build_helpers(context):
     if is_on_gpu(context):
         cupy = importlib.import_module("cupy")
         view = cupy.asarray
+        #numba = importlib.import_module("numba")
+        #view = cuda.as_cuda_array
         #
         def sync_forces():
             cupy.cuda.get_current_stream().synchronize()
         #
+        #apply_args_types = [
+        #    "(float32[:, :], int64[:, :])",
+        #    "(float64[:, :], int64[:, :])"
+        #]
+        # In OpenMM, forces are transposed and always stored in
+        # 64-bit fixed-point buffers on the CUDA Platform. See
+        # http://docs.openmm.org/latest/developerguide/developer.html#accumulating-forces
+        #@numba.guvectorize(apply_args_types, "(n, m) -> (m, n)", target = "cuda")
+        #def apply(biases, forces):
+        #    m, n = forces.shape
+        #    for i in range(m):
+        #        for j in range(n):
+        #            forces[i, j] += 2**32 * biases[j, i]
+        #
         @jax.jit
-        def adapt(biases: JaxArray):
-            return view(Int64(2**32 * biases.T))
+        def adapt(biases):
+            return jnp.int64(2**32 * biases.T)
         #
         def unpack(vel_mass):
-            return vel_mass, vel_mass[:, 3:]
+            return vel_mass[:, :3], vel_mass[:, 3:]
         #
         def indices(ids):
             return ids.argsort()
     else:
         utils = importlib.import_module(".utils", package = "pysages.backends")
         view = utils.view
-        adapt = view
+        #
+        def apply(biases, forces):
+            forces += biases
         #
         def sync_forces(): pass
         #
-        def unpack(vel_mass):
-            return vel_mass
+        def identity(x):
+            return x
         #
-        def indices(ids):
-            return ids
+        unpack = indices = adapt = identity
+    #
+    @jax.vmap
+    def safe_divide(v, invm):
+        return cond(
+            invm[0] == 0, lambda x: v, lambda x: jnp.divide(v, x), invm
+        )
+    #
+    def momenta(vel_mass):
+        V, invM = unpack(vel_mass)
+        return safe_divide(V, invM).flatten()
     #
     def bias(snapshot, state, sync_backend):
         """Adds the computed bias to the forces."""
-        # TODO: Factor out the views so we can eliminate two function calls here.
-        # Also, check if this can be JIT compiled with numba.
-        biases = adapt(state.bias.block_until_ready())
+        # TODO: check if this can be JIT compiled with numba.
+        biases = adapt(state.bias)
         # Forces may be computed asynchronously on the GPU, so we need to
         # synchronize them before applying the bias.
         sync_backend()
         forces = view(snapshot.forces)
+        biases = view(biases.block_until_ready())
         forces += biases
         sync_forces()
     #
-    def momenta(vel_mass):
-        V, IM = unpack(vel_mass)
-        return jax.numpy.divide(V, IM).flatten()
-    #
-    return bias, jax.jit(indices), jax.jit(momenta)
+    return jax.jit(indices), jax.jit(momenta), bias
 
 
 def check_integrator(context):
@@ -146,7 +168,7 @@ def bind(context, sampling_method, force = Force(), **kwargs):
     #
     force.add_to(context)
     wrapped_context = ContextWrapper(context, force)
-    bias, indices, momenta = build_helpers(wrapped_context.view)
+    indices, momenta, bias = build_helpers(wrapped_context.view)
     snapshot = take_snapshot(wrapped_context)
     method_bundle = sampling_method(snapshot, (indices, momenta))
     sync_and_bias = partial(bias, sync_backend = wrapped_context.synchronize)
