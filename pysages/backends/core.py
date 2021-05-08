@@ -24,7 +24,7 @@ def current_backend():
 
 
 def supported_backends():
-    return ("hoomd",)
+    return ("hoomd", "openmm")
 
 
 def set_backend(name):
@@ -45,6 +45,8 @@ def bind(context, sampling_method, **kwargs):
     #
     if type(context).__module__.startswith("hoomd"):
         set_backend("hoomd")
+    elif type(context).__module__.startswith("simtk.openmm"):
+        set_backend("openmm")
     #
     check_backend_initialization()
     #
