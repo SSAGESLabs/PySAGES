@@ -105,7 +105,7 @@ class ABF(GriddedSamplingMethod):
 def abf(snapshot, cv, grid, N, helpers):
     dt = snapshot.dt
     dims = grid.shape.size
-    natoms = np.size(snapshot.forces, 0)
+    natoms = np.size(snapshot.positions, 0)
     indices, momenta = helpers
     #
     def initialize():
@@ -168,7 +168,7 @@ class FUNNState(
 def funn(snapshot, cv, grid, topology, N, helpers):
     dt = snapshot.dt
     dims = grid.shape.size
-    natoms = np.size(snapshot.forces, 0)
+    natoms = np.size(snapshot.positions, 0)
     indices, momenta = helpers
     model = mlp(grid.shape, dims, topology)
     train = trainer(model, PartialRBObjective(), LevenbergMaquardtBayes(), np.zeros(dims))
