@@ -109,11 +109,11 @@ def build_helpers(context):
     def bias(snapshot, state, sync_backend):
         """Adds the computed bias to the forces."""
         # TODO: check if this can be JIT compiled with numba.
-        biases = view(state.bias.block_until_ready())
         # Forces may be computed asynchronously on the GPU, so we need to
         # synchronize them before applying the bias.
         sync_backend()
         forces = view(snapshot.forces)
+        biases = view(state.bias.block_until_ready())
         forces[:, :3] += biases
         sync_forces()
     #
