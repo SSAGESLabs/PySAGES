@@ -1,0 +1,4 @@
+include versioneer.py
+include elwood/_version.py
+
+recursive-include resources *.py *shinclude pysages/_version.py
