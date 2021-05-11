@@ -12,7 +12,7 @@ defaults:
                 working-directory: ./
 
 jobs:
-        pylint:
+        install:
                 runs-on: ubuntu-20.04
                 name: "Testing compliance with pylint coding"
                 steps:
