@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2020: Pablo Zubieta (see LICENSE.md)
 
-from ._version import get_versions
+from ._version import __version__
 
 from .backends import (
     bind,
@@ -14,6 +14,3 @@ from .ssages import (
     cvs,
     methods,
 )
-
-__version__ = get_versions()['version']
-del get_versions

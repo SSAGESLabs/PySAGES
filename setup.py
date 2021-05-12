@@ -4,8 +4,22 @@ Execute this file in the git-repository with 'python setup.py install' to instal
 """
 import sys
 from setuptools import setup, find_packages
-import versioneer
 
+def get_version_and_cmdclass(package_path):
+    """Load version.py module without importing the whole package.
+
+    Template code from miniver
+    """
+    import os
+    from importlib.util import module_from_spec, spec_from_file_location
+
+    spec = spec_from_file_location("version", os.path.join(package_path, "_version.py"))
+    module = module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.__version__, module.cmdclass
+
+
+version, cmdclass = get_version_and_cmdclass("pysages")
 
 def main(argv):
     """
@@ -13,9 +27,9 @@ def main(argv):
     """
 
     setup(name='pysages',
-          version=versioneer.get_version(),
+          version=version,
           description='PySAGES (Python Suite for Advanced General Ensemble Simulations) is an Python implementation of [SSAGES](https://ssagesproject.github.io) with support for GPUs.',
-          cmdclass=versioneer.get_cmdclass(),
+          cmdclass=cmdclass,
           install_requires=["jax", "plum-dispatch", "fastcore", "numba"],
           author='Pablo Zubieta et. al',
           author_email='pzubieta@uchicago.edu',
