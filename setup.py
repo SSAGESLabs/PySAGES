@@ -30,7 +30,7 @@ def main(argv):
           version=version,
           description='PySAGES (Python Suite for Advanced General Ensemble Simulations) is an Python implementation of [SSAGES](https://ssagesproject.github.io) with support for GPUs.',
           cmdclass=cmdclass,
-          install_requires=["jax", "plum-dispatch", "fastcore", "numba", "Cython"],
+          install_requires=["jax", "Cython", "plum-dispatch", "fastcore", "numba"],
           author='Pablo Zubieta et. al',
           author_email='pzubieta@uchicago.edu',
           python_requires='>=3.6, <4',
