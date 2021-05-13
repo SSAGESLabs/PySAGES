@@ -1,0 +1,29 @@
+on:
+    push:
+          branches:
+                - main
+    pull_request:
+          branches:
+               - main
+
+defaults:
+        run:
+                shell: bash
+                working-directory: ./
+
+jobs:
+        install:
+                runs-on: ubuntu-20.04
+                name: "Testing compliance with pylint coding"
+                steps:
+                       - uses: actions/checkout@v2
+                       - uses: actions/setup-python@v2
+                         with:
+                             python-version: '3.x'
+                       - name: install dependecies
+                         run: |
+                           pip install jaxlib
+                       - name: install pysages
+                         run: python setup.py install
+                       - name: test pysages installation
+                         run : python -c "import pysages"
