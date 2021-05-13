@@ -23,6 +23,10 @@ jobs:
                        - name: install dependecies
                          run: |
                            pip install jaxlib
+                           pip --version
+                           pip3 --version
+                           python --version
+                           python3 --version
                        - name: install pysages
                          run: python setup.py install
                        - name: test pysages installation
