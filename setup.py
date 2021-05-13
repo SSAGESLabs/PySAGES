@@ -36,6 +36,7 @@ def main(argv):
           python_requires='>=3.6, <4',
           classifiers=['Development Status :: 3 - Alpha',
                        'Intended Audience :: Developers',
+                       'License :: MIT/GPL-3',
                        'Programming Language :: Python :: 3 :: Only',
                        ],
           packages=find_packages(),
