@@ -12,9 +12,9 @@ defaults:
                 working-directory: ./
 
 jobs:
-        pylint:
+        style:
                 runs-on: ubuntu-20.04
-                name: "Testing compliance with pylint coding"
+                name: "Testing compliance coding styles"
                 steps:
                        - uses: actions/checkout@v2
                        - uses: actions/setup-python@v2
@@ -27,3 +27,20 @@ jobs:
                          run: pylint pysages
                        - name: test with flake8
                          run : flake8 pysages
+        install:
+                runs-on: ubuntu-20.04
+                name: "Testing installation of pysages"
+                steps:
+                       - uses: actions/checkout@v2
+                       - uses: actions/setup-python@v2
+                         with:
+                             python-version: '3.x'
+                       - name: install dependecies
+                         run: |
+                           pip install jaxlib
+                           # Manually install plum-dispatch until problem with requirements fixed
+                           pip install plum-dispatch
+                       - name: install pysages
+                         run: python setup.py install
+                       - name: test pysages installation
+                         run : python -c "import pysages"
