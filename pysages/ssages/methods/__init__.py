@@ -5,9 +5,6 @@ from abc import ABC, abstractmethod
 
 from jax import jit
 from pysages.ssages.cvs import build
-# Expose all methods to general namespace (optional)
-from pysages.ssages.methods.abf import ABF
-from pysages.ssages.methods.funn import FUNN
 
 # ================ #
 #   Base Classes   #
