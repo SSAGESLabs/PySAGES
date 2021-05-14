@@ -14,7 +14,7 @@ defaults:
 jobs:
         install:
                 runs-on: ubuntu-20.04
-                name: "Testing compliance with pylint coding"
+                name: "Testing installation of pysages"
                 steps:
                        - uses: actions/checkout@v2
                        - uses: actions/setup-python@v2
@@ -23,7 +23,8 @@ jobs:
                        - name: install dependecies
                          run: |
                            pip install jaxlib
+                           pip install plum-dispatch
                        - name: install pysages
                          run: python setup.py install
                        - name: test pysages installation
-                         run : python -c "import pysages"
+                         run : python3 -c "import pysages"
