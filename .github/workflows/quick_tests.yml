@@ -43,4 +43,4 @@ jobs:
                        - name: install pysages
                          run: python setup.py install
                        - name: test pysages installation
-                         run : python -c "import pysages"
+                         run : python3 -c "import pysages"
