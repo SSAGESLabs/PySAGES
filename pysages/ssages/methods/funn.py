@@ -7,11 +7,12 @@ import jax.numpy as np
 from jax.numpy import linalg
 
 from pysages.ssages.grids import get_index
-from pysages.ssages.methods import NNSamplingMethod, generalize
 from pysages.nn.models import mlp
 from pysages.nn.objectives import PartialRBObjective
 from pysages.nn.optimizers import LevenbergMaquardtBayes
 from pysages.nn.training import trainer
+
+from .core import NNSamplingMethod, generalize  # pylint: disable=relative-beyond-top-level
 
 # ======== #
 #   FUNN   #

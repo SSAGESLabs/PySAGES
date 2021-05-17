@@ -7,7 +7,8 @@ import jax.numpy as np
 from jax import scipy
 
 from pysages.ssages.grids import get_index
-from pysages.ssages.methods import GriddedSamplingMethod, generalize
+
+from .core import GriddedSamplingMethod, generalize  # pylint: disable=relative-beyond-top-level
 # ======= #
 #   ABF   #
 # ======= #
