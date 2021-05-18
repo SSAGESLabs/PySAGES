@@ -2,7 +2,6 @@
 # Copyright (c) 2020: Pablo Zubieta (see LICENSE.md)
 
 
-from . import cvs
+from . import collective_variables
 from . import methods
-from . import cvs
 from .grids import Grid
