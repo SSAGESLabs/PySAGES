@@ -23,7 +23,6 @@ jobs:
                        - name: install dependecies
                          run: |
                            pip install jaxlib
-                           pip install plum-dispatch
                        - name: install pysages
                          run: python setup.py install
                        - name: test pysages installation
