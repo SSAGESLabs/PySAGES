@@ -6,5 +6,5 @@
 # flake8: noqa F401
 
 from .angles import Angle, DihedralAngle
-from .shape import RadiusOfGyration, PrincipalMoment, Asphericity, Acylindricity, ShapeAnysotropy
+from .shape import RadiusOfGyration, PrincipalMoment, Asphericity, Acylindricity, ShapeAnisotropy
 from .coordinates import Component, Distance
