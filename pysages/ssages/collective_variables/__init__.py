@@ -5,14 +5,20 @@
 # pylint: disable=unused-import,relative-beyond-top-level
 # flake8: noqa F401
 
-from .angles import Angle
-from .angles import DihedralAngle
+from .angles import (
+    Angle,
+    DihedralAngle,
+)
 
-from .shape import RadiusOfGyration
-from .shape import PrincipalMoment
-from .shape import Asphericity
-from .shape import Acylindricity
-from .shape import ShapeAnisotropy
+from .shape import (
+    RadiusOfGyration,
+    PrincipalMoment,
+    Asphericity,
+    Acylindricity,
+    ShapeAnisotropy,
+    )
 
-from .coordinates import Component
-from .coordinates import Distance
+from .coordinates import (
+    Component,
+    Distance,
+    )
