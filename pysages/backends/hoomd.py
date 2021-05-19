@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MIT
-# This file is part of `hoomd-dlext`, see LICENSE.md
+# Copyright (c) 2020-2021: PySAGES contributors
+# See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 
 import importlib
