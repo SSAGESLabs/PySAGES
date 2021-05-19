@@ -26,4 +26,23 @@ jobs:
                        - name: install pysages
                          run: python setup.py install
                        - name: test pysages installation
-                         run : python3 -c "import pysages"
+                         run : |
+                           cd /
+                           python3 -c "import pysages"
+        install2:
+                runs-on: ubuntu-20.04
+                name: "Testing installation of pysages with pip"
+                steps:
+                       - uses: actions/checkout@v2
+                       - uses: actions/setup-python@v2
+                         with:
+                             python-version: '3.x'
+                       - name: install dependecies
+                         run: |
+                           pip install jaxlib
+                       - name: install pysages
+                         run: pip install .
+                       - name: test pysages installation
+                         run : |
+                           cd /
+                           python3 -c "import pysages"
