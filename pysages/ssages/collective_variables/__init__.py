@@ -16,9 +16,9 @@ from .shape import (
     Asphericity,
     Acylindricity,
     ShapeAnisotropy,
-    )
+)
 
 from .coordinates import (
     Component,
     Distance,
-    )
+)
