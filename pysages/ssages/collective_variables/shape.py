@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2020: Pablo Zubieta (see LICENSE.md)
-# Copyright (c) 2021: Ludwig Schneider (see LICENSE.md)
+# Copyright (c) 2020-2021: PySAGES contributors
+# See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 import jax.numpy as np
 from jax.numpy import linalg

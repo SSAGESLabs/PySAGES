@@ -1,13 +1,12 @@
-PySAGES as a whole is licensed under the GPL-3.0 or later. But do note that only the code
-under the `methods.py` is covered by GPL, as it is based on the original SSAGES
-implementation. The rest of the code is licensed under the MIT License. You can find both
-licenses below.
+PySAGES as a whole is licensed under the GPL-3.0 or later. But do note that only some of
+the code under the `methods` is covered by GPL, as it is based on the original SSAGES
+implementation. The rest of the code is licensed under the MIT License.
 
-The following applies to all the code except for the implementation found in `methods.py`:
+The following applies to all the code except for the implementation found in `methods`:
 
 > MIT License
 >
-> Copyright (c) 2020 Pablo Zubieta and contributors
+> Copyright (c) 2020-2021 PySAGES contributors
 >
 > Permission is hereby granted, free of charge, to any person obtaining a copy
 > of this software and associated documentation files (the "Software"), to deal
@@ -27,9 +26,10 @@ The following applies to all the code except for the implementation found in `me
 > OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 > SOFTWARE.
 
-Whereas the following applies to `methods.py`:
+Whereas the following applies to a subset of the files under `methods`:
 
->   Copyright (C) 2016-2020 SSAGES Team
+>   Copyright (C) 2016-2021 SSAGES contributors
+>   Copyright (C) 2020-2021 PySAGES contributors
 >
 >   This program is free software: you can redistribute it and/or modify
 >   it under the terms of the GNU General Public License as published by

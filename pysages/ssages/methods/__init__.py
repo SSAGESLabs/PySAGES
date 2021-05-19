@@ -1,8 +1,9 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
-# Copyright (c) 2020: SSAGES Team (see LICENSE.md)
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2020-2021: PySAGES contributors
+# See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 # pylint: disable=unused-import,relative-beyond-top-level
 # flake8: noqa F401
 
-from .abf import ABF, ABFState
-from .funn import FUNN, FUNNState
+from .abf import ABF
+from .funn import FUNN

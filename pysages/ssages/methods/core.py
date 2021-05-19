@@ -1,5 +1,6 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
-# Copyright (c) 2020: SSAGES Team (see LICENSE.md)
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2020-2021: PySAGES contributors
+# See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 from abc import ABC, abstractmethod
 
