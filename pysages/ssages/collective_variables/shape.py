@@ -81,12 +81,12 @@ def acylindricity(positions):
     return (λ2 - λ1)
 
 
-class ShapeAnysotropy(CollectiveVariable):
+class ShapeAnisotropy(CollectiveVariable):
     @property
     def function(self):
-        return shape_anysotropy
+        return shape_anisotropy
 
 
-def shape_anysotropy(positions):
+def shape_anisotropy(positions):
     λ1, λ2, λ3 = principal_moments(positions)
     return (3 * (λ1**2 + λ2**2 + λ3**2) / (λ1 + λ2 + λ3)**2 - 1) / 2
