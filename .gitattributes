@@ -1,1 +1,1 @@
-pysages/_static_version.py export-subst
+pysages/_version.py export-subst
