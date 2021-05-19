@@ -12,6 +12,6 @@ from .backends import (
 
 from .ssages import (
     Grid,
-    cvs,
+    collective_variables,
     methods,
 )

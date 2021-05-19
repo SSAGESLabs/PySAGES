@@ -4,6 +4,6 @@
 
 from .api import (
     Grid,
-    cvs,
+    collective_variables,
     methods,
 )
