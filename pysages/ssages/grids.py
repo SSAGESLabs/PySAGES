@@ -2,35 +2,44 @@
 # Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
-
 from collections import namedtuple
+from jax import jit
 
 import jax.numpy as np
-from jax import jit
-from jax.lax import convert_element_type
-from pysages.utils import register_pytree_namedtuple
 
 
-GridInfo = namedtuple("GridInfo", ["lower", "upper", "shape", "periodicity", "Δ"])
-
-
-@register_pytree_namedtuple
-class Grid(GridInfo):
-    def __new__(cls, lower, upper, shape, periodicity, Δ = None):
-        if not len(shape) == len(lower) == len(upper) == len(periodicity):
+class Grid(namedtuple(
+    "Grid",
+    (
+        "lower",
+        "size",
+        "shape",
+        "is_periodic",
+    )
+)):
+    def __new__(cls, lower, upper, shape, periodic):
+        if not len(shape) == len(lower) == len(upper):
             raise ValueError("All arguments must be of the same lenght.")
         lower = np.asarray(lower)
         upper = np.asarray(upper)
         shape = np.asarray(shape)
-        periodicity = np.asarray(periodicity)
-        Δ = np.divide(upper - lower, shape)
-        return super(Grid, cls).__new__(cls, lower, upper, shape, periodicity, Δ)
-    #
+        size = (upper - lower)
+        return super().__new__(cls, lower, size, shape, periodic)
+
     def __repr__(self):
         return repr("PySAGES " + type(self).__name__)
 
 
-@jit
-def get_index(grid, x):
-    I = np.floor_divide(x - grid.lower, grid.Δ).flatten()
-    return (*np.uint32(I),)
+def build_indexer(grid):
+    if grid.is_periodic:
+        def get_grid_index(x):
+            h = grid.size / grid.shape
+            idx = np.floor_divide(x - grid.lower, h).flatten()
+            return (*np.flip(np.uint32(idx)),)
+    else:
+        def get_grid_index(x):
+            x = 2 * (grid.lower - x) / grid.size + 1
+            idx = np.floor_divide(grid.shape * np.arccos(x), np.pi).flatten()
+            return (*np.flip(np.uint32(idx)),)
+
+    return jit(get_grid_index)

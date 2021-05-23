@@ -3,24 +3,29 @@
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 from collections import namedtuple
-
-import jax.numpy as np
 from jax import scipy
-
-from pysages.ssages.grids import get_index
+from pysages.ssages.grids import build_indexer
 
 from .core import GriddedSamplingMethod, generalize  # pylint: disable=relative-beyond-top-level
+
+import jax.numpy as np
+
+
 # ======= #
 #   ABF   #
 # ======= #
 
-
-class ABFState(
-    namedtuple(
-        "ABFState",
-        ("bias", "hist", "Fsum", "F", "Wp", "Wp_"),
-    )
-):
+class ABFState(namedtuple(
+    "ABFState",
+    (
+        "bias",
+        "hist",
+        "Fsum",
+        "F",
+        "Wp",
+        "Wp_",
+    ),
+)):
     def __repr__(self):
         return repr("PySAGES " + type(self).__name__)
 
@@ -35,6 +40,7 @@ def _abf(snapshot, cv, grid, N, helpers):
     dt = snapshot.dt
     dims = grid.shape.size
     natoms = np.size(snapshot.positions, 0)
+    get_grid_index = build_indexer(grid)
     indices, momenta = helpers
 
     def initialize():
@@ -59,7 +65,7 @@ def _abf(snapshot, cv, grid, N, helpers):
         # Second order backward finite difference
         dWp_dt = (1.5 * Wp - 2.0 * state.Wp + 0.5 * state.Wp_) / dt
         #
-        I_ξ = get_index(grid, ξ)
+        I_ξ = get_grid_index(ξ)
         N_ξ = state.hist[I_ξ] + 1
         # Add previous force to remove bias
         F_ξ = state.Fsum[I_ξ] + dWp_dt + state.F
@@ -70,5 +76,5 @@ def _abf(snapshot, cv, grid, N, helpers):
         bias = np.reshape(-Jξ.T @ F, state.bias.shape)
         #
         return ABFState(bias, hist, Fsum, F, Wp, state.Wp)
-    #
+
     return snapshot, initialize, generalize(update)

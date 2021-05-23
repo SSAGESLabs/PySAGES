@@ -3,27 +3,34 @@
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 from collections import namedtuple
-
-import jax.numpy as np
 from jax.numpy import linalg
-
-from pysages.ssages.grids import get_index
 from pysages.nn.models import mlp
 from pysages.nn.objectives import PartialRBObjective
 from pysages.nn.optimizers import LevenbergMaquardtBayes
 from pysages.nn.training import trainer
+from pysages.ssages.grids import build_indexer
 
 from .core import NNSamplingMethod, generalize  # pylint: disable=relative-beyond-top-level
+
+import jax.numpy as np
+
 
 # ======== #
 #   FUNN   #
 # ======== #
 
-
 class FUNNState(
     namedtuple(
         "FUNNState",
-        ("bias", "nn", "hist", "Fsum", "F", "Wp", "Wp_"),
+        (
+            "bias",
+            "nn",
+            "hist",
+            "Fsum",
+            "F",
+            "Wp",
+            "Wp_",
+        )
     )
 ):
     def __repr__(self):
@@ -40,6 +47,7 @@ def _funn(snapshot, cv, grid, topology, N, helpers):
     dt = snapshot.dt
     dims = grid.shape.size
     natoms = np.size(snapshot.positions, 0)
+    get_grid_index = build_indexer(grid)
     indices, momenta = helpers
     model = mlp(grid.shape, dims, topology)
     train = trainer(model, PartialRBObjective(), LevenbergMaquardtBayes(), np.zeros(dims))
@@ -64,7 +72,7 @@ def _funn(snapshot, cv, grid, topology, N, helpers):
         Wp = linalg.tensorsolve(Jξ @ Jξ.T, Jξ @ p)
         dWp_dt = (1.5 * Wp - 2.0 * state.Wp + 0.5 * state.Wp_) / dt
         #
-        I_ξ = get_index(grid, ξ)
+        I_ξ = get_grid_index(ξ)
         N_ξ = state.hist[I_ξ] + 1
         F_ξ = state.Fsum[I_ξ] + dWp_dt + Q
         hist = state.hist.at[I_ξ].set(N_ξ)
