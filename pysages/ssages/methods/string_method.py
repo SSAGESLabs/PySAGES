@@ -80,10 +80,8 @@ def interpolate_cv(s_out, comm, cv=None, token=None, root_rank=0, norm_function=
             coordinates[0] = coordinates[0]*0 + s_distance
             new_cv = scipy.ndimage.map_coordinates(cv_list, coordinates, order=1, mode="nearest")
             new_cv = new_cv.reshape(cv_shape)
-            print(new_cv.shape)
             requested_cvs.append(new_cv)
         requested_cvs = np.stack(requested_cvs)
-        print(requested_cvs.shape)
 
         out_cv, token = mpi4jax.scatter(requested_cvs, root_rank, comm=comm, token=token)
     else:
