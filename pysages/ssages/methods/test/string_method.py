@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 
 import sys
+from mpi4py import MPI
+import os
+os.environ["XLA_PYTHON_CLIENT_MEM_FRACTION"]= ".{0}".format(int(90/MPI.COMM_WORLD.Get_size()))
 import jax
 import jax.numpy as np
 from pysages.ssages.methods.string_method import interpolate_cv
-from mpi4py import MPI
 import matplotlib.pyplot as plt
 
 
