@@ -5,15 +5,15 @@
 
 import importlib
 import jax
+import pysages.backends.common as common
 
 from functools import partial
 from hoomd.dlext import (
     AccessLocation, AccessMode, HalfStepHook, SystemView,
     net_forces, positions_types, rtags, velocities_masses,
 )
-from pysages.backends.snapshot import Box, Snapshot
-
 from jax.dlpack import from_dlpack as asarray
+from pysages.backends.snapshot import Box, Snapshot
 
 
 class ContextWrapper:
@@ -118,16 +118,19 @@ def build_helpers(context):
         forces[:, :3] += biases
         sync_forces()
     #
-    return jax.jit(indices), jax.jit(momenta), bias
+    restore_vm = partial(common.restore_vm, view)
+    restore = partial(common.restore, view, restore_vm)
+    #
+    return jax.jit(indices), jax.jit(momenta), bias, restore
 
 
 def bind(context, sampling_method, **kwargs):
     #
-    indices, momenta, bias = build_helpers(context)
+    indices, momenta, bias, restore = build_helpers(context)
     #
     wrapped_context = ContextWrapper(context)
     snapshot = take_snapshot(wrapped_context)
-    method_bundle = sampling_method(snapshot, (indices, momenta))
+    method_bundle = sampling_method(snapshot, (indices, momenta, restore))
     sync_and_bias = partial(bias, sync_backend = wrapped_context.synchronize)
     #
     sampler = Sampler(method_bundle, sync_and_bias)
