@@ -13,6 +13,7 @@ from hoomd.dlext import (
     net_forces, positions_types, rtags, velocities_masses,
 )
 from jax.dlpack import from_dlpack as asarray
+from pysages.backends.common import HelperMethods
 from pysages.backends.snapshot import Box, Snapshot
 
 
@@ -118,19 +119,18 @@ def build_helpers(context):
         forces[:, :3] += biases
         sync_forces()
     #
-    restore_vm = partial(common.restore_vm, view)
-    restore = partial(common.restore, view, restore_vm)
+    restore = partial(common.restore, view)
     #
-    return jax.jit(indices), jax.jit(momenta), bias, restore
+    return HelperMethods(jax.jit(indices), jax.jit(momenta), restore), bias
 
 
 def bind(context, sampling_method, **kwargs):
     #
-    indices, momenta, bias, restore = build_helpers(context)
+    helpers, bias = build_helpers(context)
     #
     wrapped_context = ContextWrapper(context)
     snapshot = take_snapshot(wrapped_context)
-    method_bundle = sampling_method(snapshot, (indices, momenta, restore))
+    method_bundle = sampling_method(snapshot, helpers)
     sync_and_bias = partial(bias, sync_backend = wrapped_context.synchronize)
     #
     sampler = Sampler(method_bundle, sync_and_bias)

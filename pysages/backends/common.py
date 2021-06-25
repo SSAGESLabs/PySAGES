@@ -2,8 +2,22 @@
 # Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
+from typing import Callable, NamedTuple
 
-def restore(view, restore_vm, snapshot, prev_snapshot):
+
+class HelperMethods(NamedTuple):
+    indices: Callable
+    momenta: Callable
+    restore: Callable
+
+
+# Fallback method for restoring velocities and masses
+def restore_vm(view, snapshot, prev_snapshot):
+    vel_mass = view(snapshot.vel_mass)
+    vel_mass[:] = view(prev_snapshot.vel_mass)
+
+
+def restore(view, snapshot, prev_snapshot, restore_vm = restore_vm):
     # Create a mutable view of the jax arrays
     positions = view(snapshot.positions)
     forces = view(snapshot.forces)
@@ -13,10 +27,4 @@ def restore(view, restore_vm, snapshot, prev_snapshot):
     forces[:] = view(prev_snapshot.forces)
     ids[:] = view(prev_snapshot.ids)
     # Special handling for velocities and masses
-    restore_vm(snapshot, prev_snapshot)
-
-
-# Fallback method for restoring velocities and masses
-def restore_vm(view, snapshot, prev_snapshot):
-    vel_mass = view(snapshot.vel_mass)
-    vel_mass[:] = view(prev_snapshot.vel_mass)
+    restore_vm(view, snapshot, prev_snapshot)

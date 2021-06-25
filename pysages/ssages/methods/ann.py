@@ -44,7 +44,7 @@ def _ann(snapshot, cv, grid, topology, N, helpers):
     dims = grid.shape.size
     natoms = np.size(snapshot.positions, 0)
     get_grid_index = build_indexer(grid)
-    indices, momenta, *_ = helpers
+    indices, momenta = helpers.indices, helpers.momenta
     model = mlp(grid.shape, dims, topology)
     train = trainer(model, PartialRBObjective(), LevenbergMaquardtBayes(), np.zeros(dims))
 
