@@ -5,19 +5,19 @@
 
 import importlib
 import jax
-
 import jax.numpy as jnp
 import openmm_dlext as dlext
+import pysages.backends.common as common
 import simtk.openmm as openmm
 import simtk.unit as unit
 
-from jax.lax import cond
 from functools import partial
-from openmm_dlext import ContextView, DeviceType, Force
-from pysages.backends.snapshot import Box, Snapshot
-
 from jax.dlpack import from_dlpack as asarray
+from jax.lax import cond
 from jaxlib.xla_extension import DeviceArray as JaxArray
+from openmm_dlext import ContextView, DeviceType, Force
+from pysages.backends.common import HelperMethods
+from pysages.backends.snapshot import Box, Snapshot
 
 
 class ContextWrapper:
@@ -116,6 +116,8 @@ def build_helpers(context):
         #
         def indices(ids):
             return ids.argsort()
+        #
+        restore_vm = common.restore_vm
     else:
         utils = importlib.import_module(".utils", package = "pysages.backends")
         view = utils.view
@@ -127,6 +129,14 @@ def build_helpers(context):
         #
         def identity(x):
             return x
+        #
+        def restore_vm(view, snapshot, prev_snapshot):
+            # TODO: Check if we can omit modifying the masses
+            # (in general the masses are unlikely to change)
+            velocities = view(snapshot.vel_mass[0])
+            masses = view(snapshot.masses[1])
+            velocities[:] = view(prev_snapshot.vel_mass[0])
+            masses[:] = view(prev_snapshot.vel_mass[1])
         #
         unpack = indices = adapt = identity
     #
@@ -152,7 +162,9 @@ def build_helpers(context):
         forces += biases
         sync_forces()
     #
-    return jax.jit(indices), jax.jit(momenta), bias
+    restore = partial(common.restore, view, restore_vm = restore_vm)
+    #
+    return HelperMethods(jax.jit(indices), jax.jit(momenta), restore), bias
 
 
 def check_integrator(context):
@@ -169,9 +181,9 @@ def bind(context, sampling_method, force = Force(), **kwargs):
     #
     force.add_to(context)
     wrapped_context = ContextWrapper(context, force)
-    indices, momenta, bias = build_helpers(wrapped_context.view)
+    helpers, bias = build_helpers(wrapped_context.view)
     snapshot = take_snapshot(wrapped_context)
-    method_bundle = sampling_method(snapshot, (indices, momenta))
+    method_bundle = sampling_method(snapshot, helpers)
     sync_and_bias = partial(bias, sync_backend = wrapped_context.synchronize)
     #
     sampler = Sampler(method_bundle, sync_and_bias)
