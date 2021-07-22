@@ -58,8 +58,13 @@ def check_dims(cvs, grid):
         raise ValueError("Grid and Collective Variable dimensions must match.")
 
 
-def generalize(concrete_update):
-    _update = jit(concrete_update)
+def generalize(concrete_update, jit_compile = True):
+    if jit_compile:
+        _jit = jit
+    else:
+        def _jit(x): return x
+
+    _update = _jit(concrete_update)
 
     def update(snapshot, state):
         vms = snapshot.vel_mass
@@ -68,5 +73,4 @@ def generalize(concrete_update):
         #
         return _update(state, rs, vms, ids)
 
-    # TODO: Validate that jitting here gives correct results
-    return jit(update)
+    return _jit(update)
