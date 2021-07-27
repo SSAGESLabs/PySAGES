@@ -39,6 +39,11 @@ def prod(xs):
 
 # %% Models
 def unpack(params):
+    """
+    Returns the parameters of a `jax.experimental.stax.serial` model stacked
+    into a flat vector. This representation is more convenient for computing
+    the jacobian of the errors of the model.
+    """
     data, structure = jax.tree_flatten(params)
     ps = np.hstack([values.flatten() for values in data])
     shapes = [values.shape for values in data]
@@ -47,6 +52,10 @@ def unpack(params):
 
 
 def pack(params, layout):
+    """
+    Repacks the flatten parameters of a `jax.experimental.stax.serial` model
+    previously flatten with `unpack`.
+    """
     structure, shapes, separators = layout
     partition = params.split(separators)
     ps = [p.reshape(s) for (p, s) in zip(partition, shapes)]
