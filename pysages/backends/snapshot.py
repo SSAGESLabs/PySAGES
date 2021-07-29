@@ -3,7 +3,9 @@
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 from jaxlib.xla_extension import DeviceArray as JaxArray
+from plum import dispatch
 from typing import NamedTuple, Union
+from pysages.utils import copy
 
 import jax.numpy as np
 
@@ -36,3 +38,13 @@ class Snapshot(NamedTuple):
 
     def __repr__(self):
         return "PySAGES " + type(self).__name__
+
+
+@dispatch
+def copy(s: Box):
+    return Box(*(copy(x) for x in s))
+
+
+@dispatch
+def copy(s: Snapshot):
+    return Snapshot(*(copy(x) for x in s))
