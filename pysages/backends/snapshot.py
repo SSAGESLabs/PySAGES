@@ -2,25 +2,37 @@
 # Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
+from jaxlib.xla_extension import DeviceArray as JaxArray
+from typing import NamedTuple, Union
 
 import jax.numpy as np
 
-from collections import namedtuple
 
-
-class Box(namedtuple("Box", ("H", "origin"))):
+class Box(NamedTuple("Box", [
+    ("H",      JaxArray),
+    ("origin", JaxArray),
+])):
+    """
+    Simulation box information (origin and transform matrix).
+    """
     def __new__(cls, H, origin):
         return super().__new__(cls, np.asarray(H), np.asarray(origin))
-    #
+
     def __repr__(self):
-        return repr("PySAGES " + type(self).__name__)
+        return "PySAGES " + type(self).__name__
 
 
-class Snapshot(
-    namedtuple(
-        "Snapshot",
-        ("positions", "vel_mass", "forces", "ids", "box", "dt")
-    )
-):
+class Snapshot(NamedTuple):
+    """
+    Stores wrappers around the simulation context information: positions,
+    velocities, masses, forces, particles ids, box, and time step size.
+    """
+    positions: JaxArray
+    vel_mass:  Union[tuple, JaxArray]
+    forces:    JaxArray
+    ids:       JaxArray
+    box:       Box
+    dt:        Union[float, JaxArray]
+
     def __repr__(self):
-        return repr("PySAGES " + type(self).__name__)
+        return "PySAGES " + type(self).__name__
