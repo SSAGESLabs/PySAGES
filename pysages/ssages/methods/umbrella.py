@@ -3,20 +3,20 @@
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 from .core import SamplingMethod, generalize
-from collections import namedtuple
+from type import NamedTuple
 import jax.numpy as np
 
 
-class UmbrellaState(namedtuple(
+class UmbrellaState(NamedTuple(
         """
         Description of an umbrella sampling state.
-        kspring: spring constant of the collective variable.
-        cv_target: target of collective variable.
+        bias -- additional forces for the class.
+        xi -- current cv value.
         """
         "UmbrellaState",
         (
             "bias",
-            "cv_history",
+            "xi",
         ),
         )):
     def __repr__(self):
@@ -24,12 +24,13 @@ class UmbrellaState(namedtuple(
 
 
 class UmbrellaSampling(SamplingMethod):
-    def __call__(self, snapshot, helpers):
-        center = self.kwargs.get("center")
-        kspring = self.kwargs.get("kspring")
-        # catching user input smh
+    def __init__(self, cvs, kspring, center, *args, **kwargs):
+        super().__init__(cvs, args, kwargs)
+        self.kspring = kspring
+        self.center = center
 
-        return _umbrella(snapshot, self.cv, center, kspring, helpers)
+    def __call__(self, snapshot, helpers):
+        return _umbrella(snapshot, self.cv, self.center, self.kspring, helpers)
 
 
 def _umbrella(snapshot, cv, center, kspring, helpers):
@@ -45,6 +46,6 @@ def _umbrella(snapshot, cv, center, kspring, helpers):
         xi, Jxi = cv(rs, indices(ids))
         D = kspring * (xi - center)
         bias = -D*Jxi
-        cv_history = np.stack((state.cv_history, xi))
-        return UmbrellaState(bias, cv_history)
+        return UmbrellaState(bias, xi)
+
     return snapshot, initialize, generalize(update)
