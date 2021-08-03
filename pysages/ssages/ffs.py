@@ -57,16 +57,15 @@ def _ffs(snapshot, cv, grid, Nmax_replicas, N0_steps,sampling_time,system,run,he
 #list for returned snapshots
         basin_snapshots=[]
 #Initial snapshot used to restore the system in case of leaving the basin
-        snap_restore=system.take_snapshot()
-#Here it starts the sampling
-        while len(basin_snapshots)<int(number_basin_conf):
+        reference_snapshot = copy(snapshot)
+        # Here we start sampling
+        while len(basin_snapshots) < int(number_basin_conf):
             run(sampling_time)
-            snap=system.take_snapshot()
-            ξ, Jξ=cv(rs, indices(ids))
-            if ξ<grid[0]:
-                basin_snapshots.append(snap)
+            ξ, _ = cv(rs, indices(ids))
+            if ξ < grid[0]:
+                basin_snapshots.append(copy(snapshot))
             else:
-                system.restore_snapshot(snap_restore)
+                restore(reference_snapshot)
         return basin_snapshots
 #Function that detects when it has returned to origin the simulation
     def CrossedtoA(current_window,grid):
