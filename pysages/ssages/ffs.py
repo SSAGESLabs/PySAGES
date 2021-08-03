@@ -101,14 +101,13 @@ def _ffs(snapshot, cv, grid, Nmax_replicas, N0_steps,sampling_time,system,run,he
             while not has_reachedA:
                 run(1)
                 time_count+=timestep
-                snap = system.take_snapshot()
-                ξ, Jξ=cv(rs, indices(ids))
-                Crossed=CrossedtoA(ξ,grid)
-                if Crossed:
-                    success+=1;
-                    has_reachedA=True;
-                    if len(window0_snaps)<=Num_window0:
-                        window0_snaps.append(snap)
+                ξ, _ = cv(rs, indices(ids))
+                has_crossed = CrossedtoA(ξ,grid)
+                if has_crossed:
+                    success += 1;
+                    has_reachedA = True;
+                    if len(window0_snaps) <= Num_window0:
+                        window0_snaps.append(copy(snapshot))
         Phi_a=float(success)/(time_count)
         return Phi_a,window0_snaps
 #Function to run each window and calculate transition probabilities
@@ -167,5 +166,4 @@ def _ffs(snapshot, cv, grid, Nmax_replicas, N0_steps,sampling_time,system,run,he
         write_to_file(K_t)
         return FFSState(Phi_A,Previous_Window,Current_Window,Prob_window)
     return snapshot, initialize, generalize(update)
-
 
