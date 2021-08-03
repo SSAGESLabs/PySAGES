@@ -5,20 +5,19 @@
 from typing import NamedTuple
 from .core import SamplingMethod, generalize  # pylint: disable=relative-beyond-top-level
 import jax.numpy as np
+from jaxlib.xla_extension import DeviceArray as JaxArray
 
 
-class UmbrellaState(NamedTuple(
-        """
-        Description of an umbrella sampling state.
-        bias -- additional forces for the class.
-        xi -- current cv value.
-        """
-        "UmbrellaState",
-        (
-            "bias",
-            "xi",
-        ),
-        )):
+class UmbrellaState(NamedTuple):
+    """
+    Description of an umbrella sampling state.
+
+    bias -- additional forces for the class.
+    xi -- current cv value.
+    """
+    bias: JaxArray
+    xi: JaxArray
+
     def __repr__(self):
         return repr("PySAGES" + type(self).__name__)
 
