@@ -2,8 +2,8 @@
 # Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
-from .core import SamplingMethod, generalize
-from type import NamedTuple
+from typing import NamedTuple
+from .core import SamplingMethod, generalize  # pylint: disable=relative-beyond-top-level
 import jax.numpy as np
 
 
