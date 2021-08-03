@@ -94,9 +94,7 @@ def _ffs(snapshot, cv, grid, Nmax_replicas, N0_steps,sampling_time,system,run,he
         window0_snaps=[]
         for i in range(0,Num_window0):
             randin=random.randint(0,len(initial_snapshots)-1)
-            snapshot=initial_snapshots[randin]
-            #how pysages takes snapshots from system?
-            system.restore_snapshot(snapshot)
+            restore(initial_snapshots[randin])
             has_reachedA=False
             while not has_reachedA:
                 run(1)
