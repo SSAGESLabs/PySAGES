@@ -121,13 +121,12 @@ def _ffs(snapshot, cv, grid, Nmax_replicas, N0_steps,sampling_time,system,run,he
             select=0
             while select==0:
                 run(1)
-                snap=system.take_snapshot()
-                ξ, Jξ=cv(rs, indices(ids))
-                select=CrossingInterface(ξ,grid,step)
-                if select==-1:
+                ξ, _ = cv(rs, indices(ids))
+                select = CrossingInterface(ξ,grid,step)
+                if select == -1:
                     break
-                if select==1:
-                    new_snapshots.append(snapshot)
+                if select == 1:
+                    new_snapshots.append(copy(snapshot))
                     success+=1
                     break
         if success==0:
