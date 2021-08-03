@@ -47,12 +47,9 @@ def _ffs(snapshot, cv, grid, Nmax_replicas, N0_steps,sampling_time,system,run,he
         Prob_window= 0.0
         return FFSState(Phi_A,Previous_Window,Current_Window,Prob_window)
  #Function to determine if the initial snapshot is good (below first window)   
-    def good_input(snapshot,cv,grid,rs,ids):
-        ξ, Jξ=cv(rs, indices(ids))
-        if ξ<grid[0]:
-            return True
-        else:
-            return False
+    def good_input(snapshot, cv, grid, rs, ids):
+        ξ, _ = cv(rs, indices(ids))
+        return ξ < grid[0]
 #Function to generate initial configurations from the Basin A
 #requires system to integrate, how many snapshots you need, the window-A threshold and sampling time 
 #The function returns a list of snapshots
@@ -173,7 +170,6 @@ def _ffs(snapshot, cv, grid, Nmax_replicas, N0_steps,sampling_time,system,run,he
         write_to_file(K_t)
         return FFSState(Phi_A,Previous_Window,Current_Window,Prob_window)
     return snapshot, initialize, generalize(update)
-
 
 
 
