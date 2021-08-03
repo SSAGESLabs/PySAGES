@@ -38,7 +38,7 @@ def _ffs(snapshot, cv, grid, Nmax_replicas, N0_steps,sampling_time,system,run,he
     dt = snapshot.dt
     dims = grid.shape.size
     N_windows=len(grid)
-    indices, momenta = helpers.indices, helpers.momenta
+    indices, momenta, restore = helpers
 #initialize method
     def initialize():
         Phi_A = 0.0
@@ -173,7 +173,6 @@ def _ffs(snapshot, cv, grid, Nmax_replicas, N0_steps,sampling_time,system,run,he
         write_to_file(K_t)
         return FFSState(Phi_A,Previous_Window,Current_Window,Prob_window)
     return snapshot, initialize, generalize(update)
-
 
 
 
