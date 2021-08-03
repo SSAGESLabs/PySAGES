@@ -117,9 +117,7 @@ def _ffs(snapshot, cv, grid, Nmax_replicas, N0_steps,sampling_time,system,run,he
         win_value=grid[step]
         new_snapshots=[]
         for i in range(0,len(old_snapshots)):
-            snapshot=old_snapshots[i]
-            #sages snapshots can be used to restore the simulation?
-            system.restore_snapshot(snapshot)
+            restore(old_snapshots[i])
             select=0
             while select==0:
                 run(1)
@@ -166,4 +164,3 @@ def _ffs(snapshot, cv, grid, Nmax_replicas, N0_steps,sampling_time,system,run,he
         write_to_file(K_t)
         return FFSState(Phi_A,Previous_Window,Current_Window,Prob_window)
     return snapshot, initialize, generalize(update)
-
