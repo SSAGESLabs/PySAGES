@@ -26,9 +26,9 @@ class FFSState(
 class FFS(GriddedSamplingMethod):
     def __call__(self, snapshot, helpers):
         #Number of parallel replicas per window
-        Nmax_replicas= np.asarray(self.kwargs.get('M', 2000))
-        N0_steps= np.asarray(self.kwargs.get('M', 2000))
-        sampling_time= np.asarray(self.kwargs.get('M', 2000))
+        Nmax_replicas = self.kwargs.get('M', 2000)
+        N0_steps = self.kwargs.get('M', 2000)
+        sampling_time = self.kwargs.get('M', 2000)
         system=0
         run=0
         return _ffs(snapshot, self.cv, self.grid, Nmax_replicas, N0_steps,sampling_time,system,run,helpers)
@@ -173,7 +173,6 @@ def _ffs(snapshot, cv, grid, Nmax_replicas, N0_steps,sampling_time,system,run,he
         write_to_file(K_t)
         return FFSState(Phi_A,Previous_Window,Current_Window,Prob_window)
     return snapshot, initialize, generalize(update)
-
 
 
 
