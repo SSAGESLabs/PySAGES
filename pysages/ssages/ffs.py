@@ -71,10 +71,7 @@ def _ffs(snapshot, cv, grid, Nmax_replicas, N0_steps,sampling_time,system,run,he
 #Function that detects when it has returned to origin the simulation
     def CrossedtoA(current_window,grid):
         window_A=grid[0]
-        if current_window>= window_A:
-            return True
-        else:
-            return False
+        return current_window >= window_A
 #Function that detects when has crossed the interface
     def CrossingInterface(current_window,grid,i):
         interface=grid[i];
@@ -170,6 +167,5 @@ def _ffs(snapshot, cv, grid, Nmax_replicas, N0_steps,sampling_time,system,run,he
         write_to_file(K_t)
         return FFSState(Phi_A,Previous_Window,Current_Window,Prob_window)
     return snapshot, initialize, generalize(update)
-
 
 
