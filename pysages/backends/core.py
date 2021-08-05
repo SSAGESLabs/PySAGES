@@ -96,7 +96,7 @@ class Sampler:
         self.bias = bias
         self.callback = callback
 
-    def update(self, timestep):
+    def update(self, timestep=0):
         """
         Execute the update step.
         """
