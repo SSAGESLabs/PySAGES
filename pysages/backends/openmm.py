@@ -19,25 +19,14 @@ from openmm_dlext import ContextView, DeviceType, Force
 from pysages.backends.common import HelperMethods
 from pysages.backends.snapshot import Box, Snapshot
 
+from .core import ContextWrapper
 
-class ContextWrapper:
+class ContextWrapperOpenMM(ContextWrapper):
     def __init__(self, context, force):
+        super().__init__(context)
         self.view = force.view(context)
-        self.context = context
         self.synchronize = self.view.synchronize
 
-
-class Sampler:
-    def __init__(self, method_bundle, bias):
-        snapshot, initialize, update = method_bundle
-        self.snapshot = snapshot
-        self.state = initialize()
-        self.update_from = update
-        self.bias = bias
-    #
-    def update(self):
-        self.state = self.update_from(self.snapshot, self.state)
-        self.bias(self.snapshot, self.state)
 
 
 def is_on_gpu(view: ContextView):
