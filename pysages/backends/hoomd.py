@@ -14,11 +14,12 @@ from pysages.backends.snapshot import Box, Snapshot
 
 from jax.dlpack import from_dlpack as asarray
 
+from .core import ContextWrapper
 
-class ContextWrapper:
+class ContextWrapperHOOMD(ContextWrapper):
     def __init__(self, context):
+        super().__init__(context)
         self.sysview = SystemView(context.system_definition)
-        self.context = context
         self.synchronize = self.sysview.synchronize
 
 
