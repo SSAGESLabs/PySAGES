@@ -179,12 +179,12 @@ def check_integrator(context):
 
 def bind(context, sampling_method, force=Force(), **kwargs):
     """
-    Bind OpenMM as a backend to PySages.
+    Bind OpenMM as a backend to PySAGES.
 
     context -- OpenMM context
-    sampling_method -- pysages sampling method
-    callback -- callback method with call signature `callback(snapshot, state)`
-      called after PySages updated. Example: logging of CVs.
+    sampling_method -- PySAGES sampling method
+    callback -- callback method with call signature `callback(snapshot, state, timestep)`
+      called after each pysages update. Example: logging of CVs.
     """
     check_integrator(context)
 
