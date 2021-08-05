@@ -27,7 +27,7 @@ class ContextWrapperOpenMM(ContextWrapper):
     OpenMM derivative of the ContextWrapper class.
 
     context -- as used in base class
-    force -- OpenMM force class that is wrapped
+    force -- `openmm_dlext` force class that is being wrapped
     """
     def __init__(self, context, force):
         super().__init__(context)
