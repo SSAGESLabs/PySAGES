@@ -85,7 +85,9 @@ class Sampler:
 
         method_bundle -- tuple with (snapshot, initialize, update) instances to be stored.
         bias -- bias to be applied to the forces
-        callback -- optional callback function/functor with call signature (snapshot, state) called after updates. Examples: logging user calculated observables or CVs during the run.
+        callback -- optional callback function/functor with call signature
+          `(snapshot, state)` called after updates. Examples: logging user calculated
+          observables or CVs during the run.
         """
         snapshot, initialize, update = method_bundle
         self.snapshot = snapshot
