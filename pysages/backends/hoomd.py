@@ -128,9 +128,9 @@ def bind(context, sampling_method, **kwargs):
     Bind pysages to hoomd-blue.
 
     context -- hoomd simulation context
-    sampling_method -- pysages sampling_method
-    callback -- callback method with call signature `callback(snapshot, state)`
-      called after PySages updated. Example: logging of CVs.
+    sampling_method -- PySAGES sampling method
+    callback -- callback method with call signature `callback(snapshot, state, timestep)`
+      called after each pysages update. Example: logging of CVs.
     """
     helpers, bias = build_helpers(context)
 
