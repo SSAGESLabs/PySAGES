@@ -8,6 +8,7 @@ import jax
 import pysages.backends.common as common
 
 from functools import partial
+from typing import Callable
 from hoomd.dlext import (
     AccessLocation, AccessMode, HalfStepHook, SystemView,
     net_forces, positions_types, rtags, velocities_masses,
@@ -17,6 +18,9 @@ from pysages.backends.common import HelperMethods
 from pysages.backends.snapshot import Box, Snapshot
 
 from .core import ContextWrapper, Sampler
+from pysages.ssages.methods.core import State
+from .snapshot import Snapshot
+from typing import Callable
 
 
 class ContextWrapperHOOMD(ContextWrapper):
@@ -33,7 +37,7 @@ class SamplerHOOMD(Sampler, HalfStepHook):
     """
     Sampler class for hoomd-blue backend.
     """
-    def __init__(self, method_bundle, bias, callback=None):
+    def __init__(self, method_bundle, bias, callback:Callable):
         HalfStepHook.__init__()
         Sampler.__init__(method_bundle, bias, callback)
 
@@ -123,7 +127,7 @@ def build_helpers(context):
     return HelperMethods(jax.jit(indices), jax.jit(momenta), restore), bias
 
 
-def bind(context, sampling_method, **kwargs):
+def bind(context, sampling_method, callback: Callable, **kwargs):
     """
     Bind pysages to hoomd-blue.
 
@@ -139,9 +143,8 @@ def bind(context, sampling_method, **kwargs):
     snapshot = take_snapshot(wrapped_context)
     method_bundle = sampling_method(snapshot, helpers)
     sync_and_bias = partial(bias, sync_backend=wrapped_context.synchronize)
-    pysages_callback = kwargs.get("callback", None)
 
-    sampler = Sampler(method_bundle, sync_and_bias, pysages_callback)
+    sampler = Sampler(method_bundle, sync_and_bias, callback)
 
     context.integrator.cpp_integrator.setHalfStepHook(sampler)
     return sampler

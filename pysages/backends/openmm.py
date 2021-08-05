@@ -20,6 +20,7 @@ from pysages.backends.common import HelperMethods
 from pysages.backends.snapshot import Box, Snapshot
 
 from .core import ContextWrapper, Sampler
+from typing import Callable
 
 
 class ContextWrapperOpenMM(ContextWrapper):
@@ -177,7 +178,7 @@ def check_integrator(context):
         raise ValueError("Variable step size integrators are not supported")
 
 
-def bind(context, sampling_method, force=Force(), **kwargs):
+def bind(context, sampling_method, callback: Callable, force=Force(), **kwargs):
     """
     Bind OpenMM as a backend to PySAGES.
 
@@ -195,9 +196,8 @@ def bind(context, sampling_method, force=Force(), **kwargs):
     snapshot = take_snapshot(wrapped_context)
     method_bundle = sampling_method(snapshot, helpers)
     sync_and_bias = partial(bias, sync_backend=wrapped_context.synchronize)
-    pysages_callback = kwargs.get("callback", None)
 
-    sampler = SamplerOpenMM(method_bundle, sync_and_bias, pysages_callback)
+    sampler = SamplerOpenMM(method_bundle, sync_and_bias, callback)
 
     force.set_callback_in(context, sampler.update)
     return sampler
