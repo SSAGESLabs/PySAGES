@@ -42,7 +42,7 @@ def set_backend(name):
     return _CURRENT_BACKEND
 
 
-def bind(context, sampling_method, callback: Callable, **kwargs):
+def bind(context, sampling_method, callback: Callable = None, **kwargs):
     """Couples the sampling method to the simulation.
 
     context -- Backend simulation context
