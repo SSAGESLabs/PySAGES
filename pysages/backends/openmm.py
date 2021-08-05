@@ -18,15 +18,27 @@ from pysages.backends.snapshot import Box, Snapshot
 from jax.dlpack import from_dlpack as asarray
 from jaxlib.xla_extension import DeviceArray as JaxArray
 
-from .core import ContextWrapper
+from .core import ContextWrapper, Sampler
+
 
 class ContextWrapperOpenMM(ContextWrapper):
+    """
+    OpenMM derivative of the ContextWrapper class.
+
+    context -- as used in base class
+    force -- OpenMM force class that is wrapped
+    """
     def __init__(self, context, force):
         super().__init__(context)
         self.view = force.view(context)
         self.synchronize = self.view.synchronize
 
 
+class SamplerOpenMM(Sampler):
+    """
+    Sampler class for OpenMM
+    """
+    pass
 
 def is_on_gpu(view: ContextView):
     return view.device_type() == DeviceType.GPU
@@ -152,17 +164,26 @@ def check_integrator(context):
         raise ValueError("Variable step size integrators are not supported")
 
 
-def bind(context, sampling_method, force = Force(), **kwargs):
+def bind(context, sampling_method, force=Force(), **kwargs):
+    """
+    Bind OpenMM as a backend to PySages.
+
+    context -- OpenMM context
+    sampling_method -- pysages sampling method
+    callback -- callback method with call signature `callback(snapshot, state)`
+      called after PySages updated. Example: logging of CVs.
+    """
     check_integrator(context)
-    #
+
     force.add_to(context)
-    wrapped_context = ContextWrapper(context, force)
+    wrapped_context = ContextWrapperOpenMM(context, force)
     indices, momenta, bias = build_helpers(wrapped_context.view)
     snapshot = take_snapshot(wrapped_context)
+
     method_bundle = sampling_method(snapshot, (indices, momenta))
-    sync_and_bias = partial(bias, sync_backend = wrapped_context.synchronize)
-    #
-    sampler = Sampler(method_bundle, sync_and_bias)
+    sync_and_bias = partial(bias, sync_backend=wrapped_context.synchronize)
+    pysages_callback = kwargs.get("callback", None)
+    sampler = SamplerOpenMM(method_bundle, sync_and_bias, pysages_callback)
+
     force.set_callback_in(context, sampler.update)
-    #
     return sampler
