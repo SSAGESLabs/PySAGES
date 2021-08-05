@@ -16,28 +16,26 @@ from jax.dlpack import from_dlpack as asarray
 from pysages.backends.common import HelperMethods
 from pysages.backends.snapshot import Box, Snapshot
 
-from .core import ContextWrapper
+from .core import ContextWrapper, Sampler
+
 
 class ContextWrapperHOOMD(ContextWrapper):
+    """
+    ContextWrapper for hoomd-blue.
+    """
     def __init__(self, context):
         super().__init__(context)
         self.sysview = SystemView(context.system_definition)
         self.synchronize = self.sysview.synchronize
 
 
-class Sampler(HalfStepHook):
-    def __init__(self, method_bundle, bias):
-        super().__init__()
-        #
-        snapshot, initialize, update = method_bundle
-        self.snapshot = snapshot
-        self.state = initialize()
-        self._update = update
-        self.bias = bias
-    #
-    def update(self, timestep):
-        self.state = self._update(self.snapshot, self.state)
-        self.bias(self.snapshot, self.state)
+class SamplerHOOMD(Sampler, HalfStepHook):
+    """
+    Sampler class for hoomd-blue backend.
+    """
+    def __init__(self, method_bundle, bias, callback=None):
+        HalfStepHook.__init__()
+        Sampler.__init__(method_bundle, bias, callback)
 
 
 if hasattr(AccessLocation, "OnDevice"):
@@ -126,15 +124,24 @@ def build_helpers(context):
 
 
 def bind(context, sampling_method, **kwargs):
-    #
+    """
+    Bind pysages to hoomd-blue.
+
+    context -- hoomd simulation context
+    sampling_method -- pysages sampling_method
+    callback -- callback method with call signature `callback(snapshot, state)`
+      called after PySages updated. Example: logging of CVs.
+    """
     helpers, bias = build_helpers(context)
-    #
+
     wrapped_context = ContextWrapper(context)
+
     snapshot = take_snapshot(wrapped_context)
     method_bundle = sampling_method(snapshot, helpers)
-    sync_and_bias = partial(bias, sync_backend = wrapped_context.synchronize)
-    #
-    sampler = Sampler(method_bundle, sync_and_bias)
+    sync_and_bias = partial(bias, sync_backend=wrapped_context.synchronize)
+    pysages_callback = kwargs.get("callback", None)
+
+    sampler = Sampler(method_bundle, sync_and_bias, pysages_callback)
+
     context.integrator.cpp_integrator.setHalfStepHook(sampler)
-    #
     return sampler
