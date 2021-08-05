@@ -45,10 +45,10 @@ def set_backend(name):
 def bind(context, sampling_method, **kwargs):
     """Couples the sampling method to the simulation.
 
-    context -- hoomd simulation context
-    sampling_method -- pysages sampling_method
-    callback -- callback method with call signature `callback(snapshot, state)`
-      called after PySages updated. Example: logging of CVs.
+    context -- Backend simulation context
+    sampling_method -- PySAGES sampling method
+    callback -- callback method with call signature `callback(snapshot, state, timestep)`
+      called after each pysages update. Example: logging of CVs.
     """
     if type(context).__module__.startswith("hoomd"):
         set_backend("hoomd")
