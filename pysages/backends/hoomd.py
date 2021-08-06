@@ -18,7 +18,6 @@ from pysages.backends.common import HelperMethods
 from pysages.backends.snapshot import Box, Snapshot
 
 from .core import ContextWrapper, Sampler
-from pysages.ssages.methods.core import State
 from .snapshot import Snapshot
 from typing import Callable
 
