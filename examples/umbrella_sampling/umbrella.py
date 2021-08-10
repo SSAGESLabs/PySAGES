@@ -26,10 +26,10 @@ def main():
 
         method = UmbrellaSampling(cvs, 10., (-2, 2))
 
-        bind(context, method)
-
         hoomd.md.integrate.nvt(group=hoomd.group.all(), kT=1, tau=0.1)
         hoomd.md.integrate.mode_standard(dt=0.05)
+
+        bind(context, method)
 
         gsd = hoomd.dump.gsd("umbrella.gsd", group=hoomd.group.all(), period=100, overwrite=True)
 

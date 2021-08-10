@@ -37,9 +37,8 @@ def _umbrella(snapshot, cv, center, kspring, helpers):
     indices = helpers.indices
 
     def initialize():
-        cv_history = np.zeros((0, cv.shape))
         bias = np.zeros((natoms, 3))
-        return UmbrellaState(bias, cv_history)
+        return UmbrellaState(bias, None)
 
     def update(state, rs, vms, ids):
         xi, Jxi = cv(rs, indices(ids))
