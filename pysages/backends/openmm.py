@@ -53,11 +53,12 @@ def take_snapshot(wrapped_context):
     forces = asarray(dlext.forces(context_view))
     ids = asarray(dlext.atom_ids(context_view))
     #
+    velocities = asarray(dlext.velocities(context_view))
     if is_on_gpu(context_view):
-        vel_mass = asarray(dlext.velocities(context_view))
+        vel_mass = velocities
     else:
         inverse_masses = asarray(dlext.inverse_masses(context_view))
-        vel_mass = (vel_mass, inverse_masses)
+        vel_mass = (velocities, inverse_masses)
     #
     box_vectors = context.getSystem().getDefaultPeriodicBoxVectors()
     a = box_vectors[0].value_in_unit(unit.nanometer)
