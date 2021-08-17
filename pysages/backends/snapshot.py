@@ -41,10 +41,10 @@ class Snapshot(NamedTuple):
 
 
 @dispatch
-def copy(s: Box):
-    return Box(*(copy(x) for x in s))
+def copy(s: Box, *args):
+    return Box(*(copy(x, *args) for x in s))
 
 
 @dispatch
-def copy(s: Snapshot):
-    return Snapshot(*(copy(x) for x in s))
+def copy(s: Snapshot, *args):
+    return Snapshot(*(copy(x, *args) for x in s))

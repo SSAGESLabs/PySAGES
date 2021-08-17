@@ -11,6 +11,10 @@ from typing import Union
 Scalar = Union[bool, int, float]
 
 
+class ToCPU:
+    pass
+
+
 # From:
 # - https://github.com/google/jax/issues/446
 # - https://github.com/google/jax/issues/806
@@ -29,13 +33,23 @@ def copy(x: Scalar):
 
 
 @dispatch
-def copy(t: tuple):
-    return tuple(copy(x) for x in t)
+def copy(t: tuple, *args):
+    return tuple(copy(x, *args) for x in t)
 
 
 @dispatch
 def copy(x: JaxArray):
     return x[:]
+
+
+@dispatch
+def copy(x, _: ToCPU):
+    return copy(x)
+
+
+@dispatch
+def copy(x: JaxArray, _: ToCPU):
+    return x.copy()
 
 
 # def wrap_around(boxsize, r):
