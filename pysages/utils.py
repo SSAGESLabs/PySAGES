@@ -8,8 +8,11 @@ from typing import Union
 
 import jaxlib.xla_extension as xe
 
+
 JaxArray = xe.DeviceArray
+Bool = Union[JaxArray, bool]
 Float = Union[JaxArray, float]
+Int = Union[JaxArray, int]
 Scalar = Union[None, bool, int, float]
 
 
@@ -17,7 +20,6 @@ class ToCPU:
     pass
 
 
-# From:
 # - https://github.com/google/jax/issues/446
 # - https://github.com/google/jax/issues/806
 def register_pytree_namedtuple(cls):
@@ -52,6 +54,10 @@ def copy(x, _: ToCPU):
 @dispatch
 def copy(x: JaxArray, _: ToCPU):
     return x.copy()
+
+
+def identity(x):
+    return x
 
 
 # def wrap_around(boxsize, r):
