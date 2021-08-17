@@ -32,7 +32,7 @@ def copy(x: Scalar):
     return x
 
 
-@dispatch
+@dispatch(precedence = 1)
 def copy(t: tuple, *args):
     return tuple(copy(x, *args) for x in t)
 

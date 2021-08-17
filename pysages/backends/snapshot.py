@@ -40,11 +40,11 @@ class Snapshot(NamedTuple):
         return "PySAGES " + type(self).__name__
 
 
-@dispatch
+@dispatch(precedence = 1)
 def copy(s: Box, *args):
     return Box(*(copy(x, *args) for x in s))
 
 
-@dispatch
+@dispatch(precedence = 1)
 def copy(s: Snapshot, *args):
     return Snapshot(*(copy(x, *args) for x in s))
