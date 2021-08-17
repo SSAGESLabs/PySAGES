@@ -58,7 +58,7 @@ def take_snapshot(wrapped_context):
         vel_mass = velocities
     else:
         inverse_masses = asarray(dlext.inverse_masses(context_view))
-        vel_mass = (velocities, inverse_masses)
+        vel_mass = (velocities, inverse_masses.reshape((-1, 1)))
     #
     box_vectors = context.getSystem().getDefaultPeriodicBoxVectors()
     a = box_vectors[0].value_in_unit(unit.nanometer)
