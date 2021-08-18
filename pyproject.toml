@@ -1,5 +1,16 @@
 [build-system]
-requires = ['setuptools>=41.0', 'wheel>=0.33', 'numpy>=1.16', 'cython>=0.29', "setuptools_scm[toml]>=6.0"]
+requires = [
+    'setuptools>=41.0',
+    'wheel>=0.33',
+    'numpy>=1.16',
+    'cython>=0.29',
+    "setuptools_scm[toml]>=6.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = [
+    "tests",
+]
 
 [tool.setuptools_scm]
 write_to = "pysages/_version.py"
