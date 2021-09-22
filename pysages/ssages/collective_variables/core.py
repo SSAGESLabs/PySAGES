@@ -132,8 +132,7 @@ def get_nargs(f: Callable):
     return len(signature(f).parameters)
 
 
-@dispatch
-def build(cv: CollectiveVariable, J = grad):
+def _build(cv: CollectiveVariable, J = grad):
     # TODO: Add support for passing weights of compute weights from masses, and
     # to reduce groups with barycenter
     ξ = cv.function
@@ -159,9 +158,8 @@ def build(cv: CollectiveVariable, J = grad):
     return jit(apply)
 
 
-@dispatch
 def build(cv: CollectiveVariable, *cvs: CollectiveVariable):
-    cvs = [build(cv)] + [build(cv) for cv in cvs]
+    cvs = [_build(cv)] + [_build(cv) for cv in cvs]
     #
     def apply(positions: JaxArray, ids: JaxArray):
         ξs, Jξs = [], []
