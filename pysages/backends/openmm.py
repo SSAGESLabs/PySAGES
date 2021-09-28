@@ -44,27 +44,21 @@ def is_on_gpu(view: ContextView):
     return view.device_type() == DeviceType.GPU
 
 
-def choose_backend(context):
-    if is_on_gpu(context):
-        return jax.lib.xla_bridge.get_backend("gpu")
-    return jax.lib.xla_bridge.get_backend("cpu")
-
-
 def take_snapshot(wrapped_context):
     #
     context = wrapped_context.context
     context_view = wrapped_context.view
-    backend = choose_backend(context_view)
     #
-    positions = asarray(dlext.positions(context_view), backend)
-    forces = asarray(dlext.forces(context_view), backend)
-    ids = asarray(dlext.atom_ids(context_view), backend)
+    positions = asarray(dlext.positions(context_view))
+    forces = asarray(dlext.forces(context_view))
+    ids = asarray(dlext.atom_ids(context_view))
     #
+    velocities = asarray(dlext.velocities(context_view))
     if is_on_gpu(context_view):
-        vel_mass = asarray(dlext.velocities(context_view), backend)
+        vel_mass = velocities
     else:
-        inverse_masses = asarray(dlext.inverse_masses(context_view), backend)
-        vel_mass = (vel_mass, inverse_masses)
+        inverse_masses = asarray(dlext.inverse_masses(context_view))
+        vel_mass = (velocities, inverse_masses.reshape((-1, 1)))
     #
     box_vectors = context.getSystem().getDefaultPeriodicBoxVectors()
     a = box_vectors[0].value_in_unit(unit.nanometer)
