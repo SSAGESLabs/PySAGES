@@ -21,14 +21,14 @@ def main():
         #log some thermo properties
         qr += ['temperature', 'potential_energy', 'kinetic_energy']
 
-        cvs = (Component([0], 0), Component([0], 1))
+        cvs = (Component([0], 0),)
 
         method = UmbrellaSampling(cvs, 10., (-2, 2))
 
         hoomd.md.integrate.nvt(group=hoomd.group.all(), kT=1, tau=0.1)
         hoomd.md.integrate.mode_standard(dt=0.05)
 
-        bind(context, method)
+        asdf = bind(context, method)
 
         gsd = hoomd.dump.gsd("umbrella.gsd", group=hoomd.group.all(), period=100, overwrite=True)
 
