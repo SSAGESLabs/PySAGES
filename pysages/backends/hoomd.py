@@ -15,6 +15,12 @@ from hoomd.dlext import (
 from jax.dlpack import from_dlpack as asarray
 from pysages.backends.common import HelperMethods
 from pysages.backends.snapshot import Box, Snapshot
+from warnings import warn
+
+
+# TODO: Figure out a way to automatically tie the lifetime of Sampler
+# objects to the contexts they bind to
+SAMPLERS_CONTEXTS = {}
 
 
 class ContextWrapper:
@@ -129,4 +135,17 @@ def bind(context, sampling_method, **kwargs):
     sampler = Sampler(method_bundle, sync_and_bias)
     context.integrator.cpp_integrator.setHalfStepHook(sampler)
     #
+    SAMPLERS_CONTEXTS[context] = sampler
+    #
     return sampler
+
+
+def detach(context):
+    """
+    If pysages was bound to this context, this removes the corresponding
+    `Sampler` object.
+    """
+    try:
+        del SAMPLERS_CONTEXTS[context]
+    except KeyError:
+        warn("This context has no sampler bound to it.")
