@@ -23,7 +23,7 @@ def main():
 
         cvs = (Component([0], 0),)
 
-        method = UmbrellaSampling(cvs, 10., (-2, 2))
+        method = UmbrellaSampling(cvs, 10., (-2,))
 
         hoomd.md.integrate.nvt(group=hoomd.group.all(), kT=1, tau=0.1)
         hoomd.md.integrate.mode_standard(dt=0.05)

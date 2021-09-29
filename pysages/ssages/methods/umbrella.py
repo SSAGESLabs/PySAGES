@@ -25,8 +25,8 @@ class UmbrellaState(NamedTuple):
 class UmbrellaSampling(SamplingMethod):
     def __init__(self, cvs, kspring, center, *args, **kwargs):
         super().__init__(cvs, args, kwargs)
-        self.kspring = kspring
-        self.center = center
+        self.kspring = np.asarray(kspring)
+        self.center = np.asarray(center)
 
     def __call__(self, snapshot, helpers):
         return _umbrella(snapshot, self.cv, self.center, self.kspring, helpers)
