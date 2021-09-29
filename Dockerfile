@@ -26,7 +26,7 @@ RUN git clone https://github.com/SSAGESLabs/hoomd-dlext.git && cd hoomd-dlext &&
 
 
 RUN apt-get update && apt-get install -y doxygen swig nvidia-cuda-dev nvidia-cuda-toolkit python3-setuptools cython3
-RUN git clone https://github.com/openmm/openmm.git &&  cd openmm &&  git checkout 7.5.0 &&  mkdir build && cd build && cmake -DPYTHON_EXECUTABLE=`which python3` -DCMAKE_INSTALL_PREFIX=../install -DBUILD_TESTING=OFF .. && make -j 6 install
+RUN git clone https://github.com/openmm/openmm.git &&  cd openmm &&  git checkout 7.5.0 &&  mkdir build && cd build && cmake -DPYTHON_EXECUTABLE=`which python3` -DCMAKE_INSTALL_PREFIX=../install -DBUILD_TESTING=OFF .. && make -j $(nproc) install
 ENV OPENMM_INCLUDE_PATH=/openmm/install/include
 ENV OPENMM_LIB_PATH=/openmm/install/lib
 RUN cd openmm/build/python && python3 setup.py install
