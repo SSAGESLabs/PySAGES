@@ -18,7 +18,7 @@ RUN python -m pip install jaxlib
 
 
 #HOOMD-blue dependency
-RUN git clone https://github.com/glotzerlab/hoomd-blue.git && cd hoomd-blue && git checkout v2.9.7 && mkdir build && cd build && cmake -DCMAKE_INSTALL_PREFIX=/hoomd-install -DENABLE_TESTING=OFF -DENABLE_CUDA=ON -DENABLE_MPI=ON .. && make install
+RUN git clone https://github.com/glotzerlab/hoomd-blue.git && cd hoomd-blue && git checkout v2.9.7 && mkdir build && cd build && cmake -DCMAKE_INSTALL_PREFIX=/hoomd-install -DENABLE_TESTING=OFF -DENABLE_CUDA=ON -DENABLE_MPI=ON .. && make -j $(nproc) install
 ENV PYTHONPATH=${PYTHONPATH}:/hoomd-install
 
 #HOOMD-blue dlext plugin
