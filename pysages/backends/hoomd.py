@@ -147,6 +147,6 @@ def detach(context):
     """
     if CONTEXTS_SAMPLERS.haskey(context):
         context.integrator.cpp_integrator.removeHalfStepHook()
-        CONTEXTS_SAMPLERS.pop(context, None)
+        del CONTEXTS_SAMPLERS[context]
     else:
         warn("This context has no sampler bound to it.")
