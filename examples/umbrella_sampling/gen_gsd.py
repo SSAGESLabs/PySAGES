@@ -6,7 +6,7 @@ import gsd.hoomd
 class System:
     def __init__(self):
         self.L = 5
-        self.N = 2
+        self.N = 200
 
 
 def post_process_pos(snapshot):
@@ -31,7 +31,6 @@ def get_snap(system):
         snapshot.particles.position[particle, 0] = rng.random() * system.L - system.L/2
         snapshot.particles.position[particle, 1] = rng.random() * system.L - system.L/2
         snapshot.particles.position[particle, 2] = rng.random() * system.L - system.L/2
-    print(snapshot.particles.position)
 
     return snapshot
 

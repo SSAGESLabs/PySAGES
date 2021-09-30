@@ -13,10 +13,10 @@ def get_positions(traj):
     return pos
 
 
-def get_histogram(pos, idx, N=25):
+def get_histogram(pos, idx, L, N=25):
     hist = np.zeros((3, N))
     for i in range(3):
-        hist[i], _ = np.histogram(pos[:,idx, i], N, density=True)
+        hist[i], _ = np.histogram(pos[:,idx, i], bins=N, range=(-L[i]/2, L[i]/2), density=True)
     return hist
 
 def plot(unbiased_hist, biased_hist):
@@ -47,8 +47,9 @@ def main(argv):
 
     with gsd.hoomd.open(filename, "rb") as traj:
         pos = get_positions(traj)
-    biased_hist = get_histogram(pos, 0)
-    unbiased_hist = get_histogram(pos, 1)
+        L = traj[0].configuration.box[:3]
+    biased_hist = get_histogram(pos, 0, L)
+    unbiased_hist = get_histogram(pos, 1, L)
 
     plot(unbiased_hist, biased_hist)
 
