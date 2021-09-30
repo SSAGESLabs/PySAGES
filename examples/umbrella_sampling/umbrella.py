@@ -28,7 +28,7 @@ def main():
         hoomd.md.integrate.nvt(group=hoomd.group.all(), kT=1, tau=0.1)
         hoomd.md.integrate.mode_standard(dt=0.05)
 
-        asdf = bind(context, method)
+        bind(context, method)
 
         gsd = hoomd.dump.gsd("umbrella.gsd", group=hoomd.group.all(), period=100, overwrite=True)
 
