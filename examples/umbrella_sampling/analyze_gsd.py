@@ -39,6 +39,25 @@ def plot(unbiased_hist, biased_hist):
     plt.close(fig)
 
 
+def validate_hist(unbiased_hist, biased_hist):
+    TARGET_NORM = 0.2
+    TARGET_BIAS = [0., 0., 0., 0., 0., 0., 0., 0.005, 0.07, 0.23, 0.645, 0.9, 1.275, 0.975, 0.565, 0.295, 0.04, 0., 0., 0., 0., 0., 0., 0., 0.]
+    EPSILON = 0.1
+
+    for i in range(3):
+        val = np.sqrt(np.mean((unbiased_hist[i]-TARGET_NORM)**2))
+        if val > EPSILON:
+            raise RuntimeError("Unbiased historgram deviation too large: {0} epsilon {1}".format(val, EPSILON))
+    for i in range(2):
+        val = np.sqrt(np.mean((biased_hist[i]-TARGET_NORM)**2))
+        if val > EPSILON:
+            raise RuntimeError("Biased historgram deviation too large: {0} epsilon {1}".format(val, EPSILON))
+
+    val = np.sqrt(np.mean((biased_hist[2]-TARGET_BIAS)**2))
+    if val > EPSILON:
+        raise RuntimeError("Real biased historgram deviation too large: {0} epsilon {1}".format(val, EPSILON))
+
+
 def main(argv):
     if len(argv) != 1:
         print("Usage: ./analyze_gsd.py filename")
@@ -52,7 +71,7 @@ def main(argv):
     unbiased_hist = get_histogram(pos, 1, L)
 
     plot(unbiased_hist, biased_hist)
-
+    validate_hist(unbiased_hist, biased_hist)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
