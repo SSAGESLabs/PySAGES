@@ -1,0 +1,37 @@
+on:
+    push:
+          branches:
+                - master
+    pull_request:
+          branches:
+               - master
+
+defaults:
+        run:
+                shell: bash
+
+jobs:
+        umbrella:
+                runs-on: ubuntu-20.04
+                name: "Test the base umbrella implementation"
+                steps:
+                       - uses: actions/checkout@v2
+                       - name: install dependecies
+                         run: |
+                           sudo apt-get update
+                           sudo apt install apt-transport-https ca-certificates curl software-properties-common
+                           curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+                           sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable"
+                           sudo apt update
+                           apt-cache policy docker-ce
+                           sudo apt install docker-ce
+                           sudo systemctl status docker
+                       - name: build container
+                         run: |
+                           cd ..
+                           sudo docker build -t pysages .
+                       - name: test container for umbrella
+                         run: |
+                           mkdir /tmp/umbrella
+                           cd /tmp/umbrella
+                           sudo docker run pysages bash -c "cd PySAGES/examples/umbrella_sampling/ && python3 gen_gsd.py && python3 umbrella.py && python3 analyze_gsd.py umbrella.gsd"
