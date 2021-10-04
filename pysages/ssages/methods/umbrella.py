@@ -43,7 +43,7 @@ def _umbrella(snapshot, cv, center, kspring, helpers):
     def update(state, rs, vms, ids):
         xi, Jxi = cv(rs, indices(ids))
         D = kspring * (xi - center)
-        bias = (-D * Jxi).reshape(state.bias.shape)
+        bias = (-Jxi @ D).reshape(state.bias.shape)
         return UmbrellaState(bias, xi)
 
     return snapshot, initialize, generalize(update)
