@@ -29,10 +29,13 @@ class UmbrellaSampling(SamplingMethod):
         self.center = np.asarray(center)
 
     def __call__(self, snapshot, helpers):
-        return _umbrella(snapshot, self.cv, self.center, self.kspring, helpers)
+        return _umbrella(self, snapshot, helpers)
 
 
-def _umbrella(snapshot, cv, center, kspring, helpers):
+def _umbrella(method, snapshot, helpers):
+    cv = method.cv
+    center = method.center.reshape(1, -1)
+    kspring = method.kspring.reshape(1, -1)
     natoms = np.size(snapshot.positions, 0)
     indices = helpers.indices
 
@@ -42,8 +45,18 @@ def _umbrella(snapshot, cv, center, kspring, helpers):
 
     def update(state, rs, vms, ids):
         xi, Jxi = cv(rs, indices(ids))
+        print((xi-center).shape, xi.shape, center.shape)
         D = kspring * (xi - center)
-        bias = (-Jxi @ D).reshape(state.bias.shape)
+        print(D.shape)
+        D = D.reshape(D.shape[1])
+        print(D.shape, D.shape[0])
+        bias = np.zeros(state.bias.shape)
+        for i in range(D.shape[0]):
+            print(bias.shape, (-D[i] * Jxi[i]).shape)
+            bias += (-D[i] * Jxi[i]).reshape(bias.shape)
+        # bias = (-D * Jxi).reshape(state.bias.shape)
+        # print(len(bias))
+        # bias = np.concatenate(bias).reshape(state.bias.shape)
         return UmbrellaState(bias, xi)
 
     return snapshot, initialize, generalize(update)

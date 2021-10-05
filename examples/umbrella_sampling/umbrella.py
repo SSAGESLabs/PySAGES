@@ -22,11 +22,11 @@ def main():
         qr += ['temperature', 'potential_energy', 'kinetic_energy']
 
         cvs = [Component([0], 2),]
-        # cvs += [Component([0], 1),]
-        # cvs += [Component([0], 0),]
+        cvs += [Component([0], 1),]
+        cvs += [Component([0], 0),]
 
         center_cv = [ 0.,]
-        # center_cv += [1, -1]
+        center_cv += [0.5, -0.5]
 
         method = UmbrellaSampling(cvs, 10., center_cv)
 

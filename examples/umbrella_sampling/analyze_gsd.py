@@ -41,22 +41,22 @@ def plot(unbiased_hist, biased_hist):
 
 def validate_hist(unbiased_hist, biased_hist):
     TARGET_NORM = 0.2
-    TARGET_BIAS = [0., 0., 0., 0., 0., 0., 0., 0.005, 0.07, 0.23, 0.645, 0.9, 1.275, 0.975, 0.565, 0.295, 0.04, 0., 0., 0., 0., 0., 0., 0., 0.]
+    TARGET_BIAS = [[0., 0., 0.005, 0.005, 0.005, 0.02, 0.15, 0.315, 0.745, 1.23, 1.325, 0.685, 0.365, 0.125, 0.01, 0.005, 0.005, 0.005, 0., 0., 0., 0., 0., 0., 0.   ],
+                   [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.015, 0.02, 0.15, 0.325, 0.77, 1.245, 1.155, 0.76, 0.41, 0.1, 0.04, 0.01, 0., 0., 0., 0.],
+                   [0., 0., 0., 0., 0., 0., 0., 0.005, 0.07, 0.23, 0.645, 0.9, 1.275, 0.975, 0.565, 0.295, 0.04, 0., 0., 0., 0., 0., 0., 0., 0.]]
+
+
+
     EPSILON = 0.1
 
     for i in range(3):
         val = np.sqrt(np.mean((unbiased_hist[i]-TARGET_NORM)**2))
         if val > EPSILON:
             raise RuntimeError("Unbiased historgram deviation too large: {0} epsilon {1}".format(val, EPSILON))
-    for i in range(2):
-        val = np.sqrt(np.mean((biased_hist[i]-TARGET_NORM)**2))
+    for i in range(3):
+        val = np.sqrt(np.mean((biased_hist[i]-TARGET_BIAS[i])**2))
         if val > EPSILON:
             raise RuntimeError("Biased historgram deviation too large: {0} epsilon {1}".format(val, EPSILON))
-
-    val = np.sqrt(np.mean((biased_hist[2]-TARGET_BIAS)**2))
-    if val > EPSILON:
-        raise RuntimeError("Real biased historgram deviation too large: {0} epsilon {1}".format(val, EPSILON))
-
 
 def main(argv):
     if len(argv) != 1:
