@@ -3,3 +3,6 @@ pysages/_version.py
 build/
 dist/
 pysages.egg-info/
+examples/*/*pdf
+examples/*/*dat
+examples/*/*gsd
