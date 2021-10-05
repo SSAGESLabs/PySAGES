@@ -1,0 +1,17 @@
+on: [push]
+
+jobs:
+  umbrella-test-job:
+    runs-on: ubuntu-latest
+    name: test umbrella sampling
+    steps:
+      - name: Hello world action step
+        id: hello
+        uses: actions/PySAGES@v1
+      # Use the output from the `hello` step
+      - name: Get the output time
+        uses: /PySAGES/example/umbrella_sampling
+        run: |
+          python3 gen_gsd.py
+          python3 umbrella.py
+          python3 analyze_gsd.py umbrella.gsd
