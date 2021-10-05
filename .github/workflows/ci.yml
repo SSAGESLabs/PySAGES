@@ -34,3 +34,12 @@ jobs:
         run: pip install .
       - name: Run tests
         run: pytest
+
+- name: Dockertests
+  uses: actions/checkout@v2 # Required to mount the Github Workspace to a volume 
+- uses: addnab/docker-run-action@v3
+  with:
+    image: pysages-plugins:latest
+    run: |
+      echo "Running umbrella test"
+      cd PySAGES/examples/umbrella_sampling/ && python3 gen_gsd.py && python3 umbrella.py && python3 analyze_gsd.py umbrella.gsd"
