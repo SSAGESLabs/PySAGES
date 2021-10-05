@@ -53,22 +53,15 @@ def is_on_gpu(context):
     return context.on_gpu()
 
 
-def choose_backend(context, requested_location):
-    if is_on_gpu(context) and requested_location != AccessLocation.OnHost:
-        return jax.lib.xla_bridge.get_backend("gpu")
-    return jax.lib.xla_bridge.get_backend("cpu")
-
-
 def take_snapshot(wrapped_context, location = default_location()):
     #
     context = wrapped_context.context
     sysview = wrapped_context.sysview
-    backend = choose_backend(context, location)
     #
-    positions = asarray(positions_types(sysview, location, AccessMode.Read), backend)
-    vel_mass = asarray(velocities_masses(sysview, location, AccessMode.Read), backend)
-    forces = asarray(net_forces(sysview, location, AccessMode.ReadWrite), backend)
-    ids = asarray(rtags(sysview, location, AccessMode.Read), backend)
+    positions = asarray(positions_types(sysview, location, AccessMode.Read))
+    vel_mass = asarray(velocities_masses(sysview, location, AccessMode.Read))
+    forces = asarray(net_forces(sysview, location, AccessMode.ReadWrite))
+    ids = asarray(rtags(sysview, location, AccessMode.Read))
     #
     box = sysview.particle_data().getGlobalBox()
     L  = box.getL()
