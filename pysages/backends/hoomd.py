@@ -17,16 +17,18 @@ from pysages.backends.common import HelperMethods
 from pysages.backends.snapshot import Box, Snapshot
 from warnings import warn
 
+from .core import ContextWrapper
+
 
 # TODO: Figure out a way to automatically tie the lifetime of Sampler
 # objects to the contexts they bind to
 CONTEXTS_SAMPLERS = {}
 
 
-class ContextWrapper:
+class ContextWrapperHOOMD(ContextWrapper):
     def __init__(self, context):
         self.sysview = SystemView(context.system_definition)
-        self.context = context
+        super().__init__(context)
         self.synchronize = self.sysview.synchronize
 
 
@@ -127,7 +129,7 @@ def bind(context, sampling_method, **kwargs):
     #
     helpers, bias = build_helpers(context)
     #
-    wrapped_context = ContextWrapper(context)
+    wrapped_context = ContextWrapperHOOMD(context)
     snapshot = take_snapshot(wrapped_context)
     method_bundle = sampling_method(snapshot, helpers)
     sync_and_bias = partial(bias, sync_backend = wrapped_context.synchronize)
