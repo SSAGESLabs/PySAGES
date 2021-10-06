@@ -7,6 +7,7 @@ import importlib
 import jax
 import pysages.backends.common as common
 
+from typing import Callable
 from functools import partial
 from hoomd.dlext import (
     AccessLocation, AccessMode, HalfStepHook, SystemView,
@@ -33,7 +34,7 @@ class ContextWrapperHOOMD(ContextWrapper):
 
 
 class Sampler(HalfStepHook):
-    def __init__(self, method_bundle, bias):
+    def __init__(self, method_bundle, bias, callback: Callable):
         super().__init__()
         #
         snapshot, initialize, update = method_bundle
@@ -41,10 +42,13 @@ class Sampler(HalfStepHook):
         self.state = initialize()
         self._update = update
         self.bias = bias
-    #
+        self.callback = callback
+
     def update(self, timestep):
         self.state = self._update(self.snapshot, self.state)
         self.bias(self.snapshot, self.state)
+        if self.callback:
+            self.callback(self.snapshot, self.state, timestep)
 
 
 if hasattr(AccessLocation, "OnDevice"):
@@ -125,7 +129,7 @@ def build_helpers(context):
     return HelperMethods(jax.jit(indices), jax.jit(momenta), restore), bias
 
 
-def bind(context, sampling_method, **kwargs):
+def bind(context, sampling_method, callback: Callable, **kwargs):
     #
     helpers, bias = build_helpers(context)
     #
@@ -134,7 +138,7 @@ def bind(context, sampling_method, **kwargs):
     method_bundle = sampling_method(snapshot, helpers)
     sync_and_bias = partial(bias, sync_backend = wrapped_context.synchronize)
     #
-    sampler = Sampler(method_bundle, sync_and_bias)
+    sampler = Sampler(method_bundle, sync_and_bias, callback)
     context.integrator.cpp_integrator.setHalfStepHook(sampler)
     #
     CONTEXTS_SAMPLERS[context] = sampler
