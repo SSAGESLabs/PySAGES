@@ -1,11 +1,6 @@
-name: CI to build Docker container automatically
+name: Manual trigger to build the base image
 
-# Controls when the workflow will run
 on:
-  # Triggers the workflow on push events but only for the docker branch
-  push:
-    branches: [ docker-test ]
-
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
@@ -13,8 +8,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-
-      - name: Check Out Repo
+    
+      - name: Check Out Repo 
         uses: actions/checkout@v2
 
       - name: Login to Docker Hub
@@ -32,9 +27,9 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: ./
-          file: ./Dockerfile
+          file: ./Dockerfile-base
           push: true
-          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/pysages:latest
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/pysages-base:latest
 
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
