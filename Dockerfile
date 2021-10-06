@@ -1,4 +1,4 @@
 FROM innocentbug/pysages-openmm
 
-COPY . pysages
+COPY . PySAGES
 RUN cd pysages && pip install .
