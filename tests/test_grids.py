@@ -5,6 +5,7 @@ from pysages.grids import (
     Periodic,
     Regular,
     build_indexer,
+    convert,
 )
 
 import jax.numpy as np
@@ -37,6 +38,7 @@ def test_Grid_constructor():
     assert grid == grid_tv
     assert periodic_grid == periodic_grid_tv
     assert grid != periodic_grid
+    assert cheb_grid_tv == convert(grid, Grid[Chebyshev])
 
     assert ~grid.is_periodic
     assert periodic_grid.is_periodic
