@@ -19,11 +19,13 @@ from openmm_dlext import ContextView, DeviceType, Force
 from pysages.backends.common import HelperMethods
 from pysages.backends.snapshot import Box, Snapshot
 
+from .core import ContextWrapper
 
-class ContextWrapper:
+
+class ContextWrapperOpenMM(ContextWrapper):
     def __init__(self, context, force):
+        super().__init__(context)
         self.view = force.view(context)
-        self.context = context
         self.synchronize = self.view.synchronize
 
 
@@ -174,7 +176,7 @@ def bind(context, sampling_method, force = Force(), **kwargs):
     check_integrator(context)
     #
     force.add_to(context)
-    wrapped_context = ContextWrapper(context, force)
+    wrapped_context = ContextWrapperOpenMM(context, force)
     helpers, bias = build_helpers(wrapped_context.view)
     snapshot = take_snapshot(wrapped_context)
     method_bundle = sampling_method(snapshot, helpers)

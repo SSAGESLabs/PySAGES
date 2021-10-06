@@ -57,3 +57,8 @@ def bind(context, sampling_method, **kwargs):
 def check_backend_initialization():
     if _CURRENT_BACKEND is None:
         raise RuntimeError("No backend has been set")
+
+
+class ContextWrapper:
+    def __init__(self, context):
+        self.context = context
