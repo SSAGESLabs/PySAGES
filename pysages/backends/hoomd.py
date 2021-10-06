@@ -156,7 +156,7 @@ def detach(context):
     If pysages was bound to this context, this removes the corresponding
     `Sampler` object.
     """
-    if CONTEXTS_SAMPLERS.haskey(context):
+    if context in CONTEXTS_SAMPLERS:
         context.integrator.cpp_integrator.removeHalfStepHook()
         del CONTEXTS_SAMPLERS[context]
     else:
