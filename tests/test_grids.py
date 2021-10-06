@@ -1,10 +1,11 @@
 from jax.numpy import pi, uint32 as UInt32
 from pysages.grids import (
-    Aperiodic,
-    ChebyshevDistributed,
+    Chebyshev,
     Grid,
     Periodic,
+    Regular,
     build_indexer,
+    convert,
 )
 
 import jax.numpy as np
@@ -30,12 +31,14 @@ def test_Grid_constructor():
     # Periodic grid kw constructor
     periodic_grid = Grid(lower, upper, shape, periodic = True)
     # Parametric constructors
-    grid_tv = Grid[Aperiodic](lower, upper, shape)
+    grid_tv = Grid[Regular](lower, upper, shape)
+    cheb_grid_tv = Grid[Chebyshev](lower, upper, shape)
     periodic_grid_tv = Grid[Periodic](lower, upper, shape)
 
     assert grid == grid_tv
     assert periodic_grid == periodic_grid_tv
     assert grid != periodic_grid
+    assert cheb_grid_tv == convert(grid, Grid[Chebyshev])
 
     assert ~grid.is_periodic
     assert periodic_grid.is_periodic
@@ -54,7 +57,7 @@ def test_Grid_constructor():
     with pytest.raises(ValueError):
         Grid[Periodic](lower, upper, shape, periodic = False)
     with pytest.raises(ValueError):
-        Grid[Aperiodic](lower, upper, shape, periodic = True)
+        Grid[Chebyshev](lower, upper, shape, periodic = True)
 
 
 def test_grid_indexing():
@@ -63,10 +66,11 @@ def test_grid_indexing():
     shape = shape_1d
 
     grid = Grid(lower, upper, shape)
+    cheb_grid = Grid[Chebyshev](lower, upper, shape)
     periodic_grid = Grid[Periodic](lower, upper, shape)
 
     get_index = build_indexer(grid)
-    cheb_get_index = build_indexer(grid, ChebyshevDistributed())
+    cheb_get_index = build_indexer(cheb_grid)
     periodic_get_index = build_indexer(periodic_grid)
 
     # Indexing 1D

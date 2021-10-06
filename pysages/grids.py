@@ -4,25 +4,25 @@
 
 from dataclasses import dataclass
 from jax import jit
-from plum import dispatch, parametric, type_parameter
+from plum import Union, dispatch, parametric, type_parameter
 from pysages.utils import JaxArray
 
 import jax.numpy as np
 
 
-class Periodicity:
+class GridType:
     pass
 
 
-class Periodic(Periodicity):
+class Periodic(GridType):
     pass
 
 
-class Aperiodic(Periodicity):
+class Regular(GridType):
     pass
 
 
-class ChebyshevDistributed:
+class Chebyshev(GridType):
     pass
 
 
@@ -36,35 +36,48 @@ class Grid:
 
     @classmethod
     def __infer_type_parameter__(cls, *args, **kwargs):
-        return Periodic if kwargs.get("periodic", False) else Aperiodic
+        return Periodic if kwargs.get("periodic", False) else Regular
 
     def __init__(self, lower, upper, shape, **kwargs):
         self.__check_init_invariants__(**kwargs)
-        self.lower = np.asarray(lower)
-        self.upper = np.asarray(upper)
-        self.shape = np.asarray(shape)
+        shape = np.asarray(shape)
+        n = shape.size
+        self.lower = np.asarray(lower).reshape(n)
+        self.upper = np.asarray(upper).reshape(n)
+        self.shape = shape.reshape(n)
         self.size = self.upper - self.lower
 
     def __check_init_invariants__(self, **kwargs):
         T = type_parameter(self)
-        if not (issubclass(type(T), type) and issubclass(T, Periodicity)):
-            raise TypeError("Type parameter must be a subclass of Periodicity.")
+        if not (issubclass(type(T), type) and issubclass(T, GridType)):
+            raise TypeError("Type parameter must be a subclass of GridType.")
         if len(kwargs) > 1 or (len(kwargs) == 1 and "periodic" not in kwargs):
             raise ValueError("Invalid keyword argument")
         periodic = kwargs.get("periodic", T is Periodic)
         if type(periodic) is not bool:
             raise TypeError("`periodic` must be a bool.")
-        if (not periodic and T is Periodic) or (periodic and T is Aperiodic):
-            raise ValueError("Type parameter and keyword `periodic` do not match")
+        type_kw_mismatch = (
+            (not periodic and T is Periodic) or
+            (periodic and issubclass(Union[T], Union[Regular, Chebyshev]))
+        )
+        if type_kw_mismatch:
+            raise ValueError("Incompatible type parameter and keyword argument")
 
     def __repr__(self):
         T = type_parameter(self)
-        P = "" if T is Aperiodic else f"[{T.__name__}]"
+        P = "" if T is Regular else f"[{T.__name__}]"
         return f"Grid{P} ({' x '.join(map(str, self.shape))})"
 
     @property
     def is_periodic(self):
         return type_parameter(self) is Periodic
+
+
+@dispatch
+def convert(grid: Grid, T: type):
+    if not issubclass(T, Grid):
+        raise TypeError(f"Cannot convert Grid to a {repr(T)}")
+    return T(grid.lower, grid.upper, grid.shape)
 
 
 @dispatch
@@ -100,7 +113,7 @@ def build_indexer(grid: Grid[Periodic]):
 
 
 @dispatch
-def build_indexer(grid: Grid[Aperiodic], mode: ChebyshevDistributed):
+def build_indexer(grid: Grid[Chebyshev]):
     """
     Returns a function which takes a position `x` and computes the integer
     indices of the entry within the grid that contains `x`. The bins within the
