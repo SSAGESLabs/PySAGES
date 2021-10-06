@@ -1,5 +1,0 @@
-name: 'Build pysages docker container'
-description: 'Build the container for testing purposes'
-runs:
-  using: 'docker'
-  image: 'Dockerfile'
