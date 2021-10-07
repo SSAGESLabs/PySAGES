@@ -73,9 +73,9 @@ def main():
         cvs += [Component([0], 0),]
 
         center_cv = [ 0.,]
-        center_cv += [0.5, -0.5]
+        center_cv += [0.3, -0.3]
 
-        k = 10
+        k = 15
         method = UmbrellaSampling(cvs, k, center_cv)
 
         hoomd.md.integrate.nve(group=hoomd.group.all())
