@@ -12,6 +12,7 @@ import pysages
 from pysages.ssages.collective_variables import Component
 from pysages.ssages.methods import UmbrellaSampling
 from pysages.backends import bind
+from pysages.runners import run_simple
 
 class HistogramLogger:
     def __init__(self, period):
@@ -64,32 +65,34 @@ def get_target_dist(center, k, lim, bins):
     return p
 
 
+def generate_context(**kwargs):
+    system = hoomd.init.read_gsd("start.gsd")
+
+    hoomd.md.integrate.nve(group=hoomd.group.all())
+    hoomd.md.integrate.mode_standard(dt=0.01)
+
+    nl = hoomd.md.nlist.cell()
+    dpd = hoomd.md.pair.dpd(r_cut=1,nlist=nl,seed=42,kT=1.)
+    dpd.pair_coeff.set("A","A",A=kwargs.get("A", 5.),gamma=kwargs.get("gamma", 1.))
+
+
 def main():
-    with hoomd.context.SimulationContext() as context:
-        system = hoomd.init.read_gsd("start.gsd")
 
-        cvs = [Component([0], 2),]
-        cvs += [Component([0], 1),]
-        cvs += [Component([0], 0),]
+    cvs = [Component([0], 2),]
+    cvs += [Component([0], 1),]
+    cvs += [Component([0], 0),]
 
-        center_cv = [ 0.,]
-        center_cv += [0.3, -0.3]
+    center_cv = [ 0.,]
+    center_cv += [0.3, -0.3]
 
-        k = 15
-        method = UmbrellaSampling(cvs, k, center_cv)
+    k= 15
+    method = UmbrellaSampling(cvs, k, center_cv)
+    callback = HistogramLogger(100)
 
-        hoomd.md.integrate.nve(group=hoomd.group.all())
-        hoomd.md.integrate.mode_standard(dt=0.01)
+    run_simple(generate_context, method, int(1e5), callback, {"A":7.}, profile=True)
 
-        nl = hoomd.md.nlist.cell()
-        dpd = hoomd.md.pair.dpd(r_cut=1,nlist=nl,seed=42,kT=1.)
-        dpd.pair_coeff.set("A","A",A=5.,gamma=1.0)
-
-        callback = HistogramLogger(100)
-        bind(context, method, callback)
-        hoomd.run(1e5)
-
-    Lmax = np.max([system.box.Lx, system.box.Ly, system.box.Lz])
+    # Lmax = np.max([system.box.Lx, system.box.Ly, system.box.Lz])
+    Lmax = 5.
     bins = 25
     target_hist = []
     for i in range(len(center_cv)):
