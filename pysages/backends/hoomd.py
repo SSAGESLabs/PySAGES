@@ -26,13 +26,6 @@ from .core import ContextWrapper
 CONTEXTS_SAMPLERS = {}
 
 
-class ContextWrapperHOOMD(ContextWrapper):
-    def __init__(self, context):
-        self.sysview = SystemView(context.system_definition)
-        super().__init__(context)
-        self.synchronize = self.sysview.synchronize
-
-
 class Sampler(HalfStepHook):
     def __init__(self, method_bundle, bias, callback: Callable):
         super().__init__()
@@ -133,7 +126,7 @@ def bind(context, sampling_method, callback: Callable, **kwargs):
     #
     helpers, bias = build_helpers(context)
     #
-    wrapped_context = ContextWrapperHOOMD(context)
+    wrapped_context = ContextWrapper(lambda c: SystemView(c.system_definition), context)
     snapshot = take_snapshot(wrapped_context)
     method_bundle = sampling_method(snapshot, helpers)
     sync_and_bias = partial(bias, sync_backend = wrapped_context.synchronize)

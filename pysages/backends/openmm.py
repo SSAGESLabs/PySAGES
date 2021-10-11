@@ -23,13 +23,6 @@ from pysages.backends.snapshot import Box, Snapshot
 from .core import ContextWrapper
 
 
-class ContextWrapperOpenMM(ContextWrapper):
-    def __init__(self, context, force):
-        super().__init__(context)
-        self.view = force.view(context)
-        self.synchronize = self.view.synchronize
-
-
 class Sampler:
     def __init__(self, method_bundle, bias, callback: Callable):
         snapshot, initialize, update = method_bundle
@@ -180,7 +173,7 @@ def bind(context, sampling_method, callback: Callable, force = Force(), **kwargs
     check_integrator(context)
     #
     force.add_to(context)
-    wrapped_context = ContextWrapperOpenMM(context, force)
+    wrapped_context = ContextWrapper(force.view, context)
     helpers, bias = build_helpers(wrapped_context.view)
     snapshot = take_snapshot(wrapped_context)
     method_bundle = sampling_method(snapshot, helpers)
