@@ -18,6 +18,13 @@ jax.config.update("jax_enable_x64", True)
 _CURRENT_BACKEND = None
 
 
+class ContextWrapper:
+    def __init__(self, view, context):
+        self.view = view(context)
+        self.context = context
+        self.synchronize = self.view.synchronize
+
+
 def current_backend():
     if _CURRENT_BACKEND is not None:
         return _CURRENT_BACKEND
@@ -41,7 +48,7 @@ def set_backend(name):
     return _CURRENT_BACKEND
 
 
-def bind(context, sampling_method, callback: Callable=None, **kwargs):
+def bind(context, sampling_method, callback: Callable = None, **kwargs):
     """Couples the sampling method to the simulation."""
     #
     if type(context).__module__.startswith("hoomd"):
@@ -57,8 +64,3 @@ def bind(context, sampling_method, callback: Callable=None, **kwargs):
 def check_backend_initialization():
     if _CURRENT_BACKEND is None:
         raise RuntimeError("No backend has been set")
-
-
-class ContextWrapper:
-    def __init__(self, context):
-        self.context = context
