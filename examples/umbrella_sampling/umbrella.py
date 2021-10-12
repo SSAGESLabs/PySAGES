@@ -11,7 +11,6 @@ import hoomd.dlext
 import pysages
 from pysages.collective_variables import Component
 from pysages.methods import UmbrellaSampling
-from pysages.backends import bind
 from pysages.runners import run_simple
 
 class HistogramLogger:
@@ -66,14 +65,17 @@ def get_target_dist(center, k, lim, bins):
 
 
 def generate_context(**kwargs):
-    system = hoomd.init.read_gsd("start.gsd")
+    context = hoomd.context.SimulationContext()
+    with context:
+        system = hoomd.init.read_gsd("start.gsd")
 
-    hoomd.md.integrate.nve(group=hoomd.group.all())
-    hoomd.md.integrate.mode_standard(dt=0.01)
+        hoomd.md.integrate.nve(group=hoomd.group.all())
+        hoomd.md.integrate.mode_standard(dt=0.01)
 
-    nl = hoomd.md.nlist.cell()
-    dpd = hoomd.md.pair.dpd(r_cut=1,nlist=nl,seed=42,kT=1.)
-    dpd.pair_coeff.set("A","A",A=kwargs.get("A", 5.),gamma=kwargs.get("gamma", 1.))
+        nl = hoomd.md.nlist.cell()
+        dpd = hoomd.md.pair.dpd(r_cut=1,nlist=nl,seed=42,kT=1.)
+        dpd.pair_coeff.set("A","A",A=kwargs.get("A", 5.),gamma=kwargs.get("gamma", 1.))
+    return context
 
 
 def main():

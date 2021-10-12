@@ -4,6 +4,7 @@
 
 # pylint: disable=unused-import,relative-beyond-top-level
 # flake8: noqa F401
+from .core import SamplingMethod
 
 from .abf import ABF
 from .funn import FUNN

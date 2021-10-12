@@ -6,6 +6,7 @@
 import importlib
 import jax
 import pysages.backends.common as common
+import hoomd
 
 from typing import Callable
 from functools import partial
@@ -19,6 +20,7 @@ from pysages.backends.snapshot import Box, Snapshot
 from warnings import warn
 
 from .core import ContextWrapper
+from pysages.ssages.methods import SamplingMethod
 
 
 # TODO: Figure out a way to automatically tie the lifetime of Sampler
@@ -122,19 +124,20 @@ def build_helpers(context):
     return HelperMethods(jax.jit(indices), jax.jit(momenta), restore), bias
 
 
-def bind(context, sampling_method, callback: Callable, **kwargs):
-    #
-    helpers, bias = build_helpers(context)
-    #
-    wrapped_context = ContextWrapper(lambda c: SystemView(c.system_definition), context)
+def bind(wrapped_context: ContextWrapper, sampling_method: SamplingMethod, callback: Callable, **kwargs):
+    helpers, bias = build_helpers(wrapped_context.context)
+
+    wrapped_context.view = SystemView(wrapped_context.context.system_definition)
+    wrapped_context.run = hoomd.run
+
     snapshot = take_snapshot(wrapped_context)
     method_bundle = sampling_method(snapshot, helpers)
-    sync_and_bias = partial(bias, sync_backend = wrapped_context.synchronize)
+    sync_and_bias = partial(bias, sync_backend = wrapped_context.view.synchronize)
     #
     sampler = Sampler(method_bundle, sync_and_bias, callback)
-    context.integrator.cpp_integrator.setHalfStepHook(sampler)
+    wrapped_context.context.integrator.cpp_integrator.setHalfStepHook(sampler)
     #
-    CONTEXTS_SAMPLERS[context] = sampler
+    CONTEXTS_SAMPLERS[wrapped_context.context] = sampler
     #
     return sampler
 
