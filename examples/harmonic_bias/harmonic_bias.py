@@ -90,7 +90,7 @@ def main():
     method = HarmonicBias(cvs, k, center_cv)
     callback = HistogramLogger(100)
 
-    run_simple(generate_context, method, int(1e5), callback, {"A":7.}, profile=True)
+    method.run(generate_context, int(1e5), callback, {"A":7.}, profile=True)
 
     # Lmax = np.max([system.box.Lx, system.box.Ly, system.box.Lz])
     Lmax = 5.

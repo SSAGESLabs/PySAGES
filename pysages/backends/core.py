@@ -9,8 +9,6 @@ import warnings
 from typing import Callable
 from jax import numpy as np
 
-from pysages.methods import SamplingMethod
-
 
 # Set default floating point type for arrays in `jax` to `jax.f64`
 jax.config.update("jax_enable_x64", True)
@@ -18,7 +16,7 @@ jax.config.update("jax_enable_x64", True)
 class ContextWrapper:
     """PySAGES simulation context. It manages access to the backend depend simulation context. And is initialized by one."""
 
-    def __init__(self, context, sampling_method: SamplingMethod, callback: Callable = None, **kwargs):
+    def __init__(self, context, sampling_method, callback: Callable = None, **kwargs):
         """ Initialize the context (automatically identifies the backend)."""
         if type(context).__module__.startswith("hoomd"):
             self._backend_name = "hoomd"

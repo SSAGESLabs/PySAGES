@@ -3,8 +3,10 @@
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 from abc import ABC, abstractmethod
+from typing import Callable
 
 from jax import jit
+from pysages.backends import ContextWrapper
 from pysages.collective_variables.core import build
 
 
@@ -23,6 +25,22 @@ class SamplingMethod(ABC):
         Build the method for JAX execution.
         """
         pass
+
+    def run(self, context_generator: Callable, timesteps: int, callback: Callable, context_args=dict(), **kwargs):
+        """
+        Base implementation of running a single simulation/replica with a sampling method.
+
+        context_generator: user defined function that sets up a simulation context with the backend.
+                           Must return an instance of hoomd.conext.SimulationContext for hoomd-blue and simtk.openmm.openmm.Context.
+                           The function gets context_args unpacked for additional user args.
+        timesteps: number of timesteps the simulation is running.
+        callback: Callback to integrate user defined actions into the simulation workflow of the method
+        kwargs gets passed to the backend run function for additional user arguments to be passed down.
+        """
+        context = context_generator()
+        wrapped_context = ContextWrapper(context, self, callback)
+        with wrapped_context:
+            wrapped_context.run(timesteps, **kwargs)
 
 
 class GriddedSamplingMethod(SamplingMethod):
