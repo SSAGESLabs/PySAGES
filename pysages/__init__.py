@@ -11,8 +11,11 @@ from .backends import (
     supported_backends,
 )
 
-from .ssages import (
+from .grids import (
     Grid,
+)
+
+from . import (
     collective_variables,
     methods,
 )
