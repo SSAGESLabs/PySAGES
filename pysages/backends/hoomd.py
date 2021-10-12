@@ -20,7 +20,7 @@ from pysages.backends.snapshot import Box, Snapshot
 from warnings import warn
 
 from .core import ContextWrapper
-from pysages.ssages.methods import SamplingMethod
+from pysages.methods import SamplingMethod
 
 
 # TODO: Figure out a way to automatically tie the lifetime of Sampler

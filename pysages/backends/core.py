@@ -9,7 +9,7 @@ import warnings
 from typing import Callable
 from jax import numpy as np
 
-from pysages.ssages.methods import SamplingMethod
+from pysages.methods import SamplingMethod
 
 
 # Set default floating point type for arrays in `jax` to `jax.f64`
