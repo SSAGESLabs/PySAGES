@@ -21,6 +21,7 @@ from pysages.backends.common import HelperMethods
 from pysages.backends.snapshot import Box, Snapshot
 
 from .core import ContextWrapper
+from pysages.ssages.methods import SamplingMethod
 
 
 class Sampler:
@@ -169,17 +170,15 @@ def check_integrator(context):
         raise ValueError("Variable step size integrators are not supported")
 
 
-def bind(context, sampling_method, callback: Callable, force = Force(), **kwargs):
-    check_integrator(context)
-    #
-    force.add_to(context)
-    wrapped_context = ContextWrapper(force.view, context)
+def bind(wrapped_context: ContextWrapper, sampling_method: SamplingMethod, callback: Callable, force:Force = Force(), **kwargs):
+    check_integrator(wrapped_context.context)
+    force.add_to(wrapped_context.context)
+    wrapped_context.view = force.view
+    wrapped_context.run = wrapped_context.context.getSystem().step
     helpers, bias = build_helpers(wrapped_context.view)
     snapshot = take_snapshot(wrapped_context)
     method_bundle = sampling_method(snapshot, helpers)
-    sync_and_bias = partial(bias, sync_backend = wrapped_context.synchronize)
-    #
+    sync_and_bias = partial(bias, sync_backend = wrapped_context.view.synchronize)
     sampler = Sampler(method_bundle, sync_and_bias, callback)
-    force.set_callback_in(context, sampler.update)
-    #
+    force.set_callback_in(wrapped_context.context, sampler.update)
     return sampler

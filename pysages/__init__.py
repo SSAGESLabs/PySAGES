@@ -6,10 +6,13 @@ from ._version import version as __version__
 from ._version import version_tuple
 
 from .backends import (
-    bind,
-    set_backend,
+    ContextWrapper,
     supported_backends,
 )
+
+from .runners import (
+    run_simple,
+    )
 
 from .ssages import (
     Grid,
