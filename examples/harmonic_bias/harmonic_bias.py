@@ -11,6 +11,7 @@ import hoomd.dlext
 import pysages
 
 from pysages.collective_variables import Component
+from pysages.methods import HarmonicBias
 from pysages.backends import bind
 
 class HistogramLogger:
@@ -76,7 +77,7 @@ def main():
         center_cv += [0.3, -0.3]
 
         k = 15
-        method = UmbrellaSampling(cvs, k, center_cv)
+        method = HarmonicBias(cvs, k, center_cv)
 
         hoomd.md.integrate.nve(group=hoomd.group.all())
         hoomd.md.integrate.mode_standard(dt=0.01)
