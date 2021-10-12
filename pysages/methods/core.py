@@ -18,7 +18,10 @@ class SamplingMethod(ABC):
         self.kwargs = kwargs
 
     @abstractmethod
-    def __call__(self, *args, **kwargs):
+    def build(self, *args, **kwargs):
+        """
+        Build the method for JAX execution.
+        """
         pass
 
 
@@ -31,7 +34,7 @@ class GriddedSamplingMethod(SamplingMethod):
         self.kwargs = kwargs
 
     @abstractmethod
-    def __call__(self, *args, **kwargs):
+    def build(self, *args, **kwargs):
         pass
 
 
@@ -45,7 +48,7 @@ class NNSamplingMethod(SamplingMethod):
         self.kwargs = kwargs
 
     @abstractmethod
-    def __call__(self, *args, **kwargs):
+    def build(self, *args, **kwargs):
         pass
 
 

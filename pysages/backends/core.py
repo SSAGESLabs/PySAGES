@@ -60,10 +60,3 @@ class ContextWrapper:
 
 def supported_backends():
     return ("hoomd", "openmm")
-
-
-
-def bind(wrapped_context, sampling_method, callback: Callable = None, **kwargs):
-    """Couples the sampling method to the simulation."""
-
-    return wrapped_context.get.bind(wrapped_context, sampling_method, callback, **kwargs)
