@@ -31,13 +31,13 @@ class SamplingMethod(ABC):
         Base implementation of running a single simulation/replica with a sampling method.
 
         context_generator: user defined function that sets up a simulation context with the backend.
-                           Must return an instance of hoomd.conext.SimulationContext for hoomd-blue and simtk.openmm.openmm.Context.
+                           Must return an instance of hoomd.conext.SimulationContext for hoomd-blue and simtk.openmm.Context.
                            The function gets context_args unpacked for additional user args.
         timesteps: number of timesteps the simulation is running.
         callback: Callback to integrate user defined actions into the simulation workflow of the method
         kwargs gets passed to the backend run function for additional user arguments to be passed down.
         """
-        context = context_generator()
+        context = context_generator(**context_args)
         wrapped_context = ContextWrapper(context, self, callback)
         with wrapped_context:
             wrapped_context.run(timesteps, **kwargs)
