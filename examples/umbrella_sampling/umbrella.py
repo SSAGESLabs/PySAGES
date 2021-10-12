@@ -9,8 +9,8 @@ import hoomd.md as md
 import hoomd.dlext
 
 import pysages
-from pysages.ssages.collective_variables import Component
-from pysages.ssages.methods import UmbrellaSampling
+from pysages.collective_variables import Component
+from pysages.methods import UmbrellaSampling
 from pysages.backends import bind
 
 class HistogramLogger:

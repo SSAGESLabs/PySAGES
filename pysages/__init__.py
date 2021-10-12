@@ -6,13 +6,17 @@ from ._version import version as __version__
 from ._version import version_tuple
 
 from .backends import (
+    Force,
     bind,
     set_backend,
     supported_backends,
 )
 
-from .ssages import (
+from .grids import (
     Grid,
+)
+
+from . import (
     collective_variables,
     methods,
 )

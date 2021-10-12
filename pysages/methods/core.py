@@ -5,7 +5,7 @@
 from abc import ABC, abstractmethod
 
 from jax import jit
-from pysages.ssages.collective_variables.core import build
+from pysages.collective_variables.core import build
 
 
 # ================ #
