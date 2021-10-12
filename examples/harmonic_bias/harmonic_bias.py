@@ -9,9 +9,10 @@ import hoomd.md as md
 import hoomd.dlext
 
 import pysages
+
 from pysages.collective_variables import Component
-from pysages.methods import UmbrellaSampling
 from pysages.runners import run_simple
+from pysages.methods import HarmonicBias
 
 class HistogramLogger:
     def __init__(self, period):
@@ -68,7 +69,6 @@ def generate_context(**kwargs):
     context = hoomd.context.SimulationContext()
     with context:
         system = hoomd.init.read_gsd("start.gsd")
-
         hoomd.md.integrate.nve(group=hoomd.group.all())
         hoomd.md.integrate.mode_standard(dt=0.01)
 
@@ -79,7 +79,6 @@ def generate_context(**kwargs):
 
 
 def main():
-
     cvs = [Component([0], 2),]
     cvs += [Component([0], 1),]
     cvs += [Component([0], 0),]
@@ -88,7 +87,7 @@ def main():
     center_cv += [0.3, -0.3]
 
     k= 15
-    method = UmbrellaSampling(cvs, k, center_cv)
+    method = HarmonicBias(cvs, k, center_cv)
     callback = HistogramLogger(100)
 
     run_simple(generate_context, method, int(1e5), callback, {"A":7.}, profile=True)
