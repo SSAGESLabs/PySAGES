@@ -12,7 +12,6 @@ import pysages
 
 from pysages.collective_variables import Component
 from pysages.backends import bind
-from pysages.runners import run_simple
 
 class HistogramLogger:
     def __init__(self, period):
