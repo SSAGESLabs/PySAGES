@@ -11,6 +11,7 @@ import pysages.backends.common as common
 import simtk.openmm as openmm
 import simtk.unit as unit
 
+from typing import Callable
 from functools import partial
 from jax.dlpack import from_dlpack as asarray
 from jax.lax import cond
@@ -19,25 +20,23 @@ from openmm_dlext import ContextView, DeviceType, Force
 from pysages.backends.common import HelperMethods
 from pysages.backends.snapshot import Box, Snapshot
 
-
-class ContextWrapper:
-    def __init__(self, context, force):
-        self.view = force.view(context)
-        self.context = context
-        self.synchronize = self.view.synchronize
+from .core import ContextWrapper
 
 
 class Sampler:
-    def __init__(self, method_bundle, bias):
+    def __init__(self, method_bundle, bias, callback: Callable):
         snapshot, initialize, update = method_bundle
         self.snapshot = snapshot
         self.state = initialize()
-        self.update_from = update
+        self._update = update
         self.bias = bias
+        self.callback = callback
     #
-    def update(self):
-        self.state = self.update_from(self.snapshot, self.state)
+    def update(self, timestep=0):
+        self.state = self._update(self.snapshot, self.state)
         self.bias(self.snapshot, self.state)
+        if self.callback:
+            self.callback(self.snapshot, self.state, timestep)
 
 
 def is_on_gpu(view: ContextView):
@@ -170,17 +169,17 @@ def check_integrator(context):
         raise ValueError("Variable step size integrators are not supported")
 
 
-def bind(context, sampling_method, force = Force(), **kwargs):
+def bind(context, sampling_method, callback: Callable, force = Force(), **kwargs):
     check_integrator(context)
     #
     force.add_to(context)
-    wrapped_context = ContextWrapper(context, force)
+    wrapped_context = ContextWrapper(force.view, context)
     helpers, bias = build_helpers(wrapped_context.view)
     snapshot = take_snapshot(wrapped_context)
     method_bundle = sampling_method(snapshot, helpers)
     sync_and_bias = partial(bias, sync_backend = wrapped_context.synchronize)
     #
-    sampler = Sampler(method_bundle, sync_and_bias)
+    sampler = Sampler(method_bundle, sync_and_bias, callback)
     force.set_callback_in(context, sampler.update)
     #
     return sampler

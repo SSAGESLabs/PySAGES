@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 import hoomd
 hoomd.context.initialize()
@@ -12,23 +13,70 @@ from pysages.ssages.collective_variables import Component
 from pysages.ssages.methods import UmbrellaSampling
 from pysages.backends import bind
 
+class HistogramLogger:
+    def __init__(self, period):
+        self.period = period
+        self.data = []
+
+    def __call__(self, snapshot, state, timestep):
+        if timestep % self.period == 0:
+            self.data.append(state.xi)
+
+    def get_histograms(self, bins, lim):
+        data = np.asarray(self.data)
+        data = data.reshape(data.shape[0], data.shape[2])
+        histograms = []
+        for i in range(data.shape[1]):
+            histograms.append(np.histogram(data[:,i], bins=bins, range=lim, density=True)[0])
+        return histograms
+
+
+def plot(xi_hist, target_hist, lim):
+    fig, ax = plt.subplots()
+
+    ax.set_xlabel(r"CV $\xi_i$")
+    ax.set_ylabel(r"$p(\xi_i)$")
+
+    x = np.linspace(lim[0], lim[1], xi_hist[0].shape[0])
+
+    for i in range(len(xi_hist)):
+        line, = ax.plot(x, xi_hist[i], label="i= {0}".format(i))
+        ax.plot(x, target_hist[i], "--", color=line.get_color())
+
+    ax.legend(loc="best")
+    fig.savefig("hist.pdf")
+    plt.close(fig)
+
+
+def validate_hist(xi_hist, target, epsilon=0.1):
+    assert len(xi_hist) == len(target)
+    for i in range(len(xi_hist)):
+        val = np.sqrt(np.mean((xi_hist[i]-target[i])**2))
+        if val > epsilon:
+            raise RuntimeError("Biased historgram deviation too large: {0} epsilon {1}".format(val, epsilon))
+
+
+def get_target_dist(center, k, lim, bins):
+    x = np.linspace(lim[0], lim[1], bins)
+    p = np.exp(-0.5*k*(x-center)**2)
+    # norm numerically
+    p *= (lim[1]-lim[0])/np.sum(p)
+    return p
+
+
 def main():
     with hoomd.context.SimulationContext() as context:
         system = hoomd.init.read_gsd("start.gsd")
-
-        #gather basic lognames
-        qr = []
-        #log some thermo properties
-        qr += ['temperature', 'potential_energy', 'kinetic_energy']
 
         cvs = [Component([0], 2),]
         cvs += [Component([0], 1),]
         cvs += [Component([0], 0),]
 
         center_cv = [ 0.,]
-        center_cv += [0.5, -0.5]
+        center_cv += [0.3, -0.3]
 
-        method = UmbrellaSampling(cvs, 10., center_cv)
+        k = 15
+        method = UmbrellaSampling(cvs, k, center_cv)
 
         hoomd.md.integrate.nve(group=hoomd.group.all())
         hoomd.md.integrate.mode_standard(dt=0.01)
@@ -37,14 +85,18 @@ def main():
         dpd = hoomd.md.pair.dpd(r_cut=1,nlist=nl,seed=42,kT=1.)
         dpd.pair_coeff.set("A","A",A=5.,gamma=1.0)
 
-        hoomd.analyze.log("umbrella.dat", qr, 100, overwrite=True)
+        callback = HistogramLogger(100)
+        bind(context, method, callback)
+        hoomd.run(1e5)
 
-        bind(context, method)
-
-        gsd = hoomd.dump.gsd("umbrella.gsd", group=hoomd.group.all(), period=100, overwrite=True)
-
-        hoomd.run(1e5, limit_multiple=100)
-
+    Lmax = np.max([system.box.Lx, system.box.Ly, system.box.Lz])
+    bins = 25
+    target_hist = []
+    for i in range(len(center_cv)):
+        target_hist.append(get_target_dist(center_cv[i], k, (-Lmax/2, Lmax/2), bins))
+    hist = callback.get_histograms(bins, (-Lmax/2, Lmax/2))
+    plot(hist, target_hist, (-Lmax/2, Lmax/2))
+    validate_hist(hist, target_hist)
 
 
 if __name__ == "__main__":

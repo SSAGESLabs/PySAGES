@@ -2,11 +2,11 @@
 # Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
-
 import importlib
 import jax
 import warnings
 
+from typing import Callable
 from jax import numpy as np
 
 
@@ -16,6 +16,13 @@ jax.config.update("jax_enable_x64", True)
 
 # Records the backend selected with `set_backend`
 _CURRENT_BACKEND = None
+
+
+class ContextWrapper:
+    def __init__(self, view, context):
+        self.view = view(context)
+        self.context = context
+        self.synchronize = self.view.synchronize
 
 
 def current_backend():
@@ -41,7 +48,7 @@ def set_backend(name):
     return _CURRENT_BACKEND
 
 
-def bind(context, sampling_method, **kwargs):
+def bind(context, sampling_method, callback: Callable = None, **kwargs):
     """Couples the sampling method to the simulation."""
     #
     if type(context).__module__.startswith("hoomd"):
@@ -51,7 +58,7 @@ def bind(context, sampling_method, **kwargs):
     #
     check_backend_initialization()
     #
-    return _CURRENT_BACKEND.bind(context, sampling_method, **kwargs)
+    return _CURRENT_BACKEND.bind(context, sampling_method, callback, **kwargs)
 
 
 def check_backend_initialization():
