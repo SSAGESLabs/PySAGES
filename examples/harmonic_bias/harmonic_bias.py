@@ -10,7 +10,7 @@ import hoomd.dlext
 
 import pysages
 from pysages.ssages.collective_variables import Component
-from pysages.ssages.methods import UmbrellaSampling
+from pysages.ssages.methods import HarmonicBias
 from pysages.runners import run_simple
 
 class HistogramLogger:
@@ -88,7 +88,7 @@ def main():
     center_cv += [0.3, -0.3]
 
     k= 15
-    method = UmbrellaSampling(cvs, k, center_cv)
+    method = HarmonicBias(cvs, k, center_cv)
     callback = HistogramLogger(100)
 
     run_simple(generate_context, method, int(1e5), callback, {"A":7.}, profile=True)

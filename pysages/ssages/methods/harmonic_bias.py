@@ -8,9 +8,9 @@ import jax.numpy as np
 from jaxlib.xla_extension import DeviceArray as JaxArray
 
 
-class UmbrellaState(NamedTuple):
+class HarmonicBiasState(NamedTuple):
     """
-    Description of an umbrella sampling state.
+    Description of a state bias by a harmonic potential for a CV.
 
     bias -- additional forces for the class.
     xi -- current cv value.
@@ -22,17 +22,17 @@ class UmbrellaState(NamedTuple):
         return repr("PySAGES" + type(self).__name__)
 
 
-class UmbrellaSampling(SamplingMethod):
+class HarmonicBias(SamplingMethod):
     def __init__(self, cvs, kspring, center, *args, **kwargs):
         super().__init__(cvs, args, kwargs)
         self.kspring = np.asarray(kspring)
         self.center = np.asarray(center)
 
     def __call__(self, snapshot, helpers):
-        return _umbrella(self, snapshot, helpers)
+        return _harmonic_bias(self, snapshot, helpers)
 
 
-def _umbrella(method, snapshot, helpers):
+def _harmonic_bias(method, snapshot, helpers):
     cv = method.cv
     center = method.center.reshape(1, -1)
     kspring = method.kspring.reshape(1, -1)
@@ -41,7 +41,7 @@ def _umbrella(method, snapshot, helpers):
 
     def initialize():
         bias = np.zeros((natoms, 3))
-        return UmbrellaState(bias, None)
+        return HarmonicBiasState(bias, None)
 
     def update(state, rs, vms, ids):
         xi, Jxi = cv(rs, indices(ids))
@@ -49,6 +49,6 @@ def _umbrella(method, snapshot, helpers):
         bias = -Jxi.T @ D.flatten()
         bias = bias.reshape(state.bias.shape)
 
-        return UmbrellaState(bias, xi)
+        return HarmonicBiasState(bias, xi)
 
     return snapshot, initialize, generalize(update)
