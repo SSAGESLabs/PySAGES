@@ -38,7 +38,7 @@ jobs:
           name: pysages
           path: /tmp/pysages.tar
 
-  umbrella:
+  harmonic-bias:
     runs-on: ubuntu-latest
     needs: build
     steps:
@@ -55,5 +55,5 @@ jobs:
         name: Load and run test
         run: |
           docker load --input /tmp/pysages.tar
-          docker run -t pysages bash -c "cd PySAGES/examples/umbrella_sampling/ && ./run.sh"
+          docker run -t pysages bash -c "cd PySAGES/examples/harmonic_bias/ && ./run.sh"
 
