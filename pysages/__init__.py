@@ -14,8 +14,11 @@ from .runners import (
     run_simple,
     )
 
-from .ssages import (
+from .grids import (
     Grid,
+    )
+
+from . import (
     collective_variables,
     methods,
-)
+    )

@@ -21,7 +21,7 @@ from pysages.backends.common import HelperMethods
 from pysages.backends.snapshot import Box, Snapshot
 
 from .core import ContextWrapper
-from pysages.ssages.methods import SamplingMethod
+from pysages.methods import SamplingMethod
 
 
 class Sampler:

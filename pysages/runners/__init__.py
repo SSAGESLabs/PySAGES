@@ -10,7 +10,7 @@
 from typing import Callable
 
 from pysages.backends import ContextWrapper
-from pysages.ssages.methods import SamplingMethod
+from pysages.methods import SamplingMethod
 
 
 def run_simple(context_generator: Callable, method: SamplingMethod, timesteps: int, callback: Callable, context_args=dict(), **kwargs):
