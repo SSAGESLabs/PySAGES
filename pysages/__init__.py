@@ -15,10 +15,6 @@ from .grids import (
     Grid,
     )
 
-from .runners import (
-    run_simple,
-    )
-
 from . import (
     collective_variables,
     methods,
