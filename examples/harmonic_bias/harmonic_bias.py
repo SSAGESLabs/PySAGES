@@ -9,9 +9,10 @@ import hoomd.md as md
 import hoomd.dlext
 
 import pysages
+
 from pysages.collective_variables import Component
-from pysages.methods import UmbrellaSampling
 from pysages.backends import bind
+from pysages.runners import run_simple
 
 class HistogramLogger:
     def __init__(self, period):

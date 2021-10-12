@@ -7,4 +7,4 @@
 
 from .abf import ABF
 from .funn import FUNN
-from .umbrella import UmbrellaSampling
+from .harmonic_bias import HarmonicBias
