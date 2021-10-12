@@ -11,7 +11,7 @@ import hoomd.dlext
 import pysages
 
 from pysages.collective_variables import Component
-from pysages.runners import run_simple
+
 from pysages.methods import HarmonicBias
 
 class HistogramLogger:
