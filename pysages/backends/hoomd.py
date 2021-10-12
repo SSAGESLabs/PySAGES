@@ -59,7 +59,7 @@ def is_on_gpu(context):
 def take_snapshot(wrapped_context, location = default_location()):
     #
     context = wrapped_context.context
-    sysview = wrapped_context.sysview
+    sysview = wrapped_context.view
     #
     positions = asarray(positions_types(sysview, location, AccessMode.Read))
     vel_mass = asarray(velocities_masses(sysview, location, AccessMode.Read))
