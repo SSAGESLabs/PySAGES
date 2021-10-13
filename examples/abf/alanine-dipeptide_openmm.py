@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+
+
 # %%
 from pysages.collective_variables import DihedralAngle
 from pysages.methods import ABF
@@ -39,8 +42,8 @@ def generate_simulation(
         force = system.getForce(i)
         forces[force.__class__.__name__] = force
 
-    forces['NonbondedForce'].setUseDispersionCorrection(True)
-    forces['NonbondedForce'].setEwaldErrorTolerance(1.0e-5)
+    forces["NonbondedForce"].setUseDispersionCorrection(True)
+    forces["NonbondedForce"].setEwaldErrorTolerance(1.0e-5)
 
     positions = pdb.getPositions(asNumpy = True)
 
@@ -56,24 +59,24 @@ def generate_simulation(
 
 
 # %%
-cvs = (
-    DihedralAngle((4, 6, 8, 14)),
-	DihedralAngle((6, 8, 14, 16))
-)
+def main():
+    cvs = (
+        DihedralAngle((4, 6, 8, 14)),
+	    DihedralAngle((6, 8, 14, 16))
+    )
+
+    grid = pysages.Grid(
+        lower = (-pi, -pi),
+        upper = (pi, pi),
+        shape = (32, 32),
+        periodic = True
+    )
+
+    method = ABF(cvs, grid)
+
+    method.run(generate_simulation, 5000)
 
 
 # %%
-grid = pysages.Grid(
-    lower = (-pi, -pi),
-    upper = (pi, pi),
-    shape = (32, 32),
-    periodic = True
-)
-
-
-# %%
-method = ABF(cvs, grid)
-
-
-# %%
-method.run(generate_simulation, 5000)
+if __name__ == "__main__":
+    main()

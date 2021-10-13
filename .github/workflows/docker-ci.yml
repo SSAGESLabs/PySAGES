@@ -56,4 +56,4 @@ jobs:
         run: |
           docker load --input /tmp/pysages.tar
           docker run -t pysages bash -c "cd PySAGES/examples/harmonic_bias/ && ./run.sh"
-
+          docker run -t pysages alanine-dipeptide_openmm.py
