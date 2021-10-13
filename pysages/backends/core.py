@@ -36,12 +36,11 @@ class ContextWrapper:
             raise ValueError(f"Invalid backend: supported options are ({backends})")
         
         self.context = context
-
-        # self.view and self.run *must* be set by the backend bind function.
         self.view = None
         self.run = None
         self.sampler = self._backend.bind(self, sampling_method, callback, **kwargs)
 
+        # `self.view` and `self.run` *must* be set by the backend bind function.
         assert self.view is not None
         assert self.run is not None
 
