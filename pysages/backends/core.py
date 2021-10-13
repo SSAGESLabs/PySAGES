@@ -2,10 +2,10 @@
 # Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
-import importlib
 import jax
 import warnings
 
+from importlib import import_module
 from typing import Callable
 from jax import numpy as np
 
@@ -13,30 +13,37 @@ from jax import numpy as np
 # Set default floating point type for arrays in `jax` to `jax.f64`
 jax.config.update("jax_enable_x64", True)
 
+
 class ContextWrapper:
-    """PySAGES simulation context. It manages access to the backend depend simulation context. And is initialized by one."""
+    """
+    PySAGES simulation context. Manages access to the backend-dependent simulation context.
+    """
 
     def __init__(self, context, sampling_method, callback: Callable = None, **kwargs):
-        """ Initialize the context (automatically identifies the backend)."""
+        """
+        Automatically identifies the backend and binds the sampling method to
+        the simulation context.
+        """
         if type(context).__module__.startswith("hoomd"):
             self._backend_name = "hoomd"
         elif type(context).__module__.startswith("simtk.openmm"):
             self._backend_name = "openmm"
 
         if self._backend_name in supported_backends():
-            self._backend = importlib.import_module('.' + self._backend_name, package="pysages.backends")
+            self._backend = import_module('.' + self._backend_name, package="pysages.backends")
         else:
-            raise ValueError("Invalid backend: support options are {0}".format(str(supported_backends())))
+            backends = ", ".join(supported_backends())
+            raise ValueError(f"Invalid backend: supported options are ({backends})")
+        
         self.context = context
 
         # self.view and self.run *must* be set by the backend bind function.
         self.view = None
         self.run = None
-        self._backend.bind(self, sampling_method, callback, **kwargs)
-        if self.view is None:
-            raise RuntimeError("Backend {0} did not set context.view. Implementation error of backend. Please report bug.".format(self.get_backend_name()))
-        if self.run is None:
-            raise RuntimeError("Backend {0} did not set context.run. Implementation error of backend. Please report bug.".format(self.get_backend_name()))
+        self.sampler = self._backend.bind(self, sampling_method, callback, **kwargs)
+
+        assert self.view is not None
+        assert self.run is not None
 
         self.synchronize = self.view.synchronize
 
@@ -47,14 +54,19 @@ class ContextWrapper:
         return self._backend
 
     def __enter__(self):
-        """Trampoline python 'with' functions for backends that support it."""
+        """
+        Trampoline 'with statements' to the wrapped context when the backend supports it.
+        """
         if self.get_backend_name() == "hoomd":
             return self.context.__enter__()
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
-        """Trampoline python 'with' functions for backends that support it."""
+        """
+        Trampoline 'with statements' to the wrapped context when the backend supports it.
+        """
         if self.get_backend_name() == "hoomd":
             return self.context.__exit__(exc_type, exc_value, exc_traceback)
+
 
 def supported_backends():
     return ("hoomd", "openmm")
