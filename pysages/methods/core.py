@@ -30,7 +30,7 @@ class SamplingMethod(ABC):
         pass
 
     def run(
-        self, context_generator: Callable, timesteps: int, callback: Callable,
+        self, context_generator: Callable, timesteps: int, callback: Callable = None,
         context_args: Mapping = dict(), **kwargs
     ):
         """
