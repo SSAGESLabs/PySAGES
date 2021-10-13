@@ -11,14 +11,14 @@ from .utils import HistogramLogger
 
 class UmbrellaIntegration(HarmonicBias):
     def __init__(self, cvs, *args, **kwargs):
-        super().__init__(cvs, args, kwargs)
-        self.kspring = None
-        self.center = None
+        super().__init__(cvs, [0], [0], args, kwargs)
+        self.kspring = False
+        self.center = False
 
-    def set_center(center):
+    def set_center(self, center):
         self.center = np.asarray(center)
 
-    def set_kspring(kspring):
+    def set_kspring(self, kspring):
         self.kspring = np.asarray(kspring)
 
     def run(self,
@@ -64,10 +64,15 @@ class UmbrellaIntegration(HarmonicBias):
         if len(periods) != len(centers):
             raise RuntimeError("Provided length of centers ({0}) and periods ({1}) is not equal.".format(len(centers), len(periods)))
 
+        if type(bins) == int:
+            bins = [bins for i in range(Nreplica)]
+        if len(bins) != len(centers):
+            raise RuntimeError("Provided length of centers ({0}) and bins ({1}) is not equal.".format(len(centers), len(bins)))
+
         if type(ranges) == tuple:
             ranges = [ranges for i in range(Nreplica)]
         if len(ranges) != len(centers):
-            raise RuntimeError("Provided length of centers ({0}) and periods ({1}) is not equal.".format(len(centers), len(periods)))
+            raise RuntimeError("Provided length of centers ({0}) and ranges ({1}) is not equal.".format(len(centers), len(ranges)))
         for hilo in ranges:
             if len(hilo) != 2:
                 raise RuntimeError("Provided ranges have a different length from two.")
@@ -80,10 +85,11 @@ class UmbrellaIntegration(HarmonicBias):
             context_args["replica_num"] = rep
             self.set_center(centers[rep])
             self.set_kspring(ksprings[rep])
-            callback = HistrogramLogger(periods[rep])
+            callback = HistogramLogger(periods[rep])
+            context = context_generator(**context_args)
             wrapped_context = ContextWrapper(context, self, callback)
             with wrapped_context:
-                wrapped_context.run(timesteps[i])
+                wrapped_context.run(timesteps[rep])
 
             histograms.append(callback.get_histograms(bins[rep], ranges[rep]))
         #process histrograms
