@@ -3,7 +3,7 @@
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 from abc import ABC, abstractmethod
-from typing import Callable
+from typing import Callable, Mapping
 
 from jax import jit
 from pysages.backends import ContextWrapper
@@ -20,22 +20,36 @@ class SamplingMethod(ABC):
         self.kwargs = kwargs
 
     @abstractmethod
-    def build(self, *args, **kwargs):
+    def build(self, snapshot, helpers, *args, **kwargs):
         """
-        Build the method for JAX execution.
+        Returns the snapshot, and two functions: `initialize` and `update`.
+        `initialize` is intended to allocate any runtime information required
+        by `update`, while `update` is intended to be called after each call to
+        the wrapped context's `run` method.
         """
         pass
 
-    def run(self, context_generator: Callable, timesteps: int, callback: Callable, context_args=dict(), **kwargs):
+    def run(
+        self, context_generator: Callable, timesteps: int, callback: Callable,
+        context_args: Mapping = dict(), **kwargs
+    ):
         """
         Base implementation of running a single simulation/replica with a sampling method.
 
-        context_generator: user defined function that sets up a simulation context with the backend.
-                           Must return an instance of hoomd.conext.SimulationContext for hoomd-blue and simtk.openmm.Context.
-                           The function gets context_args unpacked for additional user args.
-        timesteps: number of timesteps the simulation is running.
-        callback: Callback to integrate user defined actions into the simulation workflow of the method
-        kwargs gets passed to the backend run function for additional user arguments to be passed down.
+        Arguments
+        ---------
+        context_generator: Callable
+            User defined function that sets up a simulation context with the backend.
+            Must return an instance of `hoomd.context.SimulationContext` for HOOMD-blue
+            and `simtk.openmm.Simulation` for OpenMM. The function gets `context_args`
+            unpacked for additional user arguments.
+
+        timesteps: int
+            Number of timesteps the simulation is running.
+
+        callback: Optional[Callable]
+            Allows for user defined actions into the simulation workflow of the method.
+            `kwargs` gets passed to the backend `run` function.
         """
         context = context_generator(**context_args)
         wrapped_context = ContextWrapper(context, self, callback)
@@ -52,7 +66,7 @@ class GriddedSamplingMethod(SamplingMethod):
         self.kwargs = kwargs
 
     @abstractmethod
-    def build(self, *args, **kwargs):
+    def build(self, snapshot, helpers, *args, **kwargs):
         pass
 
 
@@ -66,7 +80,7 @@ class NNSamplingMethod(SamplingMethod):
         self.kwargs = kwargs
 
     @abstractmethod
-    def build(self, *args, **kwargs):
+    def build(self, snapshot, helpers, *args, **kwargs):
         pass
 
 
