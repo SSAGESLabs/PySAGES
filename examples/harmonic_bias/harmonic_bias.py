@@ -12,25 +12,7 @@ import pysages
 
 from pysages.collective_variables import Component
 
-from pysages.methods import HarmonicBias
-
-class HistogramLogger:
-    def __init__(self, period):
-        self.period = period
-        self.data = []
-
-    def __call__(self, snapshot, state, timestep):
-        if timestep % self.period == 0:
-            self.data.append(state.xi)
-
-    def get_histograms(self, bins, lim):
-        data = np.asarray(self.data)
-        data = data.reshape(data.shape[0], data.shape[2])
-        histograms = []
-        for i in range(data.shape[1]):
-            histograms.append(np.histogram(data[:,i], bins=bins, range=lim, density=True)[0])
-        return histograms
-
+from pysages.methods import HarmonicBias, HistorgramLogger
 
 def plot(xi_hist, target_hist, lim):
     fig, ax = plt.subplots()
