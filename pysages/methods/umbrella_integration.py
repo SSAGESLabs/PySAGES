@@ -48,37 +48,27 @@ class UmbrellaIntegration(HarmonicBias):
         User defined callback are not available, the method requires use of a builtin callback.
         """
 
+        def listify(arg, Nreplica, name, dtype):
+            if isinstance(arg, list):
+                if len(arg) != Nreplica:
+                    raise RuntimeError("Provided list argument {0} has not the correct length got {1}, but expected {2}".format(name, len(arg), Nreplica))
+            else:
+                arg = [dtype(arg) for i in range(Nreplica)]
+            return arg
+
+
+
         Nreplica = len(centers)
-        if type(timesteps) == int:
-            timesteps = [timesteps for i in range(Nreplica)]
-        if len(timesteps) != len(centers):
-            raise RuntimeError("Provided length of centers ({0}) and timesteps ({1}) is not equal.".format(len(centers), len(timesteps)))
-
-        if type(ksprings) == float:
-            ksprings = [ksprings for i in range(Nreplica)]
-        if len(ksprings) != len(centers):
-            raise RuntimeError("Provided length of centers ({0}) and ksprings ({1}) is not equal.".format(len(centers), len(ksprings)))
-
-        if type(periods) == int:
-            periods = [periods for i in range(Nreplica)]
-        if len(periods) != len(centers):
-            raise RuntimeError("Provided length of centers ({0}) and periods ({1}) is not equal.".format(len(centers), len(periods)))
-
-        if type(bins) == int:
-            bins = [bins for i in range(Nreplica)]
-        if len(bins) != len(centers):
-            raise RuntimeError("Provided length of centers ({0}) and bins ({1}) is not equal.".format(len(centers), len(bins)))
-
-        if type(ranges) == tuple:
-            ranges = [ranges for i in range(Nreplica)]
-        if len(ranges) != len(centers):
-            raise RuntimeError("Provided length of centers ({0}) and ranges ({1}) is not equal.".format(len(centers), len(ranges)))
+        timesteps = listify(timesteps, Nreplica, "timesteps", int)
+        ksprings = listify(ksprings, Nreplica, "kspring", float)
+        periods = listify(periods, Nreplica, "periods", int)
+        bins = listify(bins, Nreplica, "bins", int)
+        ranges = listify(ranges, Nreplica, "ranges", tuple)
         for hilo in ranges:
             if len(hilo) != 2:
                 raise RuntimeError("Provided ranges have a different length from two.")
             if hilo[0] >= hilo[1]:
                 raise RuntimeError("Provided ranges have invalid high/low values.")
-
 
         histograms = []
         for rep in range(Nreplica):
@@ -92,4 +82,5 @@ class UmbrellaIntegration(HarmonicBias):
                 wrapped_context.run(timesteps[rep])
 
             histograms.append(callback.get_histograms(bins[rep], ranges[rep]))
-        #process histrograms
+        # missing the processing step
+        return histograms
