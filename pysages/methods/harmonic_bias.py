@@ -28,7 +28,7 @@ class HarmonicBias(SamplingMethod):
         self.kspring = np.asarray(kspring)
         self.center = np.asarray(center)
 
-    def __call__(self, snapshot, helpers):
+    def build(self, snapshot, helpers):
         return _harmonic_bias(self, snapshot, helpers)
 
 

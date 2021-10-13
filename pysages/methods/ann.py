@@ -34,7 +34,7 @@ class ANNState(namedtuple(
 
 
 class ANN(NNSamplingMethod):
-    def __call__(self, snapshot, helpers):
+    def build(self, snapshot, helpers):
         N = np.asarray(self.kwargs.get('N', 200))
         return _ann(snapshot, self.cv, self.grid, self.topology, N, helpers)
 

@@ -21,6 +21,7 @@ from pysages.backends.common import HelperMethods
 from pysages.backends.snapshot import Box, Snapshot
 
 from .core import ContextWrapper
+from pysages.methods import SamplingMethod
 
 
 class Sampler:
@@ -45,7 +46,7 @@ def is_on_gpu(view: ContextView):
 
 def take_snapshot(wrapped_context):
     #
-    context = wrapped_context.context
+    context = wrapped_context.context.context  # extra indirection for OpenMM
     context_view = wrapped_context.view
     #
     positions = asarray(dlext.positions(context_view))
@@ -169,17 +170,18 @@ def check_integrator(context):
         raise ValueError("Variable step size integrators are not supported")
 
 
-def bind(context, sampling_method, callback: Callable, force = Force(), **kwargs):
+def bind(wrapped_context: ContextWrapper, sampling_method: SamplingMethod, callback: Callable, force:Force = Force(), **kwargs):
+    # For OpenMM we need to store a Simulation object as the context,
+    simulation = wrapped_context.context
+    context = simulation.context
     check_integrator(context)
-    #
     force.add_to(context)
-    wrapped_context = ContextWrapper(force.view, context)
+    wrapped_context.view = force.view(context)
+    wrapped_context.run = simulation.step
     helpers, bias = build_helpers(wrapped_context.view)
     snapshot = take_snapshot(wrapped_context)
-    method_bundle = sampling_method(snapshot, helpers)
-    sync_and_bias = partial(bias, sync_backend = wrapped_context.synchronize)
-    #
+    method_bundle = sampling_method.build(snapshot, helpers)
+    sync_and_bias = partial(bias, sync_backend = wrapped_context.view.synchronize)
     sampler = Sampler(method_bundle, sync_and_bias, callback)
     force.set_callback_in(context, sampler.update)
-    #
     return sampler

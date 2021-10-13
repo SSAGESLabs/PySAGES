@@ -31,7 +31,7 @@ class ABFState(namedtuple(
 
 
 class ABF(GriddedSamplingMethod):
-    def __call__(self, snapshot, helpers):
+    def build(self, snapshot, helpers):
         N = np.asarray(self.kwargs.get('N', 200))
         return _abf(snapshot, self.cv, self.grid, N, helpers)
 
