@@ -74,7 +74,7 @@ def main():
 
     method = ABF(cvs, grid)
 
-    method.run(generate_simulation, 5000)
+    method.run(generate_simulation, 50)
 
 
 # %%
