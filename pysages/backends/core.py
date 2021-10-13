@@ -24,9 +24,11 @@ class ContextWrapper:
         Automatically identifies the backend and binds the sampling method to
         the simulation context.
         """
-        if type(context).__module__.startswith("hoomd"):
+        self._backend_name = ''
+        module_name = type(context).__module__
+        if module_name.startswith("hoomd"):
             self._backend_name = "hoomd"
-        elif type(context).__module__.startswith("simtk.openmm"):
+        elif module_name.startswith("simtk.openmm") or module_name.startswith("openmm"):
             self._backend_name = "openmm"
 
         if self._backend_name in supported_backends():
