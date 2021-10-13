@@ -3,6 +3,7 @@
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 import jax.numpy as np
+from typing import Callable
 from .harmonic_bias import HarmonicBias
 from pysages.backends import ContextWrapper
 
@@ -61,12 +62,12 @@ class UmbrellaIntegration(HarmonicBias):
 
     def run(self,
             context_generator: Callable,
-            timesteps: int|list[int],
-            centers:list,
-            ksprings: float|list[float],
-            periods: int|list[int],
-            bins: int|list[int],
-            ranges: tuple|list(tuple),
+            timesteps,
+            centers,
+            ksprings,
+            periods,
+            bins,
+            ranges,
             context_args=dict(),
             **kwargs):
         """
