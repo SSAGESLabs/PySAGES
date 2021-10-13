@@ -4,48 +4,9 @@
 
 import jax.numpy as np
 from typing import Callable
-from .harmonic_bias import HarmonicBias
 from pysages.backends import ContextWrapper
-
-class HistogramLogger:
-    """
-    Implements a Callback functor for methods.
-    Logs the state of the collective variable to generate histograms.
-    """
-    def __init__(self, period : int):
-        """
-        Construct a logger class.
-        period: timesteps between logging of collective variables.
-        """
-        self.period = period
-        self.counter = 0
-        self.data = []
-
-    def __call__(self, snapshot, state, timestep):
-        """
-        Implements the logging itself. Interface as expected for Callbacks.
-        """
-        self.counter += 1
-        if self.counter % self.period == 0:
-            self.data.append(state.xi)
-
-    def get_histograms(self, bins, lim):
-        """
-        Helper function to generate histrograms from the collected CV data.
-        """
-        data = np.asarray(self.data)
-        data = data.reshape(data.shape[0], data.shape[2])
-        histograms = []
-        for i in range(data.shape[1]):
-            histograms.append(np.histogram(data[:,i], bins=bins, range=lim, density=True)[0])
-        return histograms
-
-    def reset(self):
-        """
-        Reset internal state.
-        """
-        self.counter = 0
-        self.data = []
+from .harmonic_bias import HarmonicBias
+from .utils import HistogramLogger
 
 
 class UmbrellaIntegration(HarmonicBias):

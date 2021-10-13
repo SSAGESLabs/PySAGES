@@ -12,7 +12,7 @@ import pysages
 
 from pysages.collective_variables import Component
 
-from pysages.methods import HarmonicBias, HistorgramLogger
+from pysages.methods import HarmonicBias, HistogramLogger
 
 def plot(xi_hist, target_hist, lim):
     fig, ax = plt.subplots()
