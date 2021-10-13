@@ -125,9 +125,10 @@ def build_helpers(context):
 
 
 def bind(wrapped_context: ContextWrapper, sampling_method: SamplingMethod, callback: Callable, **kwargs):
-    helpers, bias = build_helpers(wrapped_context.context)
+    context = wrapped_context.context
+    helpers, bias = build_helpers(context)
 
-    wrapped_context.view = SystemView(wrapped_context.context.system_definition)
+    wrapped_context.view = SystemView(context.system_definition)
     wrapped_context.run = hoomd.run
 
     snapshot = take_snapshot(wrapped_context)
@@ -135,9 +136,9 @@ def bind(wrapped_context: ContextWrapper, sampling_method: SamplingMethod, callb
     sync_and_bias = partial(bias, sync_backend = wrapped_context.view.synchronize)
     #
     sampler = Sampler(method_bundle, sync_and_bias, callback)
-    wrapped_context.context.integrator.cpp_integrator.setHalfStepHook(sampler)
+    context.integrator.cpp_integrator.setHalfStepHook(sampler)
     #
-    CONTEXTS_SAMPLERS[wrapped_context.context] = sampler
+    CONTEXTS_SAMPLERS[context] = sampler
     #
     return sampler
 

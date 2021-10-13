@@ -10,10 +10,9 @@ from .backends import (
     supported_backends,
 )
 
-
 from .grids import (
     Grid,
-    )
+)
 
 from . import (
     collective_variables,
