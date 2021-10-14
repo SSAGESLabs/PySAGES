@@ -24,19 +24,19 @@ class ContextWrapper:
         Automatically identifies the backend and binds the sampling method to
         the simulation context.
         """
-        self._backend_name = ''
+        self._backend_name = None
         module_name = type(context).__module__
         if module_name.startswith("hoomd"):
             self._backend_name = "hoomd"
         elif module_name.startswith("simtk.openmm") or module_name.startswith("openmm"):
             self._backend_name = "openmm"
 
-        if self._backend_name in supported_backends():
+        if self._backend_name is not None:
             self._backend = import_module('.' + self._backend_name, package="pysages.backends")
         else:
             backends = ", ".join(supported_backends())
             raise ValueError(f"Invalid backend: supported options are ({backends})")
-        
+
         self.context = context
         self.view = None
         self.run = None
