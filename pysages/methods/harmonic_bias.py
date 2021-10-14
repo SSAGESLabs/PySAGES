@@ -79,6 +79,8 @@ class HarmonicBias(SamplingMethod):
 
     def set_center(self, center):
         center = np.asarray(center)
+        if center.shape == ():
+            center = center.reshape(1)
         if len(center.shape) !=1 or center.shape[0] != self._N:
             raise RuntimeError(f"Invalid center shape expected {self._N} got {center.shape}.")
         self._center = center

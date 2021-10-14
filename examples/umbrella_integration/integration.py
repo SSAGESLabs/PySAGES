@@ -33,15 +33,16 @@ def generate_context(**kwargs):
         periodic.force_coeff.set('B', A=0.0, i=0, w=0.02, p=1)
     return context
 
+
 def main():
     cvs = [Component([0], 0),]
     method = UmbrellaIntegration(cvs)
 
     k = 15.
     centers = list(np.linspace(-np.pi, np.pi, 10))
-    print(centers)
-
-    method.run(generate_context, int(1e4), centers, k, 10, 50, (-1.2*np.pi, 1.2*np.pi))
+    result = method.run(generate_context, int(1e4), centers, k, 10, 50, (-1.2*np.pi, 1.2*np.pi))
+    for key in result.keys():
+        print(key, result[key])
 
 
 if __name__ == "__main__":
