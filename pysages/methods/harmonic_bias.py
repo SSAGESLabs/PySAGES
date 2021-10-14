@@ -72,7 +72,6 @@ class HarmonicBias(SamplingMethod):
                 raise RuntimeError(f"Wrong kspring size, expected 1 or {N}, got {n}.")
 
             self._kspring = np.identity(N) * kspring
-
         return self._kspring
 
     def get_kspring(self):
@@ -100,6 +99,7 @@ def _harmonic_bias(method, snapshot, helpers):
     def initialize():
         bias = np.zeros((natoms, 3))
         return HarmonicBiasState(bias, None)
+
 
     def update(state, data):
         xi, Jxi = cv(data)
