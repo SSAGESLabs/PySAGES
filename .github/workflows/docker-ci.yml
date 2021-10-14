@@ -93,4 +93,4 @@ jobs:
         name: Load and run test
         run: |
           docker load --input /tmp/pysages.tar
-          docker run -t pysages bash -c "cd PySAGES/examples/umbrella_integratoin/ && python3 ./gen_gsd.py && python3 integration.py"
+          docker run -t pysages bash -c "cd PySAGES/examples/umbrella_integration/ && python3 ./gen_gsd.py && python3 integration.py"
