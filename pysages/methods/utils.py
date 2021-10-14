@@ -5,6 +5,7 @@
 import jax.numpy as np
 
 
+
 class HistogramLogger:
     """
     Implements a Callback functor for methods.
@@ -27,16 +28,14 @@ class HistogramLogger:
         if self.counter % self.period == 0:
             self.data.append(state.xi)
 
-    def get_histograms(self, bins, lim):
+    def get_histograms(self, bins, lims):
         """
         Helper function to generate histrograms from the collected CV data.
         """
         data = np.asarray(self.data)
         data = data.reshape(data.shape[0], data.shape[2])
-        histograms = []
-        for i in range(data.shape[1]):
-            histograms.append(np.histogram(data[:,i], bins=bins, range=lim, density=True)[0])
-        return histograms
+        histograms, edges = np.histogramdd(data, bins=bins, range=lims, density=True)
+        return histograms, edges
 
     def reset(self):
         """
