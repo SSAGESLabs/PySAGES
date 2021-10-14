@@ -34,15 +34,41 @@ def generate_context(**kwargs):
     return context
 
 
+def plot(result):
+    fig, ax = plt.subplots()
+
+    ax.set_xlabel("CV")
+    ax.set_ylabel("p(CV)")
+
+
+    for i in range(len(result["center"])):
+        center = np.asarray(result["center"][i])
+        edges = np.asarray(result["histogram_edges"][i][0])
+        histo = np.asarray(result["histogram"][i])
+        print(edges.shape)
+        print(histo.shape)
+        ax.plot(edges[1:], histo, label="center {0}".format(center))
+    ax.legend(loc="best")
+
+    ax2 = ax.twinx()
+    ax2.set_ylabel("Free energy")
+    center = np.asarray(result["center"])
+    A = np.asarray(result["A"])
+    ax2.plot(center, A, color="black")
+
+    fig.savefig("hist.pdf")
+
+
 def main():
     cvs = [Component([0], 0),]
     method = UmbrellaIntegration(cvs)
 
     k = 15.
-    centers = list(np.linspace(-np.pi, np.pi, 10))
-    result = method.run(generate_context, int(1e4), centers, k, 10, 50, (-1.2*np.pi, 1.2*np.pi))
-    for key in result.keys():
-        print(key, result[key])
+    centers = list(np.linspace(-0.3, 0.3, 25))
+    result = method.run(generate_context, int(1e5), centers, k, 10, 35, (-0.5, 0.5))
+    # for key in result.keys():
+    #     print(key, result[key])
+    plot(result)
 
 
 if __name__ == "__main__":

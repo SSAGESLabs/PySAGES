@@ -104,4 +104,5 @@ class UmbrellaIntegration(HarmonicBias):
                 result["A"].append( result["A"][-1] + result["nabla_A"][-2].T @ (result["center"][rep] - result["center"][rep-1]))
 
 
+
         return result
