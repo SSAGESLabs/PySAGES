@@ -44,11 +44,9 @@ def plot(result, bins=35):
     for i in range(len(result["center"])):
         center = np.asarray(result["center"][i])
         histo, edges = result["histogram"][i].get_histograms(bins=bins)
-        print(edges.shape)
-        print(histo.shape)
+        edges = np.asarray(edges)[0]
         edges = (edges[1:] + edges[:-1]) / 2
-        print(edges.shape)
-        ax.plot(edges[1:], histo, label="center {0}".format(center))
+        ax.plot(edges, histo, label="center {0}".format(center))
     ax.legend(loc="best")
 
     ax2 = ax.twinx()
@@ -65,7 +63,8 @@ def main():
     method = UmbrellaIntegration(cvs)
 
     k = 15.
-    centers = list(np.linspace(-0.3, 0.3, 3))
+    Nreplica = 25
+    centers = list(np.linspace(-0.3, 0.3, Nreplica))
     result = method.run(generate_context, int(1e5), centers, k, 10)
     plot(result)
 
