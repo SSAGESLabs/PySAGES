@@ -80,7 +80,8 @@ def main():
     target_hist = []
     for i in range(len(center_cv)):
         target_hist.append(get_target_dist(center_cv[i], k, (-Lmax/2, Lmax/2), bins))
-    hist, edges, mean, cov = callback.get_histograms(bins, (-Lmax/2, Lmax/2), True, True)
+    lims = [(-Lmax/2, Lmax/2) for i in range(3)]
+    hist, edges = callback.get_histograms(bins=bins, range=lims)
     hist_list = [ np.sum(hist, axis=(1,2))/(Lmax**2),
                   np.sum(hist, axis=(0,2))/(Lmax**2),
                   np.sum(hist, axis=(0,1))/(Lmax**2),

@@ -25,22 +25,30 @@ class HistogramLogger:
         """
         self.counter += 1
         if self.counter % self.period == 0:
-            self.data.append(state.xi)
+            self.data.append(state.xi[0])
 
-    def get_histograms(self, bins, lims, calc_means=False, calc_cov=False):
+    def get_histograms(self, **kwargs):
         """
-        Helper function to generate histrograms from the collected CV data.
+        Helper function to generate histrograms from the collected CV data. kwargs are passed on to numpys histogramdd function.
         """
         data = np.asarray(self.data)
-        data = data.reshape(data.shape[0], data.shape[2])
-        return_tuple = np.histogramdd(data, bins=bins, range=lims, density=True)
+        if "density" not in kwargs:
+            kwargs["density"] = True
+        return np.histogramdd(data, **kwargs)
 
-        if calc_means:
-            return_tuple += (np.mean(data, axis=0),)
-        if calc_cov:
-            return_tuple += (np.cov(data.T),)
+    def get_means(self):
+        """
+        Return mean values of the histogram data.
+        """
+        data = np.asarray(self.data)
+        return np.mean(data, axis=0)
 
-        return return_tuple
+    def get_cov(self):
+        """
+        Return covariance matrix of the histgram data.
+        """
+        data = np.asarray(self.data)
+        return np.cov(data.T)
 
     def reset(self):
         """
