@@ -3,11 +3,13 @@
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 from jax.tree_util import register_pytree_node
-from jaxlib.xla_extension import DeviceArray as JaxArray
 from plum import dispatch
 from typing import Union
 
+import jaxlib.xla_extension as xe
 
+JaxArray = xe.DeviceArray
+Float = Union[JaxArray, float]
 Scalar = Union[bool, int, float]
 
 

@@ -2,36 +2,67 @@
 # Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
-from collections import namedtuple
+from abc import ABC
+from dataclasses import dataclass
 from itertools import product
 from jax import jit, vmap
+from plum import dispatch
+from pysages.grids import Grid, Chebyshev
+from pysages.utils import Float, JaxArray
+from typing import NamedTuple
 
 import jax.numpy as np
 
 
-class Fun(namedtuple(
-    "Fun",
-    (
-        "coefficients",
-        "c0",
-    )
-)):
+class Fun(NamedTuple):
+    """
+    Stores the coeffiecients of an either Fourier or Chebyshev series
+    (or tensor product of series in 2D) approximating a function.
+    """
+    scale:         JaxArray
+    coefficients:  JaxArray
+    c0:            Float
+
+
+@dataclass
+class AbstractFit(ABC):
+    """
+    Stores the information necessary to approximate the coefficients
+    of a basis (Fourier of Chebyshev) expansion of a function (ℝⁿ ↦ ℝ)
+    that minimizes the squared error with respect to a set of given
+    target values.
+    """
+    grid:       Grid
+    mesh:       JaxArray
+    pinv:       JaxArray
+    exponents:  JaxArray
+
+    def __init__(self, grid: Grid):
+        ns = collect_exponents(grid)
+        self.grid = grid
+        self.mesh = compute_mesh(grid)
+        self.exponents = ns
+        self.pinv = pinv(self)
+
+    @property
+    def is_periodic(self):
+        return self.grid.is_periodic
+
+
+class SpectralGradientFit(AbstractFit):
+    """
+    Specialization of AbstractFit used when the target values correspond
+    to the gradient of the function of interest.
+    """
     pass
 
 
-class VandermondeGradientFit(namedtuple(
-    "VandermondeGradientFit",
-    (
-        "pinvA",
-        "exponents",
-        "is_periodic",
-    )
-)):
-    def __new__(cls, grid):
-        mesh = compute_mesh(grid)
-        ns = collect_exponents(grid)
-        pinvA = vanderpinv(grid, ns, mesh)
-        return super().__new__(cls, pinvA, ns, grid.is_periodic)
+class SpectralSobolev1Fit(AbstractFit):
+    """
+    Specialization of AbstractFit used when the target values correspond
+    to *both* the values and gradient of the function of interest.
+    """
+    pass
 
 
 def collect_exponents(grid):
@@ -58,25 +89,73 @@ def collect_exponents(grid):
     return exponents
 
 
-def compute_mesh(grid):
-    if grid.is_periodic:
-        h = grid.size / grid.shape
-        o = -np.pi + h / 2
-        nodes = o + h * np.hstack(
-            [np.arange(i).reshape(-1, 1) for i in grid.shape]
-        )
-    else:
-        def transform(n):
-            return vmap(lambda k: -np.cos((k + 1 / 2) * np.pi / n))
-        #
-        nodes = np.hstack(
-            [transform(i)(np.arange(i).reshape(-1, 1)) for i in grid.shape]
-        )
+def scale(x, grid: Grid):
+    """
+    Applies to `x` the map that takes the `grid` to [-1, 1]ⁿ,
+    where `n` is the dimensionality of `grid`.
+    """
+    return (x - grid.lower) * 2 / grid.size - 1
+
+
+@dispatch
+def compute_mesh(grid: Grid):
+    """
+    Returns a dense mesh with the same shape as `grid`, but on the hypercube
+    [-1, 1]ⁿ, where `n` is the dimensionality of `grid`.
+    """
+    h = 2 / grid.shape
+    o = -1 + h / 2
+
+    nodes = o + h * np.hstack(
+        [np.arange(i).reshape(-1, 1) for i in grid.shape]
+    )
+
+    return _compute_mesh(nodes)
+
+
+@dispatch
+def compute_mesh(grid: Grid[Chebyshev]):
+    """
+    Returns a Chebyshev-distributed dense mesh with the same shape as `grid`,
+    but on the hypercube [-1, 1]ⁿ, where n is the dimensionality of `grid`.
+    """
+    def transform(n):
+        return vmap(lambda k: -np.cos((k + 1 / 2) * np.pi / n))
+
+    nodes = np.hstack(
+        [transform(i)(np.arange(i).reshape(-1, 1)) for i in grid.shape]
+    )
+
+    return _compute_mesh(nodes)
+
+
+def _compute_mesh(nodes):
     components = np.meshgrid(*nodes.T,)
     return np.hstack([v.reshape(-1, 1) for v in components])
 
 
-def build_mapping(grid, exponents):
+def vander_builder(grid, exponents):
+    """
+    Returns a closure over the grid and exponents to build a Vandermonde matrix
+    of a Fourier or Chebyshev basis expansion.
+    """
+    ns = exponents
+    #
+    if grid.is_periodic:
+        def expand(x):
+            return np.exp(1j * np.pi * ns * x).prod(axis = 1).T
+    else:
+        def expand(x):
+            return (x**ns).prod(axis = 1).T
+    #
+    return jit(lambda xs: vmap(expand)(xs).reshape(-1, np.size(ns, 0)))
+
+
+def vandergrad_builder(grid, exponents):
+    """
+    Returns a closure over the grid and exponents to build a Vandermonde-like
+    matrix for fitting the gradient of a Fourier or Chebyshev expansion.
+    """
     ns = exponents
     #
     if grid.shape.size == 1:
@@ -88,8 +167,8 @@ def build_mapping(grid, exponents):
     #
     if grid.is_periodic:
         def expand(x):
-            z = np.exp(1j * ns * x)
-            return flip_multiply(-ns * z, z).T
+            z = np.exp(-1j * np.pi * ns * x)
+            return flip_multiply(ns * z, z).T
     else:
         def expand(x):
             z = x**(np.maximum(ns - 1, 0))
@@ -98,70 +177,124 @@ def build_mapping(grid, exponents):
     return jit(lambda xs: vmap(expand)(xs).reshape(-1, np.size(ns, 0)))
 
 
-def vanderpinv(grid, exponents, mesh):
-    ns = exponents
-    expand = build_mapping(grid, ns)
-    A = expand(mesh)
+@dispatch
+def pinv(model: SpectralGradientFit):
+    A = vandergrad_builder(model.grid, model.exponents)(model.mesh)
     #
-    if grid.is_periodic:
+    if model.is_periodic:
         A = np.hstack((np.imag(A), np.real(A)))
     #
     return np.linalg.pinv(A)
 
 
-def build_fitter(model: VandermondeGradientFit):
-
+@dispatch
+def pinv(model: SpectralSobolev1Fit):
+    ns = model.exponents
+    A = vander_builder(model.grid, ns)(model.mesh)
+    B = vandergrad_builder(model.grid, ns)(model.mesh)
+    I = np.ones((np.size(A, 0), 1))
+    O = np.zeros((np.size(B, 0), 1))
+    #
     if model.is_periodic:
-        def fit(data):
-            μ = data.mean(axis = 0)
-            dA = data - μ
-            return Fun(model.pinvA @ dA.flatten(), μ)
+        U = np.hstack((I, np.real(A), np.imag(A)))
+        V = np.hstack((O, np.imag(B), np.real(B)))
     else:
-        def fit(data):
-            return Fun(model.pinvA @ data.flatten(), np.array(0.0))
+        U = np.hstack((I, A))
+        V = np.hstack((O, B))
+    #
+    return np.linalg.pinv(np.vstack((U, V)))
+
+
+@dispatch
+def build_fitter(model: SpectralGradientFit):
+    """
+    Returns a function which takes an approximation `dy` to the gradient
+    of a function `f` evaluated over the set `x = compute_mesh(model.grid)`,
+    and returns a `fun: Fun` object which approximates `f` over
+    the domain [-1, 1]ⁿ.
+    """
+    #
+    if model.is_periodic:
+        def fit(dy):
+            std = dy.std(axis = 0)
+            std = np.where(std == 0, 1, std)
+            dy = (dy - dy.mean(axis = 0)) / std
+            return Fun(std, model.pinv @ dy.flatten(), np.array(0.0))
+    else:
+        def fit(dy):
+            std = dy.std(axis = 0)
+            std = np.where(std == 0, 1, std)
+            dy = dy / std
+            return Fun(std, model.pinv @ dy.flatten(), np.array(0.0))
     #
     return jit(fit)
 
 
-def build_interpolator(model: VandermondeGradientFit, grid):
-    ns = model.exponents
-    expand = build_mapping(grid, ns)
+@dispatch
+def build_fitter(model: SpectralSobolev1Fit):
+    """
+    Returns a function which takes approximations `y` and dy` to a function
+    `f` and its gradient evaluated over the set `x = compute_mesh(model.grid)`,
+    and in turn returns a `fun: Fun` object which approximates `f` over
+    the domain [-1, 1]ⁿ.
+    """
     #
-    if grid.is_periodic:
+    def fit(y, dy):
+        mean = y.mean()
+        std = np.maximum(y.std(axis = 0).max(), dy.std(axis = 0).max())
+        std = np.where(std == 0, 1, std)
+        y = (y - mean) / std
+        dy = dy / std
+        cs = model.pinv @ np.hstack((y.flatten(), dy.flatten()))
+        return Fun(std, cs[1:], cs[0] + mean / std)
+    #
+    return jit(fit)
+
+
+def build_evaluator(model):
+    """
+    Returns a method to evaluate the Fourier or Chebyshev expansion defined
+    by `model`. The returned method takes a `fun` and a value (or array of
+    values) `x` to evaluate the approximant.
+    """
+    vander = vander_builder(model.grid, model.exponents)
+    #
+    if model.is_periodic:
+        def restack(x):
+            return np.hstack((np.real(x), np.imag(x)))
+    else:
+        def restack(x):
+            return x
+
+    def evaluate(f: Fun, x):
+        c0 = f.c0
+        cs = f.coefficients
+        x = np.array(x, ndmin = 2)
+        y = f.scale * (restack(vander(x)) @ cs + c0)
+        return y.reshape(np.size(x, 0), -1)
+    #
+    return jit(evaluate)
+
+
+def build_grad_evaluator(model):
+    """
+    Returns a method to evaluate the gradient of a Fourier or Chebyshev
+    expansion defined by `model`. The returned method takes a `fun` and a value
+    (or array of values) `x` to evaluate the approximant.
+    """
+    vandergrad = vandergrad_builder(model.grid, model.exponents)
+
+    if model.is_periodic:
         def restack(x):
             return np.hstack((np.imag(x), np.real(x)))
     else:
         def restack(x):
             return x
 
-    def interpolate(f: Fun, x):
-        c0 = f.c0
+    def get_gradient(f: Fun, x):
         cs = f.coefficients
-        return restack(expand(x)) @ cs + c0
-    #
-    return jit(interpolate)
+        x = np.array(x, ndmin = 2)
+        y = f.scale * (restack(vandergrad(x)) @ cs)
+        return y.reshape(x.shape)
 
-
-def build_integrator(model: VandermondeGradientFit, grid):
-    ns = model.exponents
-    #
-    if grid.is_periodic:
-        def _expand(x):
-            return np.prod(np.exp(1j * ns * x), axis = 1).T
-
-        def restack(x):
-            return np.hstack((-np.real(x), np.imag(x)))
-    else:
-        def _expand(x):
-            return np.prod(x**ns, axis = 1).T
-
-        def restack(x):
-            return x
-    #
-    expand = jit(lambda x: vmap(_expand)(x).reshape(-1, np.size(ns, 0)))
-
-    def integrate(f: Fun, x):
-        cs = f.coefficients
-        return restack(expand(x)) @ cs
-    #
-    return jit(integrate)
+    return jit(get_gradient)

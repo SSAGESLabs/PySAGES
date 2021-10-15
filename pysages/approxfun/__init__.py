@@ -5,10 +5,12 @@
 # pylint: disable=unused-import,relative-beyond-top-level
 
 from .core import (
-    VandermondeGradientFit,
+    SpectralGradientFit,
+    SpectralSobolev1Fit,
     build_fitter,
-    build_interpolator,
-    build_integrator,
+    build_evaluator,
+    build_grad_evaluator,
     collect_exponents,
     compute_mesh,
+    scale,
 )
