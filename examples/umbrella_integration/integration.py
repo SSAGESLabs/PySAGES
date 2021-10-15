@@ -34,7 +34,7 @@ def generate_context(**kwargs):
     return context
 
 
-def plot(result):
+def plot(result, bins=35):
     fig, ax = plt.subplots()
 
     ax.set_xlabel("CV")
@@ -43,18 +43,19 @@ def plot(result):
 
     for i in range(len(result["center"])):
         center = np.asarray(result["center"][i])
-        edges = np.asarray(result["histogram_edges"][i][0])
-        histo = np.asarray(result["histogram"][i])
+        histo, edges = result["histogram"][i].get_histograms(bins=bins)
         print(edges.shape)
         print(histo.shape)
+        edges = (edges[1:] + edges[:-1]) / 2
+        print(edges.shape)
         ax.plot(edges[1:], histo, label="center {0}".format(center))
     ax.legend(loc="best")
 
     ax2 = ax.twinx()
-    ax2.set_ylabel("Free energy")
+    ax2.set_ylabel("Free energy $[\epsilon]$", color="teal")
     center = np.asarray(result["center"])
     A = np.asarray(result["A"])
-    ax2.plot(center, A, color="black")
+    ax2.plot(center, A, color="teal")
 
     fig.savefig("hist.pdf")
 
@@ -64,10 +65,8 @@ def main():
     method = UmbrellaIntegration(cvs)
 
     k = 15.
-    centers = list(np.linspace(-0.3, 0.3, 25))
-    result = method.run(generate_context, int(1e5), centers, k, 10, 35, (-0.5, 0.5))
-    # for key in result.keys():
-    #     print(key, result[key])
+    centers = list(np.linspace(-0.3, 0.3, 3))
+    result = method.run(generate_context, int(1e5), centers, k, 10)
     plot(result)
 
 

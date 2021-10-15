@@ -20,9 +20,6 @@ class UmbrellaIntegration(HarmonicBias):
             centers,
             ksprings,
             periods,
-            bins,
-            ranges,
-            calculate_hist_cov = False,
             context_args=dict(),
             **kwargs):
         """
@@ -37,8 +34,6 @@ class UmbrellaIntegration(HarmonicBias):
         centers: list of CV centers along the path of integration. The length defines the number replicas.
         ksprings: float or list of floats describing the spring strength of the harmonic bias for each replica.
         periods: int of list of int describing the period for the histrogram logging of each replica.
-        bins: int of list of int describing the bin size for the histrogram logging of each replica.
-        ranges: (min, max) of list of (min,max) describing the histogram range of each replica.
         kwargs: gets passed to the backend run function for additional user arguments to be passed down.
         User defined callback are not available, the method requires use of a builtin callback.
         """
@@ -57,20 +52,10 @@ class UmbrellaIntegration(HarmonicBias):
         timesteps = listify(timesteps, Nreplica, "timesteps", int)
         ksprings = listify(ksprings, Nreplica, "kspring", float)
         periods = listify(periods, Nreplica, "periods", int)
-        bins = listify(bins, Nreplica, "bins", int)
-        ranges = listify(ranges, Nreplica, "ranges", tuple)
-        for hilo in ranges:
-            if len(hilo) != 2:
-                raise RuntimeError("Provided ranges have a different length from two.")
-            if hilo[0] >= hilo[1]:
-                raise RuntimeError("Provided ranges have invalid high/low values.")
 
         result = {}
         result["histogram"] = []
-        result["histogram_edges"] = []
         result["histogram_means"] = []
-        if calculate_hist_cov:
-            result["histogram_cov"] = []
         result["kspring"] = []
         result["center"] = []
         result["nabla_A"] =  []
@@ -89,20 +74,15 @@ class UmbrellaIntegration(HarmonicBias):
             result["kspring"].append(self.get_kspring())
             result["center"].append(self.get_center())
 
-            ret_tuple = callback.get_histograms(bins[rep], ranges[rep], True, calculate_hist_cov)
-            result["histogram"].append(ret_tuple[0])
-            result["histogram_edges"].append(ret_tuple[1])
-            result["histogram_means"].append(ret_tuple[2])
-            if calculate_hist_cov:
-                result["histogram_cov"].append(ret_tuple[3])
+            result["histogram"].append(callback)
+            result["histogram_means"].append(callback.get_means())
 
-        # discrete integration of the free-energy
-            result["nabla_A"].append(-result["kspring"][-1] * (result["histogram_means"][-1] - result["center"][-1]))
+            # Equation 13
+            result["nabla_A"].append(-result["kspring"][rep] * (result["histogram_means"][rep] - result["center"][rep]))
+            # discrete forward integration of the free-energy
             if rep == 0:
                 result["A"].append(0)
             else:
-                result["A"].append( result["A"][-1] + result["nabla_A"][-2].T @ (result["center"][rep] - result["center"][rep-1]))
-
-
+                result["A"].append( result["A"][rep-1] + result["nabla_A"][rep-1].T @ (result["center"][rep] - result["center"][rep-1]))
 
         return result

@@ -55,7 +55,14 @@ jobs:
         name: Load and run test
         run: |
           docker load --input /tmp/pysages.tar
-          docker run -t pysages bash -c "cd PySAGES/examples/harmonic_bias/ && ./run.sh"
+          docker run -v/tmp:/tmp -t pysages bash -c "cd PySAGES/examples/harmonic_bias/ && ./run.sh && cp hist.pdf /tmp/"
+      -
+        name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: harmonic-hist.pdf
+          path: /tmp/hist.pdf
+
 
   abf-alanine-dipeptide-openmm:
     runs-on: ubuntu-latest
@@ -93,4 +100,10 @@ jobs:
         name: Load and run test
         run: |
           docker load --input /tmp/pysages.tar
-          docker run -t pysages bash -c "cd PySAGES/examples/umbrella_integration/ && python3 ./gen_gsd.py && python3 integration.py"
+          docker run -v /tmp:/tmp -t pysages bash -c "cd PySAGES/examples/umbrella_integration/ && python3 ./gen_gsd.py && python3 integration.py && cp hist.pdf /tmp/hist.pdf"
+      -
+        name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: integration-hist.pdf
+          path: /tmp/hist.pdf
