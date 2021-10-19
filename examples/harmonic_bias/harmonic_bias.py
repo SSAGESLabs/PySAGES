@@ -84,7 +84,7 @@ def main():
     cvs += [Component([0], 0),]
 
     center_cv = [ 0.,]
-    center_cv += [0.6, -0.3]
+    center_cv += [0.3, -0.3]
 
     k= 15
     method = HarmonicBias(cvs, k, center_cv)

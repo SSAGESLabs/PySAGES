@@ -84,8 +84,9 @@ def take_snapshot(wrapped_context, location = default_location(), wrap_coordinat
     #
     if wrap_coordinates:
         box_array = jax.numpy.asarray([L.x, L.y, L.z])
-        images = asarray(images(sysview, location, AccessMode.Read))
-        positons += images * box_array
+        images_array = asarray(images(sysview, location, AccessMode.Read))
+        positions_tmp = positions[:,0:3] + images_array * box_array
+        positions = jax.numpy.concatenate((positions_tmp, positions[:,3:4]), axis=1)
 
     return Snapshot(positions, vel_mass, forces, ids, Box(H, origin), dt)
 
