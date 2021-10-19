@@ -12,7 +12,7 @@ from typing import Callable
 from functools import partial
 from hoomd.dlext import (
     AccessLocation, AccessMode, HalfStepHook, SystemView,
-    net_forces, positions_types, rtags, velocities_masses,
+    net_forces, positions_types, rtags, velocities_masses, images
 )
 from jax.dlpack import from_dlpack as asarray
 from pysages.backends.common import HelperMethods
@@ -58,7 +58,7 @@ def is_on_gpu(context):
     return context.on_gpu()
 
 
-def take_snapshot(wrapped_context, location = default_location()):
+def take_snapshot(wrapped_context, location = default_location(), wrap_coordinates=True):
     #
     context = wrapped_context.context
     sysview = wrapped_context.view
@@ -82,6 +82,11 @@ def take_snapshot(wrapped_context, location = default_location()):
     origin = (lo.x, lo.y, lo.z)
     dt = context.integrator.dt
     #
+    if wrap_coordinates:
+        box_array = jax.numpy.asarray([L.x, L.y, L.z])
+        images = asarray(images(sysview, location, AccessMode.Read))
+        positons += images * box_array
+
     return Snapshot(positions, vel_mass, forces, ids, Box(H, origin), dt)
 
 
