@@ -15,7 +15,7 @@ from pysages.collective_variables.core import build
 # ================ #
 class SamplingMethod(ABC):
     def __init__(self, cvs, *args, **kwargs):
-        self.snapshot_flags = {}
+        self.snapshot_flags = set()
         self.cv = build(*cvs)
         self.args = args
         self.kwargs = kwargs
@@ -103,6 +103,6 @@ def generalize(concrete_update, jit_compile = True):
         rs = snapshot.positions
         ids = snapshot.ids
         #
-        return _update(state, rs, vms, ids)
+        return _update(state, rs=rs, vms=vms, ids=ids)
 
     return _jit(update)

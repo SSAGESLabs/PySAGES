@@ -58,7 +58,7 @@ def is_on_gpu(context):
     return context.on_gpu()
 
 
-def take_snapshot(wrapped_context, location = default_location(), wrap_coordinates=True):
+def take_snapshot(wrapped_context, location = default_location()):
     #
     context = wrapped_context.context
     sysview = wrapped_context.view
@@ -81,12 +81,12 @@ def take_snapshot(wrapped_context, location = default_location(), wrap_coordinat
     )
     origin = (lo.x, lo.y, lo.z)
     dt = context.integrator.dt
-    #
-    if wrap_coordinates:
-        box_array = jax.numpy.asarray([L.x, L.y, L.z])
-        images_array = asarray(images(sysview, location, AccessMode.Read))
-        positions_tmp = positions[:,0:3] + images_array * box_array
-        positions = jax.numpy.concatenate((positions_tmp, positions[:,3:4]), axis=1)
+
+    # if wrap_coordinates:
+    #     box_array = jax.numpy.asarray([L.x, L.y, L.z])
+    #     images_array = asarray(images(sysview, location, AccessMode.Read))
+    #     positions_tmp = positions[:,0:3] + images_array * box_array
+    #     positions = jax.numpy.concatenate((positions_tmp, positions[:,3:4]), axis=1)
 
     return Snapshot(positions, vel_mass, forces, ids, Box(H, origin), dt)
 

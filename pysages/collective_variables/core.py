@@ -59,7 +59,7 @@ class AxisCV(CollectiveVariable):
     def __init__(self, indices, axis):
         super().__init__(indices)
         self.axis = axis
-        self.snapshot_flags = self.snapshot_flags + {"wrapped_positions"}
+        self.snapshot_flags = self.snapshot_flags.union({"wrapped_positions"})
 
     @abstractproperty
     def function(self):
