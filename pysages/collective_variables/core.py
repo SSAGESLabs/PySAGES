@@ -42,6 +42,7 @@ class CollectiveVariable(ABC):
         computation of the collective variable.
     """
     def __init__(self, indices):
+        self.snapshot_flags = {"positions", "indices"}
         indices, groups = process_groups(indices)
         self.indices = indices
         self.groups = groups
@@ -56,11 +57,10 @@ class AxisCV(CollectiveVariable):
     Similar to CollectiveVariable, but requires that an axis is provided.
     """
     def __init__(self, indices, axis):
-        indices, groups = process_groups(indices)
-        self.indices = indices
-        self.groups = groups
+        super().__init__(indices)
         self.axis = axis
-    #
+        self.snapshot_flags = self.snapshot_flags + {"wrapped_positions"}
+
     @abstractproperty
     def function(self):
         pass
@@ -72,11 +72,9 @@ class TwoPointCV(CollectiveVariable):
     indices or groups are provided.
     """
     def __init__(self, indices):
-        indices, groups = process_groups(indices)
+        super().__init__(indices)
         check_groups_size(indices, groups, 2)
-        self.indices = indices
-        self.groups = groups
-    #
+
     @abstractproperty
     def function(self):
         pass
@@ -88,11 +86,9 @@ class ThreePointCV(CollectiveVariable):
     indices or groups are provided.
     """
     def __init__(self, indices):
-        indices, groups = process_groups(indices)
+        super().__init__(indices)
         check_groups_size(indices, groups, 3)
-        self.indices = indices
-        self.groups = groups
-    #
+
     @abstractproperty
     def function(self):
         pass
@@ -104,11 +100,9 @@ class FourPointCV(CollectiveVariable):
     indices or groups are provided.
     """
     def __init__(self, indices):
-        indices, groups = process_groups(indices)
+        super().__init__(indices)
         check_groups_size(indices, groups, 4)
-        self.indices = indices
-        self.groups = groups
-    #
+
     @abstractproperty
     def function(self):
         pass
