@@ -31,12 +31,12 @@ class ABFState(namedtuple(
 
 
 class ABF(GriddedSamplingMethod):
-    def build(self, snapshot, helpers):
+    def build(self, snapshot, helpers, backend):
         N = np.asarray(self.kwargs.get('N', 200))
-        return _abf(snapshot, self.cv, self.grid, N, helpers)
+        return _abf(self, snapshot, self.cv, self.grid, N, helpers, backend)
 
 
-def _abf(snapshot, cv, grid, N, helpers):
+def _abf(method, snapshot, cv, grid, N, helpers, backend):
     dt = snapshot.dt
     dims = grid.shape.size
     natoms = np.size(snapshot.positions, 0)
@@ -77,4 +77,4 @@ def _abf(snapshot, cv, grid, N, helpers):
         #
         return ABFState(bias, hist, Fsum, F, Wp, state.Wp)
 
-    return snapshot, initialize, generalize(update)
+    return snapshot, initialize, generalize(update, backend, method.get_snapshot_flags())
