@@ -43,7 +43,9 @@ def _harmonic_bias(method, snapshot, helpers):
         bias = np.zeros((natoms, 3))
         return HarmonicBiasState(bias, None)
 
-    def update(state, rs, vms, ids):
+    def update(state, *args, **kwargs):
+        rs = kwargs.get("rs")
+        ids = kwargs.get("ids")
         xi, Jxi = cv(rs, indices(ids))
         D = kspring * (xi - center)
         bias = -Jxi.T @ D.flatten()
@@ -51,4 +53,4 @@ def _harmonic_bias(method, snapshot, helpers):
 
         return HarmonicBiasState(bias, xi)
 
-    return snapshot, initialize, generalize(update)
+    return snapshot, initialize, generalize(update, snapshot_flags = method.get_snapshot_flags())

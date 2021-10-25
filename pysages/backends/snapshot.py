@@ -33,6 +33,7 @@ class Snapshot(NamedTuple):
     vel_mass:  Union[tuple, JaxArray]
     forces:    JaxArray
     ids:       JaxArray
+    images:    Union[JaxArray, None]
     box:       Box
     dt:        Union[float, JaxArray]
 

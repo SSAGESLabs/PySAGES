@@ -5,6 +5,7 @@
 from abc import ABC, abstractmethod
 from typing import Callable, Mapping
 
+import jax
 from jax import jit
 from pysages.backends import ContextWrapper
 from pysages.collective_variables.core import build
@@ -17,8 +18,15 @@ class SamplingMethod(ABC):
     def __init__(self, cvs, *args, **kwargs):
         self.snapshot_flags = set()
         self.cv = build(*cvs)
+        self._raw_cvs = tuple(cvs)
         self.args = args
         self.kwargs = kwargs
+
+    def get_snapshot_flags(self):
+        flags = self.snapshot_flags
+        for cv in self._raw_cvs:
+            flags = flags.union(cv.snapshot_flags)
+        return flags
 
     @abstractmethod
     def build(self, snapshot, helpers, *args, **kwargs):
@@ -90,7 +98,7 @@ def check_dims(cvs, grid):
         raise ValueError("Grid and Collective Variable dimensions must match.")
 
 
-def generalize(concrete_update, jit_compile = True):
+def generalize(concrete_update, jit_compile = True, snapshot_flags = None):
     if jit_compile:
         _jit = jit
     else:
@@ -98,9 +106,21 @@ def generalize(concrete_update, jit_compile = True):
 
     _update = _jit(concrete_update)
 
+    if snapshot_flags and "wrapped_positions" in snapshot_flags:
+        def _transform_positions(rs, img, box):
+            box_array = jax.numpy.diag(box.H)
+            positions_tmp = rs[:,0:3] + img * box_array
+            positions = jax.numpy.concatenate((positions_tmp, rs[:,3:4]), axis=1)
+            return positions
+
+    else:
+        def _transform_positions(rs, img, box): return rs
+
+    transform_positions = _jit(_transform_positions)
+
     def update(snapshot, state):
         vms = snapshot.vel_mass
-        rs = snapshot.positions
+        rs = transform_positions(snapshot.positions, snapshot.images, snapshot.box)
         ids = snapshot.ids
         #
         return _update(state, rs=rs, vms=vms, ids=ids)

@@ -59,14 +59,14 @@ def is_on_gpu(context):
 
 
 def take_snapshot(wrapped_context, location = default_location()):
-    #
     context = wrapped_context.context
     sysview = wrapped_context.view
-    #
+
     positions = asarray(positions_types(sysview, location, AccessMode.Read))
     vel_mass = asarray(velocities_masses(sysview, location, AccessMode.Read))
     forces = asarray(net_forces(sysview, location, AccessMode.ReadWrite))
     ids = asarray(rtags(sysview, location, AccessMode.Read))
+    img = asarray(images(sysview, location, AccessMode.Read))
     #
     box = sysview.particle_data().getGlobalBox()
     L  = box.getL()
@@ -88,7 +88,7 @@ def take_snapshot(wrapped_context, location = default_location()):
     #     positions_tmp = positions[:,0:3] + images_array * box_array
     #     positions = jax.numpy.concatenate((positions_tmp, positions[:,3:4]), axis=1)
 
-    return Snapshot(positions, vel_mass, forces, ids, Box(H, origin), dt)
+    return Snapshot(positions, vel_mass, forces, ids, img, Box(H, origin), dt)
 
 
 def build_helpers(context):
@@ -140,12 +140,12 @@ def bind(wrapped_context: ContextWrapper, sampling_method: SamplingMethod, callb
     snapshot = take_snapshot(wrapped_context)
     method_bundle = sampling_method.build(snapshot, helpers)
     sync_and_bias = partial(bias, sync_backend = wrapped_context.view.synchronize)
-    #
+
     sampler = Sampler(method_bundle, sync_and_bias, callback)
     context.integrator.cpp_integrator.setHalfStepHook(sampler)
-    #
+
     CONTEXTS_SAMPLERS[context] = sampler
-    #
+
     return sampler
 
 
