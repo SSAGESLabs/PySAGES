@@ -73,7 +73,7 @@ class TwoPointCV(CollectiveVariable):
     """
     def __init__(self, indices):
         super().__init__(indices)
-        check_groups_size(indices, groups, 2)
+        check_groups_size(indices, self.groups, 2)
 
     @abstractproperty
     def function(self):
@@ -87,7 +87,7 @@ class ThreePointCV(CollectiveVariable):
     """
     def __init__(self, indices):
         super().__init__(indices)
-        check_groups_size(indices, groups, 3)
+        check_groups_size(indices, self.groups, 3)
 
     @abstractproperty
     def function(self):
@@ -101,7 +101,7 @@ class FourPointCV(CollectiveVariable):
     """
     def __init__(self, indices):
         super().__init__(indices)
-        check_groups_size(indices, groups, 4)
+        check_groups_size(indices, self.groups, 4)
 
     @abstractproperty
     def function(self):

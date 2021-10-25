@@ -11,6 +11,7 @@ def test_copying():
     vel_mass = np.zeros((2, 4))
     forces = np.zeros((2, 3))
     ids = np.zeros((2,), dtype = np.uint32)
+    images = np.ones((2, 3), dtype=np.int32)
     H = (
         (1.0, 0.0, 0.0),
         (0.0, 1.0, 0.0),
@@ -20,7 +21,7 @@ def test_copying():
     box = Box(H, origin)
     dt = 0.1
 
-    old = Snapshot(positions, vel_mass, forces, ids, box, dt)
+    old = Snapshot(positions, vel_mass, forces, ids, images, box, dt)
     new = copy(old)
 
     old_ptr = old.positions.unsafe_buffer_pointer()
