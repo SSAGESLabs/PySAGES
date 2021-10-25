@@ -10,7 +10,7 @@ import jaxlib.xla_extension as xe
 
 JaxArray = xe.DeviceArray
 Float = Union[JaxArray, float]
-Scalar = Union[bool, int, float]
+Scalar = Union[None, bool, int, float]
 
 
 class ToCPU:

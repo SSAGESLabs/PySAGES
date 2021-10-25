@@ -4,7 +4,7 @@
 
 from jaxlib.xla_extension import DeviceArray as JaxArray
 from plum import dispatch
-from typing import NamedTuple, Union
+from typing import NamedTuple, Optional, Tuple, Union
 from pysages.utils import copy
 
 import jax.numpy as np
@@ -30,11 +30,12 @@ class Snapshot(NamedTuple):
     velocities, masses, forces, particles ids, box, and time step size.
     """
     positions: JaxArray
-    vel_mass:  Union[tuple, JaxArray]
+    vel_mass:  Union[JaxArray, Tuple[JaxArray, JaxArray]]
     forces:    JaxArray
     ids:       JaxArray
+    images:    Optional[JaxArray]
     box:       Box
-    dt:        Union[float, JaxArray]
+    dt:        Union[JaxArray, float]
 
     def __repr__(self):
         return "PySAGES " + type(self).__name__

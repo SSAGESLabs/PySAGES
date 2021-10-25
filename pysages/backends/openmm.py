@@ -15,7 +15,6 @@ from typing import Callable
 from functools import partial
 from jax.dlpack import from_dlpack as asarray
 from jax.lax import cond
-from jaxlib.xla_extension import DeviceArray as JaxArray
 from openmm_dlext import ContextView, DeviceType, Force
 from pysages.backends.common import HelperMethods
 from pysages.backends.snapshot import Box, Snapshot
@@ -32,7 +31,7 @@ class Sampler:
         self._update = update
         self.bias = bias
         self.callback = callback
-    #
+
     def update(self, timestep=0):
         self.state = self._update(self.snapshot, self.state)
         self.bias(self.snapshot, self.state)
@@ -71,8 +70,8 @@ def take_snapshot(wrapped_context):
     )
     origin = (0.0, 0.0, 0.0)
     dt = context.getIntegrator().getStepSize() / unit.picosecond
-    #
-    return Snapshot(positions, vel_mass, forces, ids, Box(H, origin), dt)
+    # OpenMM doesn't have images
+    return Snapshot(positions, vel_mass, forces, ids, None, Box(H, origin), dt)
 
 
 def build_helpers(context):

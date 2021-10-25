@@ -20,7 +20,7 @@ def test_copying():
     box = Box(H, origin)
     dt = 0.1
 
-    old = Snapshot(positions, vel_mass, forces, ids, box, dt)
+    old = Snapshot(positions, vel_mass, forces, ids, None, box, dt)
     new = copy(old)
 
     old_ptr = old.positions.unsafe_buffer_pointer()
