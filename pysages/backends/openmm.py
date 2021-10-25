@@ -72,7 +72,7 @@ def take_snapshot(wrapped_context):
     origin = (0.0, 0.0, 0.0)
     dt = context.getIntegrator().getStepSize() / unit.picosecond
     #
-    return Snapshot(positions, vel_mass, forces, ids, Box(H, origin), dt)
+    return Snapshot(positions, vel_mass, forces, ids, None, Box(H, origin), dt)
 
 
 def build_helpers(context):
@@ -180,7 +180,7 @@ def bind(wrapped_context: ContextWrapper, sampling_method: SamplingMethod, callb
     wrapped_context.run = simulation.step
     helpers, bias = build_helpers(wrapped_context.view)
     snapshot = take_snapshot(wrapped_context)
-    method_bundle = sampling_method.build(snapshot, helpers)
+    method_bundle = sampling_method.build(snapshot, helpers, "openmm")
     sync_and_bias = partial(bias, sync_backend = wrapped_context.view.synchronize)
     sampler = Sampler(method_bundle, sync_and_bias, callback)
     force.set_callback_in(context, sampler.update)

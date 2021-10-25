@@ -138,7 +138,7 @@ def bind(wrapped_context: ContextWrapper, sampling_method: SamplingMethod, callb
     wrapped_context.run = hoomd.run
 
     snapshot = take_snapshot(wrapped_context)
-    method_bundle = sampling_method.build(snapshot, helpers)
+    method_bundle = sampling_method.build(snapshot, helpers, "hoomd")
     sync_and_bias = partial(bias, sync_backend = wrapped_context.view.synchronize)
 
     sampler = Sampler(method_bundle, sync_and_bias, callback)

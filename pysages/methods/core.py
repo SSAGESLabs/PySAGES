@@ -98,7 +98,7 @@ def check_dims(cvs, grid):
         raise ValueError("Grid and Collective Variable dimensions must match.")
 
 
-def generalize(concrete_update, jit_compile = True, snapshot_flags = None):
+def generalize(concrete_update, backend, snapshot_flags = None, jit_compile = True):
     if jit_compile:
         _jit = jit
     else:
@@ -106,7 +106,7 @@ def generalize(concrete_update, jit_compile = True, snapshot_flags = None):
 
     _update = _jit(concrete_update)
 
-    if snapshot_flags and "wrapped_positions" in snapshot_flags:
+    if snapshot_flags and backend == "hoomd" and "wrapped_positions" in snapshot_flags:
         def _transform_positions(rs, img, box):
             box_array = jax.numpy.diag(box.H)
             positions_tmp = rs[:,0:3] + img * box_array

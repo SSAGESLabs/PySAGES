@@ -34,12 +34,12 @@ class ANNState(namedtuple(
 
 
 class ANN(NNSamplingMethod):
-    def build(self, snapshot, helpers):
+    def build(self, snapshot, helpers, backend):
         N = np.asarray(self.kwargs.get('N', 200))
-        return _ann(snapshot, self.cv, self.grid, self.topology, N, helpers)
+        return _ann(snapshot, self.cv, self.grid, self.topology, N, helpers, backend)
 
 
-def _ann(snapshot, cv, grid, topology, N, helpers):
+def _ann(method, snapshot, cv, grid, topology, N, helpers, backend):
     kBT = snapshot.kBT
     dims = grid.shape.size
     natoms = np.size(snapshot.positions, 0)
@@ -76,4 +76,4 @@ def _ann(snapshot, cv, grid, topology, N, helpers):
         #
         return ANNState(bias, θ, hist, uhist, state.weight, state.weight_)
 
-    return snapshot, initialize, generalize(update)
+    return snapshot, initialize, generalize(update, backend, method.get_snapshot_flags())

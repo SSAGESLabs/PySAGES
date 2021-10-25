@@ -36,12 +36,12 @@ class FUNNState(namedtuple(
 
 
 class FUNN(NNSamplingMethod):
-    def build(self, snapshot, helpers):
+    def build(self, snapshot, helpers, backend):
         N = np.asarray(self.kwargs.get('N', 200))
-        return _funn(snapshot, self.cv, self.grid, self.topology, N, helpers)
+        return _funn(self, snapshot, self.cv, self.grid, self.topology, N, helpers, backend)
 
 
-def _funn(snapshot, cv, grid, topology, N, helpers):
+def _funn(method, snapshot, cv, grid, topology, N, helpers, backend):
     dt = snapshot.dt
     dims = grid.shape.size
     natoms = np.size(snapshot.positions, 0)
@@ -80,4 +80,4 @@ def _funn(snapshot, cv, grid, topology, N, helpers):
         #
         return FUNNState(bias, θ, hist, Fsum, F, Wp, state.Wp)
 
-    return snapshot, initialize, generalize(update)
+    return snapshot, initialize, generalize(update, backend, method.get_snapshot_flags())
