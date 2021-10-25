@@ -33,15 +33,15 @@ class ABFState(namedtuple(
 class ABF(GriddedSamplingMethod):
     def build(self, snapshot, helpers, backend):
         N = np.asarray(self.kwargs.get('N', 200))
-        return _abf(self, snapshot, self.cv, self.grid, N, helpers, backend)
+        return _abf(self, snapshot, self.cv, self.grid, N, helpers, backend, on_gpu)
 
 
-def _abf(method, snapshot, cv, grid, N, helpers, backend):
+def _abf(method, snapshot, cv, grid, N, helpers, backend, on_gpu):
     dt = snapshot.dt
     dims = grid.shape.size
     natoms = np.size(snapshot.positions, 0)
     get_grid_index = build_indexer(grid)
-    indices, momenta = helpers.indices, helpers.momenta
+    momenta = helpers.momenta
 
     def initialize():
         bias = np.zeros((natoms, 3))
@@ -52,9 +52,12 @@ def _abf(method, snapshot, cv, grid, N, helpers, backend):
         Wp_ = np.zeros(dims)
         return ABFState(bias, hist, Fsum, F, Wp, Wp_)
 
-    def update(state, rs, vms, ids):
+    def update(state, *args, **kwargs):
+        rs = kwargs.get("rs")
+        ids = kwargs.get("ids")
+        vms = kwargs.get("vms")
         # Compute the collective variable and its jacobian
-        ξ, Jξ = cv(rs, indices(ids))
+        ξ, Jξ = cv(rs, ids)
         #
         p = momenta(vms)
         # The following could equivalently be computed as `linalg.pinv(Jξ.T) @ p`
@@ -77,4 +80,4 @@ def _abf(method, snapshot, cv, grid, N, helpers, backend):
         #
         return ABFState(bias, hist, Fsum, F, Wp, state.Wp)
 
-    return snapshot, initialize, generalize(update, backend, method.get_snapshot_flags())
+    return snapshot, initialize, generalize(update, backend, on_gpu, method.get_snapshot_flags())

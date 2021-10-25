@@ -36,12 +36,12 @@ class FUNNState(namedtuple(
 
 
 class FUNN(NNSamplingMethod):
-    def build(self, snapshot, helpers, backend):
+    def build(self, snapshot, helpers, backend, on_gpu):
         N = np.asarray(self.kwargs.get('N', 200))
-        return _funn(self, snapshot, self.cv, self.grid, self.topology, N, helpers, backend)
+        return _funn(self, snapshot, self.cv, self.grid, self.topology, N, helpers, backend, on_gpu)
 
 
-def _funn(method, snapshot, cv, grid, topology, N, helpers, backend):
+def _funn(method, snapshot, cv, grid, topology, N, helpers, backend, on_gpu):
     dt = snapshot.dt
     dims = grid.shape.size
     natoms = np.size(snapshot.positions, 0)
@@ -59,12 +59,14 @@ def _funn(method, snapshot, cv, grid, topology, N, helpers, backend):
         Wp_ = np.zeros(dims)
         return FUNNState(bias, model.parameters, hist, Fsum, F, Wp, Wp_)
 
-    def update(state, rs, vms, ids):
+    def update(state, *args, **kwargs):
+        rs = kwargs.get("rs")
+        ids = kwargs.get("ids")
         # Compute the collective variable and its jacobian
-        ξ, Jξ = cv(rs, indices(ids))
-        #
+        ξ, Jξ = cv(rs, ids)
+
         θ = train(state.nn, state.Fsum / state.hist).θ
-        #
+
         p = momenta(vms)
         Wp = linalg.tensorsolve(Jξ @ Jξ.T, Jξ @ p)
         dWp_dt = (1.5 * Wp - 2.0 * state.Wp + 0.5 * state.Wp_) / dt
@@ -80,4 +82,4 @@ def _funn(method, snapshot, cv, grid, topology, N, helpers, backend):
         #
         return FUNNState(bias, θ, hist, Fsum, F, Wp, state.Wp)
 
-    return snapshot, initialize, generalize(update, backend, method.get_snapshot_flags())
+    return snapshot, initialize, generalize(update, backend, on_gpu, method.get_snapshot_flags())

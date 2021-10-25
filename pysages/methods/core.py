@@ -98,30 +98,38 @@ def check_dims(cvs, grid):
         raise ValueError("Grid and Collective Variable dimensions must match.")
 
 
-def generalize(concrete_update, backend, snapshot_flags = None, jit_compile = True):
+def generalize(concrete_update, backend, on_gpu, snapshot_flags = None, jit_compile = True):
     if jit_compile:
         _jit = jit
     else:
         def _jit(x): return x
 
-    _update = _jit(concrete_update)
-
+    # Positions and wrapping of positions
     if snapshot_flags and backend == "hoomd" and "wrapped_positions" in snapshot_flags:
-        def _transform_positions(rs, img, box):
+        def transform_positions(rs, img, box):
             box_array = jax.numpy.diag(box.H)
             positions_tmp = rs[:,0:3] + img * box_array
             positions = jax.numpy.concatenate((positions_tmp, rs[:,3:4]), axis=1)
             return positions
 
     else:
-        def _transform_positions(rs, img, box): return rs
+        def transform_positions(rs, img, box): return rs
 
-    transform_positions = _jit(_transform_positions)
+    # indices
+    if backend == "openmm" and on_gpu:
+        def indices(ids):
+            return ids.argsort()
+    else:
+        def indices(ids): return ids
+
+    _update = _jit(concrete_update)
+    _transform_positions = _jit(transform_positions)
+    _indices = _jit(indices)
 
     def update(snapshot, state):
         vms = snapshot.vel_mass
-        rs = transform_positions(snapshot.positions, snapshot.images, snapshot.box)
-        ids = snapshot.ids
+        rs = _transform_positions(snapshot.positions, snapshot.images, snapshot.box)
+        ids = _indices(snapshot.ids)
         #
         return _update(state, rs=rs, vms=vms, ids=ids)
 

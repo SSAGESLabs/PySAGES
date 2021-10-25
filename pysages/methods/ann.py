@@ -34,17 +34,17 @@ class ANNState(namedtuple(
 
 
 class ANN(NNSamplingMethod):
-    def build(self, snapshot, helpers, backend):
+    def build(self, snapshot, helpers, backend, on_gpu):
         N = np.asarray(self.kwargs.get('N', 200))
         return _ann(snapshot, self.cv, self.grid, self.topology, N, helpers, backend)
 
 
-def _ann(method, snapshot, cv, grid, topology, N, helpers, backend):
+def _ann(method, snapshot, cv, grid, topology, N, helpers, backend, on_gpu):
     kBT = snapshot.kBT
     dims = grid.shape.size
     natoms = np.size(snapshot.positions, 0)
     get_grid_index = build_indexer(grid)
-    indices, momenta = helpers.indices, helpers.momenta
+    momenta = helpers.momenta
     model = mlp(grid.shape, dims, topology)
     train = trainer(model, PartialRBObjective(), LevenbergMaquardtBayes(), np.zeros(dims))
 
@@ -56,9 +56,11 @@ def _ann(method, snapshot, cv, grid, topology, N, helpers, backend):
         weight_ = np.zeros(1)
         return ANNState(bias, model.parameters, hist, uhist, weight, weight_)
 
-    def update(state, rs, vms, ids):
+    def update(state, *args, **kwargs):
+        rs = kwargs.get("rs")
+        ids = kwargs.get("ids")
         # Compute the collective variable and its jacobian
-        ξ, Jξ = cv(rs, indices(ids))
+        ξ, Jξ = cv(rs, ids)
         #
         θ = train(state.nn, state.bias).θ
         F = model.apply(θ, ξ)
@@ -76,4 +78,4 @@ def _ann(method, snapshot, cv, grid, topology, N, helpers, backend):
         #
         return ANNState(bias, θ, hist, uhist, state.weight, state.weight_)
 
-    return snapshot, initialize, generalize(update, backend, method.get_snapshot_flags())
+    return snapshot, initialize, generalize(update, backend, on_gpu, method.get_snapshot_flags())

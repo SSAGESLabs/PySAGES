@@ -106,9 +106,6 @@ def build_helpers(context):
         #
         def sync_forces(): pass
     #
-    def indices(ids):
-        return ids
-    #
     def momenta(vel_mass):
         M = vel_mass[:, 3:]
         V = vel_mass[:, :3]
@@ -127,7 +124,7 @@ def build_helpers(context):
     #
     restore = partial(common.restore, view)
     #
-    return HelperMethods(jax.jit(indices), jax.jit(momenta), restore), bias
+    return HelperMethods(jax.jit(momenta), restore), bias
 
 
 def bind(wrapped_context: ContextWrapper, sampling_method: SamplingMethod, callback: Callable, **kwargs):
@@ -138,7 +135,7 @@ def bind(wrapped_context: ContextWrapper, sampling_method: SamplingMethod, callb
     wrapped_context.run = hoomd.run
 
     snapshot = take_snapshot(wrapped_context)
-    method_bundle = sampling_method.build(snapshot, helpers, "hoomd")
+    method_bundle = sampling_method.build(snapshot, helpers, "hoomd", is_on_gpu(wrapped_context))
     sync_and_bias = partial(bias, sync_backend = wrapped_context.view.synchronize)
 
     sampler = Sampler(method_bundle, sync_and_bias, callback)

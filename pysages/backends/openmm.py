@@ -108,9 +108,6 @@ def build_helpers(context):
         def unpack(vel_mass):
             return vel_mass[:, :3], vel_mass[:, 3:]
         #
-        def indices(ids):
-            return ids.argsort()
-        #
         restore_vm = common.restore_vm
     else:
         utils = importlib.import_module(".utils", package = "pysages.backends")
@@ -132,7 +129,7 @@ def build_helpers(context):
             velocities[:] = view(prev_snapshot.vel_mass[0])
             masses[:] = view(prev_snapshot.vel_mass[1])
         #
-        unpack = indices = adapt = identity
+        unpack = adapt = identity
     #
     @jax.vmap
     def safe_divide(v, invm):
@@ -158,7 +155,7 @@ def build_helpers(context):
     #
     restore = partial(common.restore, view, restore_vm = restore_vm)
     #
-    return HelperMethods(jax.jit(indices), jax.jit(momenta), restore), bias
+    return HelperMethods(jax.jit(momenta), restore), bias
 
 
 def check_integrator(context):
@@ -180,7 +177,7 @@ def bind(wrapped_context: ContextWrapper, sampling_method: SamplingMethod, callb
     wrapped_context.run = simulation.step
     helpers, bias = build_helpers(wrapped_context.view)
     snapshot = take_snapshot(wrapped_context)
-    method_bundle = sampling_method.build(snapshot, helpers, "openmm")
+    method_bundle = sampling_method.build(snapshot, helpers, "openmm", is_on_gpu(wrapped_context.view))
     sync_and_bias = partial(bias, sync_backend = wrapped_context.view.synchronize)
     sampler = Sampler(method_bundle, sync_and_bias, callback)
     force.set_callback_in(context, sampler.update)

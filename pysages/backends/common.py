@@ -6,7 +6,6 @@ from typing import Callable, NamedTuple
 
 
 class HelperMethods(NamedTuple):
-    indices: Callable
     momenta: Callable
     restore: Callable
 

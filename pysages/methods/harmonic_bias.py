@@ -28,16 +28,15 @@ class HarmonicBias(SamplingMethod):
         self.kspring = np.asarray(kspring)
         self.center = np.asarray(center)
 
-    def build(self, snapshot, helpers, backend):
-        return _harmonic_bias(self, snapshot, helpers, backend)
+    def build(self, snapshot, helpers, backend, on_gpu):
+        return _harmonic_bias(self, snapshot, helpers, backend, on_gpu)
 
 
-def _harmonic_bias(method, snapshot, helpers, backend):
+def _harmonic_bias(method, snapshot, helpers, backend, on_gpu):
     cv = method.cv
     center = method.center.reshape(1, -1)
     kspring = method.kspring.reshape(1, -1)
     natoms = np.size(snapshot.positions, 0)
-    indices = helpers.indices
 
     def initialize():
         bias = np.zeros((natoms, 3))
@@ -46,11 +45,11 @@ def _harmonic_bias(method, snapshot, helpers, backend):
     def update(state, *args, **kwargs):
         rs = kwargs.get("rs")
         ids = kwargs.get("ids")
-        xi, Jxi = cv(rs, indices(ids))
+        xi, Jxi = cv(rs, ids)
         D = kspring * (xi - center)
         bias = -Jxi.T @ D.flatten()
         bias = bias.reshape(state.bias.shape)
 
         return HarmonicBiasState(bias, xi)
 
-    return snapshot, initialize, generalize(update, backend, snapshot_flags = method.get_snapshot_flags())
+    return snapshot, initialize, generalize(update, backend, on_gpu, snapshot_flags = method.get_snapshot_flags())
