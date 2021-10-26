@@ -3,6 +3,8 @@
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 from abc import ABC, abstractmethod
+from functools import reduce
+from operator import or_
 from typing import Callable, Mapping
 
 from jax import jit
@@ -18,6 +20,9 @@ class SamplingMethod(ABC):
 
     def __init__(self, cvs, *args, **kwargs):
         self.cv = build(*cvs)
+        self.requires_box_unwrapping = reduce(
+            or_, (cv.requires_box_unwrapping for cv in cvs), False
+        )
         self.args = args
         self.kwargs = kwargs
 
