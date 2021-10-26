@@ -3,10 +3,11 @@
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 from collections import namedtuple
-from jax import scipy
-from pysages.grids import build_indexer
 
-from .core import GriddedSamplingMethod, generalize  # pylint: disable=relative-beyond-top-level
+from jax import scipy
+
+from pysages.grids import build_indexer
+from pysages.methods.core import GriddedSamplingMethod, generalize
 
 import jax.numpy as np
 
@@ -31,12 +32,18 @@ class ABFState(namedtuple(
 
 
 class ABF(GriddedSamplingMethod):
+    snapshot_flags = {"positions", "indices", "momenta"}
+
     def build(self, snapshot, helpers):
-        N = np.asarray(self.kwargs.get('N', 200))
-        return _abf(snapshot, self.cv, self.grid, N, helpers)
+        self.N = np.asarray(self.kwargs.get('N', 200))
+        return _abf(self, snapshot, helpers)
 
 
-def _abf(snapshot, cv, grid, N, helpers):
+def _abf(method, snapshot, helpers):
+    cv = method.cv
+    grid = method.grid
+    N = method.N
+
     dt = snapshot.dt
     dims = grid.shape.size
     natoms = np.size(snapshot.positions, 0)

@@ -14,6 +14,8 @@ from pysages.collective_variables.core import build
 #   Base Classes   #
 # ================ #
 class SamplingMethod(ABC):
+    snapshot_flags = set()
+
     def __init__(self, cvs, *args, **kwargs):
         self.cv = build(*cvs)
         self.args = args
@@ -60,24 +62,18 @@ class SamplingMethod(ABC):
 class GriddedSamplingMethod(SamplingMethod):
     def __init__(self, cvs, grid, *args, **kwargs):
         check_dims(cvs, grid)
-        self.cv = build(*cvs)
+        super().__init__(cvs, *args, **kwargs)
         self.grid = grid
-        self.args = args
-        self.kwargs = kwargs
 
     @abstractmethod
     def build(self, snapshot, helpers, *args, **kwargs):
         pass
 
 
-class NNSamplingMethod(SamplingMethod):
+class NNSamplingMethod(GriddedSamplingMethod):
     def __init__(self, cvs, grid, topology, *args, **kwargs):
-        check_dims(cvs, grid)
-        self.cv = build(*cvs)
-        self.grid = grid
+        super().__init__(cvs, grid, *args, **kwargs)
         self.topology = topology
-        self.args = args
-        self.kwargs = kwargs
 
     @abstractmethod
     def build(self, snapshot, helpers, *args, **kwargs):

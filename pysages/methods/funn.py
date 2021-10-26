@@ -36,12 +36,18 @@ class FUNNState(namedtuple(
 
 
 class FUNN(NNSamplingMethod):
+    snapshot_flags = {"positions", "indices", "momenta"}
+
     def build(self, snapshot, helpers):
-        N = np.asarray(self.kwargs.get('N', 200))
-        return _funn(snapshot, self.cv, self.grid, self.topology, N, helpers)
+        self.N = np.asarray(self.kwargs.get('N', 200))
+        return _funn(self, snapshot, helpers)
 
 
-def _funn(snapshot, cv, grid, topology, N, helpers):
+def _funn(method, snapshot, helpers):
+    cv = method.cv
+    grid = method.grid
+    topology = method.topology
+
     dt = snapshot.dt
     dims = grid.shape.size
     natoms = np.size(snapshot.positions, 0)

@@ -23,6 +23,8 @@ class HarmonicBiasState(NamedTuple):
 
 
 class HarmonicBias(SamplingMethod):
+    snapshot_flags = {"positions", "indices"}
+
     def __init__(self, cvs, kspring, center, *args, **kwargs):
         super().__init__(cvs, args, kwargs)
         self.kspring = np.asarray(kspring)
