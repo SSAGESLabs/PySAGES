@@ -3,11 +3,14 @@
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 import importlib
-import jax
-import pysages.backends.common as common
 import hoomd
 
 from functools import partial
+from typing import Callable
+from warnings import warn
+
+from jax import jit, numpy as np
+from jax.dlpack import from_dlpack as asarray
 from hoomd.dlext import (
     AccessLocation,
     AccessMode,
@@ -19,13 +22,16 @@ from hoomd.dlext import (
     rtags,
     velocities_masses,
 )
-from jax.dlpack import from_dlpack as asarray
-from typing import Callable
-from warnings import warn
 
-from pysages.backends.common import HelperMethods
 from pysages.backends.core import ContextWrapper
-from pysages.backends.snapshot import Box, Snapshot
+from pysages.backends.snapshot import (
+    Box,
+    HelperMethods,
+    Snapshot,
+    SnapshotMethods,
+    build_data_querier,
+    restore as _restore,
+)
 from pysages.methods import SamplingMethod
 
 
@@ -92,7 +98,30 @@ def take_snapshot(wrapped_context, location = default_location()):
     return Snapshot(positions, vel_mass, forces, ids, imgs, Box(H, origin), dt)
 
 
-def build_helpers(context):
+def build_snapshot_methods(sampling_method):
+    if sampling_method.requires_box_unwrapping:
+        def positions(snapshot):
+            L = np.diag(snapshot.box.H)
+            return snapshot.positions[:, :3] + L * snapshot.images
+    else:
+        def positions(snapshot):
+            return snapshot.positions
+
+    def indices(snapshot):
+        return snapshot.ids
+
+    def momenta(snapshot):
+        M = snapshot.vel_mass[:, 3:]
+        V = snapshot.vel_mass[:, :3]
+        return (M * V).flatten()
+
+    def masses(snapshot):
+        return snapshot.vel_mass[:, 3:]
+
+    return SnapshotMethods(jit(positions), jit(indices), jit(momenta), jit(masses))
+
+
+def build_helpers(context, sampling_method):
     # Depending on the device being used we need to use either cupy or numpy
     # (or numba) to generate a view of jax's DeviceArrays
     if is_on_gpu(context):
@@ -108,14 +137,6 @@ def build_helpers(context):
         def sync_forces():
             pass
 
-    def indices(ids):
-        return ids
-
-    def momenta(vel_mass):
-        M = vel_mass[:, 3:]
-        V = vel_mass[:, :3]
-        return jax.numpy.multiply(M, V).flatten()
-
     def bias(snapshot, state, sync_backend):
         """Adds the computed bias to the forces."""
         # TODO: check if this can be JIT compiled with numba.
@@ -127,9 +148,12 @@ def build_helpers(context):
         forces[:, :3] += biases
         sync_forces()
 
-    restore = partial(common.restore, view)
+    snapshot_methods = build_snapshot_methods(sampling_method)
+    flags = sampling_method.snapshot_flags
+    restore = partial(_restore, view)
+    helpers = HelperMethods(build_data_querier(snapshot_methods, flags), restore)
 
-    return HelperMethods(jax.jit(indices), jax.jit(momenta), restore), bias
+    return helpers, bias
 
 
 def bind(
@@ -139,7 +163,7 @@ def bind(
     **kwargs
 ):
     context = wrapped_context.context
-    helpers, bias = build_helpers(context)
+    helpers, bias = build_helpers(context, sampling_method)
 
     wrapped_context.view = SystemView(context.system_definition)
     wrapped_context.run = hoomd.run

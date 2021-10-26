@@ -52,7 +52,6 @@ def _funn(method, snapshot, helpers):
     dims = grid.shape.size
     natoms = np.size(snapshot.positions, 0)
     get_grid_index = build_indexer(grid)
-    indices, momenta = helpers.indices, helpers.momenta
     model = mlp(grid.shape, dims, topology)
     train = trainer(model, PartialRBObjective(), LevenbergMaquardtBayes(), np.zeros(dims))
 
@@ -65,13 +64,13 @@ def _funn(method, snapshot, helpers):
         Wp_ = np.zeros(dims)
         return FUNNState(bias, model.parameters, hist, Fsum, F, Wp, Wp_)
 
-    def update(state, rs, vms, ids):
+    def update(state, data):
         # Compute the collective variable and its jacobian
-        ξ, Jξ = cv(rs, indices(ids))
+        ξ, Jξ = cv(data.positions, data.indices)
         #
         θ = train(state.nn, state.Fsum / state.hist).θ
         #
-        p = momenta(vms)
+        p = data.momenta
         Wp = linalg.tensorsolve(Jξ @ Jξ.T, Jξ @ p)
         dWp_dt = (1.5 * Wp - 2.0 * state.Wp + 0.5 * state.Wp_) / dt
         #
@@ -86,4 +85,4 @@ def _funn(method, snapshot, helpers):
         #
         return FUNNState(bias, θ, hist, Fsum, F, Wp, state.Wp)
 
-    return snapshot, initialize, generalize(update)
+    return snapshot, initialize, generalize(update, helpers)

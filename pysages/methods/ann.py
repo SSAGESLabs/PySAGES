@@ -50,7 +50,6 @@ def _ann(method, snapshot, helpers):
     dims = grid.shape.size
     natoms = np.size(snapshot.positions, 0)
     get_grid_index = build_indexer(grid)
-    indices, momenta = helpers.indices, helpers.momenta
     model = mlp(grid.shape, dims, topology)
     train = trainer(model, PartialRBObjective(), LevenbergMaquardtBayes(), np.zeros(dims))
 
@@ -62,9 +61,9 @@ def _ann(method, snapshot, helpers):
         weight_ = np.zeros(1)
         return ANNState(bias, model.parameters, hist, uhist, weight, weight_)
 
-    def update(state, rs, vms, ids):
+    def update(state, data):
         # Compute the collective variable and its jacobian
-        ξ, Jξ = cv(rs, indices(ids))
+        ξ, Jξ = cv(data.positions, data.indices)
         #
         θ = train(state.nn, state.bias).θ
         F = model.apply(θ, ξ)
@@ -82,4 +81,4 @@ def _ann(method, snapshot, helpers):
         #
         return ANNState(bias, θ, hist, uhist, state.weight, state.weight_)
 
-    return snapshot, initialize, generalize(update)
+    return snapshot, initialize, generalize(update, helpers)

@@ -48,7 +48,6 @@ def _abf(method, snapshot, helpers):
     dims = grid.shape.size
     natoms = np.size(snapshot.positions, 0)
     get_grid_index = build_indexer(grid)
-    indices, momenta = helpers.indices, helpers.momenta
 
     def initialize():
         bias = np.zeros((natoms, 3))
@@ -59,11 +58,11 @@ def _abf(method, snapshot, helpers):
         Wp_ = np.zeros(dims)
         return ABFState(bias, hist, Fsum, F, Wp, Wp_)
 
-    def update(state, rs, vms, ids):
+    def update(state, data):
         # Compute the collective variable and its jacobian
-        ξ, Jξ = cv(rs, indices(ids))
+        ξ, Jξ = cv(data.positions, data.indices)
         #
-        p = momenta(vms)
+        p = data.momenta
         # The following could equivalently be computed as `linalg.pinv(Jξ.T) @ p`
         # (both seem to have the same performance).
         # Another option to benchmark against is
@@ -84,4 +83,4 @@ def _abf(method, snapshot, helpers):
         #
         return ABFState(bias, hist, Fsum, F, Wp, state.Wp)
 
-    return snapshot, initialize, generalize(update)
+    return snapshot, initialize, generalize(update, helpers)

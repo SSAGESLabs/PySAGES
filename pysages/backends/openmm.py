@@ -2,24 +2,31 @@
 # Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
-
 import importlib
 import jax
 import jax.numpy as jnp
 import openmm_dlext as dlext
-import pysages.backends.common as common
 import simtk.openmm as openmm
 import simtk.unit as unit
 
-from typing import Callable
 from functools import partial
+from typing import Callable
+
+from jax import jit
 from jax.dlpack import from_dlpack as asarray
 from jax.lax import cond
 from openmm_dlext import ContextView, DeviceType, Force
-from pysages.backends.common import HelperMethods
-from pysages.backends.snapshot import Box, Snapshot
 
-from .core import ContextWrapper
+from pysages.backends.core import ContextWrapper
+from pysages.backends.snapshot import (
+    Box,
+    HelperMethods,
+    Snapshot,
+    SnapshotMethods,
+    build_data_querier,
+    restore as _restore,
+    restore_vm as _restore_vm,
+)
 from pysages.methods import SamplingMethod
 
 
@@ -74,55 +81,69 @@ def take_snapshot(wrapped_context):
     return Snapshot(positions, vel_mass, forces, ids, None, Box(H, origin), dt)
 
 
-def build_helpers(context):
+def identity(x):
+    return x
+
+
+def safe_divide(v, invm):
+    return cond(invm[0] == 0, lambda x: v, lambda x: jnp.divide(v, x), invm)
+
+
+def build_snapshot_methods(context, sampling_method):
+    if is_on_gpu(context):
+        def unpack(vel_mass):
+            return vel_mass[:, :3], vel_mass[:, 3:]
+
+        def indices(snapshot):
+            return snapshot.ids.argsort()
+
+        def masses(snapshot):
+            return snapshot.vel_mass[:, 3:]
+    else:
+        unpack = identity
+
+        def indices(snapshot):
+            return snapshot.ids
+
+        def masses(snapshot):
+            _, invM = snapshot.vel_mass
+            return jax.vmap(safe_divide)(1, invM)
+
+    def positions(snapshot):
+        return snapshot.positions
+
+    def momenta(snapshot):
+        V, invM = unpack(snapshot.vel_mass)
+        return jax.vmap(safe_divide)(V, invM).flatten()
+
+    return SnapshotMethods(jit(positions), jit(indices), jit(momenta), jit(masses))
+
+
+def build_helpers(context, sampling_method):
     # Depending on the device being used we need to use either cupy or numpy
     # (or numba) to generate a view of jax's DeviceArrays
     if is_on_gpu(context):
         cupy = importlib.import_module("cupy")
         view = cupy.asarray
-        #numba = importlib.import_module("numba")
-        #view = cuda.as_cuda_array
-        #
+
+        restore_vm = _restore_vm
+
         def sync_forces():
             cupy.cuda.get_current_stream().synchronize()
-        #
-        #apply_args_types = [
-        #    "(float32[:, :], int64[:, :])",
-        #    "(float64[:, :], int64[:, :])"
-        #]
-        # In OpenMM, forces are transposed and always stored in
-        # 64-bit fixed-point buffers on the CUDA Platform. See
-        # http://docs.openmm.org/latest/developerguide/developer.html#accumulating-forces
-        #@numba.guvectorize(apply_args_types, "(n, m) -> (m, n)", target = "cuda")
-        #def apply(biases, forces):
-        #    m, n = forces.shape
-        #    for i in range(m):
-        #        for j in range(n):
-        #            forces[i, j] += 2**32 * biases[j, i]
-        #
-        @jax.jit
+
+        @jit
         def adapt(biases):
             return jnp.int64(2**32 * biases.T)
-        #
-        def unpack(vel_mass):
-            return vel_mass[:, :3], vel_mass[:, 3:]
-        #
-        def indices(ids):
-            return ids.argsort()
-        #
-        restore_vm = common.restore_vm
+
     else:
         utils = importlib.import_module(".utils", package = "pysages.backends")
         view = utils.view
-        #
-        def apply(biases, forces):
-            forces += biases
-        #
-        def sync_forces(): pass
-        #
-        def identity(x):
-            return x
-        #
+
+        adapt = identity
+
+        def sync_forces():
+            pass
+
         def restore_vm(view, snapshot, prev_snapshot):
             # TODO: Check if we can omit modifying the masses
             # (in general the masses are unlikely to change)
@@ -130,19 +151,7 @@ def build_helpers(context):
             masses = view(snapshot.masses[1])
             velocities[:] = view(prev_snapshot.vel_mass[0])
             masses[:] = view(prev_snapshot.vel_mass[1])
-        #
-        unpack = indices = adapt = identity
-    #
-    @jax.vmap
-    def safe_divide(v, invm):
-        return cond(
-            invm[0] == 0, lambda x: v, lambda x: jnp.divide(v, x), invm
-        )
-    #
-    def momenta(vel_mass):
-        V, invM = unpack(vel_mass)
-        return safe_divide(V, invM).flatten()
-    #
+
     def bias(snapshot, state, sync_backend):
         """Adds the computed bias to the forces."""
         # TODO: check if this can be JIT compiled with numba.
@@ -154,10 +163,13 @@ def build_helpers(context):
         biases = view(biases.block_until_ready())
         forces += biases
         sync_forces()
-    #
-    restore = partial(common.restore, view, restore_vm = restore_vm)
-    #
-    return HelperMethods(jax.jit(indices), jax.jit(momenta), restore), bias
+
+    snapshot_methods = build_snapshot_methods(context, sampling_method)
+    flags = sampling_method.snapshot_flags
+    restore = partial(_restore, view, restore_vm = restore_vm)
+    helpers = HelperMethods(build_data_querier(snapshot_methods, flags), restore)
+
+    return helpers, bias
 
 
 def check_integrator(context):
@@ -183,7 +195,7 @@ def bind(
     force.add_to(context)  # OpenMM will handle the lifetime of the force
     wrapped_context.view = force.view(context)
     wrapped_context.run = simulation.step
-    helpers, bias = build_helpers(wrapped_context.view)
+    helpers, bias = build_helpers(wrapped_context.view, sampling_method)
     snapshot = take_snapshot(wrapped_context)
     method_bundle = sampling_method.build(snapshot, helpers)
     sync_and_bias = partial(bias, sync_backend = wrapped_context.view.synchronize)
