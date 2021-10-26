@@ -170,12 +170,18 @@ def check_integrator(context):
         raise ValueError("Variable step size integrators are not supported")
 
 
-def bind(wrapped_context: ContextWrapper, sampling_method: SamplingMethod, callback: Callable, force:Force = Force(), **kwargs):
+def bind(
+    wrapped_context: ContextWrapper,
+    sampling_method: SamplingMethod,
+    callback: Callable,
+    **kwargs
+):
     # For OpenMM we need to store a Simulation object as the context,
     simulation = wrapped_context.context
     context = simulation.context
     check_integrator(context)
-    force.add_to(context)
+    force = Force()
+    force.add_to(context)  # OpenMM will handle the lifetime of the force
     wrapped_context.view = force.view(context)
     wrapped_context.run = simulation.step
     helpers, bias = build_helpers(wrapped_context.view)
