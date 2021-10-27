@@ -2,14 +2,16 @@
 # Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
-import jax.numpy as np
-
 from abc import ABC, abstractproperty
-from jax import grad, jit
 from inspect import signature
-from plum import dispatch
 from typing import Callable, List, Tuple, Union
-from jaxlib.xla_extension import DeviceArray as JaxArray
+
+from jax import grad, jit
+from plum import dispatch
+
+from pysages.utils import JaxArray
+
+import jax.numpy as np
 
 
 # ================ #
@@ -144,8 +146,7 @@ def _build(cv: CollectiveVariable, J = grad):
 
     f, Jf = jit(evaluate), jit(J(evaluate))
 
-    def apply(positions: JaxArray, ids: JaxArray, **kwargs):
-        rs = positions[:, :3]
+    def apply(rs: JaxArray, ids: JaxArray, **kwargs):
         ξ = np.expand_dims(f(rs, ids, **kwargs).flatten(), 0)
         Jξ = np.expand_dims(Jf(rs, ids, **kwargs).flatten(), 0)
         return ξ, Jξ
@@ -156,12 +157,16 @@ def _build(cv: CollectiveVariable, J = grad):
 def build(cv: CollectiveVariable, *cvs: CollectiveVariable):
     cvs = [_build(cv)] + [_build(cv) for cv in cvs]
 
-    def apply(positions: JaxArray, ids: JaxArray):
+    def apply(data):
+        rs = data.positions[:, :3]
+        ids = data.indices
+
         ξs, Jξs = [], []
         for i in range(len(cvs)):
-            ξ, Jξ = cvs[i](positions, ids)
+            ξ, Jξ = cvs[i](rs, ids)
             ξs.append(ξ)
             Jξs.append(Jξ)
+
         return np.hstack(ξs), np.vstack(Jξs)
 
     return jit(apply)

@@ -60,7 +60,7 @@ def _abf(method, snapshot, helpers):
 
     def update(state, data):
         # Compute the collective variable and its jacobian
-        ξ, Jξ = cv(data.positions, data.indices)
+        ξ, Jξ = cv(data)
         #
         p = data.momenta
         # The following could equivalently be computed as `linalg.pinv(Jξ.T) @ p`

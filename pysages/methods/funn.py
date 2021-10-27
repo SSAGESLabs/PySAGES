@@ -66,7 +66,7 @@ def _funn(method, snapshot, helpers):
 
     def update(state, data):
         # Compute the collective variable and its jacobian
-        ξ, Jξ = cv(data.positions, data.indices)
+        ξ, Jξ = cv(data)
         #
         θ = train(state.nn, state.Fsum / state.hist).θ
         #

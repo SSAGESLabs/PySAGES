@@ -8,6 +8,7 @@ from operator import or_
 from typing import Callable, Mapping
 
 from jax import jit
+
 from pysages.backends import ContextWrapper
 from pysages.collective_variables.core import build
 

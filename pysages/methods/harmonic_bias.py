@@ -46,7 +46,7 @@ def _harmonic_bias(method, snapshot, helpers):
         return HarmonicBiasState(bias, None)
 
     def update(state, data):
-        xi, Jxi = cv(data.positions, data.indices)
+        xi, Jxi = cv(data)
         D = kspring * (xi - center)
         bias = -Jxi.T @ D.flatten()
         bias = bias.reshape(state.bias.shape)
