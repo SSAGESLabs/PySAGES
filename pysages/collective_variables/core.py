@@ -2,15 +2,16 @@
 # Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
-import jax.numpy as np
-
 from abc import ABC, abstractproperty
-from jax import grad, jit
-from jax.numpy import linalg
 from inspect import signature
-from plum import dispatch
 from typing import Callable, List, Tuple, Union
-from jaxlib.xla_extension import DeviceArray as JaxArray
+
+from jax import grad, jit
+from plum import dispatch
+
+from pysages.utils import JaxArray
+
+import jax.numpy as np
 
 
 # ================ #
@@ -41,26 +42,32 @@ class CollectiveVariable(ABC):
     function : Returns an external method that implements the actual
         computation of the collective variable.
     """
-    def __init__(self, indices):
+
+    def __init__(self, indices, n = None):
         indices, groups = process_groups(indices)
+
+        if n is not None:
+            check_groups_size(indices, groups, n)
+
         self.indices = indices
         self.groups = groups
-    #
+        self.requires_box_unwrapping = False
+
     @abstractproperty
     def function(self):
         pass
 
 
+# NOTE: `IndexedCV` might be a better name for this
 class AxisCV(CollectiveVariable):
     """
     Similar to CollectiveVariable, but requires that an axis is provided.
     """
+
     def __init__(self, indices, axis):
-        indices, groups = process_groups(indices)
-        self.indices = indices
-        self.groups = groups
+        super().__init__(indices)
         self.axis = axis
-    #
+
     @abstractproperty
     def function(self):
         pass
@@ -71,12 +78,10 @@ class TwoPointCV(CollectiveVariable):
     Similar to CollectiveVariable, but checks at initialization that only two
     indices or groups are provided.
     """
+
     def __init__(self, indices):
-        indices, groups = process_groups(indices)
-        check_groups_size(indices, groups, 2)
-        self.indices = indices
-        self.groups = groups
-    #
+        super().__init__(indices, 2)
+
     @abstractproperty
     def function(self):
         pass
@@ -87,12 +92,10 @@ class ThreePointCV(CollectiveVariable):
     Similar to CollectiveVariable, but checks at initialization that only three
     indices or groups are provided.
     """
+
     def __init__(self, indices):
-        indices, groups = process_groups(indices)
-        check_groups_size(indices, groups, 3)
-        self.indices = indices
-        self.groups = groups
-    #
+        super().__init__(indices, 3)
+
     @abstractproperty
     def function(self):
         pass
@@ -103,12 +106,10 @@ class FourPointCV(CollectiveVariable):
     Similar to CollectiveVariable, but checks at initialization that only four
     indices or groups are provided.
     """
+
     def __init__(self, indices):
-        indices, groups = process_groups(indices)
-        check_groups_size(indices, groups, 4)
-        self.indices = indices
-        self.groups = groups
-    #
+        super().__init__(indices, 4)
+
     @abstractproperty
     def function(self):
         pass
@@ -121,11 +122,7 @@ class FourPointCV(CollectiveVariable):
 def check_groups_size(indices, groups, n):
     m = np.size(indices, 0) - sum(np.size(g, 0) - 1 for g in groups)
     if m != n:
-        error_msg = (
-            f"Exactly {n} indices or groups must be provided " +
-            f"(got {m})"
-        )
-        raise ValueError(error_msg)
+        raise ValueError(f"Exactly {n} indices or groups must be provided (got {m})")
 
 
 def get_nargs(f: Callable):
@@ -137,7 +134,7 @@ def _build(cv: CollectiveVariable, J = grad):
     # to reduce groups with barycenter
     ξ = cv.function
     I = cv.indices
-    #
+
     if get_nargs(ξ) == 1:
         def evaluate(positions: JaxArray, ids: JaxArray, **kwargs):
             rs = positions[ids[I]]
@@ -146,29 +143,32 @@ def _build(cv: CollectiveVariable, J = grad):
         def evaluate(positions: JaxArray, ids: JaxArray, **kwargs):
             rs = positions[ids[I]]
             return np.asarray(ξ(*rs, **kwargs))
-    #
+
     f, Jf = jit(evaluate), jit(J(evaluate))
-    #
-    def apply(positions: JaxArray, ids: JaxArray, **kwargs):
-        rs = positions[:, :3]
+
+    def apply(rs: JaxArray, ids: JaxArray, **kwargs):
         ξ = np.expand_dims(f(rs, ids, **kwargs).flatten(), 0)
         Jξ = np.expand_dims(Jf(rs, ids, **kwargs).flatten(), 0)
         return ξ, Jξ
-    #
+
     return jit(apply)
 
 
 def build(cv: CollectiveVariable, *cvs: CollectiveVariable):
     cvs = [_build(cv)] + [_build(cv) for cv in cvs]
-    #
-    def apply(positions: JaxArray, ids: JaxArray):
+
+    def apply(data):
+        rs = data.positions[:, :3]
+        ids = data.indices
+
         ξs, Jξs = [], []
         for i in range(len(cvs)):
-            ξ, Jξ = cvs[i](positions, ids)
+            ξ, Jξ = cvs[i](rs, ids)
             ξs.append(ξ)
             Jξs.append(Jξ)
+
         return np.hstack(ξs), np.vstack(Jξs)
-    #
+
     return jit(apply)
 
 

@@ -36,17 +36,22 @@ class FUNNState(namedtuple(
 
 
 class FUNN(NNSamplingMethod):
+    snapshot_flags = {"positions", "indices", "momenta"}
+
     def build(self, snapshot, helpers):
-        N = np.asarray(self.kwargs.get('N', 200))
-        return _funn(snapshot, self.cv, self.grid, self.topology, N, helpers)
+        self.N = np.asarray(self.kwargs.get('N', 200))
+        return _funn(self, snapshot, helpers)
 
 
-def _funn(snapshot, cv, grid, topology, N, helpers):
+def _funn(method, snapshot, helpers):
+    cv = method.cv
+    grid = method.grid
+    topology = method.topology
+
     dt = snapshot.dt
     dims = grid.shape.size
     natoms = np.size(snapshot.positions, 0)
     get_grid_index = build_indexer(grid)
-    indices, momenta = helpers.indices, helpers.momenta
     model = mlp(grid.shape, dims, topology)
     train = trainer(model, PartialRBObjective(), LevenbergMaquardtBayes(), np.zeros(dims))
 
@@ -59,13 +64,13 @@ def _funn(snapshot, cv, grid, topology, N, helpers):
         Wp_ = np.zeros(dims)
         return FUNNState(bias, model.parameters, hist, Fsum, F, Wp, Wp_)
 
-    def update(state, rs, vms, ids):
+    def update(state, data):
         # Compute the collective variable and its jacobian
-        ξ, Jξ = cv(rs, indices(ids))
+        ξ, Jξ = cv(data)
         #
         θ = train(state.nn, state.Fsum / state.hist).θ
         #
-        p = momenta(vms)
+        p = data.momenta
         Wp = linalg.tensorsolve(Jξ @ Jξ.T, Jξ @ p)
         dWp_dt = (1.5 * Wp - 2.0 * state.Wp + 0.5 * state.Wp_) / dt
         #
@@ -80,4 +85,4 @@ def _funn(snapshot, cv, grid, topology, N, helpers):
         #
         return FUNNState(bias, θ, hist, Fsum, F, Wp, state.Wp)
 
-    return snapshot, initialize, generalize(update)
+    return snapshot, initialize, generalize(update, helpers)

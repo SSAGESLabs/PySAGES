@@ -3,9 +3,12 @@
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 from abc import ABC, abstractmethod
+from functools import reduce
+from operator import or_
 from typing import Callable, Mapping
 
 from jax import jit
+
 from pysages.backends import ContextWrapper
 from pysages.collective_variables.core import build
 
@@ -14,8 +17,13 @@ from pysages.collective_variables.core import build
 #   Base Classes   #
 # ================ #
 class SamplingMethod(ABC):
+    snapshot_flags = set()
+
     def __init__(self, cvs, *args, **kwargs):
         self.cv = build(*cvs)
+        self.requires_box_unwrapping = reduce(
+            or_, (cv.requires_box_unwrapping for cv in cvs), False
+        )
         self.args = args
         self.kwargs = kwargs
 
@@ -60,24 +68,18 @@ class SamplingMethod(ABC):
 class GriddedSamplingMethod(SamplingMethod):
     def __init__(self, cvs, grid, *args, **kwargs):
         check_dims(cvs, grid)
-        self.cv = build(*cvs)
+        super().__init__(cvs, *args, **kwargs)
         self.grid = grid
-        self.args = args
-        self.kwargs = kwargs
 
     @abstractmethod
     def build(self, snapshot, helpers, *args, **kwargs):
         pass
 
 
-class NNSamplingMethod(SamplingMethod):
+class NNSamplingMethod(GriddedSamplingMethod):
     def __init__(self, cvs, grid, topology, *args, **kwargs):
-        check_dims(cvs, grid)
-        self.cv = build(*cvs)
-        self.grid = grid
+        super().__init__(cvs, grid, *args, **kwargs)
         self.topology = topology
-        self.args = args
-        self.kwargs = kwargs
 
     @abstractmethod
     def build(self, snapshot, helpers, *args, **kwargs):
@@ -93,7 +95,7 @@ def check_dims(cvs, grid):
         raise ValueError("Grid and Collective Variable dimensions must match.")
 
 
-def generalize(concrete_update, jit_compile = True):
+def generalize(concrete_update, helpers, jit_compile = True):
     if jit_compile:
         _jit = jit
     else:
@@ -102,10 +104,6 @@ def generalize(concrete_update, jit_compile = True):
     _update = _jit(concrete_update)
 
     def update(snapshot, state):
-        vms = snapshot.vel_mass
-        rs = snapshot.positions
-        ids = snapshot.ids
-        #
-        return _update(state, rs, vms, ids)
+        return _update(state, helpers.query(snapshot))
 
     return _jit(update)

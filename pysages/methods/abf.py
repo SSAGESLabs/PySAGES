@@ -3,10 +3,11 @@
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 from collections import namedtuple
-from jax import scipy
-from pysages.grids import build_indexer
 
-from .core import GriddedSamplingMethod, generalize  # pylint: disable=relative-beyond-top-level
+from jax import scipy
+
+from pysages.grids import build_indexer
+from pysages.methods.core import GriddedSamplingMethod, generalize
 
 import jax.numpy as np
 
@@ -31,17 +32,22 @@ class ABFState(namedtuple(
 
 
 class ABF(GriddedSamplingMethod):
+    snapshot_flags = {"positions", "indices", "momenta"}
+
     def build(self, snapshot, helpers):
-        N = np.asarray(self.kwargs.get('N', 200))
-        return _abf(snapshot, self.cv, self.grid, N, helpers)
+        self.N = np.asarray(self.kwargs.get('N', 200))
+        return _abf(self, snapshot, helpers)
 
 
-def _abf(snapshot, cv, grid, N, helpers):
+def _abf(method, snapshot, helpers):
+    cv = method.cv
+    grid = method.grid
+    N = method.N
+
     dt = snapshot.dt
     dims = grid.shape.size
     natoms = np.size(snapshot.positions, 0)
     get_grid_index = build_indexer(grid)
-    indices, momenta = helpers.indices, helpers.momenta
 
     def initialize():
         bias = np.zeros((natoms, 3))
@@ -52,11 +58,11 @@ def _abf(snapshot, cv, grid, N, helpers):
         Wp_ = np.zeros(dims)
         return ABFState(bias, hist, Fsum, F, Wp, Wp_)
 
-    def update(state, rs, vms, ids):
+    def update(state, data):
         # Compute the collective variable and its jacobian
-        ξ, Jξ = cv(rs, indices(ids))
+        ξ, Jξ = cv(data)
         #
-        p = momenta(vms)
+        p = data.momenta
         # The following could equivalently be computed as `linalg.pinv(Jξ.T) @ p`
         # (both seem to have the same performance).
         # Another option to benchmark against is
@@ -77,4 +83,4 @@ def _abf(snapshot, cv, grid, N, helpers):
         #
         return ABFState(bias, hist, Fsum, F, Wp, state.Wp)
 
-    return snapshot, initialize, generalize(update)
+    return snapshot, initialize, generalize(update, helpers)

@@ -22,6 +22,10 @@ def weighted_barycenter(positions, weights):
 
 
 class Component(AxisCV):
+    def __init__(self, indices, axis):
+        super().__init__(indices, axis)
+        self.requires_box_unwrapping = True
+
     @property
     def function(self):
         return (lambda rs: barycenter(rs)[self.axis])
