@@ -64,7 +64,7 @@ class HarmonicBias(SamplingMethod):
                 raise RuntimeError(f"2D kspring with wrong shape, expected ({N}, {N}), got {shape}")
             if not np.allclose(kspring, kspring.T):
                 raise RuntimeError("Spring matrix is not symmetric")
-            
+
             self._kspring = kspring
         else:  # len(shape) == 0 or len(shape) == 1
             n = kspring.size
@@ -101,8 +101,8 @@ def _harmonic_bias(method, snapshot, helpers):
         bias = np.zeros((natoms, 3))
         return HarmonicBiasState(bias, None)
 
-    def update(state, rs, vms, ids):
-        xi, Jxi = cv(rs, indices(ids))
+    def update(state, data):
+        xi, Jxi = cv(data)
         D = kspring @ (xi - center).flatten()
         bias = -Jxi.T @ D.flatten()
         bias = bias.reshape(state.bias.shape)
