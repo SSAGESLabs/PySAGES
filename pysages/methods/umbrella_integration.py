@@ -63,22 +63,22 @@ class UmbrellaIntegration(HarmonicBias):
 
         for rep in range(Nreplica):
             context_args["replica_num"] = rep
-            self.set_center(centers[rep])
-            self.set_kspring(ksprings[rep])
+            self.center = centers[rep]
+            self.kspring = ksprings[rep]
             callback = HistogramLogger(periods[rep])
             context = context_generator(**context_args)
             wrapped_context = ContextWrapper(context, self, callback)
             with wrapped_context:
                 wrapped_context.run(timesteps[rep])
 
-            result["kspring"].append(self.get_kspring())
-            result["center"].append(self.get_center())
+            result["kspring"].append(self.kspring)
+            result["center"].append(self.center)
 
             result["histogram"].append(callback)
             result["histogram_means"].append(callback.get_means())
 
             # Equation 13
-            result["nabla_A"].append(-result["kspring"][rep] * (result["histogram_means"][rep] - result["center"][rep]))
+            result["nabla_A"].append(-result["kspring"][rep] @ (result["histogram_means"][rep] - result["center"][rep]))
             # discrete forward integration of the free-energy
             if rep == 0:
                 result["A"].append(0)
