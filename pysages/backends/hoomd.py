@@ -44,6 +44,9 @@ CONTEXTS_SAMPLERS = {}
 class Sampler(CPPSampler):
     def __init__(self, sysdef, method_bundle, bias, callback: Callable):
         _ , initialize, update = method_bundle
+        self.state = initialize()
+        self.callback = callback
+        self.bias = bias
 
         def python_update(positions, vel_mass, rtags, imgs, forces, box):
             dt = 0.0
@@ -60,23 +63,12 @@ class Sampler(CPPSampler):
             origin = (lo.x, lo.y, lo.z)
 
             snap = Snapshot(positions, vel_mass, forces, ids, imgs, Box(H, origin), dt)
-            update(snapshot, state)
+            self.state = update(snapshot, self.state)
+            self.bias(snapshot, self.state)
+            if self.callback:
+                self.callback(snapshot, self.state, timestep)
 
-        super().__init__()
-        #
-
-        self.state = initialize()
-        self.update_snapshot = partial(update_snapshot, snapshot, sysview)
-        self.update_state = update
-        self.bias = bias
-        self.callback = callback
-
-    def update(self, timestep):
-        self.snapshot = self.update_snapshot()
-        self.state = self.update_state(self.snapshot, self.state)
-        self.bias(self.snapshot, self.state)
-        if self.callback:
-            self.callback(self.snapshot, self.state, timestep)
+        super().__init__(sysdef, python_update)
 
 
 if hasattr(AccessLocation, "OnDevice"):
