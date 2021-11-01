@@ -21,6 +21,7 @@ from hoomd.dlext import (
     positions_types,
     rtags,
     velocities_masses,
+    CPPSampler
 )
 
 from pysages.backends.core import ContextWrapper
@@ -40,12 +41,30 @@ from pysages.methods import SamplingMethod
 CONTEXTS_SAMPLERS = {}
 
 
-class Sampler(HalfStepHook):
-    def __init__(self, method_bundle, sysview, bias, callback: Callable):
+class Sampler(CPPSampler):
+    def __init__(self, sysdef, method_bundle, bias, callback: Callable):
+        _ , initialize, update = method_bundle
+
+        def python_update(positions, vel_mass, rtags, imgs, forces, box):
+            dt = 0.0
+            L = box.getL()
+            xy = box.getTiltFactorXY()
+            xz = box.getTiltFactorXZ()
+            yz = box.getTiltFactorYZ()
+            lo = box.getLo()
+            H = (
+                (L.x, xy * L.y, xz * L.z),
+                (0.0,      L.y, yz * L.z),
+                (0.0,      0.0,      L.z)
+            )
+            origin = (lo.x, lo.y, lo.z)
+
+            snap = Snapshot(positions, vel_mass, forces, ids, imgs, Box(H, origin), dt)
+            update(snapshot, state)
+
         super().__init__()
         #
-        snapshot, initialize, update = method_bundle
-        self.snapshot = snapshot
+
         self.state = initialize()
         self.update_snapshot = partial(update_snapshot, snapshot, sysview)
         self.update_state = update
@@ -186,7 +205,7 @@ def bind(
     method_bundle = sampling_method.build(snapshot, helpers)
     sync_and_bias = partial(bias, sync_backend = sysview.synchronize)
     #
-    sampler = Sampler(method_bundle, sysview, sync_and_bias, callback)
+    sampler = Sampler(context.system_definition, method_bundle, sync_and_bias, callback)
     context.integrator.cpp_integrator.setHalfStepHook(sampler)
     #
     CONTEXTS_SAMPLERS[context] = sampler
