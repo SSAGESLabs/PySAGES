@@ -42,12 +42,36 @@ CONTEXTS_SAMPLERS = {}
 
 
 class Sampler(CPPSampler):
-    def __init__(self, sysdef, method_bundle, bias, box, callback: Callable):
+    def __init__(self, sysdef, method_bundle, bias, dt, callback: Callable):
         _ , initialize, update = method_bundle
         self.state = initialize()
         self.callback = callback
         self.bias = bias
+        box = sysdef.getParticleData().getGlobalBox()
+        self.pybox = self._get_pybox(box)
+        self.dt = dt
 
+        def python_update(positions, vel_mass, rtags, imgs, forces):
+            positions = asarray(positions)
+            vel_mass = asarray(vel_mass)
+            ids = asarray(rtags)
+            images = asarray(imgs)
+            forces = asarray(forces)
+            snap = Snapshot(positions=positions,
+                            vel_mass = vel_mass,
+                            forces=forces,
+                            ids=ids,
+                            images=images,
+                            box=self.pybox,
+                            dt=self.dt)
+            self.state = update(snap, self.state)
+            self.bias(snap, self.state)
+            if self.callback:
+                self.callback(snap, self.state, 0)
+
+        super().__init__(sysdef, python_update)
+
+    def _get_pybox(self, box):
         L = box.getL()
         xy = box.getTiltFactorXY()
         xz = box.getTiltFactorXZ()
@@ -59,21 +83,7 @@ class Sampler(CPPSampler):
             (0.0,      0.0,      L.z)
         )
         origin = (lo.x, lo.y, lo.z)
-        pybox = Box(H, origin)
-
-        def python_update(positions, vel_mass, rtags, imgs, forces):
-            positions = asarray(positions)
-            vel_mass = asarray(vel_mass)
-            ids = asarray(rtags)
-            images = asarray(imgs)
-            forces = asarray(forces)
-            snap = Snapshot(positions=positions, vel_mass = vel_mass, forces=forces, ids=ids, images=images, box=pybox, dt=0.0)
-            self.state = update(snap, self.state)
-            self.bias(snap, self.state)
-            if self.callback:
-                self.callback(snap, self.state, 0)
-
-        super().__init__(sysdef, python_update)
+        return Box(H, origin)
 
 
 if hasattr(AccessLocation, "OnDevice"):
@@ -202,7 +212,7 @@ def bind(
     method_bundle = sampling_method.build(snapshot, helpers)
     sync_and_bias = partial(bias, sync_backend = sysview.synchronize)
     #
-    sampler = Sampler(context.system_definition, method_bundle, sync_and_bias, wrapped_context.view.particle_data().getGlobalBox(), callback)
+    sampler = Sampler(context.system_definition, method_bundle, sync_and_bias, context.integrator.dt, callback)
     context.integrator.cpp_integrator.setHalfStepHook(sampler)
     #
     CONTEXTS_SAMPLERS[context] = sampler
