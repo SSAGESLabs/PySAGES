@@ -21,7 +21,7 @@ from hoomd.dlext import (
     positions_types,
     rtags,
     velocities_masses,
-    CPPSampler
+    DLextSampler
 )
 
 from pysages.backends.core import ContextWrapper
@@ -41,7 +41,7 @@ from pysages.methods import SamplingMethod
 CONTEXTS_SAMPLERS = {}
 
 
-class Sampler(CPPSampler):
+class Sampler(DLextSampler):
     def __init__(self, sysdef, method_bundle, bias, dt, callback: Callable):
         _ , initialize, update = method_bundle
         self.state = initialize()
