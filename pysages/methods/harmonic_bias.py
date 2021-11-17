@@ -12,8 +12,10 @@ class HarmonicBiasState(NamedTuple):
     """
     Description of a state bias by a harmonic potential for a CV.
 
-    bias -- additional forces for the class.
-    xi -- current cv value.
+    bias: JaxArray
+        Biasing forces of a `HarmonicBias` simulation.
+    xi: JaxArray
+        Collective variable value of the last simulation step.
     """
     bias: JaxArray
     xi: JaxArray
@@ -26,10 +28,64 @@ class HarmonicBias(SamplingMethod):
     snapshot_flags = {"positions", "indices"}
 
     def __init__(self, cvs, kspring, center, *args, **kwargs):
+        """
+        Arguments
+        ---------
+        cvs: Union[List, Tuple]
+            A list or Tuple of collective variables, length `N`.
+        kspring:
+            A scalar, array length `N` or symmetric `N x N` matrix. Restraining spring constant.
+        center:
+            An array of length `N` representing the minimum of the harmonic biasing potential.
+        """
         super().__init__(cvs, args, kwargs)
-        self.kspring = np.asarray(kspring)
-        self.center = np.asarray(center)
-        self.snapshot_flags = ("positions", "indices")
+        self._N = len(cvs)
+        self.set_kspring(kspring)
+        self.set_center(center)
+
+    def set_kspring(self, kspring):
+        """
+        Set new spring constant.
+
+        Arguments
+        ---------
+        kspring:
+            A scalar, array length `N` or symmetric `N x N` matrix. Restraining spring constant.
+        """
+        # Ensure array
+        kspring = np.asarray(kspring)
+        shape = kspring.shape
+        N = self._N
+
+        if len(shape) > 2:
+            raise RuntimeError(f"Wrong kspring shape {shape} (expected scalar, 1D or 2D)")
+        elif len(shape) == 2:
+            if shape != (N, N):
+                raise RuntimeError(f"2D kspring with wrong shape, expected ({N}, {N}), got {shape}")
+            if not np.allclose(kspring, kspring.T):
+                raise RuntimeError("Spring matrix is not symmetric")
+
+            self._kspring = kspring
+        else:  # len(shape) == 0 or len(shape) == 1
+            n = kspring.size
+            if n != N and n != 1:
+                raise RuntimeError(f"Wrong kspring size, expected 1 or {N}, got {n}.")
+
+            self._kspring = np.identity(N) * kspring
+
+        return self._kspring
+
+    def get_kspring(self):
+        return self._kspring
+
+    def set_center(self, center):
+        center = np.asarray(center)
+        if len(center.shape) !=1 or center.shape[0] != self._N:
+            raise RuntimeError(f"Invalid center shape expected {self._N} got {center.shape}.")
+        self._center = center
+
+    def get_center(self):
+        return self._center
 
     def build(self, snapshot, helpers):
         return _harmonic_bias(self, snapshot, helpers)
@@ -37,8 +93,8 @@ class HarmonicBias(SamplingMethod):
 
 def _harmonic_bias(method, snapshot, helpers):
     cv = method.cv
-    center = method.center.reshape(1, -1)
-    kspring = method.kspring.reshape(1, -1)
+    center = method.get_center()
+    kspring = method.get_kspring()
     natoms = np.size(snapshot.positions, 0)
 
     def initialize():
@@ -47,7 +103,7 @@ def _harmonic_bias(method, snapshot, helpers):
 
     def update(state, data):
         xi, Jxi = cv(data)
-        D = kspring * (xi - center)
+        D = kspring @ (xi - center).flatten()
         bias = -Jxi.T @ D.flatten()
         bias = bias.reshape(state.bias.shape)
 
