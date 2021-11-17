@@ -11,11 +11,13 @@ from jax import jit
 
 from pysages.backends import ContextWrapper
 from pysages.collective_variables.core import build
+from pysages.utils import identity
 
 
 # ================ #
 #   Base Classes   #
 # ================ #
+
 class SamplingMethod(ABC):
     snapshot_flags = set()
 
@@ -99,7 +101,7 @@ def generalize(concrete_update, helpers, jit_compile = True):
     if jit_compile:
         _jit = jit
     else:
-        def _jit(x): return x
+        _jit = identity
 
     _update = _jit(concrete_update)
 
