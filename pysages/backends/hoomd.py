@@ -41,18 +41,20 @@ CONTEXTS_SAMPLERS = {}
 
 
 class Sampler(HalfStepHook):
-    def __init__(self, method_bundle, bias, callback: Callable):
+    def __init__(self, method_bundle, sysview, bias, callback: Callable):
         super().__init__()
         #
         snapshot, initialize, update = method_bundle
         self.snapshot = snapshot
         self.state = initialize()
-        self._update = update
+        self.update_snapshot = partial(update_snapshot, snapshot, sysview)
+        self.update_state = update
         self.bias = bias
         self.callback = callback
 
     def update(self, timestep):
-        self.state = self._update(self.snapshot, self.state)
+        self.snapshot = self.update_snapshot()
+        self.state = self.update_state(self.snapshot, self.state)
         self.bias(self.snapshot, self.state)
         if self.callback:
             self.callback(self.snapshot, self.state, timestep)
@@ -96,6 +98,17 @@ def take_snapshot(wrapped_context, location = default_location()):
     dt = context.integrator.dt
     #
     return Snapshot(positions, vel_mass, forces, ids, imgs, Box(H, origin), dt)
+
+
+def update_snapshot(snapshot, sysview, location = default_location()):
+    #
+    positions = asarray(positions_types(sysview, location, AccessMode.Read))
+    vel_mass = asarray(velocities_masses(sysview, location, AccessMode.Read))
+    forces = asarray(net_forces(sysview, location, AccessMode.ReadWrite))
+    ids = asarray(rtags(sysview, location, AccessMode.Read))
+    imgs = asarray(images(sysview, location, AccessMode.Read))
+    #
+    return Snapshot(positions, vel_mass, forces, ids, imgs, snapshot.box, snapshot.dt)
 
 
 def build_snapshot_methods(sampling_method):
@@ -165,14 +178,15 @@ def bind(
     context = wrapped_context.context
     helpers, bias = build_helpers(context, sampling_method)
 
-    wrapped_context.view = SystemView(context.system_definition)
+    sysview = SystemView(context.system_definition)
+    wrapped_context.view = sysview
     wrapped_context.run = hoomd.run
 
     snapshot = take_snapshot(wrapped_context)
     method_bundle = sampling_method.build(snapshot, helpers)
-    sync_and_bias = partial(bias, sync_backend = wrapped_context.view.synchronize)
+    sync_and_bias = partial(bias, sync_backend = sysview.synchronize)
     #
-    sampler = Sampler(method_bundle, sync_and_bias, callback)
+    sampler = Sampler(method_bundle, sysview, sync_and_bias, callback)
     context.integrator.cpp_integrator.setHalfStepHook(sampler)
     #
     CONTEXTS_SAMPLERS[context] = sampler
