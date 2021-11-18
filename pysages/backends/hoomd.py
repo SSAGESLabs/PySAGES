@@ -21,6 +21,7 @@ from hoomd.dlext import (
     positions_types,
     rtags,
     velocities_masses,
+    DLextSampler
 )
 
 from pysages.backends.core import ContextWrapper
@@ -40,24 +41,49 @@ from pysages.methods import SamplingMethod
 CONTEXTS_SAMPLERS = {}
 
 
-class Sampler(HalfStepHook):
-    def __init__(self, method_bundle, sysview, bias, callback: Callable):
-        super().__init__()
-        #
-        snapshot, initialize, update = method_bundle
-        self.snapshot = snapshot
+class Sampler(DLextSampler):
+    def __init__(self, sysdef, method_bundle, bias, dt, callback: Callable):
+        _ , initialize, update = method_bundle
         self.state = initialize()
-        self.update_snapshot = partial(update_snapshot, snapshot, sysview)
-        self.update_state = update
-        self.bias = bias
         self.callback = callback
+        self.bias = bias
+        box = sysdef.getParticleData().getGlobalBox()
+        self.pybox = self._get_pybox(box)
+        self.dt = dt
 
-    def update(self, timestep):
-        self.snapshot = self.update_snapshot()
-        self.state = self.update_state(self.snapshot, self.state)
-        self.bias(self.snapshot, self.state)
-        if self.callback:
-            self.callback(self.snapshot, self.state, timestep)
+        def python_update(positions, vel_mass, rtags, imgs, forces):
+            positions = asarray(positions)
+            vel_mass = asarray(vel_mass)
+            ids = asarray(rtags)
+            images = asarray(imgs)
+            forces = asarray(forces)
+            snap = Snapshot(positions=positions,
+                            vel_mass = vel_mass,
+                            forces=forces,
+                            ids=ids,
+                            images=images,
+                            box=self.pybox,
+                            dt=self.dt)
+            self.state = update(snap, self.state)
+            self.bias(snap, self.state)
+            if self.callback:
+                self.callback(snap, self.state, 0)
+
+        super().__init__(sysdef, python_update)
+
+    def _get_pybox(self, box):
+        L = box.getL()
+        xy = box.getTiltFactorXY()
+        xz = box.getTiltFactorXZ()
+        yz = box.getTiltFactorYZ()
+        lo = box.getLo()
+        H = (
+            (L.x, xy * L.y, xz * L.z),
+            (0.0,      L.y, yz * L.z),
+            (0.0,      0.0,      L.z)
+        )
+        origin = (lo.x, lo.y, lo.z)
+        return Box(H, origin)
 
 
 if hasattr(AccessLocation, "OnDevice"):
@@ -186,7 +212,7 @@ def bind(
     method_bundle = sampling_method.build(snapshot, helpers)
     sync_and_bias = partial(bias, sync_backend = sysview.synchronize)
     #
-    sampler = Sampler(method_bundle, sysview, sync_and_bias, callback)
+    sampler = Sampler(context.system_definition, method_bundle, sync_and_bias, context.integrator.dt, callback)
     context.integrator.cpp_integrator.setHalfStepHook(sampler)
     #
     CONTEXTS_SAMPLERS[context] = sampler
