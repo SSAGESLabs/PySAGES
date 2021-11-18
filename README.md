@@ -26,6 +26,8 @@ GPU support.
 
 ## Usage
 
+Let's update
+
 PySAGES provide a straightforward interface to setup Collective Variables and Enhaced
 Sampling methods to you MD simulations. See the documentation to learn more.
 
