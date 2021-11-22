@@ -12,6 +12,9 @@ import pysages
 from pysages.collective_variables import Component
 from pysages.methods import UmbrellaIntegration
 
+
+param1 = {"A": 1., "w": 0.2, "p": 2}
+
 def generate_context(**kwargs):
     context = hoomd.context.SimulationContext()
     with context:
@@ -27,35 +30,61 @@ def generate_context(**kwargs):
         dpd.pair_coeff.set("A", "B", A=5., gamma=1.0)
         dpd.pair_coeff.set("B", "B", A=5., gamma=1.0)
 
-        amplitude = 1.
         periodic = hoomd.md.external.periodic()
-        periodic.force_coeff.set('A', A=amplitude, i=0, w=0.02, p=2)
+        periodic.force_coeff.set('A', A=param1["A"], i=0, w=param1["w"], p=param1["p"])
         periodic.force_coeff.set('B', A=0.0, i=0, w=0.02, p=1)
     return context
 
 
-def plot(result, bins=35):
+def plot_hist(result, bins=35):
+    fig, ax = plt.subplots(3, 3)
+
+    # ax.set_xlabel("CV")
+    # ax.set_ylabel("p(CV)")
+
+    counter = 0
+    hist_per = len(result["center"])//9+1
+    for x in range(3):
+        for y in range(3):
+            for i in range(hist_per):
+                if counter+i < len(result["center"]):
+                    center = np.asarray(result["center"][counter+i])
+                    histo, edges = result["histogram"][counter+i].get_histograms(bins=bins)
+                    edges = np.asarray(edges)[0]
+                    edges = (edges[1:] + edges[:-1]) / 2
+                    ax[x,y].plot(edges, histo, label="center {0}".format(center))
+                    ax[x,y].legend(loc="best")
+            counter += hist_per
+    while counter < len(result["center"]):
+        center = np.asarray(result["center"][counter])
+        histo, edges = result["histogram"][counter].get_histograms(bins=bins)
+        edges = np.asarray(edges)[0]
+        edges = (edges[1:] + edges[:-1]) / 2
+        ax[2,2].plot(edges, histo, label="center {0}".format(center))
+        ax[2,2].legend(loc="best")
+        counter += 1
+
+    fig.savefig("hist.pdf")
+
+def external_field(r, A, p, w):
+    return A*np.tanh(1/(2*np.pi*p*w)*np.cos(p*r))
+
+def plot_energy(result):
     fig, ax = plt.subplots()
 
     ax.set_xlabel("CV")
-    ax.set_ylabel("p(CV)")
-
-
-    for i in range(len(result["center"])):
-        center = np.asarray(result["center"][i])
-        histo, edges = result["histogram"][i].get_histograms(bins=bins)
-        edges = np.asarray(edges)[0]
-        edges = (edges[1:] + edges[:-1]) / 2
-        ax.plot(edges, histo, label="center {0}".format(center))
-    ax.legend(loc="best")
-
-    ax2 = ax.twinx()
-    ax2.set_ylabel("Free energy $[\epsilon]$", color="teal")
+    ax.set_ylabel("Free energy $[\epsilon]$")
     center = np.asarray(result["center"])
     A = np.asarray(result["A"])
-    ax2.plot(center, A, color="teal")
+    offset = np.min(A)
+    ax.plot(center, A+offset, color="teal")
 
-    fig.savefig("hist.pdf")
+    x = np.linspace(-3, 3, 50)
+    data = external_field(x, **param1)
+    offset = np.min(data)
+    ax.plot(x, data+offset, label="test")
+
+    fig.savefig("energy.pdf")
 
 
 def main():
@@ -64,9 +93,11 @@ def main():
 
     k = 15.
     Nreplica = 25
-    centers = list(np.linspace(-0.3, 0.3, Nreplica))
+    centers = list(np.linspace(-1.5, 1.5, Nreplica))
     result = method.run(generate_context, int(1e5), centers, k, 10)
-    plot(result)
+
+    plot_energy(result)
+    plot_hist(result)
 
 
 if __name__ == "__main__":
