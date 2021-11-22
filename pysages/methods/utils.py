@@ -10,13 +10,15 @@ class HistogramLogger:
     Implements a Callback functor for methods.
     Logs the state of the collective variable to generate histograms.
     """
-    def __init__(self, period : int):
+    def __init__(self, period : int, offset : int = 0):
         """
         Construct a logger class.
         period: timesteps between logging of collective variables.
+        offset: timesteps at the beginning of a run used for equilibration
         """
         self.period = period
         self.counter = 0
+        self.offset = offset
         self.data = []
 
     def __call__(self, snapshot, state, timestep):
@@ -24,7 +26,7 @@ class HistogramLogger:
         Implements the logging itself. Interface as expected for Callbacks.
         """
         self.counter += 1
-        if self.counter % self.period == 0:
+        if self.counter > self.offset and self.counter % self.period == 0:
             self.data.append(state.xi[0])
 
     def get_histograms(self, **kwargs):

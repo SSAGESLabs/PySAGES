@@ -13,7 +13,7 @@ from pysages.collective_variables import Component
 from pysages.methods import UmbrellaIntegration
 
 
-param1 = {"A": 1., "w": 0.2, "p": 2}
+param1 = {"A": 0.5, "w": 0.2, "p": 2}
 
 def generate_context(**kwargs):
     context = hoomd.context.SimulationContext()
@@ -36,16 +36,16 @@ def generate_context(**kwargs):
     return context
 
 
-def plot_hist(result, bins=35):
-    fig, ax = plt.subplots(3, 3)
+def plot_hist(result, bins=50):
+    fig, ax = plt.subplots(2, 2)
 
     # ax.set_xlabel("CV")
     # ax.set_ylabel("p(CV)")
 
     counter = 0
-    hist_per = len(result["center"])//9+1
-    for x in range(3):
-        for y in range(3):
+    hist_per = len(result["center"])//4+1
+    for x in range(2):
+        for y in range(2):
             for i in range(hist_per):
                 if counter+i < len(result["center"]):
                     center = np.asarray(result["center"][counter+i])
@@ -53,15 +53,15 @@ def plot_hist(result, bins=35):
                     edges = np.asarray(edges)[0]
                     edges = (edges[1:] + edges[:-1]) / 2
                     ax[x,y].plot(edges, histo, label="center {0}".format(center))
-                    ax[x,y].legend(loc="best")
+                    ax[x,y].legend(loc="best", fontsize="xx-small")
+                    ax[x,y].set_yscale("log")
             counter += hist_per
     while counter < len(result["center"]):
         center = np.asarray(result["center"][counter])
         histo, edges = result["histogram"][counter].get_histograms(bins=bins)
         edges = np.asarray(edges)[0]
         edges = (edges[1:] + edges[:-1]) / 2
-        ax[2,2].plot(edges, histo, label="center {0}".format(center))
-        ax[2,2].legend(loc="best")
+        ax[1,1].plot(edges, histo, label="center {0}".format(center))
         counter += 1
 
     fig.savefig("hist.pdf")
@@ -77,12 +77,14 @@ def plot_energy(result):
     center = np.asarray(result["center"])
     A = np.asarray(result["A"])
     offset = np.min(A)
-    ax.plot(center, A+offset, color="teal")
+    print(offset)
+    ax.plot(center, A-offset, color="teal")
 
     x = np.linspace(-3, 3, 50)
     data = external_field(x, **param1)
     offset = np.min(data)
-    ax.plot(x, data+offset, label="test")
+    print(offset)
+    ax.plot(x, data-offset, label="test")
 
     fig.savefig("energy.pdf")
 
@@ -94,7 +96,7 @@ def main():
     k = 15.
     Nreplica = 25
     centers = list(np.linspace(-1.5, 1.5, Nreplica))
-    result = method.run(generate_context, int(1e5), centers, k, 10)
+    result = method.run(generate_context, int(1e4), centers, k, 50, int(1e3))
 
     plot_energy(result)
     plot_hist(result)

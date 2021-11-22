@@ -16,10 +16,11 @@ class UmbrellaIntegration(HarmonicBias):
 
     def run(self,
             context_generator: Callable,
-            timesteps,
+            timesteps : int,
             centers,
             ksprings,
-            periods,
+            hist_periods,
+            hist_offsets = 0,
             context_args=dict(),
             **kwargs):
         """
@@ -33,7 +34,8 @@ class UmbrellaIntegration(HarmonicBias):
         timesteps: number of timesteps the simulation is running.
         centers: list of CV centers along the path of integration. The length defines the number replicas.
         ksprings: float or list of floats describing the spring strength of the harmonic bias for each replica.
-        periods: int of list of int describing the period for the histrogram logging of each replica.
+        hist_periods: int or list of int describing the period for the histrogram logging of each replica.
+        hist_offsets: int or list of int describing the offset before starting the histogram of each replica.
         kwargs: gets passed to the backend run function for additional user arguments to be passed down.
         User defined callback are not available, the method requires use of a builtin callback.
         """
@@ -46,12 +48,11 @@ class UmbrellaIntegration(HarmonicBias):
                 arg = [dtype(arg) for i in range(Nreplica)]
             return arg
 
-
-
         Nreplica = len(centers)
         timesteps = listify(timesteps, Nreplica, "timesteps", int)
         ksprings = listify(ksprings, Nreplica, "kspring", float)
-        periods = listify(periods, Nreplica, "periods", int)
+        hist_periods = listify(hist_periods, Nreplica, "hist_periods", int)
+        hist_offsets = listify(hist_offsets, Nreplica, "hist_offsets", int)
 
         result = {}
         result["histogram"] = []
@@ -65,7 +66,7 @@ class UmbrellaIntegration(HarmonicBias):
             context_args["replica_num"] = rep
             self.center = centers[rep]
             self.kspring = ksprings[rep]
-            callback = HistogramLogger(periods[rep])
+            callback = HistogramLogger(hist_periods[rep], hist_offsets[rep])
             context = context_generator(**context_args)
             wrapped_context = ContextWrapper(context, self, callback)
             with wrapped_context:
