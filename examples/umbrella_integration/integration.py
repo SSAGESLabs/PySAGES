@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-
+import sys
+import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -77,30 +78,41 @@ def plot_energy(result):
     center = np.asarray(result["center"])
     A = np.asarray(result["A"])
     offset = np.min(A)
-    print(offset)
     ax.plot(center, A-offset, color="teal")
 
     x = np.linspace(-3, 3, 50)
     data = external_field(x, **param1)
     offset = np.min(data)
-    print(offset)
     ax.plot(x, data-offset, label="test")
 
     fig.savefig("energy.pdf")
 
 
-def main():
+def get_args(argv):
+    parser = argparse.ArgumentParser(description="Example script to run umbrella integration")
+    parser.add_argument("--k-spring", "-k", type=float, default=50., help="spring constant for each replica")
+    parser.add_argument("--N-replica", "-N", type=int, default=25, help="Number of replica along the path")
+    parser.add_argument("--start-path", "-s", type=float, default=-1.5, help="Start point of the path")
+    parser.add_argument("--end-path", "-e", type=float, default=1.5, help="Start point of the path")
+    parser.add_argument("--time-steps", "-t", type=int, default=int(1e5), help="Number of simulation steps for each replica")
+    parser.add_argument("--log-period", "-l", type=int, default=int(50), help="Frequency of logging the CVS for histogram")
+    parser.add_argument("--discard-equi", "-d", type=int, default=int(1e4), help="Discard timesteps before logging for equilibration")
+    args = parser.parse_args(argv)
+    return args
+
+def main(argv):
+
+    args = get_args(argv)
+
     cvs = [Component([0], 0),]
     method = UmbrellaIntegration(cvs)
 
-    k = 15.
-    Nreplica = 25
-    centers = list(np.linspace(-1.5, 1.5, Nreplica))
-    result = method.run(generate_context, int(1e6), centers, k, 50, int(1e3))
+    centers = list(np.linspace(args.start_path, args.end_path, args.N_replica))
+    result = method.run(generate_context, args.time_steps, centers, args.k_spring, args.log_period, args.discard_equi)
 
     plot_energy(result)
     plot_hist(result)
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])
