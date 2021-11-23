@@ -3,8 +3,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-import cupy
-
 import hoomd
 hoomd.context.initialize()
 import hoomd.md as md

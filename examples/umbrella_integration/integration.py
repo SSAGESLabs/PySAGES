@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import hoomd
-hoomd.context.initialize()
+hoomd.context.initialize("")
 import hoomd.md as md
 import hoomd.dlext
 
