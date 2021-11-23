@@ -96,7 +96,7 @@ def main():
     k = 15.
     Nreplica = 25
     centers = list(np.linspace(-1.5, 1.5, Nreplica))
-    result = method.run(generate_context, int(1e4), centers, k, 50, int(1e3))
+    result = method.run(generate_context, int(1e6), centers, k, 50, int(1e3))
 
     plot_energy(result)
     plot_hist(result)
