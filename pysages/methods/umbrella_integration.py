@@ -11,8 +11,8 @@ from .utils import HistogramLogger
 
 class UmbrellaIntegration(HarmonicBias):
     def __init__(self, cvs, *args, **kwargs):
-        dummy = np.zeros(len(cvs))
-        super().__init__(cvs, dummy, dummy, args, kwargs)
+        kspring = center = np.zeros(len(cvs))
+        super().__init__(cvs, kspring, center, args, kwargs)
 
     def run(self,
             context_generator: Callable,
