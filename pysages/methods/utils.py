@@ -12,9 +12,15 @@ class HistogramLogger:
     """
     def __init__(self, period : int, offset : int = 0):
         """
-        Construct a logger class.
-        period: timesteps between logging of collective variables.
-        offset: timesteps at the beginning of a run used for equilibration
+        HistogramLogger constructor.
+
+        Arguments
+        ---------
+        period:
+            Timesteps between logging of collective variables.
+
+        offset:
+            Timesteps at the beginning of a run used for equilibration.
         """
         self.period = period
         self.counter = 0
@@ -31,7 +37,8 @@ class HistogramLogger:
 
     def get_histograms(self, **kwargs):
         """
-        Helper function to generate histrograms from the collected CV data. kwargs are passed on to numpys histogramdd function.
+        Helper function to generate histrograms from the collected CV data.
+        `kwargs` are passed on to `numpy.histogramdd` function.
         """
         data = np.asarray(self.data)
         if "density" not in kwargs:
@@ -40,14 +47,14 @@ class HistogramLogger:
 
     def get_means(self):
         """
-        Return mean values of the histogram data.
+        Returns mean values of the histogram data.
         """
         data = np.asarray(self.data)
         return np.mean(data, axis=0)
 
     def get_cov(self):
         """
-        Return covariance matrix of the histgram data.
+        Returns covariance matrix of the histgram data.
         """
         data = np.asarray(self.data)
         return np.cov(data.T)
