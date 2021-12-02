@@ -40,7 +40,7 @@ class UmbrellaIntegration(HarmonicBias):
         User defined callback are not available, the method requires use of a builtin callback.
         """
 
-        def listify(arg, Nreplica, name, dtype):
+        def collect(arg, Nreplica, name, dtype):
             if isinstance(arg, list):
                 n = len(arg)
                 if n != Nreplica:
@@ -50,10 +50,10 @@ class UmbrellaIntegration(HarmonicBias):
             return arg
 
         Nreplica = len(centers)
-        timesteps = listify(timesteps, Nreplica, "timesteps", int)
-        ksprings = listify(ksprings, Nreplica, "kspring", float)
-        hist_periods = listify(hist_periods, Nreplica, "hist_periods", int)
-        hist_offsets = listify(hist_offsets, Nreplica, "hist_offsets", int)
+        timesteps = collect(timesteps, Nreplica, "timesteps", int)
+        ksprings = collect(ksprings, Nreplica, "kspring", float)
+        hist_periods = collect(hist_periods, Nreplica, "hist_periods", int)
+        hist_offsets = collect(hist_offsets, Nreplica, "hist_offsets", int)
 
         result = {}
         result["histogram"] = []
