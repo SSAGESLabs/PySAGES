@@ -5,7 +5,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import hoomd
-hoomd.context.initialize("")
 import hoomd.md as md
 import hoomd.dlext
 
@@ -17,6 +16,7 @@ from pysages.methods import UmbrellaIntegration
 param1 = {"A": 0.5, "w": 0.2, "p": 2}
 
 def generate_context(**kwargs):
+    hoomd.context.initialize("")
     context = hoomd.context.SimulationContext()
     with context:
         print("Operating replica {0}".format(kwargs.get("replica_num")))
