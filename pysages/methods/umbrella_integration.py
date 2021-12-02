@@ -42,8 +42,9 @@ class UmbrellaIntegration(HarmonicBias):
 
         def listify(arg, Nreplica, name, dtype):
             if isinstance(arg, list):
-                if len(arg) != Nreplica:
-                    raise RuntimeError("Provided list argument {0} has not the correct length got {1}, but expected {2}".format(name, len(arg), Nreplica))
+                n = len(arg)
+                if n != Nreplica:
+                    raise RuntimeError(f"Provided list argument {name} has not the correct length (got {n}, expected {Nreplica})")
             else:
                 arg = [dtype(arg) for i in range(Nreplica)]
             return arg
