@@ -9,3 +9,5 @@ from .core import SamplingMethod
 from .abf import ABF
 from .funn import FUNN
 from .harmonic_bias import HarmonicBias
+from .umbrella_integration import UmbrellaIntegration
+from .utils import HistogramLogger

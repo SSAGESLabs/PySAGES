@@ -40,10 +40,15 @@ class HarmonicBias(SamplingMethod):
         """
         super().__init__(cvs, args, kwargs)
         self._N = len(cvs)
-        self.set_kspring(kspring)
-        self.set_center(center)
+        self.kspring = kspring
+        self.center = center
 
-    def set_kspring(self, kspring):
+    @property
+    def kspring(self):
+        return self._kspring
+
+    @kspring.setter
+    def kspring(self, kspring):
         """
         Set new spring constant.
 
@@ -72,20 +77,20 @@ class HarmonicBias(SamplingMethod):
                 raise RuntimeError(f"Wrong kspring size, expected 1 or {N}, got {n}.")
 
             self._kspring = np.identity(N) * kspring
-
         return self._kspring
 
-    def get_kspring(self):
-        return self._kspring
+    @property
+    def center(self):
+        return self._center
 
-    def set_center(self, center):
+    @center.setter
+    def center(self, center):
         center = np.asarray(center)
+        if center.shape == ():
+            center = center.reshape(1)
         if len(center.shape) !=1 or center.shape[0] != self._N:
             raise RuntimeError(f"Invalid center shape expected {self._N} got {center.shape}.")
         self._center = center
-
-    def get_center(self):
-        return self._center
 
     def build(self, snapshot, helpers):
         return _harmonic_bias(self, snapshot, helpers)
@@ -93,13 +98,14 @@ class HarmonicBias(SamplingMethod):
 
 def _harmonic_bias(method, snapshot, helpers):
     cv = method.cv
-    center = method.get_center()
-    kspring = method.get_kspring()
+    center = method.center
+    kspring = method.kspring
     natoms = np.size(snapshot.positions, 0)
 
     def initialize():
         bias = np.zeros((natoms, 3))
         return HarmonicBiasState(bias, None)
+
 
     def update(state, data):
         xi, Jxi = cv(data)

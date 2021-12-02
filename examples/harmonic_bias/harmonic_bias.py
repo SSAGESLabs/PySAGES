@@ -12,25 +12,7 @@ import pysages
 
 from pysages.collective_variables import Component
 
-from pysages.methods import HarmonicBias
-
-class HistogramLogger:
-    def __init__(self, period):
-        self.period = period
-        self.data = []
-
-    def __call__(self, snapshot, state, timestep):
-        if timestep % self.period == 0:
-            self.data.append(state.xi)
-
-    def get_histograms(self, bins, lim):
-        data = np.asarray(self.data)
-        data = data.reshape(data.shape[0], data.shape[2])
-        histograms = []
-        for i in range(data.shape[1]):
-            histograms.append(np.histogram(data[:,i], bins=bins, range=lim, density=True)[0])
-        return histograms
-
+from pysages.methods import HarmonicBias, HistogramLogger
 
 def plot(xi_hist, target_hist, lim):
     fig, ax = plt.subplots()
@@ -98,9 +80,14 @@ def main():
     target_hist = []
     for i in range(len(center_cv)):
         target_hist.append(get_target_dist(center_cv[i], k, (-Lmax/2, Lmax/2), bins))
-    hist = callback.get_histograms(bins, (-Lmax/2, Lmax/2))
-    plot(hist, target_hist, (-Lmax/2, Lmax/2))
-    validate_hist(hist, target_hist)
+    lims = [(-Lmax/2, Lmax/2) for i in range(3)]
+    hist, edges = callback.get_histograms(bins=bins, range=lims)
+    hist_list = [ np.sum(hist, axis=(1,2))/(Lmax**2),
+                  np.sum(hist, axis=(0,2))/(Lmax**2),
+                  np.sum(hist, axis=(0,1))/(Lmax**2),
+                 ]
+    plot(hist_list, target_hist, (-Lmax/2, Lmax/2))
+    validate_hist(hist_list, target_hist)
 
 
 if __name__ == "__main__":
