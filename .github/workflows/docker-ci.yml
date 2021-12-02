@@ -100,16 +100,10 @@ jobs:
         name: Load and run test
         run: |
           docker load --input /tmp/pysages.tar
-          docker run -v /tmp:/tmp -t pysages bash -c "cd PySAGES/examples/umbrella_integration/ && python3 ./gen_gsd.py && python3 integration.py --N-replica=5 --time-steps=1000 --discard-equi=0 && mv hist.pdf /tmp/hist.pdf && mv energy.pdf /tmp/energy.pdf"
+          docker run -v /tmp:/tmp -t pysages bash -c "cd PySAGES/examples/umbrella_integration/ && python3 ./gen_gsd.py && python3 integration.py --N-replica=5 --time-steps=1000 --discard-equi=0 && mkdir /tmp/plots && mv *.pdf /tmp/plots/"
       -
-        name: Upload artifact
+        name: Upload artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: integration-hist.pdf
-          path: /tmp/hist.pdf
-      -
-        name: Upload artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: integration-energy.pdf
-          path: /tmp/energy.pdf
+          name: plots
+          path: /tmp/plots
