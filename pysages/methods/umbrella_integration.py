@@ -64,7 +64,7 @@ class UmbrellaIntegration(HarmonicBias):
             This method does not accepts a user defined callback are not available.
         """
 
-        def free_energy_gradient(K, mean, center, i):
+        def free_energy_gradient(K, mean, center):
             "Equation 13 from https://doi.org/10.1063/1.3175798"
             return -(K @ (mean - center))
 
