@@ -105,5 +105,5 @@ jobs:
         name: Upload artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: plots
+          name: umbrella-integration-plots
           path: /tmp/plots
