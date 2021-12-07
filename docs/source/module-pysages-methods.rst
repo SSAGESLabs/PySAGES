@@ -4,13 +4,17 @@ pysages.methods
 .. rubric:: Overview
 
 .. autosummary::
-    :nosignatures:
 
-   pysages.methods.abf.ABF
+   pysages.methods.ABF
+   pysages.methods.UmbrellaIntegration
+   pysages.methods.HarmonicBias
 
 .. rubric:: Details
 
-.. automodule:: pysages.methods
+.. automodule:: pysages.methods.umbrella_integration
     :synopsis: Python classes that represent an advanced sampling method.
     :members:
-    :no-inherited-members:
+
+.. automodule:: pysages.methods.harmonic_bias
+    :synopsis: Python classes that represent an advanced sampling method.
+    :members:
