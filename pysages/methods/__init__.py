@@ -4,6 +4,14 @@
 
 # pylint: disable=unused-import,relative-beyond-top-level
 # flake8: noqa F401
+
+"""
+PySAGESS advanced Methods.
+==========================
+
+Explanation of advanced sampling methods.
+"""
+
 from .core import SamplingMethod
 
 from .abf import ABF
