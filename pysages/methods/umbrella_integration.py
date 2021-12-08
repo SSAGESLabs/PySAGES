@@ -37,6 +37,7 @@ class UmbrellaIntegration(HarmonicBias):
         hist_periods: int or list of int describing the period for the histrogram logging of each replica.
         hist_offsets: int or list of int describing the offset before starting the histogram of each replica.
         kwargs: gets passed to the backend run function for additional user arguments to be passed down.
+
         User defined callback are not available, the method requires use of a builtin callback.
         """
 
