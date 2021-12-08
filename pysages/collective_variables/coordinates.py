@@ -8,10 +8,16 @@ from .core import TwoPointCV, AxisCV
 
 
 def barycenter(positions):
+    """
+    Returns the geometric center, or centroid, of a group of points in space.
+    """
     return np.sum(positions, axis=0) / positions.shape[0]
 
 
 def weighted_barycenter(positions, weights):
+    """
+    Returns the center of a group of points in space weighted by arbitrary weights.
+    """
     n = positions.shape[0]
     R = np.zeros(3)
     # TODO: Replace by `np.sum` and `vmap`
@@ -38,4 +44,7 @@ class Distance(TwoPointCV):
 
 
 def distance(r1, r2):
+    """
+    Returns the distance between two points in space.
+    """
     return linalg.norm(r1 - r2)
