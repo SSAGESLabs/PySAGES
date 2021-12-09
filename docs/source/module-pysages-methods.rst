@@ -1,5 +1,5 @@
-pysages.methods
----------------
+PySAGES Advanced Sampling Methods
+---------------------------------
 
 .. rubric:: Overview
 
@@ -7,15 +7,25 @@ Available Methods
 
 .. autosummary::
 
+   pysages.methods.abf.ABF
+   pysages.methods.ann.ANN
+   pysages.methods.funn.FUNN
+   pysages.methods.umbrella_integration.UmbrellaIntegration
+   pysages.methods.harmonic_bias.HarmonicBias
+
+Utility classes for Methods
+
+.. autosummary::
+
+   pysages.methods.utils.HistogramLogger
+
+Abstract Base classes
+
+.. autosummary::
+
    pysages.methods.core.SamplingMethod
    pysages.methods.core.GriddedSamplingMethod
    pysages.methods.core.NNSamplingMethod
-   pysages.methods.ABF
-   pysages.methods.ANN
-   pysages.methods.FUNN
-   pysages.methods.UmbrellaIntegration
-   pysages.methods.HarmonicBias
-   pysages.methods.HistogramLogger
 
 .. toctree::
    :maxdepth: 2
@@ -29,11 +39,6 @@ Available Methods
    module-pysages-methods-utils
    module-pysages-methods-core
 
-
-.. rubric:: Core classes for the methods
-
-Explanation of the base design
-
 .. automodule:: pysages.methods
-    :synopsis: Python classes that represent the core the advanced sampling methods.
+    :synopsis: Python classes for the advanced sampling methods.
     :members:

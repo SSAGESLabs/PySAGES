@@ -3,7 +3,7 @@
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 """
-PySAGES lala
+PySAGES: Advanced sampling methods
 """
 
 import os

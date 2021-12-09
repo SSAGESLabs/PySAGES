@@ -9,7 +9,10 @@
 PySAGESS advanced Methods.
 ==========================
 
-Explanation of advanced sampling methods.
+WIP
+Explanation of the base design.
+Every Method has a state with bias and xi(?).
+explain what it is for.
 """
 
 from .core import SamplingMethod
