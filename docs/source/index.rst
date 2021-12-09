@@ -6,7 +6,8 @@
 PySAGES! No compromises in usability and speed for advanced sampling methods.
 =============================================================================
 
-PySAGES combines advanced sampling methods from other 
+WIP
+PySAGES combines advanced sampling methods from other
 
 .. toctree::
    :maxdepth: 2
