@@ -32,6 +32,9 @@ class ABFState(namedtuple(
 
 
 class ABF(GriddedSamplingMethod):
+    """
+    This is how ABF works.
+    """
     snapshot_flags = {"positions", "indices", "momenta"}
 
     def build(self, snapshot, helpers):

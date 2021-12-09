@@ -2,6 +2,7 @@ __pycache__/
 pysages/_version.py
 build/
 dist/
+docs/build
 pysages.egg-info/
 examples/*/*pdf
 examples/*/*dat
