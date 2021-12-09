@@ -4,12 +4,12 @@
 
 from typing import NamedTuple
 
+from jax import numpy as np
 from jax.numpy.linalg import norm
 
 from pysages.utils import JaxArray
 
 import jax
-import jax.numpy as np
 import jaxlib.xla_extension as xe
 
 
@@ -19,7 +19,7 @@ PyTreeDef = xe.PyTreeDef
 class ParametersLayout(NamedTuple):
     """
     Holds the information needed to pack flatten parameters of a
-    `jax.experimental.stax.serial` model.
+    `jax.example_libraries.stax.serial` model.
     """
     structure:  PyTreeDef
     shapes:     list
@@ -47,7 +47,7 @@ def prod(xs):
 # %% Models
 def unpack(params):
     """
-    Returns the parameters of a `jax.experimental.stax.serial` model stacked
+    Returns the parameters of a `jax.example_libraries.stax.serial` model stacked
     into a flat vector. This representation is more convenient for computing
     the jacobian of the errors of the model.
     """
@@ -60,7 +60,7 @@ def unpack(params):
 
 def pack(params, layout):
     """
-    Repacks the flatten parameters of a `jax.experimental.stax.serial` model
+    Repacks the flatten parameters of a `jax.example_libraries.stax.serial` model
     previously flatten with `unpack`.
     """
     structure, shapes, separators = layout

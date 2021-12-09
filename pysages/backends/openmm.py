@@ -2,17 +2,10 @@
 # Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
-import importlib
-import jax
-import jax.numpy as jnp
-import openmm_dlext as dlext
-import simtk.openmm as openmm
-import simtk.unit as unit
-
 from functools import partial
 from typing import Callable
 
-from jax import jit
+from jax import jit, numpy as np
 from jax.dlpack import from_dlpack as asarray
 from jax.lax import cond
 from openmm_dlext import ContextView, DeviceType, Force
@@ -28,6 +21,14 @@ from pysages.backends.snapshot import (
     restore_vm as _restore_vm,
 )
 from pysages.methods import SamplingMethod
+from pysages.utils import try_import
+
+import importlib
+import jax
+import openmm_dlext as dlext
+
+openmm = try_import("openmm", "simtk.openmm")
+unit = try_import("openmm.unit", "simtk.unit")
 
 
 class Sampler:
@@ -86,7 +87,7 @@ def identity(x):
 
 
 def safe_divide(v, invm):
-    return cond(invm[0] == 0, lambda x: v, lambda x: jnp.divide(v, x), invm)
+    return cond(invm[0] == 0, lambda x: v, lambda x: np.divide(v, x), invm)
 
 
 def build_snapshot_methods(context, sampling_method):
@@ -133,7 +134,7 @@ def build_helpers(context, sampling_method):
 
         @jit
         def adapt(biases):
-            return jnp.int64(2**32 * biases.T)
+            return np.int64(2**32 * biases.T)
 
     else:
         utils = importlib.import_module(".utils", package = "pysages.backends")
