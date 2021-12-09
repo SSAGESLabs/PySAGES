@@ -3,6 +3,7 @@
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 from copy import deepcopy
+from importlib import import_module
 from typing import Union
 
 from jax import numpy as np
@@ -63,6 +64,8 @@ def identity(x):
     return x
 
 
-# def wrap_around(boxsize, r):
-#     half_boxsize = boxsize / 2
-#     return np.mod(r + half_boxsize, boxsize) - half_boxsize
+def try_import(new_name, old_name):
+    try:
+        return import_module(new_name)
+    except ModuleNotFoundError:
+        return import_module(old_name)

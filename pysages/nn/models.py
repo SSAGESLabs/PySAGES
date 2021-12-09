@@ -2,15 +2,15 @@
 # Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
-
-import jax.experimental.stax as stax
-import jax.numpy as np
-
 from collections import namedtuple
 from itertools import chain
-from pysages.utils import register_pytree_namedtuple
 
-from .utils import rng_key
+from jax import numpy as np
+
+from pysages.utils import register_pytree_namedtuple, try_import
+from pysages.nn.utils import rng_key
+
+stax = try_import("jax.example_libraries.stax", "jax.experimental.stax")
 
 
 @register_pytree_namedtuple

@@ -51,7 +51,7 @@ class SamplingMethod(ABC):
         context_generator: Callable
             User defined function that sets up a simulation context with the backend.
             Must return an instance of `hoomd.context.SimulationContext` for HOOMD-blue
-            and `simtk.openmm.Simulation` for OpenMM. The function gets `context_args`
+            and `openmm.Simulation` for OpenMM. The function gets `context_args`
             unpacked for additional user arguments.
 
         timesteps: int
