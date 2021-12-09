@@ -2,9 +2,12 @@
 # Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
+from copy import deepcopy
+from typing import Union
+
+from jax import numpy as np
 from jax.tree_util import register_pytree_node
 from plum import dispatch
-from typing import Union
 
 import jaxlib.xla_extension as xe
 
@@ -43,12 +46,12 @@ def copy(t: tuple, *args):
 
 @dispatch
 def copy(x: JaxArray):
-    return x[:]
+    return np.array(x)
 
 
 @dispatch
 def copy(x, _: ToCPU):
-    return copy(x)
+    return deepcopy(x)
 
 
 @dispatch
