@@ -2,6 +2,10 @@
 # Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
+"""
+PySAGES lala
+"""
+
 import os
 # Check for user set memory environment for XLA/JAX
 if not ("XLA_PYTHON_CLIENT_PREALLOCATE" in os.environ
