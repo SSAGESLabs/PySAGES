@@ -9,13 +9,12 @@ PABLO
 
 from typing import NamedTuple
 
+import jax.numpy as np
 from jax import scipy
 from jaxlib.xla_extension import DeviceArray as JaxArray  # pylint: disable=no-name-in-module
 
 from pysages.grids import build_indexer
 from pysages.methods.core import GriddedSamplingMethod, generalize
-
-import jax.numpy as np
 
 
 class ABFState(NamedTuple):
