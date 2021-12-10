@@ -34,6 +34,7 @@ jobs:
         run: pip install .
       - name: Run tests
         run: pytest
+	
   style:
     runs-on: ubuntu-20.04
     steps:
@@ -48,10 +49,9 @@ jobs:
           pip install jaxlib pytest pylint flake8
       - name: Install pysages
         run: pip install .
-      - name: Run pylint
+      - name: Run pylint & flake
         run: |
-	  pylint pysages/methods/abf.py
-      - name: Run flake8
-        run: |
-	  flake8 pysages/methods/abf.py
+          pylint pysages/methods/abf.py
+          flake8 pysages/methods/abf.py
+
 
