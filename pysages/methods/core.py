@@ -19,6 +19,11 @@ from pysages.utils import identity
 # ================ #
 
 class SamplingMethod(ABC):
+    """
+    Abstract base class for all sampling methods.
+
+    Defines the constructor that expects the collective variables, the build method to initialize the GPU execution for the biasing and the run method that executes the simulation run. All these are intended be enhanced/overwritten by inheriting classes.
+    """
     snapshot_flags = set()
 
     def __init__(self, cvs, *args, **kwargs):
@@ -51,7 +56,7 @@ class SamplingMethod(ABC):
         context_generator: Callable
             User defined function that sets up a simulation context with the backend.
             Must return an instance of `hoomd.context.SimulationContext` for HOOMD-blue
-            and `simtk.openmm.Simulation` for OpenMM. The function gets `context_args`
+            and `openmm.Simulation` for OpenMM. The function gets `context_args`
             unpacked for additional user arguments.
 
         timesteps: int

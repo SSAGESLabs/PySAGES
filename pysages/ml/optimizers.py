@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from functools import partial
 from typing import Any, Callable, NamedTuple, Tuple, Union
 
+from jax import numpy as np
 from jax.lax import cond
 from jax.numpy.linalg import pinv
 from jax.scipy.linalg import solve
@@ -24,12 +25,11 @@ from pysages.ml.objectives import (
     sum_squares,
 )
 from pysages.ml.utils import pack, unpack
-from pysages.utils import Bool, Float, Int, JaxArray
+from pysages.utils import Bool, Float, Int, JaxArray, try_import
 
 import jax
-import jax.experimental.optimizers as jopt
-import jax.numpy as np
 
+jopt = try_import("jax.example_libraries.optimizers", "jax.experimental.optimizers")
 
 # Create a dispatcher for this submodule
 dispatch = Dispatcher()
@@ -64,7 +64,7 @@ class LevenbergMarquardtParams(NamedTuple):
 class WrappedState(NamedTuple):
     """
     Holds the data for an optimization run for an optimizer from
-    stax.experimental.optimizers.
+    stax.example_libraries.optimizers.
     """
     data:     Tuple[JaxArray, JaxArray]
     params:   Any
@@ -109,7 +109,7 @@ class Optimizer:
 @dataclass
 class Adam(Optimizer):
     """
-    ADAM optimizer from stax.experimental.optimizers.
+    ADAM optimizer from stax.example_libraries.optimizers.
     """
     params:    AdamParams = AdamParams()
     loss:      Loss = SSE()
