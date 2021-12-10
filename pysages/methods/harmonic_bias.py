@@ -13,7 +13,7 @@ class HarmonicBiasState(NamedTuple):
     Description of a state bias by a harmonic potential for a CV.
 
     bias: JaxArray
-        Biasing forces of a `HarmonicBias` simulation.
+        Array with harmic biasing forces for each particle in the simulation.
     xi: JaxArray
         Collective variable value of the last simulation step.
     """
