@@ -36,7 +36,7 @@ jobs:
         run: pytest
 
 jobs:
-  test:
+  style:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
@@ -52,8 +52,8 @@ jobs:
         run: pip install .
       - name: Run pylint
         run: |
-	     pylint pysages/methods/abf.py
+	  pysages/methods/abf.py
       - name: Run flake8
         run: |
-	     flake8 pysages/methods/abf.py
+	  flake8 pysages/methods/abf.py
 
