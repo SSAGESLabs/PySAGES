@@ -4,16 +4,10 @@
 
 from typing import NamedTuple
 
-from jax import numpy as np
+from jax import numpy as np, random, tree_flatten, vmap
 from jax.numpy.linalg import norm
-
-from pysages.utils import JaxArray
-
-import jax
-import jaxlib.xla_extension as xe
-
-
-PyTreeDef = xe.PyTreeDef
+from jaxlib.xla_extension import PyTreeDef
+from numpy import cumsum
 
 
 class ParametersLayout(NamedTuple):
@@ -23,7 +17,7 @@ class ParametersLayout(NamedTuple):
     """
     structure:  PyTreeDef
     shapes:     list
-    separators: JaxArray
+    separators: list
 
 
 def rng_key(seed=0, n=2):
@@ -31,9 +25,9 @@ def rng_key(seed=0, n=2):
     Returns a pseudo-randomly generated key, constructed by calling
     `jax.random.PRNGKey(seed)` and then splitting it `n` times.
     """
-    key = jax.random.PRNGKey(seed)
+    key = random.PRNGKey(seed)
     for _ in range(n):
-        key, _ = jax.random.split(key)
+        key, _ = random.split(key)
     return key
 
 
@@ -51,11 +45,11 @@ def unpack(params):
     into a flat vector. This representation is more convenient for computing
     the jacobian of the errors of the model.
     """
-    data, structure = jax.tree_flatten(params)
+    data, structure = tree_flatten(params)
     ps = np.hstack([values.flatten() for values in data])
     shapes = [values.shape for values in data]
-    separators = np.cumsum(np.array([prod(s) for s in shapes[:-1]]))
-    return ps, ParametersLayout(structure, shapes, separators)
+    separators = cumsum([prod(s) for s in shapes[:-1]])
+    return ps, ParametersLayout(structure, shapes, list(separators))
 
 
 def pack(params, layout):
@@ -93,7 +87,7 @@ def blackman(M, n):
 
 def blackman_kernel(dims, M):
     n = M - 2
-    apply = jax.vmap(lambda ns: blackman(M, norm(np.float64(ns)) / 2))
+    apply = vmap(lambda ns: blackman(M, norm(np.float64(ns)) / 2))
     inds = np.stack(
         np.meshgrid(*(np.arange(1 - n, n, 2) for _ in range(dims))),
         axis = -1
