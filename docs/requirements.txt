@@ -1,3 +1,4 @@
+sphinx
 jaxlib
 furo
-sphinxcontrib-napoleon
+
