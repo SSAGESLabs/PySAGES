@@ -75,14 +75,17 @@ class Regularizer:
     pass
 
 
-class L2Regularization(Regularizer, NamedTuple):
+# On Python >= 3.9 NamedTuple cannot be used directly as superclass
+L2Regularization = NamedTuple("L2Regularization", [("coeff", Float)])
+
+
+class L2Regularization(Regularizer, L2Regularization):
     """
     L2-norm regularization.
 
     coeff: Float
         Hyperparameter, coefficient for the regularizing term.
     """
-    coeff: Float
 
 
 class VarRegularization(Regularizer):
