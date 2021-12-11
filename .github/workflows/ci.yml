@@ -81,5 +81,5 @@ jobs:
           pip install -r docs/requirements.txt
       - name: Install pysages
         run: pip install .
-      - name: Run pylint & flake
+      - name: Build documentation
         run: cd docs && sphinx-build -W source build
