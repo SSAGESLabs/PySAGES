@@ -4,6 +4,12 @@
 """
 Adaptive Biasing Force (ABF) sampling method.
 
+ABF partitions the collective variable space into bins determined by a user
+provided grid, and keeping a tabulation of the number of visits to each bin
+as well as the sum of generalized forces experienced by the system at each
+configuration bin. These provide an estimate for the mean generalized force,
+which can be integrated to yield the free energy.
+
 The implementation of the adaptive biasing force method here closely follows
 https://doi.org/10.1063/1.2829861. One important difference is that the time
 derivative of the product W·p (equation 9 of reference) is approximated by as
