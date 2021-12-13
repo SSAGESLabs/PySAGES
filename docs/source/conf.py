@@ -32,7 +32,6 @@ version = '0.1.0'
 # ones.
 extensions = [
     'sphinx.ext.duration',
-    'sphinx.ext.doctest',
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
     'sphinx.ext.mathjax',
