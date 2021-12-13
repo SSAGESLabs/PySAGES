@@ -5,6 +5,7 @@ After you can run `make html` in PySAGES/docs/ to build the documentation.
 The final result can be explored with a browser by opening PySAGES/docs/build/html/index.html
 Do not build in the parent directory of PySAGES. In that case sphinx tries to use the local `pysages` directory as the python module, but that fails.
 Always install PySAGES first and build the documentation based on that installation.
+This command, can be a bash short cut for this: `cd .. && pip install . && cd - && make html`
 Building the documentations also requires the python packages listed at docs/requirements.txt
 Or you can look up the latest version of the documentation on: https://pysages.readthedocs.io/en/latest/
 

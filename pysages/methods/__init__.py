@@ -45,8 +45,8 @@ More members are allowed to provide the necessary information.
 Biasing and simulation orchestration can be separated into a different classes.
 The :py:class:`harmonic_bias.HarmonicBias` class for example provides a :py:meth:`harmonic_bias.HarmonicBias.build` function for generate functions for harmonic biasing forces.
 The methods, however, just inherit the basic implementation of a single replica run.
-:py:class:`umbrella_sampling.UmbrellaSampling` on the other hand, does not implement a new biasing method (and thus has no internal state as well).
-Instead it inherits the biasing from :py:class:`harmonic_bias.HarmonicBias` but reimplements py:meth:`umbrella_sampling.UmbrellaSampling.run`
+:py:class:`umbrella_integration.UmbrellaIntegration` on the other hand, does not implement a new biasing method (and thus has no internal state as well).
+Instead it inherits the biasing from :py:class:`harmonic_bias.HarmonicBias` but reimplements :py:meth:`umbrella_integration.UmbrellaIntegration.run`
 to sample multiple replicas along a path to estimate free energy differences.
 """
 
