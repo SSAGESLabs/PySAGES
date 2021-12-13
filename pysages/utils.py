@@ -2,6 +2,7 @@
 # Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
+
 from copy import deepcopy
 from importlib import import_module
 from typing import Union
