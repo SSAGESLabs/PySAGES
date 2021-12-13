@@ -17,7 +17,7 @@ from jax import numpy as np, scipy
 
 from pysages.grids import build_indexer
 from pysages.methods.core import GriddedSamplingMethod, generalize
-from pysages.utils import JaxArray  
+from pysages.utils import JaxArray
 
 
 class ABFState(NamedTuple):
