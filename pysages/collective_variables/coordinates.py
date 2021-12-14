@@ -8,10 +8,40 @@ from .core import TwoPointCV, AxisCV
 
 
 def barycenter(positions):
+    """
+    Returns the geometric center, or centroid, of a group of points in space.
+
+    Parameters
+    ----------
+    positions : DeviceArray
+        Array containing the positions of the points for which to compute the barycenter.
+
+    Returns
+    -------
+    barycenter : DeviceArray
+        3D array with the barycenter coordinates.
+
+    """
     return np.sum(positions, axis=0) / positions.shape[0]
 
 
 def weighted_barycenter(positions, weights):
+    """
+    Returns the center of a group of points in space weighted by arbitrary weights.
+
+    Parameters
+    ----------
+    positions : DeviceArray
+        Array containing the positions of the points for which to compute the barycenter.
+    weights : DeviceArray
+        Array containing the weights to be used when computing the barycenter.
+
+    Returns
+    -------
+    weighted_barycenter : DeviceArray
+        3D array with the weighted barycenter coordinates.
+
+    """
     n = positions.shape[0]
     R = np.zeros(3)
     # TODO: Replace by `np.sum` and `vmap`
@@ -38,4 +68,20 @@ class Distance(TwoPointCV):
 
 
 def distance(r1, r2):
+    """
+    Returns the distance between two points in space.
+
+    Parameters
+    ----------
+    r1 : DeviceArray
+        Array containing the position in space of point 1.
+    r2 : DeviceArray
+        Array containing the position in space of point 2.
+
+    Returns
+    -------
+    distance : float
+        Distance between the two points.
+
+    """
     return linalg.norm(r1 - r2)
