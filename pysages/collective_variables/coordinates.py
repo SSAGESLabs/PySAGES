@@ -13,12 +13,12 @@ def barycenter(positions):
 
     Parameters
     ----------
-    positions : ndarray
+    positions : DeviceArray
         Array containing the positions of the points for which to compute the barycenter.
 
     Returns
     -------
-    barycenter : ndarray
+    barycenter : DeviceArray
         3D array with the barycenter coordinates.
 
     """
@@ -31,14 +31,14 @@ def weighted_barycenter(positions, weights):
 
     Parameters
     ----------
-    positions : ndarray
+    positions : DeviceArray
         Array containing the positions of the points for which to compute the barycenter.
-    weights : ndarray
+    weights : DeviceArray
         Array containing the weights to be used when computing the barycenter.
 
     Returns
     -------
-    weighted_barycenter : ndarray
+    weighted_barycenter : DeviceArray
         3D array with the weighted barycenter coordinates.
 
     """
@@ -73,9 +73,9 @@ def distance(r1, r2):
 
     Parameters
     ----------
-    r1 : ndarray
+    r1 : DeviceArray
         Array containing the position in space of point 1.
-    r2 : ndarray
+    r2 : DeviceArray
         Array containing the position in space of point 2.
 
     Returns
