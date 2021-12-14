@@ -51,7 +51,8 @@ def _ann(method, snapshot, helpers):
     natoms = np.size(snapshot.positions, 0)
     get_grid_index = build_indexer(grid)
     model = mlp(grid.shape, dims, topology)
-    train = trainer(model, PartialRBObjective(), LevenbergMaquardtBayes(), np.zeros(dims))
+    train = trainer(model, PartialRBObjective(),
+                    LevenbergMaquardtBayes(), np.zeros(dims))
 
     def initialize():
         bias = np.zeros((natoms, dims))

@@ -19,7 +19,7 @@ Utility classes for Methods
 
    pysages.methods.utils.HistogramLogger
 
-Abstract Base classes
+Abstract base classes
 
 .. autosummary::
 
