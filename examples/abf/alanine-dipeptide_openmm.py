@@ -54,6 +54,9 @@ def generate_simulation(
     simulation = app.Simulation(topology, system, integrator)
     simulation.context.setPositions(positions)
     simulation.minimizeEnergy()
+    simulation.reporters.append(app.PDBReporter('output.pdb', 1000)) # save traj every 1000*dt = 2 ps
+    simulation.reporters.append(app.DCDReporter('output.dcd', 1000)) # save traj every 1000*dt = 2 ps
+    simulation.step(5000) # run for 5000*dt = 10 ps
 
     return simulation
 
@@ -61,8 +64,8 @@ def generate_simulation(
 # %%
 def main():
     cvs = (
-        DihedralAngle((4, 6, 8, 14)),
-	    DihedralAngle((6, 8, 14, 16))
+        DihedralAngle((4, 6,  8, 14)),
+        DihedralAngle((6, 8, 14, 16))
     )
 
     grid = pysages.Grid(
