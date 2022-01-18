@@ -19,10 +19,8 @@ dynamics engine
  - For OpenMM go to [OpenMM](https://github.com/SSAGESLabs/openmm-dlext).
 
 PySAGES also depends on [JAX](https://github.com/google/jax/), follow their installation
-guide to set it up.
-It is important to install your flavor of jaxlib before you install PySAGES.
-Make sure that you install the CUDA compatible flavor for your system or the CPU version, depending on your local setup.
-PySAGES will not install jaxlib.
+guide to set it up. *NOTE:* make sure you manually install jaxlib before PySAGES.
+Depending on your local setup, you will have to install the jaxlib CPU version or the CUDA compatible flavor.
 
 To test GPU support HOOMD-blue, HOOMD-dlext and JAX need to be built or installed with
 GPU support.
