@@ -19,46 +19,16 @@ dynamics engine
  - For OpenMM go to [OpenMM](https://github.com/SSAGESLabs/openmm-dlext).
 
 PySAGES also depends on [JAX](https://github.com/google/jax/), follow their installation
-guide to set it up.
+guide to set it up. *NOTE:* make sure you manually install jaxlib before PySAGES.
+Depending on your local setup, you will have to install the jaxlib CPU version or the CUDA compatible flavor.
 
 To test GPU support HOOMD-blue, HOOMD-dlext and JAX need to be built or installed with
 GPU support.
 
 ## Usage
 
-Let's update
-
 PySAGES provide a straightforward interface to setup Collective Variables and Enhaced
 Sampling methods to you MD simulations. See the documentation to learn more.
 
-Here is an example of how to hook pysages to an OpenMM simulation of alanine dipeptide
-
-```python
-# Your code to define a OpenMM goes first
-
-# Load pysages
-from numpy import pi
-import pysages
-
-# Declare a list of collective variables
-cvs = (
-    pysages.collective_variables.DihedralAngle((4, 6, 8, 14)),
-	pysages.collective_variables.DihedralAngle((6, 8, 14, 16))
-)
-
-# Define a grid if the sampling method requires one
-grid = pysages.Grid(
-    lower = (-pi, -pi),
-    upper = ( pi,  pi),
-    shape = (32, 32),
-    periodic = True
-)
-
-# Declare the sampling method to be used
-sampling_method = pysages.methods.ABF(ξ, grid, N = 100)
-
-# Hook pysages to the simulation
-sampler = pysages.bind(context, sampling_method)
-
-# Now run the simulation for any number of time steps
-```
+If you want to learn more, you can also head over to the `examples` subfolder,
+which contains scripts for running different HOOMD-blue and OpenMM biased simulations
