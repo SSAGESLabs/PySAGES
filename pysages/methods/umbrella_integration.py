@@ -94,6 +94,8 @@ class UmbrellaIntegration(HarmonicBias):
         result["nabla_A"] =  []
         result["A"] = []
 
+        self.context = []
+
         for rep in range(Nreplica):
             self.center = centers[rep]
             self.kspring = ksprings[rep]
@@ -102,6 +104,7 @@ class UmbrellaIntegration(HarmonicBias):
             context = context_generator(**context_args)
             callback = HistogramLogger(hist_periods[rep], hist_offsets[rep])
             wrapped_context = ContextWrapper(context, self, callback)
+            self.context.append(wrapped_context)
 
             with wrapped_context:
                 wrapped_context.run(timesteps[rep])

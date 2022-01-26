@@ -67,9 +67,9 @@ class SamplingMethod(ABC):
             `kwargs` gets passed to the backend `run` function.
         """
         context = context_generator(**context_args)
-        wrapped_context = ContextWrapper(context, self, callback)
-        with wrapped_context:
-            wrapped_context.run(timesteps, **kwargs)
+        self.context = ContextWrapper(context, self, callback)
+        with self.context:
+            self.context.run(timesteps, **kwargs)
 
 
 class GriddedSamplingMethod(SamplingMethod):
