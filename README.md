@@ -25,9 +25,12 @@ Depending on your local setup, you will have to install the jaxlib CPU version o
 To test GPU support HOOMD-blue, HOOMD-dlext and JAX need to be built or installed with
 GPU support.
 
+Our tutorials on google colab enable you to see how PySAGES can be installed into an environment that supports these engines.
+
+
 ## Usage
 
-PySAGES provide a straightforward interface to setup Collective Variables and Enhaced
+PySAGES provide a straightforward interface to setup Collective Variables and Enhanced
 Sampling methods to you MD simulations. See the documentation to learn more.
 
 If you want to learn more, you can also head over to the `examples` subfolder,
