@@ -29,9 +29,9 @@ Our tutorials on google colab enable you to see how PySAGES can be installed int
 [![Hoomd-blue Harmonic Bias Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/docs/notebooks/Harmonic_Bias_PySAGES_HOOMD.ipynb)
 
 
-[![Hoomd-blue Harmonic Bias Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/InnocentBug/PySAGES/blob/google-colab/docs/InstallEnvironment.ipynb)
+[![Hoomd-blue Harmonic Bias Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/InnocentBug/PySAGES/blob/google-colab/docs/notebooks/InstallEnvironment.ipynb)
 
-[![Hoomd-blue Harmonic Bias Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/InnocentBug/PySAGES/blob/google-colab/docs/InstallEnvironment.md)
+[![Hoomd-blue Harmonic Bias Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/InnocentBug/PySAGES/blob/google-colab/docs/notebooks/InstallEnvironment.md)
 
 ## Usage
 
