@@ -243,7 +243,11 @@ import openmm_dlext
 <!-- #endregion -->
 
 <!-- #region id="3a_zSXJatWUY" -->
-Now we can upload the data to the shared google drive. First we mount our Google Drive file system to a local directory.
+**This step can only be successfully executed by PySAGES maintainers.**
+
+These steps are not necessary to understand the setup of the environment.If you want to build your own environment, modify the lines such that it uploads to your own google drive.
+
+We upload the data to the shared google drive. First we mount our Google Drive file system to a local directory.
 <!-- #endregion -->
 
 ```python colab={"base_uri": "https://localhost:8080/"} id="yic9Joq5tlGh" outputId="6a516f55-ec92-4228-b0bb-f5f0fe9b43ec"
@@ -265,8 +269,4 @@ cd $PYSAGES_ENV
 zip -qr pysages-env.zip .
 cp -f pysages-env.zip $PYSAGES_SHARED_ENV
 rm -f pysages-env.zip
-```
-
-```python id="_C69NvBg3CAC"
-
 ```

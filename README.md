@@ -28,11 +28,6 @@ GPU support.
 Our tutorials on google colab enable you to see how PySAGES can be installed into an environment that supports these engines.
 [![Hoomd-blue Harmonic Bias Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/docs/notebooks/Harmonic_Bias_PySAGES_HOOMD.ipynb)
 
-
-[![Hoomd-blue Harmonic Bias Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/InnocentBug/PySAGES/blob/google-colab/docs/notebooks/InstallEnvironment.ipynb)
-
-[![Hoomd-blue Harmonic Bias Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/InnocentBug/PySAGES/blob/google-colab/docs/notebooks/InstallEnvironment.md)
-
 ## Usage
 
 PySAGES provide a straightforward interface to setup Collective Variables and Enhanced
@@ -47,3 +42,9 @@ Or checkout one of our google collab notebooks to try out PySAGES yourself.
 
 ### OpenMM
 
+### Installation of the environment
+
+All of the previous notebooks require a preinstalled environment of OpenMM and HOOMD-blue with the plugings to hook them up to PySAGES.
+As a reference for the installation instructions of these environments take a look at this notebook:
+
+[![Hoomd-blue Harmonic Bias Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/docs/notebooks/Install_PySAGES_Environment.ipynb)
