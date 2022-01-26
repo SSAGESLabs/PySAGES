@@ -26,7 +26,7 @@ To test GPU support HOOMD-blue, HOOMD-dlext and JAX need to be built or installe
 GPU support.
 
 Our tutorials on google colab enable you to see how PySAGES can be installed into an environment that supports these engines.
-[![Hoomd-blue Harmonic Bias Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/docs/notebooks/Harmonic_Bias_PySAGES_HOOMD.ipynb)
+[![Hoomd-blue Harmonic Bias](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/docs/notebooks/Harmonic_Bias_PySAGES_HOOMD.ipynb)
 
 ## Usage
 
@@ -40,11 +40,25 @@ Or checkout one of our google collab notebooks to try out PySAGES yourself.
 
 ### HOOMD-blue
 
+Simple Harmonic Biasing:
+
+[![Hoomd-blue Harmonic Bias](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/docs/notebooks/Harmonic_Bias_PySAGES_HOOMD.ipynb)
+
+Umbrella Integration with harmonic bias:
+
+[![Hoomd-blue Umbrella Integration](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/docs/notebooks/Umbrella_Integration_PySAGES_HOOMD.ipynb)
+
+
 ### OpenMM
+
+Simple Harmonic Biasing:
+
+[![OpenMM Harmonic Bias](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/docs/notebooks/Harmonic_Bias_PySAGES_OpenMM.ipynb)
+
 
 ### Installation of the environment
 
 All of the previous notebooks require a preinstalled environment of OpenMM and HOOMD-blue with the plugings to hook them up to PySAGES.
 As a reference for the installation instructions of these environments take a look at this notebook:
 
-[![Hoomd-blue Harmonic Bias Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/docs/notebooks/Install_PySAGES_Environment.ipynb)
+[![Install Env](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/docs/notebooks/Install_PySAGES_Environment.ipynb)
