@@ -26,8 +26,7 @@ To test GPU support HOOMD-blue, HOOMD-dlext and JAX need to be built or installe
 GPU support.
 
 Our tutorials on google colab enable you to see how PySAGES can be installed into an environment that supports these engines.
-[![Hoomd-blue Harmonic Bias Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://github.com/InnocentBug/PySAGES/blob/google-colab/docs/Harmonic_Bias_PySAGES_HOOMD.ipynb)
-[![Hoomd-blue Harmonic Bias Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/InnocentBug/PySAGES/blob/google-colab/docs/Harmonic_Bias_PySAGES_HOOMD.ipynb)
+[![Hoomd-blue Harmonic Bias Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/docs/Harmonic_Bias_PySAGES_HOOMD.ipynb)
 
 ## Usage
 
@@ -36,3 +35,10 @@ Sampling methods to you MD simulations. See the documentation to learn more.
 
 If you want to learn more, you can also head over to the `examples` subfolder,
 which contains scripts for running different HOOMD-blue and OpenMM biased simulations
+
+Or checkout one of our google collab notebooks to try out PySAGES yourself.
+
+### HOOMD-blue
+
+### OpenMM
+
