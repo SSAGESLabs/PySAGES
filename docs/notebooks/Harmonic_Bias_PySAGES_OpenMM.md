@@ -1,6 +1,8 @@
 ---
 jupyter:
   jupytext:
+    formats: ipynb,md
+    main_language: python
     text_representation:
       extension: .md
       format_name: markdown
@@ -14,7 +16,7 @@ jupyter:
 <!-- #region id="_UgEohXC8n0g" -->
 # Setting up the environment
 
-First we are setting up our environment. We use an already compiled and packaged installation of OpenMM and the DLEXT plugin. We copy it from google drive and install pysages for it. We also have a google collab that performs this installation for reference, but that requires permissions that we do not want on our google drive.
+First, we are setting up our environment. We use an already compiled and packaged installation of OpenMM and the DLEXT plugin. We copy it from google drive and install pysages for it. We also have a google collab that performs this installation for reference, but that requires permissions that we do not want on our google drive.
 
 <!-- #endregion -->
 
@@ -51,7 +53,7 @@ sys.path.append(os.environ["PYSAGES_ENV"] + "/lib/python" + str(ver.major) + "."
 ## PySAGES
 
 The next step is to install PySAGES.
-First, we install the jaxlib version that matches the CUDA installation of this collab setup. See the jax documentation [here](https://github.com/google/jax) for more details.
+First, we install the jaxlib version that matches the CUDA installation of this collab setup. See the JAX documentation [here](https://github.com/google/jax) for more details.
 <!-- #endregion -->
 
 ```bash id="R_gW2ERpi9tw"
@@ -65,7 +67,7 @@ pip install -q --upgrade "jax[cuda]" -f https://storage.googleapis.com/jax-relea
 We test the jax installation and check the versions.
 <!-- #endregion -->
 
-```python id="Z4E914qBHbZS" colab={"base_uri": "https://localhost:8080/"} outputId="56c47936-19c1-4de8-fbc7-1cace7282498"
+```python colab={"base_uri": "https://localhost:8080/"} id="Z4E914qBHbZS" outputId="56c47936-19c1-4de8-fbc7-1cace7282498"
 import jax
 import jaxlib
 print(jax.__version__)
@@ -95,9 +97,9 @@ cd /content/harmonic-bias
 ```
 
 <!-- #region id="Uh2y2RXDDZub" -->
-A harmonic bias simulation constraints a collective variable with a harmonic potential. This is useful for a variety of advanced sampling methods, in particular that umbrella sampling.
+A harmonic bias simulation constraints a collective variable with a harmonic potential. This is useful for a variety of advanced sampling methods, in particular, umbrella sampling.
  
-For this collab we are using Alanine-Dipeptide as the example molecule. So first, we fetch the molecule from the examples of PySAGES.
+For this colab, we are using Alanine-Dipeptide as the example molecule. So first, we fetch the molecule from the examples of PySAGES.
 <!-- #endregion -->
 
 ```bash id="5fxJMNyE-RdA"
@@ -109,7 +111,7 @@ cp /content/PySAGES/examples/abf/alanine-dipeptide-explicit.pdb ./
 Next we load the PySAGES/OpenMM environment.
 <!-- #endregion -->
 
-```python id="P6kPLtGI_-66" colab={"base_uri": "https://localhost:8080/"} outputId="98e496cb-b78d-47bf-8b96-f2af942b10fc"
+```python colab={"base_uri": "https://localhost:8080/"} id="P6kPLtGI_-66" outputId="98e496cb-b78d-47bf-8b96-f2af942b10fc"
 from pysages.collective_variables import DihedralAngle
 from pysages.methods import HarmonicBias, HistogramLogger
 import numpy as np
@@ -123,7 +125,7 @@ app = try_import("openmm.app", "simtk.openmm.app")
 ```
 
 <!-- #region id="3TV4h_WEAdSm" -->
-Next, we write a function that can generate an execution context for OpenMM. This everything you would normally write in an OpenMM script, just wrapped as a function that returns the simulations context.
+Next, we write a function that can generate an execution context for OpenMM. This is everything you would normally write in an OpenMM script, just wrapped as a function that returns the context of the simulation.
 <!-- #endregion -->
 
 ```python id="GAGw0s_cAcgP"
@@ -153,7 +155,7 @@ def generate_simulation(**kwargs):
 ```
 
 <!-- #region id="YtUoUMEdKtH8" -->
-The next step is to define the collective variable. In this case we choose the two dihedral angles on the molecule as defined by it atom positions. We also choose the fix center point for the harmonic bias simulation and the corresponding spring constant.
+The next step is to define the collective variable. In this case, we choose the two dihedral angles on the molecule as defined by its atom positions. We also choose the fixed center point for the harmonic bias simulation and the corresponding spring constant.
 <!-- #endregion -->
 
 ```python id="zEH5jrRoKszT"
@@ -173,7 +175,7 @@ method.run(generate_simulation, int(1e4), callback)
 ```
 
 <!-- #region id="z8V0iX70RF1m" -->
-Next we want to plot the histogram as recorded from the simulations.
+Next, we want to plot the histogram as recorded from the simulations.
 <!-- #endregion -->
 
 ```python id="Mvq9CWdg_qxl"
@@ -200,5 +202,5 @@ ax.legend(loc="best")
 ```
 
 <!-- #region id="m9JjGXq_ha-6" -->
-We see how the dihedral angles are distributed. The histrograms are not perfect in this example because we ran the simulation only with a few time steps.
+We see how the dihedral angles are distributed. The histograms are not perfect in this example because we ran the simulation only with a few time steps.
 <!-- #endregion -->
