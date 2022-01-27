@@ -1,6 +1,8 @@
 ---
 jupyter:
   jupytext:
+    formats: ipynb,md
+    main_language: python
     text_representation:
       extension: .md
       format_name: markdown
@@ -17,7 +19,7 @@ jupyter:
 <!-- #endregion -->
 
 <!-- #region id="WM_9PpDwKuoA" -->
-First we are setting up our environment. We use an already compiled and packaged installation of HOOMD-blue and the DLEXT plugin. We copy it from google drive and install pysages for it. This may require for you to have read permissions to the shared google drive. We also have a google collab that performs this installation for reference.
+First, we are setting up our environment. We use an already compiled and packaged installation of HOOMD-blue and the DLEXT plugin. We copy it from google drive and install pysages for it. This may require you to have read permissions to the shared google drive. We also have a google collab that performs this installation for reference.
 
 <!-- #endregion -->
 
@@ -52,7 +54,7 @@ sys.path.append(os.environ["PYSAGES_ENV"] + "/lib/python" + str(ver.major) + "."
 ## PySAGES
 
 The next step is to install PySAGES.
-First, we install the jaxlib version that matches the CUDA installation of this collab setup. See the jax documentation [here](https://github.com/google/jax) for more details.
+First, we install the jaxlib version that matches the CUDA installation of this collab setup. See the JAX documentation [here](https://github.com/google/jax) for more details.
 <!-- #endregion -->
 
 ```bash id="R_gW2ERpi9tw"
@@ -66,7 +68,7 @@ pip install -q --upgrade "jax[cuda]" -f https://storage.googleapis.com/jax-relea
 We test the jax installation and check the versions.
 <!-- #endregion -->
 
-```python id="Z4E914qBHbZS" colab={"base_uri": "https://localhost:8080/"} outputId="dbc3fade-b58d-49f7-8607-655b0e89e710"
+```python colab={"base_uri": "https://localhost:8080/"} id="Z4E914qBHbZS" outputId="dbc3fade-b58d-49f7-8607-655b0e89e710"
 import jax
 import jaxlib
 print(jax.__version__)
@@ -90,10 +92,10 @@ pip install -q . &> /dev/null
 <!-- #endregion -->
 
 <!-- #region id="Uh2y2RXDDZub" -->
-A harmonic bias simulation constraints a collective variable with a harmonic potential. This is useful for a variety of advanced sampling methods, in particular that umbrella sampling.
+A harmonic bias simulation constraints a collective variable with a harmonic potential. This is useful for a variety of advanced sampling methods, in particular, umbrella sampling.
 
-For this collab we are generating a small system of soft DPD particles first. This system of soft particles allows fast reliable execution.
-For this we use the [GSD](https://gsd.readthedocs.io/en/stable/) file format and its python frontend to generate the initial conditions.
+For this colab, we are generating a small system of soft DPD particles first. This system of soft particles allows fast reliable execution.
+For this, we use the [GSD](https://gsd.readthedocs.io/en/stable/) file format and its python frontend to generate the initial conditions.
 Since all particles are soft, it is OK to start with random positions inside the simulation box. We also assign random velocities drawn from the Maxwell-Boltzmann distribution. The final configuration is written to disk and can be opened by HOOMD-blue for simulations.
 <!-- #endregion -->
 
@@ -150,13 +152,13 @@ with gsd.hoomd.open("harmonic_start.gsd", "wb") as f:
 ```
 
 <!-- #region id="n0Rd-hMnCD-B" -->
-Next we start into running the system, we start with importing the required libraries.
+Next, we start running the system, we start with importing the required libraries.
 Noteworthy are here the hoomd package with the MD and dlext module, and the pysages objects.
-We are going to use a collective variable that constraints a particle position. In PySAGES the `Component` class from the `collective_variables` package can achieve this for us.
+We are going to use a collective variable that constrains a particle position. In PySAGES the `Component` class from the `collective_variables` package can achieve this for us.
 The `HarmonicBias` class is responsible for introducing the bias into the simulation run, while `HistogramLogger` collects the state of the collective variable during the run.
 <!-- #endregion -->
 
-```python id="HkHOzXMzExps" colab={"base_uri": "https://localhost:8080/"} outputId="27c1f5c0-43d4-4911-f1f8-069709242593"
+```python colab={"base_uri": "https://localhost:8080/"} id="HkHOzXMzExps" outputId="27c1f5c0-43d4-4911-f1f8-069709242593"
 import numpy as np
 import matplotlib.pyplot as plt
 import hoomd
@@ -169,12 +171,12 @@ from pysages.methods import HarmonicBias, HistogramLogger
 ```
 
 <!-- #region id="YibErIQhC0Lv" -->
-The next step is to write a function that generate the simulation context.
+The next step is to write a function that generates the simulation context.
 Inside this function is the HOOMD-blue specific code, that you would normally write to execute a HOOMD-blue simulation. Here it is packaged into a function, such that PySAGES can deploy the simulation context when needed.
 In this case, we use the GSD file read in the initial, and define the DPD forcefield with parameters.
 DPD is a special case in HOOMD-blue. The thermostat is part of the pair-potential and not part of the integrator. Hence, we specify NVE integration and all thermostat parameter for NVT in the potential. The function returns the simulation context for PySAGES to work with.
 
-The second funtion is a helper function to generate the theoretically expected distribution of a harmonically biased simulation of an ideal gas in NVT. And helps to verify the results of the simulation.
+The second function is a helper function to generate the theoretically expected distribution of a harmonically biased simulation of an ideal gas in NVT. And helps to verify the results of the simulation.
 <!-- #endregion -->
 
 ```python id="67488aXwQXba"
@@ -204,10 +206,10 @@ def get_target_dist(center, k, lim, bins):
 
 <!-- #region id="BgQ88M0sIfbp" -->
 The next step is to define the collective variables we are interested in.
-In this case we are using the `Component` collective variable to describe the position in space. We choose particle `[0]` for this and log in 3 different CVS the Z- `2`, Y- `1`, and X- `0` position of the particle.
-The center describe to where we are restraining the CVs to, which is also specified for each of the CVs described earlier.
+In this case, we are using the `Component` collective variable to describe the position in space. We choose particle `[0]` for this and log in 3 different CVS the Z- `2`, Y- `1`, and X- `0` position of the particle.
+The center describes where we are restraining the CVs to, which is also specified for each of the CVs described earlier.
 
-Finally, we defineing the spring constant for the harmonic biasing potential and the `HarmonicBias` method itself.
+Finally, we define the spring constant for the harmonic biasing potential and the `HarmonicBias` method itself.
 <!-- #endregion -->
 
 ```python id="r911REinQdLF"
@@ -224,13 +226,13 @@ method = HarmonicBias(cvs, k, center_cv)
 ```
 
 <!-- #region id="bGIDE56RLCcP" -->
-Next we define the `HistogramLogger` callback. The callback interacts with the simulation every timestep after the biasing. In this case we use it to log the state of the collective variables every `100` time steps.
+Next, we define the `HistogramLogger` callback. The callback interacts with the simulation every timestep after the biasing. In this case, we use it to log the state of the collective variables every `100` time-steps.
 
-And we can finally run the simulations. This happens through the PySAGES method run, and is transparent to the user which backend is running.
+And we can finally run the simulations. This happens through the PySAGES method run and is transparent to the user which backend is running.
 Here, the run is just a simple simulation for the number of steps specified with the biasing potential. Other advanced sampling methods can have more advanced run schemes.
 <!-- #endregion -->
 
-```python id="aOXCppWkQnJI" colab={"base_uri": "https://localhost:8080/"} outputId="a34ae4f3-92a9-47ce-cac6-7a02f1aa4a72"
+```python colab={"base_uri": "https://localhost:8080/"} id="aOXCppWkQnJI" outputId="a34ae4f3-92a9-47ce-cac6-7a02f1aa4a72"
 callback = HistogramLogger(100)
 method.run(generate_context, int(1e4), callback, {"A": 7.0}, profile=True)
 ```
@@ -261,11 +263,11 @@ lim = (-Lmax / 2, Lmax / 2)
 ```
 
 <!-- #region id="2xwriftjNKgz" -->
-Finally, we want to evalutate how the simulations turned out.
-We use matplotlib to vizualize the expected (dashed) and actual results of the simulations (solid).
+Finally, we want to evaluate how the simulations turned out.
+We use matplotlib to visualize the expected (dashed) and actual results of the simulations (solid).
 <!-- #endregion -->
 
-```python id="ZCkylgdvS3To" colab={"base_uri": "https://localhost:8080/", "height": 301} outputId="440269b2-ef60-4bce-b9fc-f34c823c8299"
+```python colab={"base_uri": "https://localhost:8080/", "height": 301} id="ZCkylgdvS3To" outputId="440269b2-ef60-4bce-b9fc-f34c823c8299"
 fig, ax = plt.subplots()
 
 ax.set_xlabel(r"CV $\xi_i$")
@@ -282,5 +284,5 @@ ax.legend(loc="best")
 ```
 
 <!-- #region id="IXryBllMNiKM" -->
-We can see, that the particle positions are indeed centered around the constraints we set up earlier. Also we see the shape of the histograms is very similar to the expect analytical prediction. We expect this, since a liquid of soft particles is not that much different to an ideal gas.
+We can see, that the particle positions are indeed centered around the constraints we set up earlier. Also, we see the shape of the histograms is very similar to the expected analytical prediction. We expect this since a liquid of soft particles is not that much different from an ideal gas.
 <!-- #endregion -->
