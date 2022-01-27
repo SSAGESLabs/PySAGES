@@ -1,6 +1,8 @@
 ---
 jupyter:
   jupytext:
+    formats: ipynb,md
+    main_language: python
     text_representation:
       extension: .md
       format_name: markdown
@@ -51,7 +53,7 @@ sys.path.append(os.environ["PYSAGES_ENV"] + "/lib/python" + str(ver.major) + "."
 ## PySAGES
 
 The next step is to install PySAGES.
-First, we install the jaxlib version that matches the CUDA installation of this collab setup. See the jax documentation [here](https://github.com/google/jax) for more details.
+First, we install the jaxlib version that matches the CUDA installation of this collab setup. See the JAX documentation [here](https://github.com/google/jax) for more details.
 <!-- #endregion -->
 
 ```bash id="RUX1RAT3NF9s"
@@ -85,19 +87,19 @@ pip install -q . &> /dev/null
 ```
 
 <!-- #region id="IXryBllMNiKM" -->
-We can see, that the particle positions are indeed centered around the constraints we set up earlier. Also we see the shape of the histograms is very similar to the expect analytical prediction. We expect this, since a liquid of soft particles is not that much different to an ideal gas.
+We can see, that the particle positions are indeed centered around the constraints we set up earlier. Also, we see the shape of the histograms is very similar to the expected analytical prediction. We expect this since a liquid of soft particles is not that much different from an ideal gas.
 <!-- #endregion -->
 
 <!-- #region id="LjPjqVjSOzTL" -->
 # Umbrella integration
 
 In the previous section, we demonstrated how PySAGES can be used to run a single simulation with a biasing potential.
-However, if we want to look into the free-energy landscape a single simulation is not enough. Instead we have to perform a series of simulations along a path in the space of the collective variables. From the histograms of the biasing we can deduce the differences in free-energy. For a more detailed explanation look at the literature for example [J. Kaestner 2009](https://doi.org/10.1063/1.3175798).
+However, if we want to look into the free-energy landscape a single simulation is not enough. Instead, we have to perform a series of simulations along a path in the space of the collective variables. From the histograms of the biasing, we can deduce the differences in free energy. For a more detailed explanation look at the literature for example [J. Kaestner 2009](https://doi.org/10.1063/1.3175798).
 
-The first step here is also to generate a simulation snapshot that can be used as initial condition.
+The first step here is also to generate a simulation snapshot that can be used as an initial condition.
 <!-- #endregion -->
 
-```python id="QOrufad1RaMF" colab={"base_uri": "https://localhost:8080/"} outputId="02f68f5a-54cc-435c-e3df-78f4826dc374"
+```python colab={"base_uri": "https://localhost:8080/"} id="QOrufad1RaMF" outputId="02f68f5a-54cc-435c-e3df-78f4826dc374"
 !pip install gsd
 import gsd
 import gsd.hoomd
@@ -151,12 +153,12 @@ with gsd.hoomd.open("start.gsd", "wb") as f:
 ```
 
 <!-- #region id="AgFXHafmVUAi" -->
-For this simulation we are using the PySAGES method `UmbrellaIntegration` so we start with importing this.
+For this simulation, we are using the PySAGES method `UmbrellaIntegration` so we start with importing this.
 
-In the next step, we write a function, that generates the simulation constext. We need to make sure, that the context can depend on the replica of the simulation along the path. PySAGES sets variable `replica_num` in the keywork arguments of the function.
+In the next step, we write a function, that generates the simulation context. We need to make sure, that the context can depend on the replica of the simulation along the path. PySAGES sets variable `replica_num` in the keyword arguments of the function.
 We also set some general parameters for all replicas.
 
-In contrast to the single harmonic bias simulation, the simulation now contains an external potential `hoomd.external.periodic` which changes the expected density of particles. See hoomd-blue's [documentation](https://hoomd-blue.readthedocs.io/en/stable/module-md-external.html#hoomd.md.external.periodic) for details on the potential. For this example the potential generates the free-energy landscape we are exploring.
+In contrast to the single harmonic bias simulation, the simulation now contains an external potential `hoomd.external.periodic` which changes the expected density of particles. See hoomd-blue's [documentation](https://hoomd-blue.readthedocs.io/en/stable/module-md-external.html#hoomd.md.external.periodic) for details on the potential. For this example, the potential generates the free-energy landscape we are exploring.
 <!-- #endregion -->
 
 ```python colab={"base_uri": "https://localhost:8080/"} id="tG6JhN7SNpSj" outputId="979d5793-f459-4202-ac4e-74f2aaabc1f3"
@@ -196,7 +198,7 @@ def generate_context(**kwargs):
 ```
 
 <!-- #region id="YRPnU0CJY31J" -->
-With the ability to generate the simulation context, we start to set up the umbrella integation method - starting with the CV that describes the single A particle along the varying axis of the external potential.
+With the ability to generate the simulation context, we start to set up the umbrella integration method - starting with the CV that describes the single A-particle along the varying axis of the external potential.
 <!-- #endregion -->
 
 ```python id="_o7puY5Sao5h"
@@ -206,7 +208,7 @@ method = UmbrellaIntegration(cvs)
 ```
 
 <!-- #region id="jhs3vpglaux4" -->
-Next we define the path along in CV space. In this case, we start at $-1.5$ and end the path at the position $1.5$. We are using a linear interpolation with $25$ replica.
+Next, we define the path along in CV space. In this case, we start at $-1.5$ and end the path at the position $1.5$. We are using linear interpolation with $25$ replica.
 <!-- #endregion -->
 
 ```python id="Uvkeedv4atn3"
@@ -214,7 +216,7 @@ centers = list(np.linspace(-1.5, 1.5, 25))
 ```
 
 <!-- #region id="q37sUT-tbOMS" -->
-The next paramters we need to run the method are the number of time steps per replica $10^4$, the harmonic biasing spring constant $50$, the log frequency for the histogram $50$ and the number of steps we discard as equilibration before logging $10^3$.
+The next parameters we need to run the method are the number of time steps per replica $10^4$, the harmonic biasing spring constant $50$, the log frequency for the histogram $50$, and the number of steps we discard as equilibration before logging $10^3$.
 Since this runs multiple simulations, we expect the next cell to execute for a while.  
 <!-- #endregion -->
 
@@ -223,7 +225,7 @@ result = method.run(generate_context, int(1e4), centers, 50., 50, int(1e3))
 ```
 
 <!-- #region id="_xFSKCpKb6XF" -->
-What is left after the run is evaluating the resulting histograms for each of the replicas. For better visibility we group the histogram into 4 separate plots. This also helps to demonstrate that the histrogram overlap.
+What is left after the run is evaluating the resulting histograms for each of the replicas. For a better visibility, we group the histogram into 4 separate plots. This also helps to demonstrate that the histograms overlap.
 <!-- #endregion -->
 
 ```python colab={"base_uri": "https://localhost:8080/", "height": 265} id="OOpagwvlb3_d" outputId="62b507a1-d404-4924-ec1b-00b9d3f39085"
@@ -255,7 +257,7 @@ while counter < len(result["center"]):
 ```
 
 <!-- #region id="5YZYZPUqdG7S" -->
-And finally, as a last step we can vizualize the estimated free-energy path from the histograms and compare it with the analytical shape of the input external potential.
+And finally, as the last step, we can visualize the estimated free-energy path from the histograms and compare it with the analytical shape of the input external potential.
 <!-- #endregion -->
 
 ```python colab={"base_uri": "https://localhost:8080/", "height": 297} id="_UKh6FyLcN9y" outputId="cba839f6-78e8-43c3-f540-5567c5c4b00e"

@@ -1,6 +1,8 @@
 ---
 jupyter:
   jupytext:
+    formats: ipynb,md
+    main_language: python
     text_representation:
       extension: .md
       format_name: markdown
@@ -16,7 +18,7 @@ jupyter:
 <!-- #endregion -->
 
 <!-- #region id="WM_9PpDwKuoA" -->
-First we are setting up our environment, by installing hoomd-blue and install the dlext plugin for it. The first step is to update cmake to a version that is compatible with our installation process. In this case, we are using a newer version of CMake that is required by the HOOMD-dlext plugin.
+First, we are setting up our environment, by installing hoomd-blue and installing the dlext plugin for it. The first step is to update cmake to a version that is compatible with our installation process. In this case, we are using a newer version of CMake that is required by the HOOMD-dlext plugin.
 This is special to the underlying (older) Ubuntu system of this collab (18.04) and should not be required for newer installations.
 <!-- #endregion -->
 
@@ -39,7 +41,7 @@ ln -sf /usr/bin/cmake /usr/local/bin/cmake
 
 <!-- #region id="0opWLiz1shLz" -->
 ##### ___
-Set up a directory that we will use as installation prefix (this can be different depending on where you want to install everything).
+Set up a directory that we will use as an installation prefix (this can be different depending on where you want to install everything).
 <!-- #endregion -->
 
 ```python id="YQplbeQbsvg_"
@@ -101,10 +103,10 @@ cmake --build $BUILD_PATH --target install -j8 &> /dev/null
 
 <!-- #region id="8ZxdRrN1rrtU" -->
 ##### ___
-After the successful installation of HOOMD-blue we make the installation visible to the python system. We installed HOOMD-blue into a custom location that is not checked by python for software out of the box.
-In this collab this happends in two steps.
+After the successful installation of HOOMD-blue, we make the installation visible to the python system. We installed HOOMD-blue into a custom location that is not checked by python for software out of the box.
+In this colab, this happens in two steps.
 
-First we extend the environment variable `PYTHONPATH`. This helps newly started python environments to find the HOOMD-blue installation. This is important for the installation of the plugin later. In none-notebook environments this is the only step necessary.
+First, we extend the environment variable `PYTHONPATH`. This helps newly started python environments to find the HOOMD-blue installation. This is important for the installation of the plugin later. In none-notebook environments, this is the only step necessary.
 <!-- #endregion -->
 
 ```python id="MuDzJEpFzev3"
@@ -114,7 +116,7 @@ os.environ["PYTHONPATH"] = os.environ["PREFIX"] + ":" + os.environ["PYTHONPATH"]
 
 <!-- #region id="fQkzEJWgzhCp" -->
 ##### ___
-Because the notebook environment has already a running python we need to let this one know about the new package location. We achieve this, by appending the `sys.path` with the location of our pacakge.
+Because the notebook environment has already a running python we need to let this one know about the new package location. We achieve this, by appending the `sys.path` with the location of our package.
 <!-- #endregion -->
 
 ```python id="he413SCN-qKb"
@@ -161,7 +163,7 @@ import hoomd.dlext
 <!-- #region id="gOGvNMRL2x3p" -->
 ## OpenMM
 
-Having previously setup the environment variables for the HOOMD-blue installation, we can now just simply install some required dependencies, and build and install OpenMM.
+Having previously set up the environment variables for the HOOMD-blue installation, we can now just simply install some required dependencies, and build and install OpenMM.
 <!-- #endregion -->
 
 <!-- #region id="t8d3toizoQe9" -->
@@ -230,7 +232,7 @@ cmake --build $BUILD_PATH --target install > /dev/null
 
 <!-- #region id="cm5xnNrM9P20" -->
 ##### ___
-Again, we test the installation and if succesful, we proced to copy the environment to Google Drive to avoid building everything again in the future.
+Again, we test the installation and if successful, we proceed to copy the environment to Google Drive to avoid building everything again in the future.
 <!-- #endregion -->
 
 ```python id="5Ty-Jnm09gnu"
@@ -245,9 +247,9 @@ import openmm_dlext
 <!-- #region id="3a_zSXJatWUY" -->
 **This step can only be successfully executed by PySAGES maintainers.**
 
-These steps are not necessary to understand the setup of the environment.If you want to build your own environment, modify the lines such that it uploads to your own google drive.
+These steps are not necessary to understand the setup of the environment. If you want to build your own environment, modify the lines such that it uploads to your own google drive.
 
-We upload the data to the shared google drive. First we mount our Google Drive file system to a local directory.
+We upload the data to the shared google drive. First, we mount our Google Drive file system to a local directory.
 <!-- #endregion -->
 
 ```python colab={"base_uri": "https://localhost:8080/"} id="yic9Joq5tlGh" outputId="6a516f55-ec92-4228-b0bb-f5f0fe9b43ec"
@@ -256,10 +258,10 @@ drive.mount('/content/mnt')
 ```
 
 <!-- #region id="M09QOE_E3ukB" -->
-We the compress the environment into a zip file and copy it to a folder within Google Drive. Here we are choosing an existing Shared Drive, but if you were to do this you should choose a folder you have access and write permissions.
+We then compress the environment into a zip file and copy it to a folder within Google Drive. Here we are choosing an existing Shared Drive, but if you were to do this you should choose a folder you have access to and write permissions.
 <!-- #endregion -->
 
-```python id="QmXbqp9Pqp-a" colab={"base_uri": "https://localhost:8080/"} outputId="046b3c5b-1980-43d4-bd6d-91d5d1b211a1"
+```python colab={"base_uri": "https://localhost:8080/"} id="QmXbqp9Pqp-a" outputId="046b3c5b-1980-43d4-bd6d-91d5d1b211a1"
 %env PYSAGES_SHARED_ENV=/content/mnt/Shareddrives/pysages-env
 ```
 
