@@ -67,7 +67,7 @@ def main():
         periodic = False
     )
     dt = 2.0
-    method = FFS(cvs,grid)
+    method = FFS(cvs, grid)
     win_0 = (100. / 180.) * pi
     win_f = (150. / 180.) * pi
     

@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 # Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
@@ -254,7 +254,7 @@ def initial_flow(
 
         has_reached_A = False
         while not has_reached_A:
-            # this can be used not every timestep
+            # TODO: make the number of timesteps below a parameter of the method.
             run(1)
             time_count += timestep
             xi = sampler.state.xi.block_until_ready()
