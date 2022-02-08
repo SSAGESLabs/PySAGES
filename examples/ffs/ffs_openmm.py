@@ -4,13 +4,14 @@
 # %%
 from pysages.collective_variables import DihedralAngle
 from pysages.methods import FFS
+from pysages.utils import try_import
 
-import simtk.openmm.app as app
-import simtk.openmm as openmm
-import simtk.unit as unit
-import jax.numpy as np
 import numpy
 import pysages
+
+openmm = try_import("openmm", "simtk.openmm")
+unit = try_import("openmm.unit", "simtk.unit")
+app = try_import("openmm.app", "simtk.openmm.app")
 
 
 # %%
@@ -49,8 +50,6 @@ def generate_simulation(
 
     integrator = openmm.LangevinIntegrator(T, 1 / unit.picosecond, dt)
 
-    #platform = openmm.Platform.getPlatformByName(platform)
-    #simulation = app.Simulation(topology, system, integrator, platform)
     simulation = app.Simulation(topology, system, integrator)
     simulation.context.setPositions(positions)
     simulation.minimizeEnergy()
@@ -60,19 +59,19 @@ def generate_simulation(
 
 # %%
 def main():
-    cvs = (DihedralAngle((6, 8, 14, 16)),)
+    cvs = [ DihedralAngle((6, 8, 14, 16)) ]
     grid = pysages.Grid(
-    lower = ((-5.0,)),
-    upper = ((5.0,)),
-    shape = ((25,)),
-    periodic = False
+        lower = (-5.0,),
+        upper = (5.0,),
+        shape = (25,),
+        periodic = False
     )
-    dt=2.0
+    dt = 2.0
     method = FFS(cvs,grid)
-    win_0=(100./180.)*np.pi
-    win_f=(150./180.)*np.pi
-    #Here there will be different from other methods
-    method.run(generate_simulation,1e9,dt,win_0,win_f,4,20000,20)
+    win_0 = (100. / 180.) * pi
+    win_f = (150. / 180.) * pi
+    
+    method.run(generate_simulation, 1e9, dt, win_0, win_f, 4, 20000, 20)
 
 
 # %%
