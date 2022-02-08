@@ -4,10 +4,10 @@
 # %%
 from pysages.collective_variables import DihedralAngle
 from pysages.methods import FFS
+
 import simtk.openmm.app as app
 import simtk.openmm as openmm
 import simtk.unit as unit
-#import openmm_dlext as dlext
 import jax.numpy as np
 import numpy
 import pysages
@@ -19,7 +19,7 @@ pi = numpy.pi
 
 # %%
 def generate_simulation(
-    pdb_filename = "inputcorr.pdb",
+    pdb_filename = "../inputs/alanine-dipeptide/adp-explicit.pdb",
     T = 298.15 * unit.kelvin,
     dt = 2.0 * unit.femtoseconds
 ):
