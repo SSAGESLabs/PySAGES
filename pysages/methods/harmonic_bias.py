@@ -1,12 +1,22 @@
-# SPDX-License-Identifier: MIT
+# SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
+"""
+Harmonic bias method.
+
+Biasing a simulation towards a value of a collective variable is the foundation of a
+number advanced sampling methods, umbrella integration, WHAM, string method to name a few.
+This method implements such a bias.
+
+The hamiltonian is ammended with a term :math:`\\mathcal{H} = \\mathcal{H}_0 + \\mathcal{H}_\\mathrm{HB}(\\xi)` with
+
+"""
+
 
 from typing import NamedTuple
-from .core import SamplingMethod, generalize  # pylint: disable=relative-beyond-top-level
 import jax.numpy as np
 from jaxlib.xla_extension import DeviceArray as JaxArray
-
+from .core import SamplingMethod, generalize  # pylint: disable=relative-beyond-top-level
 
 class HarmonicBiasState(NamedTuple):
     """
