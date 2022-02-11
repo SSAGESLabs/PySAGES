@@ -76,9 +76,9 @@ def plot_energy(result):
     ax.set_xlabel("CV")
     ax.set_ylabel("Free energy $[\epsilon]$")
     center = np.asarray(result["center"])
-    A = np.asarray(result["A"])
-    offset = np.min(A)
-    ax.plot(center, A-offset, color="teal")
+    a_free_energy = np.asarray(result["a_free_energy"])
+    offset = np.min(a_free_energy)
+    ax.plot(center, a_free_energy-offset, color="teal")
 
     x = np.linspace(-3, 3, 50)
     data = external_field(x, **param1)

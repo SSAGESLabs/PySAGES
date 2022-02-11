@@ -111,7 +111,7 @@ class HarmonicBias(SamplingMethod):
         center = np.asarray(center)
         if center.shape == ():
             center = center.reshape(1)
-        if len(center.shape) !=1 or center.shape[0] != self.cv_dimension:
+        if len(center.shape) != 1 or center.shape[0] != self.cv_dimension:
             raise RuntimeError(f"Invalid center shape expected {self.cv_dimension} got {center.shape}.")
         self._center = center
 
@@ -128,7 +128,6 @@ def _harmonic_bias(method, snapshot, helpers):
     def initialize():
         bias = np.zeros((natoms, 3))
         return HarmonicBiasState(bias, None)
-
 
     def update(state, data):
         xi, Jxi = cv(data)

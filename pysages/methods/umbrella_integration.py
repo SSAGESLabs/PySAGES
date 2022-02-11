@@ -1,30 +1,48 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
+"""
+Umbrella Integration.
 
+Umbrella integration uses multiple replica placed along a pathway in the free energy landscape by Harmonic Bias simulations.
+From the statistics of the simulations, the thermodynamic forces along the path are determine and integrated to obtain an approximation of the free-energy landscape.
+This class implements the replica simulations and approximates the the free energy.
+However, the method is not very and accurate it is preferred that more advanced methods are used for the analysis of the simulations.
+"""
 from typing import Callable
+
+import jax.numpy as np
 
 from pysages.backends import ContextWrapper
 from pysages.methods.harmonic_bias import HarmonicBias
 from pysages.methods.utils import HistogramLogger
 
-import jax.numpy as np
-
 
 class UmbrellaIntegration(HarmonicBias):
+    """
+    Umbrella Integration class.
+
+    This class combines harmonic biasing with multiple replicas.
+    It also collects histograms of the collective variables through out the simulations for later analysis.
+    By default the class also estimates an approximation of the free energy landscape along the given path via umbrella integration.
+    Note that this is not very accurate and ususally requires more sophisticated analysis on top.
+    """
     def __init__(self, cvs, *args, **kwargs):
+        """
+        Initialization, mostly defining the collective variables and setting up the underlying Harmonic Bias.
+        """
         kspring = center = np.zeros(len(cvs))
         super().__init__(cvs, kspring, center, args, kwargs)
 
-    def run(
+    def run(  # pylint: disable=arguments-differ
         self,
         context_generator: Callable,
         timesteps: int,
         centers,
         ksprings,
         hist_periods,
-        hist_offsets = 0,
-        context_args = dict(),
+        hist_offsets=0,
+        context_args=None,
         **kwargs
     ):
         """
@@ -64,39 +82,39 @@ class UmbrellaIntegration(HarmonicBias):
             This method does not accepts a user defined callback are not available.
         """
 
-        def free_energy_gradient(K, mean, center):
+        def free_energy_gradient(k_spring_tensor, mean, center):
             "Equation 13 from https://doi.org/10.1063/1.3175798"
-            return -(K @ (mean - center))
+            return -(k_spring_tensor @ (mean - center))
 
-        def integrate(A, nabla_A, centers, i):
-            return A[i-1] + nabla_A[i-1].T @ (centers[i] - centers[i-1])
+        def integrate(a_free_energy, nabla_a_free_energy, centers, i):
+            return a_free_energy[i-1] + nabla_a_free_energy[i-1].T @ (centers[i] - centers[i-1])
 
-        def collect(arg, Nreplica, name, dtype):
+        def collect(arg, n_replica, name, dtype):
             if isinstance(arg, list):
-                n = len(arg)
-                if n != Nreplica:
-                    raise RuntimeError(f"Provided list argument {name} has not the correct length (got {n}, expected {Nreplica})")
+                if len(arg) != n_replica:
+                    raise RuntimeError(f"Provided list argument {name} has not the correct length (got {len(arg)}, expected {n_replica})")
             else:
-                arg = [dtype(arg) for i in range(Nreplica)]
+                arg = [dtype(arg) for i in range(n_replica)]
             return arg
 
-        Nreplica = len(centers)
-        timesteps = collect(timesteps, Nreplica, "timesteps", int)
-        ksprings = collect(ksprings, Nreplica, "kspring", float)
-        hist_periods = collect(hist_periods, Nreplica, "hist_periods", int)
-        hist_offsets = collect(hist_offsets, Nreplica, "hist_offsets", int)
+        if context_args is None:
+            context_args = dict()
+
+        n_replica = len(centers)
+        timesteps = collect(timesteps, n_replica, "timesteps", int)
+        ksprings = collect(ksprings, n_replica, "kspring", float)
+        hist_periods = collect(hist_periods, n_replica, "hist_periods", int)
+        hist_offsets = collect(hist_offsets, n_replica, "hist_offsets", int)
 
         result = {}
         result["histogram"] = []
         result["histogram_means"] = []
         result["kspring"] = []
         result["center"] = []
-        result["nabla_A"] =  []
-        result["A"] = []
+        result["nabla_a_free_energy"] = []
+        result["a_free_energy"] = []
 
-        self.context = []
-
-        for rep in range(Nreplica):
+        for rep in range(n_replica):
             self.center = centers[rep]
             self.kspring = ksprings[rep]
 
@@ -106,8 +124,8 @@ class UmbrellaIntegration(HarmonicBias):
             wrapped_context = ContextWrapper(context, self, callback)
             self.context.append(wrapped_context)
 
-            with wrapped_context:
-                wrapped_context.run(timesteps[rep])
+            with self.context[-1]:
+                self.context[-1].run(timesteps[rep])
 
             mean = callback.get_means()
 
@@ -115,11 +133,11 @@ class UmbrellaIntegration(HarmonicBias):
             result["center"].append(self.center)
             result["histogram"].append(callback)
             result["histogram_means"].append(mean)
-            result["nabla_A"].append(free_energy_gradient(self.kspring, mean, self.center))
+            result["nabla_a_free_energy"].append(free_energy_gradient(self.kspring, mean, self.center))
             # Discrete forward integration of the free-energy
             if rep == 0:
-                result["A"].append(0)
+                result["a_free_energy"].append(0)
             else:
-                result["A"].append(integrate(result["A"], result["nabla_A"], result["center"], rep))
+                result["a_free_energy"].append(integrate(result["a_free_energy"], result["nabla_a_free_energy"], result["center"], rep))
 
         return result
