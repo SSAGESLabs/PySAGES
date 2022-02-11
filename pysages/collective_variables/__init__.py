@@ -5,6 +5,10 @@
 # pylint: disable=unused-import,relative-beyond-top-level
 # flake8: noqa F401
 
+"""
+Collective variables describe a macro state with many possible micro state realizations.
+PySAGES tries to support a variety common collective variables, but it is easy to extend PySAGES with your own vairables.
+"""
 
 from .angles import (
     Angle,

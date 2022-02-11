@@ -23,31 +23,26 @@ Indices = Union[int, range]
 
 
 class CollectiveVariable(ABC):
-    """
-    Abstract base class for defining collective variables
+    """Abstract base class for defining collective variables
 
-    Initialization arguments
-    ------------------------
-    indices : Must be a list or tuple of atoms (ints or ranges) or groups of
-        atoms. A group is specified as a nested list or tuple of atoms.
-
-    Methods
-    -------
-    __init__ : When defining an new collective variable, override this method
-        if you need to enforce any invariant over the indices. It can
-        otherwise be ommited.
-
-    Properties
+    Parameters
     ----------
-    function : Returns an external method that implements the actual
-        computation of the collective variable.
+    indices : list[int], list[tuple(int)]
+       Must be a list or tuple of atoms (ints or ranges) or groups of
+       atoms. A group is specified as a nested list or tuple of atoms.
+    group_length: int, optional
+       Specify if a fixed group length is expected.
+
+    When defining an new collective variable, override this method
+    if you need to enforce any invariant over the indices. It can
+    otherwise be ommited.
     """
 
-    def __init__(self, indices, n = None):
+    def __init__(self, indices, group_length=None):
         indices, groups = process_groups(indices)
 
-        if n is not None:
-            check_groups_size(indices, groups, n)
+        if group_length is not None:
+            check_groups_size(indices, groups, group_length)
 
         self.indices = indices
         self.groups = groups
@@ -61,16 +56,19 @@ class CollectiveVariable(ABC):
 # NOTE: `IndexedCV` might be a better name for this
 class AxisCV(CollectiveVariable):
     """
-    Similar to CollectiveVariable, but requires that an axis is provided.
+    Collective variable the specifies a Cartesian Axis in addition.
     """
-
-    def __init__(self, indices, axis):
-        super().__init__(indices)
+    def __init__(self, indices, axis, group_length=None):
+        """
+        Parameters
+        ----------
+        axis: int
+           Index of the cartesian coordinate: 0==X, 1==Y, 2==Z
+        """
+        if axis not in (0, 1, 2):
+            raise RuntimeError(f"Invalid Cartesian axis {axis} index choose 0==X, 1==Y, 2==Z")
+        super().__init__(indices, group_length)
         self.axis = axis
-
-    @abstractproperty
-    def function(self):
-        pass
 
 
 class TwoPointCV(CollectiveVariable):
