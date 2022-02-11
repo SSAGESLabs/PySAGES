@@ -1,5 +1,5 @@
-PySAGES Advanced Sampling Methods
----------------------------------
+PySAGES Collective Variables
+----------------------------
 
 .. rubric:: Overview
 
