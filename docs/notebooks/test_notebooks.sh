@@ -7,7 +7,7 @@ do
     fileMD=$file".md"
     echo $file
     jupytext $fileIP -o la.md
-    diff $fileMD la.md
+    diff $fileMD la.md --ignore-matching-lines=".*jupytext_version.*"
     if [ ! $? -eq 0 ]; then
 	rm -f la.md
 	echo "Difference between notebooks found $file"
