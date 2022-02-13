@@ -30,8 +30,7 @@ class RadiusOfGyration(CollectiveVariable):
         Returns
         -------
         Callable
-           Function to calculate the radius of gyration.
-           See `pysages.collective_variables.shape.radius_of_gyration` for details.
+           Function to calculate the radius of gyration. See `pysages.collective_variables.shape.radius_of_gyration` for details.
         """
         return radius_of_gyration
 
@@ -103,8 +102,7 @@ class PrincipalMoment(AxisCV):
         Returns
         -------
         Callable
-           Function to calculate the Eigenvalue with the specified axis index of the GyrationTensor.
-           See `pysages.collective_variables.shape.principal_moments` and `pysages.collective_variables.shape.gyration_tensor` for details.
+           Function to calculate the Eigenvalue with the specified axis index of the GyrationTensor. See `pysages.collective_variables.shape.principal_moments` and `pysages.collective_variables.shape.gyration_tensor` for details.
         """
         return lambda rs: principal_moments(rs)[self.axis]
 
@@ -189,8 +187,7 @@ class Asphericity(CollectiveVariable):
         Returns
         -------
         Callable
-           Function to calculate the asphericity.
-           See `pysages.collective_variables.shape.asphericity` for details.
+           Function to calculate the asphericity. See `pysages.collective_variables.shape.asphericity` for details.
         """
         return asphericity
 
@@ -236,8 +233,7 @@ class Acylindricity(CollectiveVariable):
         Returns
         -------
         Callable
-           Function to calculate the acylindricity.
-           See `pysages.collective_variables.shape.acylindricity` for details.
+           Function to calculate the acylindricity. See `pysages.collective_variables.shape.acylindricity` for details.
         """
         return acylindricity
 
@@ -281,8 +277,7 @@ class ShapeAnisotropy(CollectiveVariable):
         Returns
         -------
         Callable
-           Function to calculate the shape anisotropy.
-           See `pysages.collective_variables.shape.shape_anisotropy` for details.
+           Function to calculate the shape anisotropy. See `pysages.collective_variables.shape.shape_anisotropy` for details.
         """
         return shape_anisotropy
 
