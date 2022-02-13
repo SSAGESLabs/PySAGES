@@ -85,7 +85,7 @@ def dihedral_angle(pos1, pos2, pos3, pos4):
 
     :math:`\\vec{q} = \\vec{p}_3 - \\vec{p}_2`
 
-    :math:`\\vec{r} = (\\vec(p)_2 - \\vec{p}_1) \\times \\vec{q}`
+    :math:`\\vec{r} = (\\vec{p}_2 - \\vec{p}_1) \\times \\vec{q}`
 
     :math:`\\vec{s} =  \\vec{q} \\times ( \\vec{p}_4  - \\vec{p}_3 )`
 

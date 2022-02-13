@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
+# flake8: noqa F811
 """
 Abstract base classes for collective variables.
 """
@@ -21,6 +22,10 @@ Indices = Union[int, range]
 class CollectiveVariable(ABC):
     """Abstract base class for defining collective variables
 
+    When defining an new collective variable, override this method
+    if you need to enforce any invariant over the indices. It can
+    otherwise be ommited.
+
     Parameters
     ----------
     indices : list[int], list[tuple(int)]
@@ -28,17 +33,13 @@ class CollectiveVariable(ABC):
        atoms. A group is specified as a nested list or tuple of atoms.
     group_length: int, optional
        Specify if a fixed group length is expected.
-
-    When defining an new collective variable, override this method
-    if you need to enforce any invariant over the indices. It can
-    otherwise be ommited.
     """
 
     def __init__(self, indices, group_length=None):
-        indices, groups = process_groups(indices)
+        indices, groups = _process_groups(indices)
 
         if group_length is not None:
-            check_groups_size(indices, groups, group_length)
+            _check_groups_size(indices, groups, group_length)
 
         self.indices = indices
         self.groups = groups
@@ -55,14 +56,18 @@ class CollectiveVariable(ABC):
 class AxisCV(CollectiveVariable):
     """
     Collective variable the specifies a Cartesian Axis in addition.
+
+    Parameters
+    ----------
+    indices : list[int], list[tuple(int)]
+       Must be a list or tuple of atoms (ints or ranges) or groups of
+       atoms. A group is specified as a nested list or tuple of atoms.
+    axis: int
+       Index of the cartesian coordinate: 0==X, 1==Y, 2==Z
+    group_length: int, optional
+       Specify if a fixed group length is expected.
     """
     def __init__(self, indices, axis, group_length=None):
-        """
-        Parameters
-        ----------
-        axis: int
-           Index of the cartesian coordinate: 0==X, 1==Y, 2==Z
-        """
         if axis not in (0, 1, 2):
             raise RuntimeError(f"Invalid Cartesian axis {axis} index choose 0==X, 1==Y, 2==Z")
         super().__init__(indices, group_length)
@@ -71,10 +76,14 @@ class AxisCV(CollectiveVariable):
 
 class TwoPointCV(CollectiveVariable):
     """
-    Similar to CollectiveVariable, but checks at initialization that only two
-    indices or groups are provided.
-    """
+    Collective variable that takes group of length 2.
 
+    Parameters
+    ----------
+    indices : list[tuple(int)]
+       Must be a or groups (size 2) of atoms.
+       A group is specified as a nested list or tuple of atoms.
+    """
     def __init__(self, indices):
         super().__init__(indices, 2)
 
@@ -85,8 +94,13 @@ class TwoPointCV(CollectiveVariable):
 
 class ThreePointCV(CollectiveVariable):
     """
-    Similar to CollectiveVariable, but checks at initialization that only three
-    indices or groups are provided.
+    Collective variable that takes group of length 3.
+
+    Parameters
+    ----------
+    indices : list[tuple(int)]
+       Must be a or groups (size 3) of atoms.
+       A group is specified as a nested list or tuple of atoms.
     """
 
     def __init__(self, indices):
@@ -99,8 +113,13 @@ class ThreePointCV(CollectiveVariable):
 
 class FourPointCV(CollectiveVariable):
     """
-    Similar to CollectiveVariable, but checks at initialization that only four
-    indices or groups are provided.
+    Collective variable that takes group of length 4.
+
+    Parameters
+    ----------
+    indices : list[tuple(int)]
+       Must be a or groups (size 4) of atoms.
+       A group is specified as a nested list or tuple of atoms.
     """
 
     def __init__(self, indices):
@@ -115,101 +134,117 @@ class FourPointCV(CollectiveVariable):
 #   Utils   #
 # ========= #
 
-def check_groups_size(indices, groups, n):
-    m = np.size(indices, 0) - sum(np.size(g, 0) - 1 for g in groups)
-    if m != n:
-        raise ValueError(f"Exactly {n} indices or groups must be provided (got {m})")
+def _check_groups_size(indices, groups, group_length):
+    input_length = np.size(indices, 0) - sum(np.size(g, 0) - 1 for g in groups)
+    if input_length != group_length:
+        raise ValueError(f"Exactly {group_length} indices or groups must be provided (got {input_length})")
 
 
-def get_nargs(f: Callable):
-    return len(signature(f).parameters)
+def _get_nargs(function: Callable):
+    return len(signature(function).parameters)
 
 
-def _build(cv: CollectiveVariable, J = grad):
-    # TODO: Add support for passing weights of compute weights from masses, and
+def _build(cv: CollectiveVariable, j_grad=grad):
+    # TODO: Add support for passing weights of compute weights from masses, and # pylint:disable=fixme
     # to reduce groups with barycenter
-    ξ = cv.function
-    I = cv.indices
+    xi = cv.function
+    idx = cv.indices
 
-    if get_nargs(ξ) == 1:
+    if _get_nargs(xi) == 1:
         def evaluate(positions: JaxArray, ids: JaxArray, **kwargs):
-            rs = positions[ids[I]]
-            return np.asarray(ξ(rs, **kwargs))
+            pos = positions[ids[idx]]
+            return np.asarray(xi(pos, **kwargs))
     else:
         def evaluate(positions: JaxArray, ids: JaxArray, **kwargs):
-            rs = positions[ids[I]]
-            return np.asarray(ξ(*rs, **kwargs))
+            pos = positions[ids[idx]]
+            return np.asarray(xi(*pos, **kwargs))
 
-    f, Jf = jit(evaluate), jit(J(evaluate))
+    function, j_function = jit(evaluate), jit(j_grad(evaluate))
 
-    def apply(rs: JaxArray, ids: JaxArray, **kwargs):
-        ξ = np.expand_dims(f(rs, ids, **kwargs).flatten(), 0)
-        Jξ = np.expand_dims(Jf(rs, ids, **kwargs).flatten(), 0)
-        return ξ, Jξ
+    def apply(pos: JaxArray, ids: JaxArray, **kwargs):
+        xi = np.expand_dims(function(pos, ids, **kwargs).flatten(), 0)
+        Jxi = np.expand_dims(j_function(pos, ids, **kwargs).flatten(), 0)
+        return xi, Jxi
 
     return jit(apply)
 
 
 def build(cv: CollectiveVariable, *cvs: CollectiveVariable):
+    """
+    Jit compile and stack collective variables.
+
+    Parameters
+    ----------
+    cv: CollectiveVariable
+       Collective Variable object to jit compile.
+    cvs: list[CollectiveVariable]
+       List of Collective variables that get stacked on top of each other.
+
+    Returns
+    -------
+    Callable(Snapshot)
+       Jit compiled function, that takes a snapshot object and access position and indices from it.
+       With this information the collective variables and their derivative are computed and returned as a tuple.
+    """
     cvs = [_build(cv)] + [_build(cv) for cv in cvs]
 
     def apply(data):
-        rs = data.positions[:, :3]
+        pos = data.positions[:, :3]
         ids = data.indices
 
-        ξs, Jξs = [], []
-        for i in range(len(cvs)):
-            ξ, Jξ = cvs[i](rs, ids)
-            ξs.append(ξ)
-            Jξs.append(Jξ)
+        xis, j_xis = [], []
+        for cv in cvs:
+            xi, j_xi = cv(pos, ids)
+            xis.append(xi)
+            j_xis.append(j_xi)
 
-        return np.hstack(ξs), np.vstack(Jξs)
+        return np.hstack(xis), np.vstack(j_xis)
 
     return jit(apply)
 
 
-def process_groups(indices: Union[List, Tuple]):
-    n = 0
+def _process_groups(indices: Union[List, Tuple]):
+    total_group_length = 0
     collected = []
     groups = []
     for obj in indices:
-        group_found = is_group(obj)
+        group_found = _is_group(obj)
         if group_found:
             collected += obj
         else:
             collected.append(obj)
-        s = group_size(obj)
+        group_length = _group_size(obj)
         if group_found:
-            groups.append(np.arange(n, n + s, dtype = UInt32))
-        n += s
+            groups.append(np.arange(total_group_length, total_group_length + group_length, dtype=UInt32))
+        total_group_length += group_length
     return UInt32(np.hstack(collected)), groups
 
 
 @dispatch
-def is_group(indices: Indices):
+def _is_group(indices: Indices):  # pylint:disable=unused-argument
     return False
 
 
 @dispatch
-def is_group(group: List[Indices]):
+def _is_group(group: List[Indices]):  # pylint:disable=unused-argument
     return True
 
 
 @dispatch
-def is_group(obj):
+def _is_group(obj):
     raise ValueError("Invalid indices or group: {}".format(obj))
 
 
 @dispatch
-def group_size(obj: int):
+def _group_size(obj: int):  # pylint:disable=unused-argument
     return 1
 
 
 @dispatch
-def group_size(obj: range):
+def _group_size(obj: range):
     return len(obj)
 
 
 @dispatch
-def group_size(obj: Union[List, Tuple]):
-    return sum(group_size(o) for o in obj)
+def _group_size(obj: Union[List, Tuple]):
+    return sum(_group_size(o) for o in obj)
