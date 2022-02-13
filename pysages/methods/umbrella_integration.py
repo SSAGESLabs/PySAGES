@@ -98,7 +98,7 @@ class UmbrellaIntegration(HarmonicBias):
             return arg
 
         if context_args is None:
-            context_args = dict()
+            context_args = {}
 
         n_replica = len(centers)
         timesteps = collect(timesteps, n_replica, "timesteps", int)
