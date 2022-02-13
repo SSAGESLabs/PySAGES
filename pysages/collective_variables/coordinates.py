@@ -1,6 +1,9 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
+"""
+Collective Variables that are compute from the Cartesian coordinates.
+"""
 
 import jax.numpy as np
 from jax.numpy import linalg
@@ -42,28 +45,49 @@ def weighted_barycenter(positions, weights):
         3D array with the weighted barycenter coordinates.
 
     """
-    n = positions.shape[0]
-    R = np.zeros(3)
-    # TODO: Replace by `np.sum` and `vmap`
-    for i in range(n):
-        w, r = weights[i], positions[i]
-        R += w * r
-    return R
+    group_length = positions.shape[0]
+    pos = np.zeros(3)
+    # TODO: Replace by `np.sum` and `vmap`  # pylint:disable=fixme
+    for i in range(group_length):
+        weight, particle_pos = weights[i], positions[i]
+        pos += weight * particle_pos
+    return pos
 
 
 class Component(AxisCV):
+    """
+    Use a specific cartesian component of the center of mass of the group of atom selected
+    via the indices.
+
+    Parameters
+    ----------
+    indices: list[int], list[tuple(int)]
+       Select atom groups via indices. From each group the barycenter is calculated.
+    axis: int
+       Cartesian coordinate axis component 0==X, 1==Y, 2==Z that is requested as CV.
+    """
+
     @property
     def function(self):
-        return (lambda rs: barycenter(rs)[self.axis])
+        return lambda rs: barycenter(rs)[self.axis]
 
 
 class Distance(TwoPointCV):
+    """
+    Use the distance of atom groups selected via the indices as collective variable.
+
+    Parameters
+    ----------
+    indices: list[int], list[tuple(int)]
+       Select atom groups via indices. (2 Groups required)
+    """
+
     @property
     def function(self):
         return distance
 
 
-def distance(r1, r2):
+def distance(pos1, pos2):
     """
     Returns the distance between two points in space.
 
@@ -80,4 +104,4 @@ def distance(r1, r2):
         Distance between the two points.
 
     """
-    return linalg.norm(r1 - r2)
+    return linalg.norm(pos1 - pos2)

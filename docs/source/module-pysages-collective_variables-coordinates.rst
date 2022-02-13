@@ -1,5 +1,5 @@
-pysages.collective_variables.angles
------------------------------------
+Cartesian Coordinate Collective Variables
+-----------------------------------------
 
 .. rubric:: Overview
 

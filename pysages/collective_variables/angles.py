@@ -44,11 +44,11 @@ def angle(pos1, pos2, pos3):
 
     Parameters
     ----------
-    pos1: array
+    pos1: DeviceArray
        :math:`\\vec{p}_1` 3D vector in space
-    pos1: array
+    pos1: DeviceArray
        :math:`\\vec{p}_2` 3D vector in space
-    pos1: array
+    pos1: DeviceArray
        :math:`\\vec{p}_3` 3D vector in space
 
     Returns
@@ -93,13 +93,13 @@ def dihedral_angle(pos1, pos2, pos3, pos4):
 
     Parameters
     ----------
-    pos1: array
+    pos1: DeviceArray
        :math:`\\vec{p}_1` 3D vector in space
-    pos2: array
+    pos2: DeviceArray
        :math:`\\vec{p}_2` 3D vector in space
-    pos3: array
+    pos3: DeviceArray
        :math:`\\vec{p}_3` 3D vector in space
-    pos4: array
+    pos4: DeviceArray
        :math:`\\vec{p}_4` 3D vector in space
     Returns
     -------

@@ -1,5 +1,5 @@
-pysages.collective_variables.angles
------------------------------------
+Shapes as collective Variables
+------------------------------
 
 .. rubric:: Overview
 
