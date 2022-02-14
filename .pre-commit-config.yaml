@@ -1,6 +1,8 @@
 repos:
--   repo: https://github.com/mwouts/jupytext
-    rev: v1.10.0  # CURRENT_TAG/COMMIT_HASH
-    hooks:
-    - id: jupytext
-      args: [--sync]
+- repo: https://github.com/mwouts/jupytext
+  rev: v1.13.7
+  hooks:
+  - id: jupytext
+    entry: jupytext --to md
+    files: .ipynb
+    language: python
