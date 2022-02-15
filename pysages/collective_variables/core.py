@@ -51,7 +51,7 @@ class CollectiveVariable(ABC):
 
         self.indices = indices
         self.groups = groups
-        self.requires_box_unwrapping = False
+        self.requires_box_unwrapping = True
 
     @abstractproperty
     def function(self):
