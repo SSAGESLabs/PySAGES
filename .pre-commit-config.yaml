@@ -3,6 +3,5 @@ repos:
   rev: v1.13.7
   hooks:
   - id: jupytext
-    entry: jupytext --to md
-    files: .ipynb
+    args: [--sync]
     language: python

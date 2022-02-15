@@ -16,18 +16,15 @@ jupyter:
 <!-- #region id="_UgEohXC8n0g" -->
 # Setting up the environment
 
-First, we are setting up our environment. We use an already compiled and packaged installation of OpenMM and the DLEXT plugin. We copy it from google drive and install pysages for it. We also have a google collab that performs this installation for reference, but that requires permissions that we do not want on our google drive.
+First, we are setting up our environment. We use an already compiled and packaged installation of OpenMM and the DLExt plugin. We copy it from Google Drive and install PySAGES for it. We also have a Google Colab that performs this installation for reference, but that requires permissions that we do not want on our Google Drive.
 
 <!-- #endregion -->
 
 ```bash id="nMThqa-DjVcb"
 
 BASE_URL="https://drive.google.com/u/0/uc?id=1hsKkKtdxZTVfHKgqVF6qV2e-4SShmhr7&export=download"
-wget -q --load-cookies /tmp/cookies.txt "$BASE_URL&confirm=$(wget -q --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate $BASE_URL)" &> /dev/null
-
-
-wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=1hsKkKtdxZTVfHKgqVF6qV2e-4SShmhr7' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=1hsKkKtdxZTVfHKgqVF6qV2e-4SShmhr7" -O pysages-env.zip 2>/dev/null
-rm -rf /tmp/cookies.txt 
+wget -q --load-cookies /tmp/cookies.txt "$BASE_URL&confirm=$(wget -q --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate $BASE_URL -O- | sed -rn 's/.*confirm=(\w+).*/\1\n/p')" -O pysages-env.zip
+rm -rf /tmp/cookies.txt
 ```
 
 ```python colab={"base_uri": "https://localhost:8080/"} id="25H3kl03wzJe" outputId="528d12be-8cc4-42d9-d460-692d46a0e662"
@@ -53,7 +50,7 @@ sys.path.append(os.environ["PYSAGES_ENV"] + "/lib/python" + str(ver.major) + "."
 ## PySAGES
 
 The next step is to install PySAGES.
-First, we install the jaxlib version that matches the CUDA installation of this collab setup. See the JAX documentation [here](https://github.com/google/jax) for more details.
+First, we install the jaxlib version that matches the CUDA installation of this Colab setup. See the JAX documentation [here](https://github.com/google/jax) for more details.
 <!-- #endregion -->
 
 ```bash id="R_gW2ERpi9tw"
@@ -87,7 +84,7 @@ pip install -q . &> /dev/null
 ```
 
 <!-- #region id="h5xD1zfj-J2z" -->
-#Harmonic Bias simulations
+# Harmonic Bias simulations
 <!-- #endregion -->
 
 ```bash id="OIyRfOU9_cEJ"
@@ -99,7 +96,7 @@ cd /content/harmonic-bias
 <!-- #region id="Uh2y2RXDDZub" -->
 A harmonic bias simulation constraints a collective variable with a harmonic potential. This is useful for a variety of advanced sampling methods, in particular, umbrella sampling.
  
-For this colab, we are using Alanine-Dipeptide as the example molecule. So first, we fetch the molecule from the examples of PySAGES.
+For this Colab, we are using alanine dipeptide as the example molecule, a system widely-used for benchmarking enhanced sampling methods. So first, we fetch the molecule from the examples of PySAGES.
 <!-- #endregion -->
 
 ```bash id="5fxJMNyE-RdA"
@@ -155,7 +152,8 @@ def generate_simulation(**kwargs):
 ```
 
 <!-- #region id="YtUoUMEdKtH8" -->
-The next step is to define the collective variable. In this case, we choose the two dihedral angles on the molecule as defined by its atom positions. We also choose the fixed center point for the harmonic bias simulation and the corresponding spring constant.
+The next step is to define the collective variable (CV). In this case, we choose the two dihedral angles on the molecule as defined by the atom positions. We also choose the fixed center point for the harmonic bias simulation and the corresponding spring constant.
+The `HarmonicBias` class is responsible for introducing the bias into the simulation run.
 <!-- #endregion -->
 
 ```python id="zEH5jrRoKszT"
@@ -166,7 +164,8 @@ method = HarmonicBias(cvs, k, center)
 ```
 
 <!-- #region id="sqKuZo92K9n9" -->
-Now define a Histogram callback to log the measured values of the CVs and run the simulation for $10^4$ time steps. Note make sure to run with GPU support. Using the CPU platform with OpenMM is possible and supported, but can take a very long time.
+We now define a Histogram callback to log the measured values of the CVs and run the simulation for $10^4$ time steps. The `HistogramLogger` collects the state of the collective variable during the run. 
+Make sure to run with GPU support. Using the CPU platform with OpenMM is possible and supported, but can take a very long time.
 <!-- #endregion -->
 
 ```python id="-XKSe3os_-Rg"
@@ -202,5 +201,5 @@ ax.legend(loc="best")
 ```
 
 <!-- #region id="m9JjGXq_ha-6" -->
-We see how the dihedral angles are distributed. The histograms are not perfect in this example because we ran the simulation only with a few time steps.
+We see how the dihedral angles are distributed. The histograms are not perfect in this example because we ran the simulation only for a few time steps and hence sampling is quite limited.
 <!-- #endregion -->
