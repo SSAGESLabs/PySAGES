@@ -13,7 +13,7 @@ Currently, there is only support for
 planned (for instance, for all engines already supported by the original SSAGES).
 
 You first need to install one of the following plugins depending on your molecular
-dynamics engine
+dynamics engine:
 
  - For HOOMD-blue visit [HOOMD-dlpack Plugin](https://github.com/SSAGESLabs/hoomd-dlext).
  - For OpenMM go to [OpenMM](https://github.com/SSAGESLabs/openmm-dlext).
@@ -31,12 +31,12 @@ Our tutorials on google colab enable you to see how PySAGES can be installed int
 ## Usage
 
 PySAGES provide a straightforward interface to setup Collective Variables and Enhanced
-Sampling methods to you MD simulations. See the documentation to learn more.
+Sampling methods to your MD simulations. See the documentation to learn more.
 
 If you want to learn more, you can also head over to the `examples` subfolder,
-which contains scripts for running different HOOMD-blue and OpenMM biased simulations
+which contains scripts for running different HOOMD-blue and OpenMM biased simulations.
 
-Or checkout one of our google collab notebooks to try out PySAGES yourself.
+Or checkout one of our google colab notebooks to try out PySAGES yourself.
 
 ### HOOMD-blue
 
