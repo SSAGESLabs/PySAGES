@@ -126,6 +126,9 @@ Next, we write a function that can generate an execution context for OpenMM. Thi
 <!-- #endregion -->
 
 ```python id="GAGw0s_cAcgP"
+"""
+Generates a simulation context, we pass this function to the attribute `run` of our sampling method.
+"""
 def generate_simulation(**kwargs):
     pdb_filename = "alanine-dipeptide-explicit.pdb"
     T = 298.15 * unit.kelvin
@@ -152,7 +155,7 @@ def generate_simulation(**kwargs):
 ```
 
 <!-- #region id="YtUoUMEdKtH8" -->
-The next step is to define the collective variable (CV). In this case, we choose the two dihedral angles on the molecule as defined by the atom positions. We also choose the fixed center point for the harmonic bias simulation and the corresponding spring constant.
+The next step is to define the collective variable (CV). In this case, we choose the two dihedral angles on the molecule as defined by the atom positions. We also choose an equilibrium value to constrain the dihedrals and the corresponding spring constant.
 The `HarmonicBias` class is responsible for introducing the bias into the simulation run.
 <!-- #endregion -->
 

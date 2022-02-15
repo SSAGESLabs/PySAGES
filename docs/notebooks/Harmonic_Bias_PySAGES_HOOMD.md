@@ -180,6 +180,9 @@ The second function is a helper function to generate the theoretically expected 
 <!-- #endregion -->
 
 ```python id="67488aXwQXba"
+"""
+Generates a simulation context, we pass this function to the attribute `run` of our sampling method.
+"""
 def generate_context(**kwargs):
     hoomd.context.initialize('')
     context = hoomd.context.SimulationContext()

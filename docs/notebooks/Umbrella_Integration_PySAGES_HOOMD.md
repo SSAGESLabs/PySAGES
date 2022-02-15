@@ -86,14 +86,10 @@ cd PySAGES
 pip install -q . &> /dev/null
 ```
 
-<!-- #region id="IXryBllMNiKM" -->
-We can see, that the particle positions are indeed centered around the constraints we set up earlier. Also, we see the shape of the histograms is very similar to the expected analytical prediction. We expect this since a liquid of soft particles is not that much different from an ideal gas.
-<!-- #endregion -->
-
 <!-- #region id="LjPjqVjSOzTL" -->
 # Umbrella integration
 
-In the previous section, we demonstrated how PySAGES can be used to run a single simulation with a biasing potential.
+In [this tutorial](https://github.com/SSAGESLabs/PySAGES/docs/notebooks/Harmonic_Bias_PySAGES_HOOMD.md), we demonstrated how PySAGES can be used to run a single simulation with a biasing potential.
 However, if we want to look into the free-energy landscape a single simulation is not enough. Instead, we have to perform a series of simulations along a path in the space of the collective variables (CVs). From the histograms of the biasing, we can deduce the differences in free energy. For a more detailed explanation look at the literature, for example [J. Kaestner 2009](https://doi.org/10.1063/1.3175798).
 
 The first step here is also to generate a simulation snapshot that can be used as an initial condition.
@@ -174,6 +170,9 @@ from pysages.methods import UmbrellaIntegration
 ```python id="RsZhjfm2U5ps"
 param1 = {"A": 0.5, "w": 0.2, "p": 2}
 
+"""
+Generates a simulation context, we pass this function to the attribute `run` of our sampling method.
+"""
 def generate_context(**kwargs):
     hoomd.context.initialize("")
     context = hoomd.context.SimulationContext()
@@ -279,3 +278,7 @@ offset = np.min(data)
 ax.plot(x, data-offset, label="test")
 
 ```
+
+<!-- #region id="IXryBllMNiKM" -->
+We can see, that the particle positions are indeed centered around the constraint values we set up earlier. Also, we see the shape of the histograms is very similar to the expected analytical prediction. We expect this since a liquid of soft particles is not that much different from an ideal gas.
+<!-- #endregion -->
