@@ -19,7 +19,7 @@ jupyter:
 <!-- #endregion -->
 
 <!-- #region id="WM_9PpDwKuoA" -->
-First, we are setting up our environment. We use an already compiled and packaged installation of HOOMD-blue and the DLEXT plugin. We copy it from Google Drive and install pysages for it. This may require you to have read permissions to the shared Google Drive. We also have a google colab that performs this installation for reference.
+First, we are setting up our environment. We use an already compiled and packaged installation of HOOMD-blue and the DLEXT plugin. We copy it from google drive and install pysages for it. This may require you to have read permissions to the shared google drive. We also have a google collab that performs this installation for reference.
 
 <!-- #endregion -->
 
@@ -54,7 +54,7 @@ sys.path.append(os.environ["PYSAGES_ENV"] + "/lib/python" + str(ver.major) + "."
 ## PySAGES
 
 The next step is to install PySAGES.
-First, we install the jaxlib version that matches the CUDA installation of this colab setup. See the JAX documentation [here](https://github.com/google/jax) for more details.
+First, we install the jaxlib version that matches the CUDA installation of this collab setup. See the JAX documentation [here](https://github.com/google/jax) for more details.
 <!-- #endregion -->
 
 ```bash id="R_gW2ERpi9tw"
@@ -205,8 +205,8 @@ def get_target_dist(center, k, lim, bins):
 ```
 
 <!-- #region id="BgQ88M0sIfbp" -->
-The next step is to define the collective variables (CVs) we are interested in.
-In this case, we are using the `Component` CV to describe the position in space. We choose particle `[0]` for this and log in 3 different CVS the Z- `2`, Y- `1`, and X- `0` position of the particle.
+The next step is to define the collective variables we are interested in.
+In this case, we are using the `Component` collective variable to describe the position in space. We choose particle `[0]` for this and log in 3 different CVS the Z- `2`, Y- `1`, and X- `0` position of the particle.
 The center describes where we are restraining the CVs to, which is also specified for each of the CVs described earlier.
 
 Finally, we define the spring constant for the harmonic biasing potential and the `HarmonicBias` method itself.
@@ -241,7 +241,7 @@ method.run(generate_context, int(1e4), callback, {"A": 7.0}, profile=True)
 After the simulation run, we collect the results for comparison with the analytic prediction for an ideal gas.
 First, we generate the analytic predictions for each of the CVs in a list `target_hist`.
 
-After that, we are using the collected results from the callback to build the histograms from the simulations, and store the results in `hist_list`.
+After, we are using the collected results from the callback to build the histograms from the simulations. And store the results in `hist_list`.
 <!-- #endregion -->
 
 ```python id="jBiATDSaSqUw"

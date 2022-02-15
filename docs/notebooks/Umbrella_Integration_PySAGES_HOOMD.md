@@ -94,7 +94,7 @@ We can see, that the particle positions are indeed centered around the constrain
 # Umbrella integration
 
 In the previous section, we demonstrated how PySAGES can be used to run a single simulation with a biasing potential.
-However, if we want to look into the free-energy landscape a single simulation is not enough. Instead, we have to perform a series of simulations along a path in the space of the collective variables (CVs). From the histograms of the biasing, we can deduce the differences in free energy. For a more detailed explanation look at the literature, for example [J. Kaestner 2009](https://doi.org/10.1063/1.3175798).
+However, if we want to look into the free-energy landscape a single simulation is not enough. Instead, we have to perform a series of simulations along a path in the space of the collective variables. From the histograms of the biasing, we can deduce the differences in free energy. For a more detailed explanation look at the literature for example [J. Kaestner 2009](https://doi.org/10.1063/1.3175798).
 
 The first step here is also to generate a simulation snapshot that can be used as an initial condition.
 <!-- #endregion -->
@@ -155,7 +155,7 @@ with gsd.hoomd.open("start.gsd", "wb") as f:
 <!-- #region id="AgFXHafmVUAi" -->
 For this simulation, we are using the PySAGES method `UmbrellaIntegration` so we start with importing this.
 
-In the next step, we write a function that generates the simulation context. We need to make sure that the context can depend on the replica of the simulation along the path. PySAGES sets variable `replica_num` in the keyword arguments of the function.
+In the next step, we write a function, that generates the simulation context. We need to make sure, that the context can depend on the replica of the simulation along the path. PySAGES sets variable `replica_num` in the keyword arguments of the function.
 We also set some general parameters for all replicas.
 
 In contrast to the single harmonic bias simulation, the simulation now contains an external potential `hoomd.external.periodic` which changes the expected density of particles. See hoomd-blue's [documentation](https://hoomd-blue.readthedocs.io/en/stable/module-md-external.html#hoomd.md.external.periodic) for details on the potential. For this example, the potential generates the free-energy landscape we are exploring.
@@ -208,7 +208,7 @@ method = UmbrellaIntegration(cvs)
 ```
 
 <!-- #region id="jhs3vpglaux4" -->
-Next, we define the path along the CV space. In this case, we start at position $-1.5$ and end the path at the position $1.5$. We are using linear interpolation with $25$ replicas.
+Next, we define the path along in CV space. In this case, we start at $-1.5$ and end the path at the position $1.5$. We are using linear interpolation with $25$ replica.
 <!-- #endregion -->
 
 ```python id="Uvkeedv4atn3"
@@ -225,7 +225,7 @@ result = method.run(generate_context, int(1e4), centers, 50., 50, int(1e3))
 ```
 
 <!-- #region id="_xFSKCpKb6XF" -->
-What is left after the run is evaluating the resulting histograms for each of the replicas. For a better visualization, we group the histogram into 4 separate plots. This also helps to demonstrate that the histograms overlap.
+What is left after the run is evaluating the resulting histograms for each of the replicas. For a better visibility, we group the histogram into 4 separate plots. This also helps to demonstrate that the histograms overlap.
 <!-- #endregion -->
 
 ```python colab={"base_uri": "https://localhost:8080/", "height": 265} id="OOpagwvlb3_d" outputId="62b507a1-d404-4924-ec1b-00b9d3f39085"
