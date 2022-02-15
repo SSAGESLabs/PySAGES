@@ -232,7 +232,7 @@ def _is_group(group: List[Indices]):  # pylint:disable=unused-argument
 
 @dispatch
 def _is_group(obj):
-    raise ValueError("Invalid indices or group: {}".format(obj))
+    raise ValueError(f"Invalid indices or group: {obj}")
 
 
 @dispatch

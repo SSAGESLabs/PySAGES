@@ -102,7 +102,8 @@ class PrincipalMoment(AxisCV):
         Returns
         -------
         Callable
-           Function to calculate the Eigenvalue with the specified axis index of the GyrationTensor. See `pysages.collective_variables.shape.principal_moments` and `pysages.collective_variables.shape.gyration_tensor` for details.
+           Function to calculate the Eigenvalue with the specified axis index of the GyrationTensor.\
+           See `pysages.collective_variables.shape.principal_moments` and `pysages.collective_variables.shape.gyration_tensor` for details.
         """
         return lambda rs: principal_moments(rs)[self.axis]
 
