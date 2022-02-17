@@ -70,7 +70,7 @@ def main():
     method = FFS(cvs, grid)
     win_0 = (100. / 180.) * pi
     win_f = (150. / 180.) * pi
-    
+
     method.run(generate_simulation, 1e9, dt, win_0, win_f, 4, 20000, 20)
 
 

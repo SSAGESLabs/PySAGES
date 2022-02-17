@@ -54,6 +54,7 @@ from .core import SamplingMethod
 
 from .abf import ABF
 from .ann import ANN
+from .ffs import FFS
 from .funn import FUNN
 from .harmonic_bias import HarmonicBias
 from .umbrella_integration import UmbrellaIntegration

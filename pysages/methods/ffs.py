@@ -272,7 +272,7 @@ def initial_flow(
     print(f"Finish Initial Flow with {success} succeses over {time_count} time\n")
     phi_a = float(success) / (time_count)
 
-    return phi_a, window0_snaps    
+    return phi_a, window0_snaps
 
 
 def running_window(grid, step, old_snapshots, run, sampler, helpers, cv):
@@ -287,14 +287,14 @@ def running_window(grid, step, old_snapshots, run, sampler, helpers, cv):
         xi, _ = cv(helpers.query(sampler.snapshot))
         print(f"Stored configuration: {i} of window: {step}\n")
         print(xi)
-        
+
         # limit running time to avoid zombie trajectories
         # this can be probably be improved
         running = True
         while running:
             run(1)
             xi = sampler.state.xi.block_until_ready()
-            
+
             if np.all(xi < win_A):
                 running = False
             elif np.all(xi >= win_value):
