@@ -31,34 +31,8 @@ Our tutorials on google colab enable you to see how PySAGES can be installed int
 ## Usage
 
 PySAGES provide a straightforward interface to setup Collective Variables and Enhanced
-Sampling methods to your MD simulations. See the documentation to learn more.
+Sampling methods to your MD simulations. See the [documentation](https://pysages.readthedocs.io/en/latest/) to learn more.
 
-If you want to learn more, you can also head over to the `examples` subfolder,
-which contains scripts for running different HOOMD-blue and OpenMM biased simulations.
-
-Or checkout one of our google colab notebooks to try out PySAGES yourself.
-
-### HOOMD-blue
-
-Simple Harmonic Biasing:
-
-[![Hoomd-blue Harmonic Bias](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/docs/notebooks/Harmonic_Bias_PySAGES_HOOMD.ipynb)
-
-Umbrella Integration with harmonic bias:
-
-[![Hoomd-blue Umbrella Integration](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/docs/notebooks/Umbrella_Integration_PySAGES_HOOMD.ipynb)
-
-
-### OpenMM
-
-Simple Harmonic Biasing:
-
-[![OpenMM Harmonic Bias](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/docs/notebooks/Harmonic_Bias_PySAGES_OpenMM.ipynb)
-
-
-### Installation of the environment
-
-All of the previous notebooks require a preinstalled environment of OpenMM and HOOMD-blue with the plugings to hook them up to PySAGES.
-As a reference for the installation instructions of these environments take a look at this notebook:
-
-[![Install Env](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/docs/notebooks/Install_PySAGES_Environment.ipynb)
+We are also offering ready to go examples for common methods.
+Checkout our [examples](examples/) subfolder to learn about Google Colab examples and script examples.
+The examples include simulations and an example of how to install PySAGES with the MD engines.
