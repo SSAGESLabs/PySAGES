@@ -29,7 +29,7 @@ Examples for Methods using OpenMM can be found in the subfolder [openmm](openmm)
 
 ## Script examples
 
-* ABF with Alanine Dipeptide: [ABF](openmm/ab)
+* ABF with Alanine Dipeptide: [ABF](openmm/abf)
 
 # Installation of the Environment
 
