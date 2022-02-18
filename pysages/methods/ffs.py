@@ -305,7 +305,7 @@ def initial_flow(
             time_count += timestep
             xi = sampler.state.xi.block_until_ready()
 
-            if np.all(xi >= win_A):
+            if np.all(xi >= win_A) and np.all(xi < grid[1]):
                 success += 1
                 has_reached_A = True
 
