@@ -60,16 +60,11 @@ def generate_simulation(
 # %%
 def main():
     cvs = [ DihedralAngle((6, 8, 14, 16)) ]
-    grid = pysages.Grid(
-        lower = (-5.0,),
-        upper = (5.0,),
-        shape = (25,),
-        periodic = False
-    )
+    method = FFS(cvs)
+
     dt = 2.0
-    method = FFS(cvs, grid)
-    win_0 = (100. / 180.) * pi
-    win_f = (150. / 180.) * pi
+    win_0 = (100 / 180) * pi
+    win_f = (150 / 180) * pi
 
     method.run(generate_simulation, 1e9, dt, win_0, win_f, 4, 20000, 20)
 
