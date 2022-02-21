@@ -101,7 +101,7 @@ For this Colab, we are using alanine dipeptide as the example molecule, a system
 
 ```bash id="5fxJMNyE-RdA"
 
-cp /content/PySAGES/examples/abf/alanine-dipeptide-explicit.pdb ./
+cp /content/PySAGES/examples/inputs/alanine-dipeptide/adp-explicit.pdb ./
 ```
 
 <!-- #region id="SqaG8YdK__FU" -->
@@ -130,7 +130,7 @@ Next, we write a function that can generate an execution context for OpenMM. Thi
 Generates a simulation context, we pass this function to the attribute `run` of our sampling method.
 """
 def generate_simulation(**kwargs):
-    pdb_filename = "alanine-dipeptide-explicit.pdb"
+    pdb_filename = "adp-explicit.pdb"
     T = 298.15 * unit.kelvin
     dt = 2.0 * unit.femtoseconds
     pdb = app.PDBFile(pdb_filename)
