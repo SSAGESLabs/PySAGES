@@ -2,8 +2,12 @@
 # Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
+# Maintainer: ndtrung
+
 import importlib
 import lammps
+#  NOTE: LAMMPS needs to be built as a python module and a shared library (https://docs.lammps.org/Python_install.html)
+#     and with the KOKKOS package enabled, which provides access to per-atom arrays on the device
 
 from functools import partial
 from typing import Callable
@@ -11,6 +15,9 @@ from warnings import warn
 
 from jax import jit, numpy as np
 from jax.dlpack import from_dlpack as asarray
+
+# TODO: lammps.dlext should support the following modules
+#   lammps.dlext wraps the device per-atom arrays via the KOKKOS package
 from lammps.dlext import (
     AccessLocation,
     AccessMode,
