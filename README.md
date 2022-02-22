@@ -13,22 +13,27 @@ Currently, there is only support for
 planned (for instance, for all engines already supported by the original SSAGES).
 
 You first need to install one of the following plugins depending on your molecular
-dynamics engine
+dynamics engine:
 
- - For HOOMD-blue visit [HOOMD-dlpack Plugin](https://github.com/SSAGESLabs/hoomd-dlext).
- - For OpenMM go to [OpenMM](https://github.com/SSAGESLabs/openmm-dlext).
+ - For HOOMD-blue visit [HOOMD DLPack Plugin](https://github.com/SSAGESLabs/hoomd-dlext).
+ - For OpenMM go to [OpenMM DLPack Plugin](https://github.com/SSAGESLabs/openmm-dlext).
 
 PySAGES also depends on [JAX](https://github.com/google/jax/), follow their installation
-guide to set it up. *NOTE:* make sure you manually install jaxlib before PySAGES.
+guide to set it up. *NOTE:* make sure you have jaxlib installed before using PySAGES.
 Depending on your local setup, you will have to install the jaxlib CPU version or the CUDA compatible flavor.
 
 To test GPU support HOOMD-blue, HOOMD-dlext and JAX need to be built or installed with
-GPU support.
+CUDA support.
+
+Our installation tutorial on Google Colab enable you to see how PySAGES,
+HOOMD-blue and OpenMM can be built and installed into such environment.
+[![Install Env](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/docs/examples/Install_PySAGES_Environment.ipynb)
 
 ## Usage
 
-PySAGES provide a straightforward interface to setup Collective Variables and Enhaced
-Sampling methods to you MD simulations. See the documentation to learn more.
+PySAGES provide a straightforward interface to setup Collective Variables and Enhanced
+Sampling methods in your MD simulations. See the [documentation](https://pysages.readthedocs.io/en/latest/) to learn more.
 
-If you want to learn more, you can also head over to the `examples` subfolder,
-which contains scripts for running different HOOMD-blue and OpenMM biased simulations
+We provide ready-to-go examples for common methods.
+Checkout out the [examples](examples/) subfolder to look at different script and notebook examples.
+These include pre-set simulations and a tutorial on how to install PySAGES along with the supported MD engines.

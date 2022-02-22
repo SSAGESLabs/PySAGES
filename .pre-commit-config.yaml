@@ -1,0 +1,7 @@
+repos:
+- repo: https://github.com/mwouts/jupytext
+  rev: v1.13.7
+  hooks:
+  - id: jupytext
+    args: [--sync]
+    language: python
