@@ -22,7 +22,10 @@ class SamplingMethod(ABC):
     """
     Abstract base class for all sampling methods.
 
-    Defines the constructor that expects the collective variables, the build method to initialize the GPU execution for the biasing and the run method that executes the simulation run. All these are intended be enhanced/overwritten by inheriting classes.
+    Defines the constructor that expects the collective variables,
+    the build method to initialize the GPU execution for the biasing,
+    and the run method that executes the simulation run.
+    All these are intended be enhanced/overwritten by inheriting classes.
     """
     snapshot_flags = set()
 
@@ -33,6 +36,7 @@ class SamplingMethod(ABC):
         )
         self.args = args
         self.kwargs = kwargs
+        self.context = []
 
     @abstractmethod
     def build(self, snapshot, helpers, *args, **kwargs):
@@ -46,7 +50,7 @@ class SamplingMethod(ABC):
 
     def run(
         self, context_generator: Callable, timesteps: int, callback: Callable = None,
-        context_args: Mapping = dict(), **kwargs
+        context_args: Mapping = None, **kwargs
     ):
         """
         Base implementation of running a single simulation/replica with a sampling method.
@@ -66,10 +70,13 @@ class SamplingMethod(ABC):
             Allows for user defined actions into the simulation workflow of the method.
             `kwargs` gets passed to the backend `run` function.
         """
+        if context_args is None:
+            context_args = dict()
         context = context_generator(**context_args)
-        self.context = ContextWrapper(context, self, callback)
-        with self.context:
-            self.context.run(timesteps, **kwargs)
+        self.context.append(ContextWrapper(context, self, callback))
+        assert len(self.context) == 1
+        with self.context[0]:
+            self.context[0].run(timesteps, **kwargs)
 
 
 class GriddedSamplingMethod(SamplingMethod):
