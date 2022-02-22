@@ -9,14 +9,18 @@ Biasing a simulation towards a value of a collective variable is the foundation 
 number advanced sampling methods, umbrella integration, WHAM, string method to name a few.
 This method implements such a bias.
 
-The hamiltonian is ammended with a term :math:`\\mathcal{H} = \\mathcal{H}_0 + \\mathcal{H}_\\mathrm{HB}(\\xi)` where
-:math:`\\mathcal{H}_\\mathrm{HB}(\\xi) = \\boldsymbol{K}/2 (\\xi_0 - \\xi)^2` biases the simulations around the collective variable :math:`\\xi_0`.
+The hamiltonian is ammended with a term
+:math:`\\mathcal{H} = \\mathcal{H}_0 + \\mathcal{H}_\\mathrm{HB}(\\xi)` where
+:math:`\\mathcal{H}_\\mathrm{HB}(\\xi) = \\boldsymbol{K}/2 (\\xi_0 - \\xi)^2`
+biases the simulations around the collective variable :math:`\\xi_0`.
 """
 
 from typing import NamedTuple
-import jax.numpy as np
-from jaxlib.xla_extension import DeviceArray as JaxArray  # pylint: disable=no-name-in-module
-from .core import SamplingMethod, generalize  # pylint: disable=relative-beyond-top-level
+
+from jax import numpy as np
+
+from pysages.methods.core import SamplingMethod, generalize
+from pysages.utils import JaxArray
 
 
 class HarmonicBiasState(NamedTuple):

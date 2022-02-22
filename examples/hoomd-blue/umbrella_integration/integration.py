@@ -89,14 +89,18 @@ def plot_energy(result):
 
 
 def get_args(argv):
+    available_args = [
+        ("k-spring", "k", float, 50, "Spring constant for each replica"),
+        ("N-replicas", "N", int, 25, "Number of replicas along the path"),
+        ("start-path", "s", float, -1.5, "Start point of the path"),
+        ("end-path", "e", float, 1.5, "Start point of the path"),
+        ("time-steps", "t", int, 1e5, "Number of simulation steps for each replica"),
+        ("log-period", "l", int, 50, "Frequency of logging the CVS for histogram"),
+        ("discard-equi", "d", int, 1e4, "Discard timesteps before logging for equilibration"),
+    ]
     parser = argparse.ArgumentParser(description="Example script to run umbrella integration")
-    parser.add_argument("--k-spring", "-k", type=float, default=50., help="spring constant for each replica")
-    parser.add_argument("--N-replica", "-N", type=int, default=25, help="Number of replica along the path")
-    parser.add_argument("--start-path", "-s", type=float, default=-1.5, help="Start point of the path")
-    parser.add_argument("--end-path", "-e", type=float, default=1.5, help="Start point of the path")
-    parser.add_argument("--time-steps", "-t", type=int, default=int(1e5), help="Number of simulation steps for each replica")
-    parser.add_argument("--log-period", "-l", type=int, default=int(50), help="Frequency of logging the CVS for histogram")
-    parser.add_argument("--discard-equi", "-d", type=int, default=int(1e4), help="Discard timesteps before logging for equilibration")
+    for (name, short, T, val, doc) in available_args:
+        parser.add_argument("--" + name, "-" + short, type = T, default = T(val), help = doc)
     args = parser.parse_args(argv)
     return args
 
@@ -104,10 +108,10 @@ def main(argv):
 
     args = get_args(argv)
 
-    cvs = [Component([0], 0),]
+    cvs = [Component([0], 0)]
     method = UmbrellaIntegration(cvs)
 
-    centers = list(np.linspace(args.start_path, args.end_path, args.N_replica))
+    centers = list(np.linspace(args.start_path, args.end_path, args.N_replicas))
     result = method.run(generate_context, args.time_steps, centers, args.k_spring, args.log_period, args.discard_equi)
 
     plot_energy(result)
