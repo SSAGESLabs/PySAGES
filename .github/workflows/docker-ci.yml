@@ -6,11 +6,13 @@ on:
       - main
     paths-ignore:
       - 'README.md'
+      - 'docs/*'
   pull_request:
     branches:
       - main
     paths-ignore:
       - 'README.md'
+      - 'docs/*'
 
   workflow_dispatch:
 
@@ -55,7 +57,7 @@ jobs:
         name: Load and run test
         run: |
           docker load --input /tmp/pysages.tar
-          docker run -v/tmp:/tmp -t pysages bash -c "cd PySAGES/examples/harmonic_bias/ && ./run.sh && mv hist.pdf /tmp/"
+          docker run -v/tmp:/tmp -t pysages bash -c "cd PySAGES/examples/hoomd-blue/harmonic_bias/ && ./run.sh && mv hist.pdf /tmp/"
       -
         name: Upload artifact
         uses: actions/upload-artifact@v2
@@ -81,7 +83,7 @@ jobs:
         name: Load and run test
         run: |
           docker load --input /tmp/pysages.tar
-          docker run -t pysages bash -c "cd PySAGES/examples/abf/ && python3 ./alanine-dipeptide_openmm.py"
+          docker run -t pysages bash -c "cd PySAGES/examples/openmm/abf/ && python3 ./alanine-dipeptide_openmm.py"
 
   umbrella-integration-hoomd:
     runs-on: ubuntu-latest
@@ -100,7 +102,7 @@ jobs:
         name: Load and run test
         run: |
           docker load --input /tmp/pysages.tar
-          docker run -v /tmp:/tmp -t pysages bash -c "cd PySAGES/examples/umbrella_integration/ && python3 ./gen_gsd.py && python3 integration.py --N-replica=5 --time-steps=1000 --discard-equi=0 && mkdir /tmp/plots && mv *.pdf /tmp/plots/"
+          docker run -v /tmp:/tmp -t pysages bash -c "cd PySAGES/examples/hoomd-blue/umbrella_integration/ && python3 ./gen_gsd.py && python3 integration.py --N-replica=5 --time-steps=1000 --discard-equi=0 && mkdir /tmp/plots && mv *.pdf /tmp/plots/"
       -
         name: Upload artifacts
         uses: actions/upload-artifact@v2
