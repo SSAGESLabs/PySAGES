@@ -2,18 +2,20 @@
 # Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 # flake8: noqa F811
+
 """
 Abstract base classes for collective variables.
 """
-from abc import ABC, abstractproperty
+
+from abc import ABC, abstractmethod
 from inspect import signature
 from typing import Callable, List, Tuple, Union
 
-from jax import grad, jit
-import jax.numpy as np
+from jax import grad as jax_grad, jit, numpy as np
 from plum import dispatch
 
 from pysages.utils import JaxArray
+
 
 UInt32 = np.uint32
 Indices = Union[int, range]
@@ -45,7 +47,8 @@ class CollectiveVariable(ABC):
         self.groups = groups
         self.requires_box_unwrapping = True
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def function(self):
         """
         Returns an external method that implements the actual computation of the collective variable.
@@ -63,13 +66,13 @@ class AxisCV(CollectiveVariable):
        Must be a list or tuple of atoms (ints or ranges) or groups of
        atoms. A group is specified as a nested list or tuple of atoms.
     axis: int
-       Index of the cartesian coordinate: 0==X, 1==Y, 2==Z
+       Index of the cartesian coordinate: 0 (X), 1 (Y), 2 (Z)
     group_length: int, optional
        Specify if a fixed group length is expected.
     """
     def __init__(self, indices, axis, group_length=None):
         if axis not in (0, 1, 2):
-            raise RuntimeError(f"Invalid Cartesian axis {axis} index choose 0==X, 1==Y, 2==Z")
+            raise RuntimeError(f"Invalid Cartesian axis {axis} index choose 0 (X), 1 (Y), 2 (Z)")
         super().__init__(indices, group_length)
         self.axis = axis
 
@@ -87,7 +90,8 @@ class TwoPointCV(CollectiveVariable):
     def __init__(self, indices):
         super().__init__(indices, 2)
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def function(self):
         pass
 
@@ -106,7 +110,8 @@ class ThreePointCV(CollectiveVariable):
     def __init__(self, indices):
         super().__init__(indices, 3)
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def function(self):
         pass
 
@@ -125,7 +130,8 @@ class FourPointCV(CollectiveVariable):
     def __init__(self, indices):
         super().__init__(indices, 4)
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def function(self):
         pass
 
@@ -144,7 +150,7 @@ def _get_nargs(function: Callable):
     return len(signature(function).parameters)
 
 
-def _build(cv: CollectiveVariable, j_grad=grad):
+def _build(cv: CollectiveVariable, grad = jax_grad):
     # TODO: Add support for passing weights of compute weights from masses, and # pylint:disable=fixme
     # to reduce groups with barycenter
     xi = cv.function
@@ -159,11 +165,11 @@ def _build(cv: CollectiveVariable, j_grad=grad):
             pos = positions[ids[idx]]
             return np.asarray(xi(*pos, **kwargs))
 
-    function, j_function = jit(evaluate), jit(j_grad(evaluate))
+    function, gradient = jit(evaluate), jit(grad(evaluate))
 
     def apply(pos: JaxArray, ids: JaxArray, **kwargs):
         xi = np.expand_dims(function(pos, ids, **kwargs).flatten(), 0)
-        Jxi = np.expand_dims(j_function(pos, ids, **kwargs).flatten(), 0)
+        Jxi = np.expand_dims(gradient(pos, ids, **kwargs).flatten(), 0)
         return xi, Jxi
 
     return jit(apply)
@@ -192,13 +198,13 @@ def build(cv: CollectiveVariable, *cvs: CollectiveVariable):
         pos = data.positions[:, :3]
         ids = data.indices
 
-        xis, j_xis = [], []
+        xis, xis_grads = [], []
         for cv in cvs:
-            xi, j_xi = cv(pos, ids)
+            xi, Jxi = cv(pos, ids)
             xis.append(xi)
-            j_xis.append(j_xi)
+            xis_grads.append(Jxi)
 
-        return np.hstack(xis), np.vstack(j_xis)
+        return np.hstack(xis), np.vstack(xis_grads)
 
     return jit(apply)
 

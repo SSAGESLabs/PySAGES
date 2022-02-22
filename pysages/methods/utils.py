@@ -1,10 +1,11 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
+
 """
 Collection of helpful classes for methods.
 
-This includes callback functor.
+This includes callback functors (callable classes).
 """
 
 import jax.numpy as np

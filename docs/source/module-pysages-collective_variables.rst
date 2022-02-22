@@ -39,5 +39,5 @@ Abstract base classes
    module-pysages-collective_variables-core
 
 .. automodule:: pysages.collective_variables
-    :synopsis: Python classes for the advanced sampling methods.
+    :synopsis: Python classes for collective variables.
     :members:

@@ -22,7 +22,10 @@ class SamplingMethod(ABC):
     """
     Abstract base class for all sampling methods.
 
-    Defines the constructor that expects the collective variables, the build method to initialize the GPU execution for the biasing and the run method that executes the simulation run. All these are intended be enhanced/overwritten by inheriting classes.
+    Defines the constructor that expects the collective variables,
+    the build method to initialize the GPU execution for the biasing,
+    and the run method that executes the simulation run.
+    All these are intended be enhanced/overwritten by inheriting classes.
     """
     snapshot_flags = set()
 

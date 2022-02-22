@@ -14,5 +14,5 @@ Abstract Collective Variables
 .. rubric:: Details
 
 .. automodule:: pysages.collective_variables.core
-    :synopsis: Python classes for shape collective variables.
+    :synopsis: Collective variables core classes.
     :members:

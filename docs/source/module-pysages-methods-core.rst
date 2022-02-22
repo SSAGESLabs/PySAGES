@@ -12,5 +12,5 @@ pysages.methods.core
 .. rubric:: Details
 
 .. automodule:: pysages.methods.core
-    :synopsis: Python core classes for methods.
+    :synopsis: Python core classes for all sampling methods.
     :members:

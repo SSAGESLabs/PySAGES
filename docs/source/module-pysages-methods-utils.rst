@@ -10,5 +10,5 @@ pysages.methods.utils
 .. rubric:: Details
 
 .. automodule:: pysages.methods.utils
-    :synopsis: Python helper classes for methods.
+    :synopsis: Python helper classes for all sampling methods.
     :members:

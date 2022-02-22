@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
+
 """
 Collective Variables that are compute from the Cartesian coordinates.
 """
@@ -23,7 +24,6 @@ def barycenter(positions):
     -------
     barycenter : DeviceArray
         3D array with the barycenter coordinates.
-
     """
     return np.sum(positions, axis=0) / positions.shape[0]
 
@@ -43,7 +43,6 @@ def weighted_barycenter(positions, weights):
     -------
     weighted_barycenter : DeviceArray
         3D array with the weighted barycenter coordinates.
-
     """
     group_length = positions.shape[0]
     pos = np.zeros(3)
@@ -64,7 +63,7 @@ class Component(AxisCV):
     indices: list[int], list[tuple(int)]
        Select atom groups via indices. From each group the barycenter is calculated.
     axis: int
-       Cartesian coordinate axis component 0==X, 1==Y, 2==Z that is requested as CV.
+       Cartesian coordinate axis component `0` (X), `1` (Y), `2` (Z) that is requested as CV.
     """
 
     @property
@@ -94,14 +93,13 @@ def distance(pos1, pos2):
     Parameters
     ----------
     r1 : DeviceArray
-        Array containing the position in space of point 1.
+        Array containing the position in space of the first point.
     r2 : DeviceArray
-        Array containing the position in space of point 2.
+        Array containing the position in space of the second point.
 
     Returns
     -------
     distance : float
         Distance between the two points.
-
     """
     return linalg.norm(pos1 - pos2)

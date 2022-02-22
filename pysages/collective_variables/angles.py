@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
+
 """
 Collective variable angles describe the angle spanning by 3 (or 4 for dihedral) particles in the simulation.
 
@@ -25,7 +26,7 @@ class Angle(ThreePointCV):
 
         Returns
         -------
-        Function that calculate the angle value from a simlation snap shot.
+        Function that calculates the angle value from a simlation snapshot.
         Look at `pysages.collective_variables.angles.angle` for details.
         """
         return angle
@@ -40,7 +41,7 @@ def angle(pos1, pos2, pos3):
 
     :math:`\\vec{r} = \\vec{p}_3 - \\vec{p}_2`
 
-    :math:`\\theta = \\arctan_2(|\\vec{q} \\times \\vec{r}|, \\vec{q} \\cdot \\vec{r})`
+    :math:`\\theta = \\atan2(|\\vec{q} \\times \\vec{r}|, \\vec{q} \\cdot \\vec{r})`
 
     Parameters
     ----------
@@ -63,7 +64,7 @@ def angle(pos1, pos2, pos3):
 
 class DihedralAngle(FourPointCV):
     """
-    Angle collective variables calcualte the dihedral angle spanned by four points in space (usualy atom positions).
+    Computes the dihedral angle spanned by four points in space (usualy atom positions).
     Take a look at the `pysages.collective_variables.core.FourPointCV` for details on the constructor.
     """
     @property
@@ -71,7 +72,7 @@ class DihedralAngle(FourPointCV):
         """
         Returns
         -------
-        Returns the function that calculate the dihedral angle value from a simlation snap shot.
+        Function that calculates the dihedral angle value from a simlation snapshot.
         Look at `pysages.collective_variables.angles.dihedral_angle` for details.
         """
         return dihedral_angle
@@ -89,7 +90,7 @@ def dihedral_angle(pos1, pos2, pos3, pos4):
 
     :math:`\\vec{s} =  \\vec{q} \\times ( \\vec{p}_4  - \\vec{p}_3 )`
 
-    :math:`\\theta = \\arctan_2( (\\vec{r} \\times \\vec{s}) \\cdot \\vec{q}, |\\vec{q}| \\vec{r} \\cdot \\vec{s})`
+    :math:`\\theta = \\atan2( (\\vec{r} \\times \\vec{s}) \\cdot \\vec{q}, |\\vec{q}| \\vec{r} \\cdot \\vec{s})`
 
     Parameters
     ----------

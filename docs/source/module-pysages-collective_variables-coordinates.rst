@@ -11,5 +11,5 @@ Cartesian Coordinate Collective Variables
 .. rubric:: Details
 
 .. automodule:: pysages.collective_variables.coordinates
-    :synopsis: Python classes for shape collective variables.
+    :synopsis: Python classes for coordinate-based collective variables.
     :members:

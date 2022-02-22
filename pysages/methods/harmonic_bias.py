@@ -1,6 +1,7 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 # Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
+
 """
 Harmonic bias method.
 
@@ -11,7 +12,6 @@ This method implements such a bias.
 The hamiltonian is ammended with a term :math:`\\mathcal{H} = \\mathcal{H}_0 + \\mathcal{H}_\\mathrm{HB}(\\xi)` where
 :math:`\\mathcal{H}_\\mathrm{HB}(\\xi) = \\boldsymbol{K}/2 (\\xi_0 - \\xi)^2` biases the simulations around the collective variable :math:`\\xi_0`.
 """
-
 
 from typing import NamedTuple
 import jax.numpy as np

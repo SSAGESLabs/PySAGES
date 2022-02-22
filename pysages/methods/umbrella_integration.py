@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
+
 """
 Umbrella Integration.
 
@@ -9,6 +10,7 @@ From the statistics of the simulations, the thermodynamic forces along the path 
 This class implements the replica simulations and approximates the the free energy.
 However, the method is not very and accurate it is preferred that more advanced methods are used for the analysis of the simulations.
 """
+
 from typing import Callable
 
 import jax.numpy as np

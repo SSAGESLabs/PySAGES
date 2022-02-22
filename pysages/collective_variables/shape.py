@@ -92,7 +92,7 @@ class PrincipalMoment(AxisCV):
        Must be a list or tuple of atoms (ints or ranges) or groups of
        atoms. A group is specified as a nested list or tuple of atoms.
     axis: int
-       Index of the cartesian coordinate: 0==X, 1==Y, 2==Z
+       Index of the cartesian coordinate: 0 (X), 1 (Y), 2 (Z)
     group_length: int, optional
        Specify if a fixed group length is expected.
     """
