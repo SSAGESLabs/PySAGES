@@ -90,6 +90,7 @@ class TwoPointCV(CollectiveVariable):
        Must be a or groups (size 2) of atoms.
        A group is specified as a nested list or tuple of atoms.
     """
+
     def __init__(self, indices):
         super().__init__(indices, 2)
 
@@ -143,27 +144,33 @@ class FourPointCV(CollectiveVariable):
 #   Utils   #
 # ========= #
 
+
 def _check_groups_size(indices, groups, group_length):
     input_length = np.size(indices, 0) - sum(np.size(g, 0) - 1 for g in groups)
     if input_length != group_length:
-        raise ValueError(f"Exactly {group_length} indices or groups must be provided (got {input_length})")
+        raise ValueError(
+            f"Exactly {group_length} indices or groups must be provided (got {input_length})"
+        )
 
 
 def _get_nargs(function: Callable):
     return len(signature(function).parameters)
 
 
-def _build(cv: CollectiveVariable, grad = jax_grad):
+def _build(cv: CollectiveVariable, grad=jax_grad):
     # TODO: Add support for passing weights of compute weights from masses, and # pylint:disable=fixme
     # to reduce groups with barycenter
     xi = cv.function
     idx = cv.indices
 
     if _get_nargs(xi) == 1:
+
         def evaluate(positions: JaxArray, ids: JaxArray, **kwargs):
             pos = positions[ids[idx]]
             return np.asarray(xi(pos, **kwargs))
+
     else:
+
         def evaluate(positions: JaxArray, ids: JaxArray, **kwargs):
             pos = positions[ids[idx]]
             return np.asarray(xi(*pos, **kwargs))
@@ -224,7 +231,9 @@ def _process_groups(indices: Union[List, Tuple]):
             collected.append(obj)
         group_length = _group_size(obj)
         if group_found:
-            groups.append(np.arange(total_group_length, total_group_length + group_length, dtype=UInt32))
+            groups.append(
+                np.arange(total_group_length, total_group_length + group_length, dtype=UInt32)
+            )
         total_group_length += group_length
     return UInt32(np.hstack(collected)), groups
 

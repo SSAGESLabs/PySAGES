@@ -15,6 +15,7 @@ from pysages.methods import UmbrellaIntegration
 
 param1 = {"A": 0.5, "w": 0.2, "p": 2}
 
+
 def generate_context(**kwargs):
     hoomd.context.initialize("")
     context = hoomd.context.SimulationContext()
@@ -26,14 +27,14 @@ def generate_context(**kwargs):
         hoomd.md.integrate.mode_standard(dt=0.01)
 
         nl = hoomd.md.nlist.cell()
-        dpd = hoomd.md.pair.dpd(r_cut=1, nlist=nl, seed=42, kT=1.)
-        dpd.pair_coeff.set("A", "A", A=5., gamma=1.0)
-        dpd.pair_coeff.set("A", "B", A=5., gamma=1.0)
-        dpd.pair_coeff.set("B", "B", A=5., gamma=1.0)
+        dpd = hoomd.md.pair.dpd(r_cut=1, nlist=nl, seed=42, kT=1.0)
+        dpd.pair_coeff.set("A", "A", A=5.0, gamma=1.0)
+        dpd.pair_coeff.set("A", "B", A=5.0, gamma=1.0)
+        dpd.pair_coeff.set("B", "B", A=5.0, gamma=1.0)
 
         periodic = hoomd.md.external.periodic()
-        periodic.force_coeff.set('A', A=param1["A"], i=0, w=param1["w"], p=param1["p"])
-        periodic.force_coeff.set('B', A=0.0, i=0, w=0.02, p=1)
+        periodic.force_coeff.set("A", A=param1["A"], i=0, w=param1["w"], p=param1["p"])
+        periodic.force_coeff.set("B", A=0.0, i=0, w=0.02, p=1)
     return context
 
 
@@ -44,31 +45,33 @@ def plot_hist(result, bins=50):
     # ax.set_ylabel("p(CV)")
 
     counter = 0
-    hist_per = len(result["center"])//4+1
+    hist_per = len(result["center"]) // 4 + 1
     for x in range(2):
         for y in range(2):
             for i in range(hist_per):
-                if counter+i < len(result["center"]):
-                    center = np.asarray(result["center"][counter+i])
-                    histo, edges = result["histogram"][counter+i].get_histograms(bins=bins)
+                if counter + i < len(result["center"]):
+                    center = np.asarray(result["center"][counter + i])
+                    histo, edges = result["histogram"][counter + i].get_histograms(bins=bins)
                     edges = np.asarray(edges)[0]
                     edges = (edges[1:] + edges[:-1]) / 2
-                    ax[x,y].plot(edges, histo, label="center {0}".format(center))
-                    ax[x,y].legend(loc="best", fontsize="xx-small")
-                    ax[x,y].set_yscale("log")
+                    ax[x, y].plot(edges, histo, label="center {0}".format(center))
+                    ax[x, y].legend(loc="best", fontsize="xx-small")
+                    ax[x, y].set_yscale("log")
             counter += hist_per
     while counter < len(result["center"]):
         center = np.asarray(result["center"][counter])
         histo, edges = result["histogram"][counter].get_histograms(bins=bins)
         edges = np.asarray(edges)[0]
         edges = (edges[1:] + edges[:-1]) / 2
-        ax[1,1].plot(edges, histo, label="center {0}".format(center))
+        ax[1, 1].plot(edges, histo, label="center {0}".format(center))
         counter += 1
 
     fig.savefig("hist.pdf")
 
+
 def external_field(r, A, p, w):
-    return A*np.tanh(1/(2*np.pi*p*w)*np.cos(p*r))
+    return A * np.tanh(1 / (2 * np.pi * p * w) * np.cos(p * r))
+
 
 def plot_energy(result):
     fig, ax = plt.subplots()
@@ -100,9 +103,10 @@ def get_args(argv):
     ]
     parser = argparse.ArgumentParser(description="Example script to run umbrella integration")
     for (name, short, T, val, doc) in available_args:
-        parser.add_argument("--" + name, "-" + short, type = T, default = T(val), help = doc)
+        parser.add_argument("--" + name, "-" + short, type=T, default=T(val), help=doc)
     args = parser.parse_args(argv)
     return args
+
 
 def main(argv):
 
@@ -112,7 +116,14 @@ def main(argv):
     method = UmbrellaIntegration(cvs)
 
     centers = list(np.linspace(args.start_path, args.end_path, args.N_replicas))
-    result = method.run(generate_context, args.time_steps, centers, args.k_spring, args.log_period, args.discard_equi)
+    result = method.run(
+        generate_context,
+        args.time_steps,
+        centers,
+        args.k_spring,
+        args.log_period,
+        args.discard_equi,
+    )
 
     plot_energy(result)
     plot_hist(result)

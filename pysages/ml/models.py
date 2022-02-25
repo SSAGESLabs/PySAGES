@@ -22,13 +22,13 @@ class Model:
     Base class for all models. Contains the model parameters and function that,
     given an input, return the approximation defined by the model.
     """
+
     parameters: JaxArray
-    apply:      Callable
+    apply: Callable
 
 
 @dataclass
 class AbstractMLP(Model):
-
     def __init__(self, indim, layers, seed):
         # Build initialization and application functions for the network
         init, apply = stax.serial(*layers)
@@ -45,9 +45,7 @@ class MLP(AbstractMLP):
     Multilayer-perceptron network.
     """
 
-    def __init__(
-        self, indim, outdim, topology, activation = stax.Tanh, transform = None, seed = 0
-    ):
+    def __init__(self, indim, outdim, topology, activation=stax.Tanh, transform=None, seed=0):
         """
         Arguments
         ---------
@@ -91,9 +89,7 @@ class Siren(AbstractMLP):
     Information Processing Systems 33 (2020).
     """
 
-    def __init__(
-        self, indim, outdim, topology, omega = 1.0, transform = None, seed = 0
-    ):
+    def __init__(self, indim, outdim, topology, omega=1.0, transform=None, seed=0):
         """
         Arguments
         ---------
@@ -126,9 +122,7 @@ class Siren(AbstractMLP):
         σ = stax.elementwise(lambda x: np.sin(x))
         # Build layers
         layer_in = [stax.Flatten, *tlayer, stax.Dense(topology[0], pdf_in), σ_in]
-        layers = list(chain.from_iterable(
-            (stax.Dense(i, pdf), σ) for i in topology[1:]
-        ))
+        layers = list(chain.from_iterable((stax.Dense(i, pdf), σ) for i in topology[1:]))
         layers = layer_in + layers + [stax.Dense(outdim, pdf)]
         #
         super().__init__(indim, layers, seed)

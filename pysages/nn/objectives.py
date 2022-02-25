@@ -24,12 +24,7 @@ class PartialRObjective(
     namedtuple(
         "PartialRObjective",
         ("cost", "regularizer", "hyperparameters", "max_iters"),
-        defaults=(
-            sum_squares,
-            l2_norm,
-            HyperParameters(),
-            500
-        )
+        defaults=(sum_squares, l2_norm, HyperParameters(), 500),
     )
 ):
     pass
@@ -40,11 +35,7 @@ class PartialRBObjective(
     namedtuple(
         "PartialRObjective",
         ("cost", "regularizer", "max_iters"),
-        defaults=(
-            sum_squares,
-            l2_norm,
-            500
-        )
+        defaults=(sum_squares, l2_norm, 500),
     )
 ):
     pass
@@ -52,21 +43,13 @@ class PartialRBObjective(
 
 @register_pytree_namedtuple
 class RObjective(
-    namedtuple(
-        "RObjective",
-        ("errors", "cost", "regularizer", "hyperparameters", "max_iters")
-    )
+    namedtuple("RObjective", ("errors", "cost", "regularizer", "hyperparameters", "max_iters"))
 ):
     pass
 
 
 @register_pytree_namedtuple
-class RBObjective(
-    namedtuple(
-        "RObjective",
-        ("errors", "cost", "regularizer", "max_iters")
-    )
-):
+class RBObjective(namedtuple("RObjective", ("errors", "cost", "regularizer", "max_iters"))):
     pass
 
 

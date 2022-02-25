@@ -13,11 +13,11 @@ import pytest
 
 
 lower_1d = (-pi,)
-upper_1d = ( pi,)
+upper_1d = (pi,)
 shape_1d = (64,)
 
 lower_2d = (-pi, -1.0)
-upper_2d = ( pi,  1.0)
+upper_2d = (pi, 1.0)
 shape_2d = (64, 32)
 
 
@@ -29,7 +29,7 @@ def test_Grid_constructor():
     # Default constructor
     grid = Grid(lower, upper, shape)
     # Periodic grid kw constructor
-    periodic_grid = Grid(lower, upper, shape, periodic = True)
+    periodic_grid = Grid(lower, upper, shape, periodic=True)
     # Parametric constructors
     grid_tv = Grid[Regular](lower, upper, shape)
     cheb_grid_tv = Grid[Chebyshev](lower, upper, shape)
@@ -45,19 +45,19 @@ def test_Grid_constructor():
 
     # Test constructor exceptions
     with pytest.raises(TypeError):
-        Grid(lower, upper, shape, periodic = None)
+        Grid(lower, upper, shape, periodic=None)
     with pytest.raises(TypeError):
-        Grid(lower, upper, shape, periodic = 1)
+        Grid(lower, upper, shape, periodic=1)
     with pytest.raises(TypeError):
         Grid[1](lower, upper, shape)
     with pytest.raises(TypeError):
         Grid[bool](lower, upper, shape)
     with pytest.raises(ValueError):
-        Grid(lower, upper, shape, invalid_keyword = True)
+        Grid(lower, upper, shape, invalid_keyword=True)
     with pytest.raises(ValueError):
-        Grid[Periodic](lower, upper, shape, periodic = False)
+        Grid[Periodic](lower, upper, shape, periodic=False)
     with pytest.raises(ValueError):
-        Grid[Chebyshev](lower, upper, shape, periodic = True)
+        Grid[Chebyshev](lower, upper, shape, periodic=True)
 
 
 def test_grid_indexing():

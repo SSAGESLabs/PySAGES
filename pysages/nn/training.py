@@ -22,10 +22,7 @@ from .utils import unpack
 
 @register_pytree_namedtuple
 class LMBTrainingState(
-    namedtuple(
-        "LMBTrainingState",
-        ("θ", "e", "G", "C", "R", "Λ", "μ", "τ", "i", "k")
-    )
+    namedtuple("LMBTrainingState", ("θ", "e", "G", "C", "R", "Λ", "μ", "τ", "i", "k"))
 ):
     pass
 
@@ -107,24 +104,14 @@ def initialize(opt: LevenbergMaquardtBayes, obj: RBObjective, x, n):
         lm_state = LMState(state.θ, state.e, state.G, state.C, state.R, state.μ)
         lm_cond = partial(_lm_cond, state.G)
         lm_update = partial(_lm_update, state.θ, H, Je, y, state.Λ)
-        θ, e, G, C, R, μ = while_loop(
-            lm_cond,
-            lm_update,
-            lm_state
-        )
+        θ, e, G, C, R, μ = while_loop(lm_cond, lm_update, lm_state)
         μ = np.where(μ < μmax, μ / μs, μ)
         μ = np.where(μmin < μ, μ, μmin)
         # Bayesian hyperparameter learning
         bl_state = (G, state.Λ, μ, state.τ)
         bl_update = partial(_bl_update, H, C, R)
         bl_restart = partial(_bl_restart, state.G)
-        G, Λ, μ, τ = cond(
-            G > state.G,
-            bl_state,
-            bl_restart,
-            bl_state,
-            bl_update
-        )
+        G, Λ, μ, τ = cond(G > state.G, bl_state, bl_restart, bl_state, bl_update)
         k = np.where(G >= state.G, state.k + 1, np.int32(1))
         return LMBTrainingState(θ, e, G, C, R, Λ, μ, τ, state.i + 1, k)
 
@@ -147,11 +134,7 @@ def trainer(model, objective, optimizer, inputs):
         state = opt.init(params, data)
         update = partial(opt.update, data)
         # Instead of `while`, use `jax.jit`-compatible `while_loop`
-        state = while_loop(
-            opt.condition,
-            update,
-            state
-        )
+        state = while_loop(opt.condition, update, state)
         return state
 
     #

@@ -31,7 +31,7 @@ def register_pytree_namedtuple(cls):
     register_pytree_node(
         cls,
         lambda xs: (tuple(xs), None),  # tell JAX how to unpack
-        lambda _, xs: cls(*xs)         # tell JAX how to pack back
+        lambda _, xs: cls(*xs),  # tell JAX how to pack back
     )
     return cls
 
@@ -41,7 +41,7 @@ def copy(x: Scalar):
     return x
 
 
-@dispatch(precedence = 1)
+@dispatch(precedence=1)
 def copy(t: tuple, *args):
     return tuple(copy(x, *args) for x in t)
 

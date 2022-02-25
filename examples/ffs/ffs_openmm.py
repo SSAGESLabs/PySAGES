@@ -24,7 +24,7 @@ dt = 2.0 * unit.femtoseconds
 
 
 # %%
-def generate_simulation(pdb_filename = adp_pdb, T = T, dt = dt):
+def generate_simulation(pdb_filename=adp_pdb, T=T, dt=dt):
     pdb = app.PDBFile(pdb_filename)
 
     ff = app.ForceField("amber99sb.xml", "tip3p.xml")
@@ -33,8 +33,7 @@ def generate_simulation(pdb_filename = adp_pdb, T = T, dt = dt):
     topology = pdb.topology
 
     system = ff.createSystem(
-        topology, constraints = app.HBonds, nonbondedMethod = app.PME,
-        nonbondedCutoff = cutoff_distance
+        topology, constraints=app.HBonds, nonbondedMethod=app.PME, nonbondedCutoff=cutoff_distance
     )
 
     # Set dispersion correction use.
@@ -46,7 +45,7 @@ def generate_simulation(pdb_filename = adp_pdb, T = T, dt = dt):
     forces["NonbondedForce"].setUseDispersionCorrection(True)
     forces["NonbondedForce"].setEwaldErrorTolerance(1.0e-5)
 
-    positions = pdb.getPositions(asNumpy = True)
+    positions = pdb.getPositions(asNumpy=True)
 
     integrator = openmm.LangevinIntegrator(T, 1 / unit.picosecond, dt)
 

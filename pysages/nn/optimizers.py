@@ -21,10 +21,10 @@ class LevenbergMaquardtBayes(
         ("μi", "μs", "μmin", "μmax"),
         defaults=(
             np.float32(0.005),  # μi
-            np.float32(10),     # μs
+            np.float32(10),  # μs
             np.float32(5e-16),  # μmin
-            np.float32(1e10)    # μmax
-        )
+            np.float32(1e10),  # μmax
+        ),
     )
 ):
     pass

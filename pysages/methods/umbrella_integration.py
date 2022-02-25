@@ -34,6 +34,7 @@ class UmbrellaIntegration(HarmonicBias):
     along the given path via umbrella integration.
     Note that this is not very accurate and ususally requires more sophisticated analysis on top.
     """
+
     def __init__(self, cvs, *args, **kwargs):
         """
         Initialization, mostly defining the collective variables and setting up the
@@ -51,7 +52,7 @@ class UmbrellaIntegration(HarmonicBias):
         hist_periods,
         hist_offsets=0,
         context_args=None,
-        **kwargs
+        **kwargs,
     ):
         """
         Implementation of the serial execution of umbrella integration with up to linear
@@ -97,7 +98,9 @@ class UmbrellaIntegration(HarmonicBias):
             return -(k_spring_tensor @ (mean - center))
 
         def integrate(a_free_energy, nabla_a_free_energy, centers, i):
-            return a_free_energy[i-1] + nabla_a_free_energy[i-1].T @ (centers[i] - centers[i-1])
+            return a_free_energy[i - 1] + nabla_a_free_energy[i - 1].T @ (
+                centers[i] - centers[i - 1]
+            )
 
         def collect(arg, n_replica, name, dtype):
             if isinstance(arg, list):
@@ -146,11 +149,20 @@ class UmbrellaIntegration(HarmonicBias):
             result["center"].append(self.center)
             result["histogram"].append(callback)
             result["histogram_means"].append(mean)
-            result["nabla_a_free_energy"].append(free_energy_gradient(self.kspring, mean, self.center))
+            result["nabla_a_free_energy"].append(
+                free_energy_gradient(self.kspring, mean, self.center)
+            )
             # Discrete forward integration of the free-energy
             if rep == 0:
                 result["a_free_energy"].append(0)
             else:
-                result["a_free_energy"].append(integrate(result["a_free_energy"], result["nabla_a_free_energy"], result["center"], rep))
+                result["a_free_energy"].append(
+                    integrate(
+                        result["a_free_energy"],
+                        result["nabla_a_free_energy"],
+                        result["center"],
+                        rep,
+                    )
+                )
 
         return result

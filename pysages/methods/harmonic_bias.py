@@ -32,6 +32,7 @@ class HarmonicBiasState(NamedTuple):
     xi: JaxArray
         Collective variable value of the last simulation step.
     """
+
     bias: JaxArray
     xi: JaxArray
 
@@ -43,6 +44,7 @@ class HarmonicBias(SamplingMethod):
     """
     Harmonic bias method class.
     """
+
     snapshot_flags = {"positions", "indices"}
 
     def __init__(self, cvs, kspring, center, *args, **kwargs):
@@ -116,7 +118,9 @@ class HarmonicBias(SamplingMethod):
         if center.shape == ():
             center = center.reshape(1)
         if len(center.shape) != 1 or center.shape[0] != self.cv_dimension:
-            raise RuntimeError(f"Invalid center shape expected {self.cv_dimension} got {center.shape}.")
+            raise RuntimeError(
+                f"Invalid center shape expected {self.cv_dimension} got {center.shape}."
+            )
         self._center = center
 
     def build(self, snapshot, helpers, *args, **kwargs):

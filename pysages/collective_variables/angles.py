@@ -23,6 +23,7 @@ class Angle(ThreePointCV):
     Take a look at the `pysages.collective_variables.core.ThreePointCV` for details on the
     constructor.
     """
+
     @property
     def function(self):
         """
@@ -72,6 +73,7 @@ class DihedralAngle(FourPointCV):
     Take a look at the `pysages.collective_variables.core.FourPointCV` for details on the
     constructor.
     """
+
     @property
     def function(self):
         """

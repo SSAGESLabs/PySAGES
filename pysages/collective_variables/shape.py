@@ -318,4 +318,6 @@ def shape_anisotropy(positions):
         Shape Anisotropy
     """
     lambda1, lambda2, lambda3 = principal_moments(positions)
-    return (3 * (lambda1**2 + lambda2**2 + lambda3**2) / (lambda1 + lambda2 + lambda3)**2 - 1) / 2
+    return (
+        3 * (lambda1**2 + lambda2**2 + lambda3**2) / (lambda1 + lambda2 + lambda3) ** 2 - 1
+    ) / 2

@@ -48,6 +48,7 @@ class ABFState(NamedTuple):
     Wp_: JaxArray (CV shape)
         Product of W matrix and momenta matrix for the previous step.
     """
+
     bias: JaxArray
     xi: JaxArray
     hist: JaxArray
@@ -82,11 +83,12 @@ class ABF(GriddedSamplingMethod):
     snapshot_flags
       Indicating the fields required in a snapshot.
     """
+
     snapshot_flags = {"positions", "indices", "momenta"}
 
     def __init__(self, cvs, grid, *args, **kwargs):
         super().__init__(cvs, grid, *args, **kwargs)
-        self.N = np.asarray(self.kwargs.get('N', 200))
+        self.N = np.asarray(self.kwargs.get("N", 200))
 
     def build(self, snapshot, helpers, *args, **kwargs):
         """
