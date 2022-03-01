@@ -15,11 +15,12 @@ from jax import lax
 #   Metadynamics   #
 # ================ #
 
-# ====================================== #
-# ====================================== #
+# =======================================================  #
+# =======================================================  #
 # Log
-#   v0: standard meta without grids      
-# ====================================== #
+#   v0: standard meta without grids and single CV
+#   v1: standard meta without grids and multiple CVs
+# =======================================================  #
 
     
 # callback to log hills and other output files
@@ -30,7 +31,7 @@ class logMeta:
     """
     def __init__(self, hills_period, colvar_period, sigma, height, hillsFile, colvarFile):
         """
-        HistogramLogger constructor.
+        logMeta constructor.
 
         Arguments
         ---------
@@ -205,25 +206,25 @@ class meta(SamplingMethod):
 
         context = context_generator(**context_args)
         callback = logMeta(self.stride, self.colvar_outstride, self.sigma, self.height, self.hillsFile, self.colvarFile)
-
         wrapped_context = ContextWrapper(context, self, callback)
-        
+                
         with wrapped_context:
     
-            frame = 0
             loop = 0
-            for _ in range(0,timesteps):
+            for frame in range(0,timesteps):
             
                 sampler = wrapped_context.sampler
             
                 run = wrapped_context.run
                                 
                 #print(f"Frame: {frame}\n")
+
                 
                 if (frame - 1) != 0 and (frame - 1) % self.stride == 0:
-                    
-                    for j in range(sampler.state.xi.shape[0]):
-                        xi_stride = sampler.state.xi_stride.at[(loop, j)].set(sampler.state.xi[j][0])
+                      
+                    xi_stride = sampler.state.xi_stride
+                    for j in range(sampler.state.xi.shape[1]):
+                        xi_stride = xi_stride.at[(loop, j)].set(sampler.state.xi[0][j])
                        
                     loop += 1
                     
@@ -234,10 +235,7 @@ class meta(SamplingMethod):
                                                   sampler.state.height_stride,
                                                   loop)
                 
-                run(1, **kwargs) 
-                
-                frame += 1
-            
+                run(1, **kwargs)            
             
 
 def standard_meta(method,snapshot,helpers):
@@ -263,8 +261,8 @@ def standard_meta(method,snapshot,helpers):
         bias = np.zeros((natoms, 3))
         xi, _ = cv(helpers.query(snapshot))
         
-        xi_stride = np.zeros((nstrides, xi.shape[0]))
-        sigma_stride = np.full((nstrides, xi.shape[0]), sigma)
+        xi_stride = np.zeros((nstrides, xi.shape[1]))
+        sigma_stride = np.full((nstrides, xi.shape[1]), sigma)
         height_stride = np.full((nstrides), height)
                     
         loop = 0
@@ -301,7 +299,9 @@ def standard_meta(method,snapshot,helpers):
 ## HELPER FUNCTIONS
 def exp_in_gaussian(delta_xi, sigma):
     
-    arg = (delta_xi * delta_xi)/(2 * sigma * sigma)
+    sigma_square = 2 * np.multiply(sigma, sigma)
+    delta_xi_square = np.multiply(delta_xi, delta_xi)
+    arg = np.divide( delta_xi_square, sigma_square )
     
     return np.exp(-arg)
     
@@ -315,18 +315,45 @@ def derivative_exp_in_gaussian(delta_xi, sigma):
     return pre * np.exp(-arg)
 
 
+def dbias_dxi_cv(j, dbias_dxi_cv_parameters):
+    
+    dbias_dxi, xi, xi_stride, sigma_cv = dbias_dxi_cv_parameters
+    
+    delta_xi = xi - xi_stride
+    sigma = sigma_cv
+    
+    exp_in_gaussian_local = exp_in_gaussian(delta_xi, sigma)
+    exp_in_gaussian_local = exp_in_gaussian_local.at[j].set(1)
+                    
+    ncvs_product = np.product(exp_in_gaussian_local,  axis=0)
+    
+    delta_xi = xi[j] - xi_stride[j]
+    sigma = sigma_cv[j]
+    
+    ncvs_product *= derivative_exp_in_gaussian(delta_xi, sigma) 
+    
+    dbias_dxi = dbias_dxi.at[j].set(ncvs_product)
+    
+    return dbias_dxi, xi, xi_stride, sigma_cv
+
+
 def derivative_bias(i, dbias_parameters):
     
     dbias_dxi, xi, xi_stride, sigma_stride, height_stride = dbias_parameters
 
     delta_xi = xi[0] - xi_stride[i]
     height = height_stride[i]
-    sigma = sigma_stride[i]
+    sigma_cv = sigma_stride[i]
     
-    dbias_dxi =  dbias_dxi + height * derivative_exp_in_gaussian(delta_xi, sigma) 
+    dbias_dxi_local = dbias_dxi
+    dbias_dxi_local = lax.fori_loop(0, xi.shape[1], dbias_dxi_cv, (dbias_dxi_local,
+                                                             xi[0],
+                                                             xi_stride[i], 
+                                                             sigma_cv))[0]
+    
+    dbias_dxi =  dbias_dxi + height*dbias_dxi_local
         
     return (dbias_dxi, xi, xi_stride, sigma_stride, height_stride)
-
 
 def bias_potential(i, bias_parameters):
     
@@ -348,7 +375,9 @@ def write_hills_to_file(frame, xi, sigma, height, hillsFile):
         f.write(str(frame) + '\t' )
         for j in range(xi.shape[1]):
             
-            f.write(str(xi[j][0]) + '\t')
+            f.write(str(xi[0][j]) + '\t')
+            
+        for j in range(sigma.shape[0]):
             
             f.write(str(sigma[j]) + '\t' )
             
@@ -362,6 +391,6 @@ def write_colvar_to_file(frame, xi, bias_potential, colvarFile):
         f.write(str(frame) + '\t' )
         for j in range(xi.shape[1]):
             
-            f.write(str(xi[j][0]) + '\t')
+            f.write(str(xi[0][j]) + '\t')
         
         f.write(str(bias_potential) + '\n')
