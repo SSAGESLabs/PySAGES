@@ -20,9 +20,9 @@ pi = numpy.pi
 
 # %%
 def generate_simulation(
-    pdb_filename = "../../../inputs/alanine-dipeptide/adp-explicit.pdb",
-    T = 298.15 * unit.kelvin,
-    dt = 2.0 * unit.femtoseconds
+    pdb_filename="../../../inputs/alanine-dipeptide/adp-explicit.pdb",
+    T=298.15 * unit.kelvin,
+    dt=2.0 * unit.femtoseconds,
 ):
     pdb = app.PDBFile(pdb_filename)
 
@@ -33,8 +33,7 @@ def generate_simulation(
     topology = pdb.topology
 
     system = ff.createSystem(
-        topology, constraints = app.HBonds, nonbondedMethod = app.PME,
-        nonbondedCutoff = cutoff_distance
+        topology, constraints=app.HBonds, nonbondedMethod=app.PME, nonbondedCutoff=cutoff_distance
     )
 
     # Set dispersion correction use.
@@ -46,7 +45,7 @@ def generate_simulation(
     forces["NonbondedForce"].setUseDispersionCorrection(True)
     forces["NonbondedForce"].setEwaldErrorTolerance(1.0e-5)
 
-    positions = pdb.getPositions(asNumpy = True)
+    positions = pdb.getPositions(asNumpy=True)
 
     integrator = openmm.LangevinIntegrator(T, 1 / unit.picosecond, dt)
 
@@ -58,32 +57,32 @@ def generate_simulation(
     simulation.context.setPositions(positions)
     simulation.minimizeEnergy()
 
-    simulation.reporters.append(app.PDBReporter('output.pdb', 1000))
-    simulation.reporters.append(app.StateDataReporter('log.dat', 1000, step=True,
-        potentialEnergy=True, temperature=True))
+    simulation.reporters.append(app.PDBReporter("output.pdb", 1000))
+    simulation.reporters.append(
+        app.StateDataReporter("log.dat", 1000, step=True, potentialEnergy=True, temperature=True)
+    )
 
     return simulation
 
 
 # %%
 def main():
-    cvs = (
-        DihedralAngle((4, 6, 8, 14)),
-        DihedralAngle((6, 8, 14, 16))
-    )
-    
+    cvs = (DihedralAngle((4, 6, 8, 14)), DihedralAngle((6, 8, 14, 16)))
+
     height = 1
     sigma = 0.1
     biasfactor = 1
     stride = 100
     timesteps = int(1e8)
-    nstrides = timesteps//stride + 1
+    nstrides = timesteps // stride + 1
     hillsFile = "hills.dat"
     colvarFile = "colvarFile.dat"
-    colvar_outstride=100
-    
-    method = meta(cvs, height, sigma, stride, nstrides, biasfactor, colvar_outstride=colvar_outstride) #, hillsFile=hillsFile, colvarFile=colvarFile)
-        
+    colvar_outstride = 100
+
+    method = meta(
+        cvs, height, sigma, stride, nstrides, biasfactor, colvar_outstride=colvar_outstride
+    )  # , hillsFile=hillsFile, colvarFile=colvarFile)
+
     method.run(generate_simulation, timesteps)
 
 

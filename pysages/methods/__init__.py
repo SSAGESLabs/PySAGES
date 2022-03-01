@@ -58,5 +58,5 @@ from .ffs import FFS
 from .funn import FUNN
 from .harmonic_bias import HarmonicBias
 from .umbrella_integration import UmbrellaIntegration
-from .meta import meta                                                                                                  
+from .meta import meta
 from .utils import HistogramLogger
