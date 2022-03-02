@@ -14,15 +14,11 @@ import jax.numpy as np
 
 # Test functions
 def gaussian(a, mu, sigma, x):
-    return a * np.exp(-(x - mu)**2 / sigma)
+    return a * np.exp(-((x - mu) ** 2) / sigma)
 
 
 def g(x):
-    return (
-        gaussian(1.5,  0.2, 0.03, x) +
-        gaussian(0.5, -0.5, 0.05, x) +
-        gaussian(1.25, 0.9, 1.5,  x)
-    )
+    return gaussian(1.5, 0.2, 0.03, x) + gaussian(0.5, -0.5, 0.05, x) + gaussian(1.25, 0.9, 1.5, x)
 
 
 def f(x):
@@ -30,12 +26,7 @@ def f(x):
 
 
 def test_fourier_approx():
-    grid = Grid(
-        lower = (-np.pi,),
-        upper = (np.pi,),
-        shape = (512,),
-        periodic = True
-    )
+    grid = Grid(lower=(-np.pi,), upper=(np.pi,), shape=(512,), periodic=True)
 
     x_scaled = compute_mesh(grid)
     x = np.pi * x_scaled
@@ -88,11 +79,7 @@ def test_fourier_approx():
 
 
 def test_cheb_approx():
-    grid = Grid[Chebyshev](
-        lower = (-1.0,),
-        upper = (1.0,),
-        shape = (256,)
-    )
+    grid = Grid[Chebyshev](lower=(-1.0,), upper=(1.0,), shape=(256,))
 
     x = compute_mesh(grid)
 

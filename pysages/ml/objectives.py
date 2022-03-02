@@ -29,6 +29,7 @@ class Loss:
     """
     Abstract base class for all losses.
     """
+
     pass
 
 
@@ -36,6 +37,7 @@ class GradientsLoss(Loss):
     """
     Abstract base class for gradient-based losses.
     """
+
     pass
 
 
@@ -43,6 +45,7 @@ class Sobolev1Loss(Loss):
     """
     Abstract base class for losses that depend on both target values and gradients.
     """
+
     pass
 
 
@@ -50,6 +53,7 @@ class SSE(Loss):
     """
     Sum-of-Squared-Errors Loss.
     """
+
     pass
 
 
@@ -57,6 +61,7 @@ class GradientsSSE(GradientsLoss):
     """
     Sum-of-Squared-Gradient-Errors Loss.
     """
+
     pass
 
 
@@ -64,6 +69,7 @@ class Sobolev1SSE(Sobolev1Loss):
     """
     Sum-of-Squared-Errors and Squared-Gradient-Errors Loss.
     """
+
     pass
 
 
@@ -72,6 +78,7 @@ class Regularizer:
     """
     Abstract base class for all regularizers.
     """
+
     pass
 
 
@@ -92,6 +99,7 @@ class VarRegularization(Regularizer):
     """
     Weights-variance regularization.
     """
+
     pass
 
 
@@ -110,7 +118,7 @@ def build_objective_function(model, loss: Loss, reg: Regularizer):
 
     def objective(params, inputs, reference):
         prediction = model.apply(params, inputs).reshape(reference.shape)
-        e = np.asarray(prediction - reference, dtype = np.float32).flatten()
+        e = np.asarray(prediction - reference, dtype=np.float32).flatten()
         ps, _ = unpack(params)
         return cost(e, ps)
 
@@ -119,9 +127,7 @@ def build_objective_function(model, loss: Loss, reg: Regularizer):
 
 @dispatch
 def build_objective_function(model, loss: Sobolev1Loss, reg: Regularizer):
-    apply = value_and_grad(
-        lambda p, x: model.apply(p, x.reshape(1, -1)).sum(), argnums = 1
-    )
+    apply = value_and_grad(lambda p, x: model.apply(p, x.reshape(1, -1)).sum(), argnums=1)
     cost = build_cost_function(loss, reg)
 
     def objective(params, inputs, refs):
@@ -129,8 +135,8 @@ def build_objective_function(model, loss: Sobolev1Loss, reg: Regularizer):
         prediction, gradients = vmap(lambda x: apply(params, x))(inputs)
         prediction = prediction.reshape(reference.shape)
         gradients = gradients.reshape(refgrads.shape)
-        e = np.asarray(prediction - reference, dtype = np.float32).flatten()
-        ge = np.asarray(gradients - refgrads, dtype = np.float32).flatten()
+        e = np.asarray(prediction - reference, dtype=np.float32).flatten()
+        ge = np.asarray(gradients - refgrads, dtype=np.float32).flatten()
         ps, _ = unpack(params)
         return cost((e, ge), ps)
 
@@ -158,7 +164,6 @@ def build_cost_function(loss: SSE, reg: L2Regularization):
 
 @dispatch
 def build_cost_function(loss: SSE, reg: VarRegularization):
-
     def cost(errors, ps):
         # k = ps.size
         return (sum_squares(errors) + ps.var()) / 2
@@ -179,7 +184,6 @@ def build_cost_function(loss: Sobolev1SSE, reg: L2Regularization):
 
 @dispatch
 def build_cost_function(loss: Sobolev1SSE, reg: VarRegularization):
-
     def cost(errors, ps):
         # k = ps.size
         e, ge = errors
@@ -204,16 +208,14 @@ def build_error_function(model, loss: Loss):
     def error(ps, inputs, reference):
         params = pack(ps, layout)
         prediction = model.apply(params, inputs).reshape(reference.shape)
-        return np.asarray(prediction - reference, dtype = np.float32).flatten()
+        return np.asarray(prediction - reference, dtype=np.float32).flatten()
 
     return error
 
 
 @dispatch
 def build_error_function(model, loss: Sobolev1Loss):
-    apply = value_and_grad(
-        lambda p, x: model.apply(p, x.reshape(1, -1)).sum(), argnums = 1
-    )
+    apply = value_and_grad(lambda p, x: model.apply(p, x.reshape(1, -1)).sum(), argnums=1)
     _, layout = unpack(model.parameters)
 
     def error(ps, inputs, refs):
@@ -224,8 +226,8 @@ def build_error_function(model, loss: Sobolev1Loss):
         prediction, gradients = vmap(lambda x: apply(params, x))(inputs)
         prediction = prediction.reshape(reference.shape)
         gradients = gradients.reshape(refgrads.shape)
-        e = np.asarray(prediction - reference, dtype = np.float32).flatten()
-        ge = np.asarray(gradients - refgrads, dtype = np.float32).flatten()
+        e = np.asarray(prediction - reference, dtype=np.float32).flatten()
+        ge = np.asarray(gradients - refgrads, dtype=np.float32).flatten()
         return (e, ge)
 
     return error
@@ -260,12 +262,11 @@ def build_damped_hessian(loss: Loss, reg: L2Regularization):
 
 @dispatch
 def build_damped_hessian(loss: Loss, reg: VarRegularization):
-
     def dhessian(J, mu):
         H = J.T @ J
         k = H.shape[0]
         i = np.diag_indices_from(H)
-        return H.at[i].add((1 - 1 / k)**2 / k + mu)
+        return H.at[i].add((1 - 1 / k) ** 2 / k + mu)
 
     return dhessian
 
@@ -285,13 +286,12 @@ def build_damped_hessian(loss: Sobolev1Loss, reg: L2Regularization):
 
 @dispatch
 def build_damped_hessian(loss: Sobolev1Loss, reg: VarRegularization):
-
     def dhessian(jacs, mu):
         J, gJ = jacs
         H = J.T @ J + gJ.T @ gJ
         k = H.shape[0]
         i = np.diag_indices_from(H)
-        return H.at[i].add((1 - 1 / k)**2 / k + mu)
+        return H.at[i].add((1 - 1 / k) ** 2 / k + mu)
 
     return dhessian
 
@@ -317,7 +317,6 @@ def build_jac_err_prod(loss: Loss, reg: L2Regularization):
 
 @dispatch
 def build_jac_err_prod(loss: Loss, reg: VarRegularization):
-
     def jep(J, e, ps):
         k = ps.size
         return J.T @ e + (1 - 1 / k) / k * (ps - ps.mean())
@@ -339,7 +338,6 @@ def build_jac_err_prod(loss: Sobolev1Loss, reg: L2Regularization):
 
 @dispatch
 def build_jac_err_prod(loss: Sobolev1Loss, reg: VarRegularization):
-
     def jep(jacs, errors, ps):
         k = ps.size
         J, gJ = jacs
@@ -363,4 +361,4 @@ def estimate_l2_coefficient(topology, grid):
     # `len(topology)**2 / prod(grid.shape)` seems to work fine irrespectively
     # of the number of weights. Hence, we use a sigmoid to estimate the
     # regularization coeffiecient.
-    return len(topology)**2 / prod(grid.shape) / (1 + onp.exp((n - p) / 2))
+    return len(topology) ** 2 / prod(grid.shape) / (1 + onp.exp((n - p) / 2))

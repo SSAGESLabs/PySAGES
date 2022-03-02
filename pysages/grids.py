@@ -29,10 +29,10 @@ class Chebyshev(GridType):
 @parametric
 @dataclass
 class Grid:
-    lower:  JaxArray
-    upper:  JaxArray
-    shape:  JaxArray
-    size:   JaxArray
+    lower: JaxArray
+    upper: JaxArray
+    shape: JaxArray
+    size: JaxArray
 
     @classmethod
     def __infer_type_parameter__(cls, *args, **kwargs):
@@ -56,9 +56,8 @@ class Grid:
         periodic = kwargs.get("periodic", T is Periodic)
         if type(periodic) is not bool:
             raise TypeError("`periodic` must be a bool.")
-        type_kw_mismatch = (
-            (not periodic and T is Periodic) or
-            (periodic and issubclass(Union[T], Union[Regular, Chebyshev]))
+        type_kw_mismatch = (not periodic and T is Periodic) or (
+            periodic and issubclass(Union[T], Union[Regular, Chebyshev])
         )
         if type_kw_mismatch:
             raise ValueError("Incompatible type parameter and keyword argument")
@@ -87,6 +86,7 @@ def build_indexer(grid: Grid):
     indices of the entry within the grid that contains `x`. If `x` lies outside
     the grid, the indices returned correspond to `x = grid.upper`.
     """
+
     def get_index(x):
         h = grid.size / grid.shape
         idx = (x.flatten() - grid.lower) // h
@@ -103,6 +103,7 @@ def build_indexer(grid: Grid[Periodic]):
     indices of the entry within the grid that contains `x`. It `x` lies outside
     the grid boundaries, the indices are wrapped around.
     """
+
     def get_index(x):
         h = grid.size / grid.shape
         idx = (x.flatten() - grid.lower) // h
@@ -120,10 +121,11 @@ def build_indexer(grid: Grid[Chebyshev]):
     grid are 'Chebyshev distributed' along each axis. If `x` lies outside the
     grid, the indices returned correspond to `x = grid.upper`.
     """
+
     def get_index(x):
         x = 2 * (grid.lower - x.flatten()) / grid.size + 1
         idx = (grid.shape * np.arccos(x)) // np.pi
-        idx = np.nan_to_num(idx, nan = grid.shape)
+        idx = np.nan_to_num(idx, nan=grid.shape)
         return (*np.flip(np.uint32(idx)),)
 
     return jit(get_index)

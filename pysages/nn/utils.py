@@ -14,8 +14,9 @@ class ParametersLayout(NamedTuple):
     Holds the information needed to pack flatten parameters of a
     `jax.example_libraries.stax.serial` model.
     """
-    structure:  PyTreeDef
-    shapes:     list
+
+    structure: PyTreeDef
+    shapes: list
     separators: DeviceArray
 
 

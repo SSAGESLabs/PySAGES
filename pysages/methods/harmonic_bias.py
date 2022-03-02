@@ -9,14 +9,18 @@ Biasing a simulation towards a value of a collective variable is the foundation 
 number advanced sampling methods, umbrella integration, WHAM, string method to name a few.
 This method implements such a bias.
 
-The hamiltonian is ammended with a term :math:`\\mathcal{H} = \\mathcal{H}_0 + \\mathcal{H}_\\mathrm{HB}(\\xi)` where
-:math:`\\mathcal{H}_\\mathrm{HB}(\\xi) = \\boldsymbol{K}/2 (\\xi_0 - \\xi)^2` biases the simulations around the collective variable :math:`\\xi_0`.
+The hamiltonian is ammended with a term
+:math:`\\mathcal{H} = \\mathcal{H}_0 + \\mathcal{H}_\\mathrm{HB}(\\xi)` where
+:math:`\\mathcal{H}_\\mathrm{HB}(\\xi) = \\boldsymbol{K}/2 (\\xi_0 - \\xi)^2`
+biases the simulations around the collective variable :math:`\\xi_0`.
 """
 
 from typing import NamedTuple
-import jax.numpy as np
-from jaxlib.xla_extension import DeviceArray as JaxArray  # pylint: disable=no-name-in-module
-from .core import SamplingMethod, generalize  # pylint: disable=relative-beyond-top-level
+
+from jax import numpy as np
+
+from pysages.methods.core import SamplingMethod, generalize
+from pysages.utils import JaxArray
 
 
 class HarmonicBiasState(NamedTuple):
@@ -28,6 +32,7 @@ class HarmonicBiasState(NamedTuple):
     xi: JaxArray
         Collective variable value of the last simulation step.
     """
+
     bias: JaxArray
     xi: JaxArray
 
@@ -39,6 +44,7 @@ class HarmonicBias(SamplingMethod):
     """
     Harmonic bias method class.
     """
+
     snapshot_flags = {"positions", "indices"}
 
     def __init__(self, cvs, kspring, center, *args, **kwargs):
@@ -112,7 +118,9 @@ class HarmonicBias(SamplingMethod):
         if center.shape == ():
             center = center.reshape(1)
         if len(center.shape) != 1 or center.shape[0] != self.cv_dimension:
-            raise RuntimeError(f"Invalid center shape expected {self.cv_dimension} got {center.shape}.")
+            raise RuntimeError(
+                f"Invalid center shape expected {self.cv_dimension} got {center.shape}."
+            )
         self._center = center
 
     def build(self, snapshot, helpers, *args, **kwargs):

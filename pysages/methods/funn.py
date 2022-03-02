@@ -19,18 +19,21 @@ import jax.numpy as np
 #   FUNN   #
 # ======== #
 
-class FUNNState(namedtuple(
-    "FUNNState",
-    (
-        "bias",
-        "nn",
-        "hist",
-        "Fsum",
-        "F",
-        "Wp",
-        "Wp_",
+
+class FUNNState(
+    namedtuple(
+        "FUNNState",
+        (
+            "bias",
+            "nn",
+            "hist",
+            "Fsum",
+            "F",
+            "Wp",
+            "Wp_",
+        ),
     )
-)):
+):
     def __repr__(self):
         return repr("PySAGES " + type(self).__name__)
 
@@ -39,7 +42,7 @@ class FUNN(NNSamplingMethod):
     snapshot_flags = {"positions", "indices", "momenta"}
 
     def build(self, snapshot, helpers):
-        self.N = np.asarray(self.kwargs.get('N', 200))
+        self.N = np.asarray(self.kwargs.get("N", 200))
         return _funn(self, snapshot, helpers)
 
 

@@ -18,17 +18,8 @@ import jax.numpy as np
 #   ANN   #
 # ======= #
 
-class ANNState(namedtuple(
-    "ANNState",
-    (
-        "bias",
-        "nn",
-        "hist",
-        "uhist",
-        "weight",
-        "weight_"
-    )
-)):
+
+class ANNState(namedtuple("ANNState", ("bias", "nn", "hist", "uhist", "weight", "weight_"))):
     def __repr__(self):
         return repr("PySAGES " + type(self).__name__)
 
@@ -37,7 +28,7 @@ class ANN(NNSamplingMethod):
     snapshot_flags = {"positions", "indices"}
 
     def build(self, snapshot, helpers):
-        self.N = np.asarray(self.kwargs.get('N', 200))
+        self.N = np.asarray(self.kwargs.get("N", 200))
         return _ann(self, snapshot, helpers)
 
 
@@ -51,8 +42,7 @@ def _ann(method, snapshot, helpers):
     natoms = np.size(snapshot.positions, 0)
     get_grid_index = build_indexer(grid)
     model = mlp(grid.shape, dims, topology)
-    train = trainer(model, PartialRBObjective(),
-                    LevenbergMaquardtBayes(), np.zeros(dims))
+    train = trainer(model, PartialRBObjective(), LevenbergMaquardtBayes(), np.zeros(dims))
 
     def initialize():
         bias = np.zeros((natoms, dims))
@@ -71,8 +61,7 @@ def _ann(method, snapshot, helpers):
         #
         I_ξ = get_grid_index(ξ)
         N_ξ = state.hist[I_ξ] + 1
-        H_ξ = state.weight_ * state.uhist[I_ξ] + \
-            state.weight * np.exp(state.bias[I_ξ] / kBT)
+        H_ξ = state.weight_ * state.uhist[I_ξ] + state.weight * np.exp(state.bias[I_ξ] / kBT)
         hist = state.hist.at[I_ξ].set(N_ξ)
         uhist = state.uhist.at[I_ξ].set(H_ξ)
         bias = kBT * np.log(H_ξ)

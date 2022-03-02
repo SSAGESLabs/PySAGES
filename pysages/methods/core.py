@@ -18,6 +18,7 @@ from pysages.utils import identity
 #   Base Classes   #
 # ================ #
 
+
 class SamplingMethod(ABC):
     """
     Abstract base class for all sampling methods.
@@ -27,6 +28,7 @@ class SamplingMethod(ABC):
     and the run method that executes the simulation run.
     All these are intended be enhanced/overwritten by inheriting classes.
     """
+
     snapshot_flags = set()
 
     def __init__(self, cvs, *args, **kwargs):
@@ -49,8 +51,12 @@ class SamplingMethod(ABC):
         pass
 
     def run(
-        self, context_generator: Callable, timesteps: int, callback: Callable = None,
-        context_args: Mapping = None, **kwargs
+        self,
+        context_generator: Callable,
+        timesteps: int,
+        callback: Callable = None,
+        context_args: Mapping = None,
+        **kwargs
     ):
         """
         Base implementation of running a single simulation/replica with a sampling method.
@@ -104,12 +110,13 @@ class NNSamplingMethod(GriddedSamplingMethod):
 #   Utils   #
 # ========= #
 
+
 def check_dims(cvs, grid):
     if len(cvs) != grid.shape.size:
         raise ValueError("Grid and Collective Variable dimensions must match.")
 
 
-def generalize(concrete_update, helpers, jit_compile = True):
+def generalize(concrete_update, helpers, jit_compile=True):
     if jit_compile:
         _jit = jit
     else:

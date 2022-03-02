@@ -10,7 +10,7 @@ def test_copying():
     positions = np.ones((2, 3))
     vel_mass = np.zeros((2, 4))
     forces = np.zeros((2, 3))
-    ids = np.zeros((2,), dtype = np.uint32)
+    ids = np.zeros((2,), dtype=np.uint32)
     H = (
         (1.0, 0.0, 0.0),
         (0.0, 1.0, 0.0),

@@ -30,16 +30,14 @@ def plot(xi_hist, target_hist, lim):
 def validate_hist(xi_hist, target, epsilon=0.1):
     assert len(xi_hist) == len(target)
     for i in range(len(xi_hist)):
-        val = np.sqrt(np.mean((xi_hist[i] - target[i])**2))
+        val = np.sqrt(np.mean((xi_hist[i] - target[i]) ** 2))
         if val > epsilon:
-            raise RuntimeError(
-                f"Biased historgram deviation too large: {val} epsilon {epsilon}"
-            )
+            raise RuntimeError(f"Biased historgram deviation too large: {val} epsilon {epsilon}")
 
 
 def get_target_dist(center, k, lim, bins):
     x = np.linspace(lim[0], lim[1], bins)
-    p = np.exp(-0.5 * k * (x - center)**2)
+    p = np.exp(-0.5 * k * (x - center) ** 2)
     # norm numerically
     p *= (lim[1] - lim[0]) / np.sum(p)
     return p
@@ -55,9 +53,7 @@ def generate_context(**kwargs):
 
         nl = hoomd.md.nlist.cell()
         dpd = hoomd.md.pair.dpd(r_cut=1, nlist=nl, seed=42, kT=1.0)
-        dpd.pair_coeff.set(
-            "A", "A", A=kwargs.get("A", 5.0), gamma=kwargs.get("gamma", 1.0)
-        )
+        dpd.pair_coeff.set("A", "A", A=kwargs.get("A", 5.0), gamma=kwargs.get("gamma", 1.0))
     return context
 
 
@@ -80,15 +76,13 @@ def main():
     bins = 25
     target_hist = []
     for i in range(len(center_cv)):
-        target_hist.append(
-            get_target_dist(center_cv[i], k, (-Lmax / 2, Lmax / 2), bins)
-        )
+        target_hist.append(get_target_dist(center_cv[i], k, (-Lmax / 2, Lmax / 2), bins))
     lims = [(-Lmax / 2, Lmax / 2) for i in range(3)]
     hist, edges = callback.get_histograms(bins=bins, range=lims)
     hist_list = [
-        np.sum(hist, axis=(1, 2)) / (Lmax ** 2),
-        np.sum(hist, axis=(0, 2)) / (Lmax ** 2),
-        np.sum(hist, axis=(0, 1)) / (Lmax ** 2),
+        np.sum(hist, axis=(1, 2)) / (Lmax**2),
+        np.sum(hist, axis=(0, 2)) / (Lmax**2),
+        np.sum(hist, axis=(0, 1)) / (Lmax**2),
     ]
     plot(hist_list, target_hist, (-Lmax / 2, Lmax / 2))
     validate_hist(hist_list, target_hist)

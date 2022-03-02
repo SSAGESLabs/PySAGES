@@ -16,6 +16,7 @@ class HistogramLogger:
     Implements a Callback functor for methods.
     Logs the state of the collective variable to generate histograms.
     """
+
     def __init__(self, period: int, offset: int = 0):
         """
         HistogramLogger constructor.

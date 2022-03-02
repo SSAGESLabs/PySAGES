@@ -17,24 +17,20 @@ app = try_import("openmm.app", "simtk.openmm.app")
 # %%
 pi = numpy.pi
 
+adp_pdb = "../../inputs/alanine-dipeptide/adp-explicit.pdb"
+T = 298.15 * unit.kelvin
+dt = 2.0 * unit.femtoseconds
 
 # %%
-def generate_simulation(
-    pdb_filename = "../../inputs/alanine-dipeptide/adp-explicit.pdb",
-    T = 298.15 * unit.kelvin,
-    dt = 2.0 * unit.femtoseconds
-):
+def generate_simulation(pdb_filename=adp_pdb, T=T, dt=dt):
     pdb = app.PDBFile(pdb_filename)
 
     ff = app.ForceField("amber99sb.xml", "tip3p.xml")
-    # kB = unit.BOLTZMANN_CONSTANT_kB * unit.AVOGADRO_CONSTANT_NA
-    # kT = (kB * T).value_in_unit(unit.kilojoules_per_mole)
     cutoff_distance = 1.0 * unit.nanometer
     topology = pdb.topology
 
     system = ff.createSystem(
-        topology, constraints = app.HBonds, nonbondedMethod = app.PME,
-        nonbondedCutoff = cutoff_distance
+        topology, constraints=app.HBonds, nonbondedMethod=app.PME, nonbondedCutoff=cutoff_distance
     )
 
     # Set dispersion correction use.
@@ -46,7 +42,7 @@ def generate_simulation(
     forces["NonbondedForce"].setUseDispersionCorrection(True)
     forces["NonbondedForce"].setEwaldErrorTolerance(1.0e-5)
 
-    positions = pdb.getPositions(asNumpy = True)
+    positions = pdb.getPositions(asNumpy=True)
 
     integrator = openmm.LangevinIntegrator(T, 1 / unit.picosecond, dt)
 
@@ -61,18 +57,8 @@ def generate_simulation(
 
 # %%
 def main():
-    cvs = (
-        DihedralAngle((4, 6, 8, 14)),
-        DihedralAngle((6, 8, 14, 16))
-    )
-
-    grid = pysages.Grid(
-        lower = (-pi, -pi),
-        upper = (pi, pi),
-        shape = (32, 32),
-        periodic = True
-    )
-
+    cvs = [DihedralAngle((4, 6, 8, 14)), DihedralAngle((6, 8, 14, 16))]
+    grid = pysages.Grid(lower=(-pi, -pi), upper=(pi, pi), shape=(32, 32), periodic=True)
     method = ABF(cvs, grid)
 
     method.run(generate_simulation, 50)
