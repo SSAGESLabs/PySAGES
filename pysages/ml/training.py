@@ -4,13 +4,12 @@
 
 from typing import NamedTuple
 
+from jax import numpy as np
 from jax.lax import while_loop
 from jax.scipy import signal
 
 from pysages.ml.optimizers import build
 from pysages.utils import JaxArray
-
-import jax.numpy as np
 
 
 class NNData(NamedTuple):

@@ -3,11 +3,11 @@
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 from dataclasses import dataclass
-from jax import jit
-from plum import Union, dispatch, parametric, type_parameter
-from pysages.utils import JaxArray
 
-import jax.numpy as np
+from jax import jit, numpy as np
+from plum import Union, parametric, type_parameter
+
+from pysages.utils import JaxArray, dispatch
 
 
 class GridType:

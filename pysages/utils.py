@@ -2,16 +2,19 @@
 # Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
-
 from copy import deepcopy
 from importlib import import_module
 from typing import Union
 
 from jax import numpy as np
 from jax.tree_util import register_pytree_node
-from plum import dispatch
+from plum import Dispatcher
 
 import jaxlib.xla_extension as xe
+
+
+# PySAGES main dispatcher
+dispatch = Dispatcher()
 
 
 JaxArray = xe.DeviceArray
