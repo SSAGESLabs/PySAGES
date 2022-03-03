@@ -10,7 +10,6 @@ from jax import numpy as np
 from jax.lax import cond
 from jax.numpy.linalg import pinv
 from jax.scipy.linalg import solve
-from plum import Dispatcher
 
 from pysages.ml.objectives import (
     Loss,
@@ -24,15 +23,12 @@ from pysages.ml.objectives import (
     build_objective_function,
     sum_squares,
 )
-from pysages.ml.utils import pack, unpack
+from pysages.ml.utils import dispatch, pack, unpack
 from pysages.utils import Bool, Float, Int, JaxArray, try_import
 
 import jax
 
 jopt = try_import("jax.example_libraries.optimizers", "jax.experimental.optimizers")
-
-# Create a dispatcher for this submodule
-dispatch = Dispatcher()
 
 
 # Optimizers parameters

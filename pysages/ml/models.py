@@ -8,9 +8,8 @@ from typing import Callable, Optional
 
 from jax import numpy as np
 from jax.nn.initializers import variance_scaling
-from plum import dispatch
 
-from pysages.ml.utils import rng_key
+from pysages.ml.utils import rng_key, dispatch
 from pysages.utils import JaxArray, try_import
 
 stax = try_import("jax.example_libraries.stax", "jax.experimental.stax")

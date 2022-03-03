@@ -5,9 +5,9 @@
 from typing import NamedTuple
 
 from jax import value_and_grad, vmap
-from plum import Dispatcher
 
 from pysages.ml.utils import (
+    dispatch,
     number_of_weights,
     pack,
     prod,
@@ -18,10 +18,6 @@ from pysages.utils import Float
 
 import jax.numpy as np
 import numpy as onp
-
-
-# Create a dispatcher for this submodule
-dispatch = Dispatcher()
 
 
 # Losses

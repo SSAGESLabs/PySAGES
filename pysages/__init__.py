@@ -3,7 +3,7 @@
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 """
-PySAGES: Advanced sampling methods
+PySAGES: Python Suite for Advanced General Ensemble Simulations
 """
 
 import os
@@ -27,7 +27,12 @@ from .backends import (
 )
 
 from .grids import (
+    Chebyshev,
     Grid,
+)
+
+from .utils import (
+    dispatch,
 )
 
 from . import (

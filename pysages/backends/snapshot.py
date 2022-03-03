@@ -4,13 +4,10 @@
 
 from typing import Callable, NamedTuple, Optional, Tuple, Union
 
-from jax import jit
+from jax import jit, numpy as np
 from jaxlib.xla_extension import DeviceArray as JaxArray
-from plum import dispatch
 
-from pysages.utils import copy
-
-import jax.numpy as np
+from pysages.utils import copy, dispatch
 
 
 class Box(

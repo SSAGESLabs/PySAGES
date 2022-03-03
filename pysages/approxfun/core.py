@@ -5,13 +5,12 @@
 from abc import ABC
 from dataclasses import dataclass
 from itertools import product
-from jax import jit, vmap
-from plum import dispatch
-from pysages.grids import Grid, Chebyshev
-from pysages.utils import Float, JaxArray
 from typing import NamedTuple
 
-import jax.numpy as np
+from jax import jit, numpy as np, vmap
+
+from pysages.grids import Grid, Chebyshev
+from pysages.utils import Float, JaxArray, dispatch
 
 
 class Fun(NamedTuple):
