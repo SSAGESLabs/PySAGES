@@ -12,9 +12,8 @@ from inspect import signature
 from typing import Callable, List, Tuple, Union
 
 from jax import grad as jax_grad, jit, numpy as np
-from plum import dispatch
 
-from pysages.utils import JaxArray
+from pysages.utils import JaxArray, dispatch
 
 
 UInt32 = np.uint32

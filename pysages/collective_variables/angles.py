@@ -10,9 +10,9 @@ It is common to describe such anlges inside a molecule or protein characteristic
 conformation change.
 """
 
-import jax.numpy as np
+from jax import numpy as np
 from jax.numpy import linalg
-from .core import ThreePointCV, FourPointCV
+from pysages.collective_variables.core import ThreePointCV, FourPointCV
 
 
 class Angle(ThreePointCV):
@@ -37,7 +37,7 @@ class Angle(ThreePointCV):
         return angle
 
 
-def angle(pos1, pos2, pos3):
+def angle(p1, p2, p3):
     r"""Function to calculate angle between 3 points.
 
     Takes 3 positions in space and calculates the angle between them.
@@ -50,11 +50,11 @@ def angle(pos1, pos2, pos3):
 
     Parameters
     ----------
-    pos1: DeviceArray
+    p1: DeviceArray
        :math:`\vec{p}_1` 3D vector in space
-    pos1: DeviceArray
+    p2: DeviceArray
        :math:`\vec{p}_2` 3D vector in space
-    pos1: DeviceArray
+    p3: DeviceArray
        :math:`\vec{p}_3` 3D vector in space
 
     Returns
@@ -62,9 +62,9 @@ def angle(pos1, pos2, pos3):
     float
        :math:`\theta`
     """
-    qvec = pos1 - pos2
-    rvec = pos3 - pos2
-    return np.arctan2(linalg.norm(np.cross(qvec, rvec)), np.dot(qvec, rvec))
+    q = p1 - p2
+    r = p3 - p2
+    return np.arctan2(linalg.norm(np.cross(q, r)), np.dot(q, r))
 
 
 class DihedralAngle(FourPointCV):
@@ -85,7 +85,7 @@ class DihedralAngle(FourPointCV):
         return dihedral_angle
 
 
-def dihedral_angle(pos1, pos2, pos3, pos4):
+def dihedral_angle(p1, p2, p3, p4):
     r"""
     Calculate dihedral angle between 4 points in space.
 
@@ -101,13 +101,13 @@ def dihedral_angle(pos1, pos2, pos3, pos4):
 
     Parameters
     ----------
-    pos1: DeviceArray
+    p1: DeviceArray
        :math:`\vec{p}_1` 3D vector in space
-    pos2: DeviceArray
+    p2: DeviceArray
        :math:`\vec{p}_2` 3D vector in space
-    pos3: DeviceArray
+    p3: DeviceArray
        :math:`\vec{p}_3` 3D vector in space
-    pos4: DeviceArray
+    p4: DeviceArray
        :math:`\vec{p}_4` 3D vector in space
 
     Returns
@@ -115,7 +115,7 @@ def dihedral_angle(pos1, pos2, pos3, pos4):
     float
        :math:`\theta`
     """
-    qvec = pos3 - pos2
-    rvec = np.cross(pos2 - pos1, qvec)
-    svec = np.cross(qvec, pos4 - pos3)
-    return np.arctan2(np.dot(np.cross(rvec, svec), qvec), np.dot(rvec, svec) * linalg.norm(qvec))
+    q = p3 - p2
+    r = np.cross(p2 - p1, q)
+    s = np.cross(q, p4 - p3)
+    return np.arctan2(np.dot(np.cross(r, s), q), np.dot(r, s) * linalg.norm(q))

@@ -6,9 +6,10 @@
 Collective Variables that are compute from the Cartesian coordinates.
 """
 
-import jax.numpy as np
+from jax import numpy as np
 from jax.numpy import linalg
-from .core import TwoPointCV, AxisCV
+
+from pysages.collective_variables.core import TwoPointCV, AxisCV
 
 
 def barycenter(positions):
@@ -45,12 +46,12 @@ def weighted_barycenter(positions, weights):
         3D array with the weighted barycenter coordinates.
     """
     group_length = positions.shape[0]
-    pos = np.zeros(3)
+    center = np.zeros(3)
     # TODO: Replace by `np.sum` and `vmap`  # pylint:disable=fixme
     for i in range(group_length):
-        weight, particle_pos = weights[i], positions[i]
-        pos += weight * particle_pos
-    return pos
+        w, p = weights[i], positions[i]
+        center += w * p
+    return center
 
 
 class Component(AxisCV):
@@ -86,15 +87,15 @@ class Distance(TwoPointCV):
         return distance
 
 
-def distance(pos1, pos2):
+def distance(p1, p2):
     """
     Returns the distance between two points in space.
 
     Parameters
     ----------
-    r1 : DeviceArray
+    p1 : DeviceArray
         Array containing the position in space of the first point.
-    r2 : DeviceArray
+    p2 : DeviceArray
         Array containing the position in space of the second point.
 
     Returns
@@ -102,4 +103,4 @@ def distance(pos1, pos2):
     distance : float
         Distance between the two points.
     """
-    return linalg.norm(pos1 - pos2)
+    return linalg.norm(p1 - p2)

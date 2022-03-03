@@ -8,7 +8,8 @@ Collective Variables that are calcuated from the shape of group of atoms.
 
 import jax.numpy as np
 from jax.numpy import linalg
-from .core import CollectiveVariable, AxisCV
+
+from pysages.collective_variables.core import CollectiveVariable, AxisCV
 
 
 class RadiusOfGyration(CollectiveVariable):
@@ -50,11 +51,11 @@ def radius_of_gyration(positions):
         Radius of Gyration vector
     """
     group_length = positions.shape[0]
-    pos = np.zeros((3,))
+    rog = np.zeros((3,))
     # TODO: Replace by `np.sum` and `vmap`  # pylint:disable=fixme
-    for particle_pos in positions:
-        pos[:] += np.dot(particle_pos, particle_pos)
-    return pos / group_length
+    for r in positions:
+        rog += np.dot(r, r)
+    return rog / group_length
 
 
 def weighted_radius_of_gyration(positions, weights):
@@ -74,12 +75,12 @@ def weighted_radius_of_gyration(positions, weights):
         Weighted Radius of Gyration vector
     """
     group_length = positions.shape[0]
-    pos = np.zeros((3,))
+    rog = np.zeros((3,))
     # TODO: Replace by `np.sum` and `vmap` # pylint:disable=fixme
     for i in range(group_length):
-        weight, particle_pos = weights[i], positions[i]
-        pos += weight * np.dot(particle_pos, particle_pos)
-    return pos
+        w, r = weights[i], positions[i]
+        rog += w * np.dot(r, r)
+    return rog
 
 
 class PrincipalMoment(AxisCV):
@@ -126,10 +127,10 @@ def gyration_tensor(positions):
         Gyration Tensor
     """
     group_length = positions.shape[0]
-    pos = np.zeros((3, 3))
-    for particle_pos in positions:
-        pos += np.outer(particle_pos, particle_pos)
-    return pos / group_length
+    gyr = np.zeros((3, 3))
+    for r in positions:
+        gyr += np.outer(r, r)
+    return gyr / group_length
 
 
 def weighted_gyration_tensor(positions, weights):
@@ -149,11 +150,11 @@ def weighted_gyration_tensor(positions, weights):
         Gyration Tensor
     """
     group_length = positions.shape[0]
-    pos = np.zeros((3, 3))
+    gyr = np.zeros((3, 3))
     for i in range(group_length):
-        weight, particle_pos = weights[i], positions[i]
-        pos += weight * np.outer(particle_pos, particle_pos)
-    return pos
+        w, r = weights[i], positions[i]
+        gyr += w * np.outer(r, r)
+    return gyr
 
 
 def principal_moments(positions):
