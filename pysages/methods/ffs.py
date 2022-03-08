@@ -5,7 +5,11 @@
 """
 Forward Flux Sampling (FFS).
 
-Implementation of the direct version of the Forward Flux Sampling algorithm.
+Implementation of the direct version of the FFS algorithm.
+FFS uses a series of nonintersecting interfaces between the initial and 
+the final states. The initial and final states are defined in terms of 
+an order parameter. The method allows to calculate rate constants and 
+generate transition paths.
 """
 
 from typing import Callable, Mapping, NamedTuple, Optional
@@ -83,22 +87,22 @@ class FFS(SamplingMethod):
             Number of timesteps the simulation is running.
 
         dt: float
-            timestep of the simulation
+            Timestep of the simulation.
 
         win_i: float
-            initial window for the system
+            Initial window for the system.
 
         win_l: float
-            last window to be calculated in ffs
+            Last window to be calculated in FFS.
 
         Nw: int
-            number of equally spaced windows
+            Number of equally spaced windows.
 
         sampling_steps_basin: int
-            period for sampling configurations in the basin
+            Period for sampling configurations in the basin.
 
         Nmax_replicas: int
-            number of stored configuration for each window
+            Number of stored configurations for each window.
 
         verbose: bool
             If True more information will be logged (useful for debbuging).
@@ -130,7 +134,7 @@ class FFS(SamplingMethod):
 
             reference_snapshot = copy(sampler.snapshot)
 
-            # We Initially sample from basin A
+            # We initially sample from basin A
             # TODO: bundle the arguments into data structures
             ini_snapshots = basin_sampling(
                 Nmax_replicas,
@@ -171,7 +175,7 @@ class FFS(SamplingMethod):
 
 def _ffs(method, snapshot, helpers):
     """
-    Internal function, that generates an `initialize` and an `update` functions.
+    Internal function that generates an `initialize` and an `update` functions.
     `initialize` is ran once just before the time integration starts and `update`
     is called after each simulation timestep.
 
@@ -225,7 +229,9 @@ def increase_snaps(windows, initial_w):
 
 
 def check_input(grid, xi, verbose=False):
-    """Verify if the initial configuration is a good one."""
+    """
+    Verify whether the initial configuration is a good one.
+    """
     is_good = xi < grid[0]
 
     if is_good:
@@ -263,13 +269,15 @@ def basin_sampling(
             print("Restoring basing configuration since system leave basin with cv value:\n")
             print(xi)
 
-    print(f"Finish sampling Basin with {max_num_snapshots} snapshots\n")
+    print(f"Finish sampling basin with {max_num_snapshots} snapshots\n")
 
     return basin_snapshots
 
 
 def initial_flow(Num_window0, timestep, grid, initial_snapshots, run, sampler, helpers, cv):
-    """Selects snapshots from list generated with `basin_sampling`."""
+    """
+    Selects snapshots from list generated with `basin_sampling`.
+    """
 
     success = 0
     time_count = 0.0

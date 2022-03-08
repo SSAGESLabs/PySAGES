@@ -5,11 +5,11 @@
 """
 Umbrella Integration.
 
-Umbrella integration uses multiple replica placed along a pathway in the free energy
+Umbrella integration uses multiple replicas placed along a pathway in the free energy
 landscape by Harmonic Bias simulations.
 From the statistics of the simulations, the thermodynamic forces along the path are
-determine and integrated to obtain an approximation of the free-energy landscape.
-This class implements the replica simulations and approximates the the free energy.
+determined and integrated to obtain an approximation of the free energy landscape.
+This class implements the replica simulations and approximates the free energy.
 However, the method is not very and accurate it is preferred that more advanced methods
 are used for the analysis of the simulations.
 """
@@ -28,8 +28,8 @@ class UmbrellaIntegration(HarmonicBias):
     Umbrella Integration class.
 
     This class combines harmonic biasing with multiple replicas.
-    It also collects histograms of the collective variables through out the simulations
-    for later analysis.
+    It also collects histograms of the collective variables throughout the simulations
+    for subsequent analysis.
     By default the class also estimates an approximation of the free energy landscape
     along the given path via umbrella integration.
     Note that this is not very accurate and ususally requires more sophisticated analysis on top.
@@ -90,11 +90,13 @@ class UmbrellaIntegration(HarmonicBias):
             Passed to the backend run function as additional user arguments.
 
         * Note:
-            This method does not accepts a user defined callback are not available.
+            This method does not accept a user defined callback are not available.
         """
 
         def free_energy_gradient(k_spring_tensor, mean, center):
-            "Equation 13 from https://doi.org/10.1063/1.3175798"
+            """
+            Equation 13 from https://doi.org/10.1063/1.3175798
+            """
             return -(k_spring_tensor @ (mean - center))
 
         def integrate(a_free_energy, nabla_a_free_energy, centers, i):
@@ -152,7 +154,7 @@ class UmbrellaIntegration(HarmonicBias):
             result["nabla_a_free_energy"].append(
                 free_energy_gradient(self.kspring, mean, self.center)
             )
-            # Discrete forward integration of the free-energy
+            # Discrete forward integration of the free energy
             if rep == 0:
                 result["a_free_energy"].append(0)
             else:
