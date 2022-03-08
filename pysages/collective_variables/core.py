@@ -24,9 +24,9 @@ class CollectiveVariable(ABC):
     """
     Abstract base class for defining collective variables
 
-    When defining an new collective variable,
+    When defining a new collective variable,
     override this method if you need to enforce any invariant over the indices.
-    It can otherwise be ommited.
+    It can otherwise be omitted.
 
     Parameters
     ----------
@@ -59,7 +59,7 @@ class CollectiveVariable(ABC):
 # NOTE: `IndexedCV` might be a better name for this
 class AxisCV(CollectiveVariable):
     """
-    Collective variable the specifies a Cartesian Axis in addition.
+    Collective variable that specifies a Cartesian Axis in addition.
 
     Parameters
     ----------
@@ -74,7 +74,7 @@ class AxisCV(CollectiveVariable):
 
     def __init__(self, indices, axis, group_length=None):
         if axis not in (0, 1, 2):
-            raise RuntimeError(f"Invalid Cartesian axis {axis} index choose 0 (X), 1 (Y), 2 (Z)")
+            raise RuntimeError(f"Invalid cartesian axis {axis} index choose 0 (X), 1 (Y), 2 (Z)")
         super().__init__(indices, group_length)
         self.axis = axis
 
