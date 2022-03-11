@@ -61,7 +61,7 @@ def main():
     grid = pysages.Grid(lower=(-pi, -pi), upper=(pi, pi), shape=(32, 32), periodic=True)
     method = ABF(cvs, grid)
 
-    pysages.run(method, generate_simulation, 50)
+    pysages.run(method, generate_simulation, 25)
 
 
 # %%
