@@ -79,7 +79,8 @@ def main():
     win_0 = (args.cv_start / 180) * pi
     win_f = ((args.cv_start + args.cv_distance) / 180) * pi
 
-    method.run(
+    pysages.run(
+        method,
         generate_simulation,
         args.timesteps,
         dt,

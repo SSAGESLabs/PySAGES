@@ -116,7 +116,8 @@ def main(argv):
     method = UmbrellaIntegration(cvs)
 
     centers = list(np.linspace(args.start_path, args.end_path, args.N_replicas))
-    result = method.run(
+    result = pysages.run(
+        method,
         generate_context,
         args.time_steps,
         centers,

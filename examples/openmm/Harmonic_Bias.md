@@ -95,7 +95,7 @@ cd /content/harmonic-bias
 
 <!-- #region id="Uh2y2RXDDZub" -->
 A harmonic bias simulation constraints a collective variable with a harmonic potential. This is useful for a variety of advanced sampling methods, in particular, umbrella sampling.
- 
+
 For this Colab, we are using alanine dipeptide as the example molecule, a system widely-used for benchmarking enhanced sampling methods. So first, we fetch the molecule from the examples of PySAGES.
 <!-- #endregion -->
 
@@ -142,7 +142,7 @@ def generate_simulation(**kwargs):
         topology, constraints = app.HBonds, nonbondedMethod = app.NoCutoff,
         nonbondedCutoff = cutoff_distance
     )
-    
+
     positions = pdb.getPositions(asNumpy = True)
 
     integrator = openmm.LangevinIntegrator(T, 1 / unit.picosecond, dt)
@@ -167,13 +167,13 @@ method = HarmonicBias(cvs, k, center)
 ```
 
 <!-- #region id="sqKuZo92K9n9" -->
-We now define a Histogram callback to log the measured values of the CVs and run the simulation for $10^4$ time steps. The `HistogramLogger` collects the state of the collective variable during the run. 
+We now define a Histogram callback to log the measured values of the CVs and run the simulation for $10^4$ time steps. The `HistogramLogger` collects the state of the collective variable during the run.
 Make sure to run with GPU support. Using the CPU platform with OpenMM is possible and supported, but can take a very long time.
 <!-- #endregion -->
 
 ```python id="-XKSe3os_-Rg"
 callback = HistogramLogger(50)
-method.run(generate_simulation, int(1e4), callback)
+pysages.run(method, generate_simulation, int(1e4), callback)
 ```
 
 <!-- #region id="z8V0iX70RF1m" -->
@@ -199,7 +199,7 @@ x = np.linspace(lim[0], lim[1], hist_list[0].shape[0])
 
 for i in range(len(hist_list)):
     (line,) = ax.plot(x, hist_list[i], label="i= {0}".format(i))
-   
+
 ax.legend(loc="best")
 ```
 

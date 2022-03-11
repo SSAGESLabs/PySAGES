@@ -5,18 +5,17 @@
 from abc import ABC, abstractmethod
 from functools import reduce
 from operator import or_
-from typing import Callable, Mapping
+from typing import Callable, Optional
 
 from jax import jit
 
 from pysages.backends import ContextWrapper
 from pysages.collective_variables.core import build
-from pysages.utils import identity
+from pysages.utils import dispatch, identity
 
 
-# ================ #
-#   Base Classes   #
-# ================ #
+#  Base Classes
+#  ============
 
 
 class SamplingMethod(ABC):
@@ -51,40 +50,6 @@ class SamplingMethod(ABC):
         """
         pass
 
-    def run(
-        self,
-        context_generator: Callable,
-        timesteps: int,
-        callback: Callable = None,
-        context_args: Mapping = None,
-        **kwargs
-    ):
-        """
-        Base implementation of running a single simulation/replica with a sampling method.
-
-        Arguments
-        ---------
-        context_generator: Callable
-            User defined function that sets up a simulation context with the backend.
-            Must return an instance of `hoomd.context.SimulationContext` for HOOMD-blue
-            and `openmm.Simulation` for OpenMM. The function gets `context_args`
-            unpacked for additional user arguments.
-
-        timesteps: int
-            Number of timesteps the simulation is running.
-
-        callback: Optional[Callable]
-            Allows for user defined actions into the simulation workflow of the method.
-            `kwargs` gets passed to the backend `run` function.
-        """
-        if context_args is None:
-            context_args = dict()
-        context = context_generator(**context_args)
-        self.context.append(ContextWrapper(context, self, callback))
-        assert len(self.context) == 1
-        with self.context[0]:
-            self.context[0].run(timesteps, **kwargs)
-
 
 class GriddedSamplingMethod(SamplingMethod):
     def __init__(self, cvs, grid, *args, **kwargs):
@@ -107,9 +72,56 @@ class NNSamplingMethod(GriddedSamplingMethod):
         pass
 
 
-# ========= #
-#   Utils   #
-# ========= #
+#  Main functions
+#  ==============
+
+
+@dispatch
+def run(
+    method: SamplingMethod,
+    context_generator: Callable,
+    timesteps: int,
+    callback: Optional[Callable] = None,
+    context_args: Optional[dict] = None,
+    **kwargs
+):
+    """
+    Base implementation for running a single simulation with the specified `SamplingMethod`.
+
+    Arguments
+    ---------
+    method: SamplingMethod
+
+    context_generator: Callable
+        User defined function that sets up a simulation context with the backend.
+        Must return an instance of `hoomd.context.SimulationContext` for HOOMD-blue
+        and `openmm.Simulation` for OpenMM. The function gets `context_args`
+        unpacked for additional user arguments.
+
+    timesteps: int
+        Number of timesteps the simulation is running.
+
+    callback: Optional[Callable] = None
+        Allows for user defined actions into the simulation workflow of the method.
+        `kwargs` gets passed to the backend `run` function.
+
+    context_args: Optional[dict] = None
+        Arguments to pass down to `context_generator` to setup the simulation context.
+    """
+
+    context_args = {} if context_args is None else context_args
+
+    context = context_generator(**context_args)
+    wrapped_context = ContextWrapper(context, method, callback)
+
+    with wrapped_context:
+        wrapped_context.run(timesteps, **kwargs)
+
+    return wrapped_context.sampler.state
+
+
+#  Utils
+#  =====
 
 
 def check_dims(cvs, grid):
