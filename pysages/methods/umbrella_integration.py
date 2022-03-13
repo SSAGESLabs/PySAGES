@@ -19,7 +19,7 @@ from typing import Callable, Optional
 from pysages.backends import ContextWrapper
 from pysages.methods.core import SamplingMethod
 from pysages.methods.harmonic_bias import HarmonicBias
-from pysages.methods.utils import HistogramLogger, collect
+from pysages.methods.utils import HistogramLogger, listify
 from pysages.utils import dispatch
 
 
@@ -55,9 +55,9 @@ class UmbrellaIntegration(SamplingMethod):
         super().__init__(cvs, **kwargs)
 
         replicas = len(centers)
-        ksprings = collect(ksprings, replicas, "ksprings", float)
-        periods = collect(hist_periods, replicas, "hist_periods", int)
-        offsets = collect(hist_offsets, replicas, "hist_offsets", int)
+        ksprings = listify(ksprings, replicas, "ksprings", float)
+        periods = listify(hist_periods, replicas, "hist_periods", int)
+        offsets = listify(hist_offsets, replicas, "hist_offsets", int)
 
         self.submethods = [HarmonicBias(cvs, k, c) for (k, c) in zip(ksprings, centers)]
         self.histograms = [HistogramLogger(p, o) for (p, o) in zip(periods, offsets)]

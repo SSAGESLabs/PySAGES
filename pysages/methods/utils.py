@@ -117,7 +117,7 @@ class MetaDLogger:
         self.counter += 1
 
 
-def collect(arg, replicas, name, dtype):
+def listify(arg, replicas, name, dtype):
     """
     Returns a list of with lenght `replicas` of `arg` if `arg` is not a list,
     or `arg` if it is already a list of length `replicas`.
