@@ -18,7 +18,7 @@ def sum_1Dgaussians(x, hills):
     return fes
 
 
-def sum_gaussians(x, cv_values, sigma, height, ncvs):
+def sum_gaussians(x, cv_values, sigma, height, ncvs, angle):
 
     fes = np.zeros(np.shape(x)[0])
 
@@ -32,6 +32,14 @@ def sum_gaussians(x, cv_values, sigma, height, ncvs):
             for k in range(ncvs):
 
                 delta_xi = x[i][k] - cv_values[j][k]
+
+                if angle[k]:
+
+                    if delta_xi > np.pi:
+                        delta_xi -= 2.0 * np.pi
+
+                    elif delta_xi < -np.pi:
+                        delta_xi += 2.0 * np.pi
 
                 local_sigma = sigma[j][k]
 
