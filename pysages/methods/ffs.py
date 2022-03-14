@@ -73,7 +73,9 @@ class FFS(SamplingMethod):
         **kwargs,
     ):
         """
-        Direct version of the Forward Flux Sampling algorithm.
+        Direct version of the Forward Flux Sampling algorithm
+        [Phys. Rev. Lett. 94, 018104 (2005), https://doi.org/10.1103/PhysRevLett.94.018104;
+        J. Chem. Phys. 124, 024102 (2006), https://doi.org/10.1063/1.2140273].
 
         Arguments
         ---------
@@ -266,7 +268,7 @@ def basin_sampling(
         else:
             helpers.restore(sampler.snapshot, reference_snapshot)
             xi, _ = cv(helpers.query(sampler.snapshot))
-            print("Restoring basing configuration since system leave basin with cv value:\n")
+            print("Restoring basing configuration since system left basin with cv value:\n")
             print(xi)
 
     print(f"Finish sampling basin with {max_num_snapshots} snapshots\n")

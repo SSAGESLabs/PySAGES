@@ -10,8 +10,8 @@ landscape by Harmonic Bias simulations.
 From the statistics of the simulations, the thermodynamic forces along the path are
 determined and integrated to obtain an approximation of the free energy landscape.
 This class implements the replica simulations and approximates the free energy.
-However, the method is not very and accurate it is preferred that more advanced methods
-are used for the analysis of the simulations.
+However, the method is not very accurate and it is preferred that more advanced methods
+(e.g. the Weighted Histogram Analysis Method) are used for the analysis of the simulations.
 """
 
 from typing import Callable
@@ -90,7 +90,7 @@ class UmbrellaIntegration(HarmonicBias):
             Passed to the backend run function as additional user arguments.
 
         * Note:
-            This method does not accept a user defined callback are not available.
+            This method does not accept a user defined callback.
         """
 
         def free_energy_gradient(k_spring_tensor, mean, center):

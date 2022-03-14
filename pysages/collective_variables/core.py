@@ -86,7 +86,7 @@ class TwoPointCV(CollectiveVariable):
     Parameters
     ----------
     indices : list[tuple(int)]
-       Must be a or groups (size 2) of atoms.
+       Must be a tuple (size 2) of atoms.
        A group is specified as a nested list or tuple of atoms.
     """
 
@@ -106,7 +106,7 @@ class ThreePointCV(CollectiveVariable):
     Parameters
     ----------
     indices : list[tuple(int)]
-       Must be a or groups (size 3) of atoms.
+       Must be a tuple (size 3) of atoms.
        A group is specified as a nested list or tuple of atoms.
     """
 
@@ -126,7 +126,7 @@ class FourPointCV(CollectiveVariable):
     Parameters
     ----------
     indices : list[tuple(int)]
-       Must be a or groups (size 4) of atoms.
+       Must be a tuple (size 4) of atoms.
        A group is specified as a nested list or tuple of atoms.
     """
 
