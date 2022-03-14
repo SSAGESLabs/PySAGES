@@ -17,7 +17,7 @@ However, the method is not very accurate and it is preferred that more advanced 
 from typing import Callable, Optional
 
 from pysages.backends import ContextWrapper
-from pysages.methods.core import SamplingMethod
+from pysages.methods.core import Result, SamplingMethod
 from pysages.methods.harmonic_bias import HarmonicBias
 from pysages.methods.utils import HistogramLogger, listify
 from pysages.utils import dispatch
@@ -106,58 +106,61 @@ def run(  # pylint: disable=arguments-differ
         This method does not accept a user defined callback.
     """
 
-    def free_energy_gradient(k_spring_tensor, mean, center):
-        """
-        Equation 13 from https://doi.org/10.1063/1.3175798
-        """
-        return -(k_spring_tensor @ (mean - center))
-
-    def integrate(a_free_energy, nabla_a_free_energy, centers, i):
-        return a_free_energy[i - 1] + nabla_a_free_energy[i - 1].T @ (centers[i] - centers[i - 1])
-
     context_args = {} if context_args is None else context_args
 
-    result = {}
-    result["histogram"] = []
-    result["histogram_means"] = []
-    result["kspring"] = []
-    result["center"] = []
-    result["nabla_a_free_energy"] = []
-    result["a_free_energy"] = []
-
-    # states = []
+    states = []
+    callbacks = []
 
     for rep, submethod in enumerate(method.submethods):
         context_args["replica_num"] = rep
         context = context_generator(**context_args)
         callback = method.histograms[rep]
-
         wrapped_context = ContextWrapper(context, submethod, callback)
+
         with wrapped_context:
-            wrapped_context.run(timesteps, **kwargs)  # pylint: disable=E1102
+            state = wrapped_context.run(timesteps, **kwargs)  # pylint: disable=E1102
+            states.append(state)
 
-        # states.append(wrapped_context.sampler.state)
+        callbacks.append(callback)
 
-        mean = callback.get_means()
+    return Result(method, states, callbacks)
 
-        result["kspring"].append(submethod.kspring)
-        result["center"].append(submethod.center)
-        result["histogram"].append(callback)
-        result["histogram_means"].append(mean)
-        result["nabla_a_free_energy"].append(
-            free_energy_gradient(submethod.kspring, mean, submethod.center)
-        )
-        # Discrete forward integration of the free-energy
-        if rep == 0:
-            result["a_free_energy"].append(0)
-        else:
-            result["a_free_energy"].append(
-                integrate(
-                    result["a_free_energy"],
-                    result["nabla_a_free_energy"],
-                    result["center"],
-                    rep,
-                )
-            )
 
-    return result
+@dispatch
+def analyze(result: Result[UmbrellaIntegration]):
+    """
+    Computes the free energy from the result of an `UmbrellaIntegration` run.
+    """
+
+    def free_energy_gradient(k_spring, xi_mean, xi_ref):
+        """
+        Equation 13 from https://doi.org/10.1063/1.3175798
+        """
+        return -(k_spring @ (xi_mean - xi_ref))
+
+    def integrate(A, nabla_A, centers, i):
+        return A[i - 1] + nabla_A[i - 1].T @ (centers[i] - centers[i - 1])
+
+    submethods = result.method.submethods
+
+    ksprings = [s.kspring for s in submethods]
+    centers = [s.center for s in submethods]
+    hist_means = [cb.get_means() for cb in result.callbacks]
+
+    submethods_iterator = zip(ksprings, centers, hist_means)
+    mean_forces = []
+    free_energy = [0.0]
+
+    for i, (kspring, center, mean) in enumerate(submethods_iterator):
+        mean_forces.append(free_energy_gradient(kspring, mean, center))
+        if i > 0:
+            free_energy.append(integrate(free_energy, mean_forces, centers, i))
+
+    return dict(
+        ksprings=ksprings,
+        centers=centers,
+        histograms=result.callbacks,
+        histogram_means=hist_means,
+        mean_forces=mean_forces,
+        free_energy=free_energy,
+    )
