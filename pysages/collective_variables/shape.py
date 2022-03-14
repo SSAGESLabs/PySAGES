@@ -38,7 +38,7 @@ class RadiusOfGyration(CollectiveVariable):
 
 def radius_of_gyration(positions):
     """
-    Calculate the Radius of gyration for a group of atoms.
+    Calculate the radius of gyration for a group of atoms.
 
     Parameters
     ----------
@@ -48,7 +48,7 @@ def radius_of_gyration(positions):
     Returns
     -------
     DeviceArray
-        Radius of Gyration vector
+        Radius of gyration vector
     """
     group_length = positions.shape[0]
     rog = np.zeros((3,))
@@ -60,7 +60,7 @@ def radius_of_gyration(positions):
 
 def weighted_radius_of_gyration(positions, weights):
     """
-    Calculate the Radius of gyration for a group of atoms weighted by weights.
+    Calculate the radius of gyration for a group of atoms weighted by arbitrary weights.
 
     Parameters
     ----------
@@ -72,7 +72,7 @@ def weighted_radius_of_gyration(positions, weights):
     Returns
     -------
     DeviceArray
-        Weighted Radius of Gyration vector
+        Weighted radius of gyration vector
     """
     group_length = positions.shape[0]
     rog = np.zeros((3,))
@@ -104,8 +104,8 @@ class PrincipalMoment(AxisCV):
         Returns
         -------
         Callable
-            Function to calculate the Eigenvalue with the specified axis index \
-            of the GyrationTensor. \
+            Function to calculate the eigenvalue with the specified axis index \
+            of the gyration tensor. \
             See `pysages.collective_variables.shape.principal_moments` and \
             `pysages.collective_variables.shape.gyration_tensor` for details.
         """
@@ -119,12 +119,12 @@ def gyration_tensor(positions):
     Parameters
     ----------
     positions: DeviceArray
-        Points in space, that are equally weighted to calculate the gyration tensor.
+        Points in space that are equally weighted to calculate the gyration tensor.
 
     Returns
     -------
     DeviceArray
-        Gyration Tensor
+        Gyration tensor
     """
     group_length = positions.shape[0]
     gyr = np.zeros((3, 3))
@@ -135,19 +135,19 @@ def gyration_tensor(positions):
 
 def weighted_gyration_tensor(positions, weights):
     """
-    Calculate the gyration tensor for a collection of points in space.
+    Calculate the gyration tensor for a collection of points in space weighted by arbitrary weights.
 
     Parameters
     ----------
     positions: DeviceArray
-        Points in space, that are weighted by `weight` to calculate the gyration tensor.
+        Points in space that are weighted by `weight` to calculate the gyration tensor.
     weights: DeviceArray
         Weights for the points in space e.g. particle masses
 
     Returns
     -------
     DeviceArray
-        Gyration Tensor
+        Gyration tensor
     """
     group_length = positions.shape[0]
     gyr = np.zeros((3, 3))
@@ -160,13 +160,13 @@ def weighted_gyration_tensor(positions, weights):
 def principal_moments(positions):
     """
     Calculate the principal momements for positions.
-    The principal moments are the Eigenvalues of the Gyration tensor.
+    The principal moments are the eigenvalues of the gyration tensor.
     See `pysages.collective_variables.shape.gyration_tensor` for details.
 
     Parameters
     ----------
     positions: DeviceArray
-        Points in space, that are equally weighted to calculate the gyration tensor.
+        Points in space that are equally weighted to calculate the gyration tensor.
 
     Returns
     -------
@@ -212,7 +212,7 @@ def asphericity(positions):
     Parameters
     ----------
     positions: DeviceArray
-        Points in space, that are equally weighted to calculate the principal moments.
+        Points in space that are equally weighted to calculate the principal moments.
 
     Returns
     -------
@@ -259,7 +259,7 @@ def acylindricity(positions):
     Parameters
     ----------
     positions: DeviceArray
-        Points in space, that are equally weighted to calculate the principal moments from.
+        Points in space that are equally weighted to calculate the principal moments from.
 
     Returns
     -------
@@ -311,7 +311,7 @@ def shape_anisotropy(positions):
     Parameters
     ----------
     positions: DeviceArray
-        Points in space, that are equally weighted to calculate the principal moments from.
+        Points in space that are equally weighted to calculate the principal moments from.
 
     Returns
     -------

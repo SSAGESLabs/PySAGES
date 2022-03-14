@@ -6,10 +6,10 @@
 Harmonic bias method.
 
 Biasing a simulation towards a value of a collective variable is the foundation of a
-number advanced sampling methods, umbrella integration, WHAM, string method to name a few.
+number of advanced sampling methods - umbrella integration, WHAM, string method to name a few.
 This method implements such a bias.
 
-The hamiltonian is ammended with a term
+The hamiltonian is amended with a term
 :math:`\\mathcal{H} = \\mathcal{H}_0 + \\mathcal{H}_\\mathrm{HB}(\\xi)` where
 :math:`\\mathcal{H}_\\mathrm{HB}(\\xi) = \\boldsymbol{K}/2 (\\xi_0 - \\xi)^2`
 biases the simulations around the collective variable :math:`\\xi_0`.
@@ -25,7 +25,7 @@ from pysages.utils import JaxArray
 
 class HarmonicBiasState(NamedTuple):
     """
-    Description of a state bias by a harmonic potential for a CV.
+    Description of a state biased by a harmonic potential for a CV.
 
     bias: JaxArray
         Array with harmic biasing forces for each particle in the simulation.
@@ -52,7 +52,7 @@ class HarmonicBias(SamplingMethod):
         Arguments
         ---------
         cvs: Union[List, Tuple]
-            A list or Tuple of collective variables, length `N`.
+            A list or tuple of collective variables, length `N`.
         kspring:
             A scalar, array length `N` or symmetric `N x N` matrix. Restraining spring constant.
         center:

@@ -6,7 +6,7 @@
 Collective variable angles describe the angle spanning by 3 (or 4 for dihedral) particles
 in the simulation.
 
-It is common to describe such anlges inside a molecule or protein characteristic for a
+It is common to describe such angles inside a molecule or protein characteristic for a
 conformation change.
 """
 
@@ -18,8 +18,8 @@ from pysages.collective_variables.core import ThreePointCV, FourPointCV
 class Angle(ThreePointCV):
     """Angle between 3 points in space.
 
-    Angle collective variables calcualte the angle spanned by three points in space
-    (usualy atom positions).
+    Angle collective variables calculated as the angle spanned by three points in space
+    (usually atom positions).
     Take a look at the `pysages.collective_variables.core.ThreePointCV` for details on the
     constructor.
     """
@@ -31,14 +31,15 @@ class Angle(ThreePointCV):
 
         Returns
         -------
-        Function that calculates the angle value from a simlation snapshot.
+        Function that calculates the angle value from a simulation snapshot.
         Look at `pysages.collective_variables.angles.angle` for details.
         """
         return angle
 
 
 def angle(p1, p2, p3):
-    r"""Function to calculate angle between 3 points.
+    r"""
+    Calculates angle between 3 points in space.
 
     Takes 3 positions in space and calculates the angle between them.
 
@@ -69,7 +70,7 @@ def angle(p1, p2, p3):
 
 class DihedralAngle(FourPointCV):
     """
-    Computes the dihedral angle spanned by four points in space (usualy atom positions).
+    Computes the dihedral angle spanned by four points in space (usually atom positions).
     Take a look at the `pysages.collective_variables.core.FourPointCV` for details on the
     constructor.
     """
@@ -79,7 +80,7 @@ class DihedralAngle(FourPointCV):
         """
         Returns
         -------
-        Function that calculates the dihedral angle value from a simlation snapshot.
+        Function that calculates the dihedral angle value from a simulation snapshot.
         Look at `pysages.collective_variables.angles.dihedral_angle` for details.
         """
         return dihedral_angle

@@ -3,7 +3,7 @@
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 """
-Collective Variables that are compute from the Cartesian coordinates.
+Collective Variables that are computed from the Cartesian coordinates.
 """
 
 from jax import numpy as np
