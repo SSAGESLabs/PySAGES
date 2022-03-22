@@ -6,6 +6,7 @@ from pysages.collective_variables import DihedralAngle
 from pysages.methods import FFS
 from pysages.utils import try_import
 
+import argparse
 import numpy
 import pysages
 
@@ -58,6 +59,41 @@ def generate_simulation(pdb_filename=adp_pdb, T=T, dt=dt):
 
 # %%
 def main():
+    parser = argparse.ArgumentParser(description="Run forward flux sampling.")
+    parser.add_argument(
+        "--timesteps",
+        metavar="t",
+        type=int,
+        default=int(1e9),
+        help="Max number of timesteps",
+        required=False,
+    )
+    parser.add_argument(
+        "--window_number",
+        metavar="Nw",
+        type=int,
+        default=4,
+        help="Number of windows.",
+        required=False,
+    )
+    parser.add_argument(
+        "--sampling_steps",
+        metavar="S",
+        type=int,
+        default=20000,
+        help="Period for sampling configurations in the basin.",
+        required=False,
+    )
+    parser.add_argument(
+        "--replicas",
+        metavar="R",
+        type=int,
+        default=20,
+        help="Number of stored configurations for each window.",
+        required=False,
+    )
+    args = parser.parse_args()
+
     cvs = [DihedralAngle((6, 8, 14, 16))]
     method = FFS(cvs)
 
@@ -65,7 +101,16 @@ def main():
     win_0 = (100 / 180) * pi
     win_f = (150 / 180) * pi
 
-    method.run(generate_simulation, 1e9, dt, win_0, win_f, 4, 20000, 20)
+    method.run(
+        generate_simulation,
+        args.timesteps,
+        dt,
+        win_0,
+        win_f,
+        args.window_number,
+        args.sampling_steps,
+        args.replicas,
+    )
 
 
 # %%
