@@ -12,6 +12,7 @@ from pysages.utils import JaxArray, copy
 
 import jax.numpy as np
 from jax import lax
+from functools import partial
 from jax import jit
 
 from itertools import product
@@ -20,20 +21,21 @@ from itertools import product
 #   Metadynamics   #
 # ================ #
 
-# =======================================================  #
-# =======================================================  #
+# ===========================================================================  #
+# ===========================================================================  #
 # Log
 #   v0: standard meta without grids and single CV
 #   v1: standard meta without grids and multiple CVs
 #   v2: standard meta with grids and multiple CVs
 #   v3: well-tempered meta without grids and multiple CVs
 #   v4: well-tempered meta with grids and multiple CVs
-#   v5: support restart using hills file - pending
-# =======================================================  #
-# =======================================================  #
+#   v5: modified to supprot functional implementation
+# ===========================================================================  #
+# ===========================================================================  #
 
 
 # callback to log hills and other output files
+# NOTE: for OpenMM; issue #16 on openmm-dlext should be resolved for this to work.
 class logMeta:
     """
     Implements a Callback functor for methods.
@@ -91,30 +93,37 @@ class logMeta:
                 self.hillsFile,
             )
 
-        # to do -- track bias potential when calculating bias forces for efficiency.
         if self.counter % self.colvar_period == 0:
 
-            # NOTE: state.xi is the next timestep; implies hills and colvar will not match.
+            # NOTE: state.xi is the next timestep;
             # this should not be a problem because colvar is primarily for data analysis.
             # for consistency, timestep in colvar is incremented.
-            # Potential issue: bias_pot from meta_bias_pot will not correspond to state.xi (colvar_nstrides?)
+            # (may be store bias_pot at colvar_nstrides for efficiency?)
 
             if self.grid_defined and self.hills_period != self.colvar_period:
                 # compute bias potentials again because with grids grid_potential is updated only at hills_period
-                bias_pot = 0
-                bias_pot = lax.fori_loop(
-                    0,
-                    state.loop - 1,
-                    bias_potential,
-                    (
-                        bias_pot,
-                        state.xi,
-                        state.xi_stride,
-                        state.sigma_stride,
-                        state.height_stride,
-                        self.angle,
-                    ),
-                )[0]
+
+                # func implementation
+                ncvs = state.xi_stride.shape[1]
+
+                bias_pot = 0.0
+                if state.loop == 0 or state.loop == 1:
+                    local_loop = 2
+                else:
+                    local_loop = state.loop
+                bias_params = (
+                    state.xi,
+                    lax.dynamic_slice(state.xi_stride, [0, ncvs], [local_loop - 1, ncvs]),
+                    lax.dynamic_slice(state.sigma_stride, [0, ncvs], [local_loop - 1, ncvs]),
+                    lax.dynamic_slice(state.height_stride, [0], [local_loop - 1]),
+                    self.angle,
+                )
+
+                if state.loop == 0 or state.loop == 1:
+                    bias_pot = bias_pot
+                else:
+                    bias_pot = bias_potential(bias_params)
+
             else:
                 bias_pot = state.meta_bias_pot[self.counter][0]
 
@@ -134,7 +143,10 @@ class MetaBiasState(NamedTuple):
     sigma_stride -- sigma value at the last stride.
     height_stride -- height value at the last stride.
     loop -- tracking strides during the simulation for filling xi_stride.
+    frame --  frame number for updating metadynamics bias potential.
+    meta_bias_pot -- Array of metadynamics bias potential.
     grid_force -- Array of metadynamics bias forces for each particle in the simulation stored on a grid.
+    grid_potential -- Array of metadynamics bias potential stored on a grid.
     """
 
     bias: JaxArray
@@ -194,7 +206,7 @@ class meta(SamplingMethod):
         if "angle" in kwargs:
             self.angle = kwargs["angle"]
         else:
-            self.angle = np.full(np.shape(cvs)[0], False)
+            self.angle = np.full(np.shape(cvs)[0], False)  # default
 
         self.snapshot_flags = ("positions", "indices")
 
@@ -244,7 +256,7 @@ class meta(SamplingMethod):
             grid = self.grid
             dims = grid.shape.size
 
-            # to do -- may be move to grids.py
+            # to do -- may be move all grid related helper functions to grids.py
             # get_grid_index = build_indexer(grid)
             lower_edges, upper_edges, grid_spacing = build_edges(grid, grid.shape)
 
@@ -255,12 +267,12 @@ class meta(SamplingMethod):
                 n_grid_points *= grid.shape[d]
 
             grid_force = np.zeros((*grid.shape, dims), dtype=np.float64)
-
             grid_potential = np.zeros((*grid.shape, 1), dtype=np.float64)
 
-            # to do - use indices from grid_force for generating coordinates
+            # to do - may be add helper function to grids.py
             grid_indices = np.asarray(np.meshgrid(*np.asarray(iterList)))
             grid_indices = np.stack((*lax.map(np.ravel, grid_indices),)).T
+            grid_indices = np.flip(np.uint32(grid_indices), axis=1)
 
         context = context_generator(**context_args)
         callback = logMeta(
@@ -281,10 +293,12 @@ class meta(SamplingMethod):
             run = wrapped_context.run
 
             loop = 0
+            # start simulation
             for frame in range(0, timesteps):
 
                 # print(f"Frame: {frame}\n")
 
+                # add bias at user defined stride
                 if (frame) != 0 and (frame) % self.stride == 0:
 
                     xi_stride = sampler.state.xi_stride
@@ -293,10 +307,10 @@ class meta(SamplingMethod):
 
                     height_stride = sampler.state.height_stride
 
-                    # loop += 1
-
+                    # grid defined
                     if grid_defined:
 
+                        # well-tempered metadynamics
                         if self.deltaT > 0:
 
                             # read grid potential
@@ -310,24 +324,28 @@ class meta(SamplingMethod):
                                 self.height * np.exp(-total_bias_potential)
                             )
 
-                        # loop through each grid point and update grid_force and grid_potential
-                        grid_result = lax.fori_loop(
-                            0,
-                            n_grid_points,
-                            derivative_bias_grid,
-                            (
-                                sampler.state.grid_force,
-                                sampler.state.grid_potential,
-                                grid_indices,
-                                lower_edges,
-                                grid_spacing,
-                                sampler.state.xi,
-                                sampler.state.sigma_stride[loop],
-                                height_stride[loop],
-                                self.angle,
-                            ),
+                        grid_force = sampler.state.grid_force
+                        grid_potential = sampler.state.grid_potential
+
+                        # calculate force and potential on grid
+                        grid_params = (
+                            grid_indices,
+                            lower_edges,
+                            grid_spacing,
+                            sampler.state.xi,
+                            sampler.state.sigma_stride[loop],
+                            height_stride[loop],
+                            self.angle,
                         )
-                        grid_force, grid_potential, _, _, _, _, _, _, _ = grid_result
+                        _grid_force, _grid_potential = jit(derivative_bias_grid)(grid_params)
+
+                        grid_force = jit(np.add)(
+                            grid_force, _grid_force.reshape(sampler.state.grid_force.shape)
+                        )
+                        grid_potential = jit(np.add)(
+                            grid_potential,
+                            _grid_potential.reshape(sampler.state.grid_potential.shape),
+                        )
 
                     else:
 
@@ -336,9 +354,9 @@ class meta(SamplingMethod):
 
                         # modify height_stride if using well-tempered meta
                         if self.deltaT > 0:
-                            print("deltaT")
-                            print(self.deltaT)
-                            print("\n")
+
+                            # for i implementation [loop implementation is difficult to avoid here]
+                            # height in the current stride depends on bias; which depends on previous height.
                             total_bias_potential = 0
                             total_bias_potential = lax.fori_loop(
                                 0,
@@ -354,6 +372,7 @@ class meta(SamplingMethod):
                                     self.angle,
                                 ),
                             )[0]
+
                             total_bias_potential = total_bias_potential / (self.deltaT * self.kB)
                             height_stride = height_stride.at[loop].set(
                                 self.height * np.exp(-total_bias_potential)
@@ -386,6 +405,8 @@ def metadynamics(method, snapshot, helpers):
         grid_defined = True
         grid = method.grid
         dims = grid.shape.size
+
+        # to do - may be move to grids.py
         # get_grid_index = build_indexer(grid)
         lower_edges, upper_edges, grid_spacing = build_edges(grid, grid.shape)
 
@@ -421,8 +442,6 @@ def metadynamics(method, snapshot, helpers):
         loop = 0
         frame = 0
 
-        # NOTE: bias potentials need not be store every frame;
-        # reqd may be only at timesteps//colvar_outstride + 1
         meta_bias_pot = np.zeros((stride * nstrides, 1), dtype=np.float64)
 
         if grid_defined:
@@ -454,8 +473,9 @@ def metadynamics(method, snapshot, helpers):
 
         # calculate gradient bias potential along CV
         dbias_dxi = np.zeros(state.xi.shape[1], dtype=np.float64)
+        meta_bias_pot = state.meta_bias_pot
 
-        # change this to lax cond. to do
+        # to do: may be change this to lax.select?
         if grid_defined:
 
             # look up and apply dbias_dxi and bias potential using grids
@@ -465,21 +485,16 @@ def metadynamics(method, snapshot, helpers):
 
         else:
 
-            bias_result = lax.fori_loop(
-                0,
-                state.loop,
-                derivative_bias,
-                (
-                    dbias_dxi,
-                    state.meta_bias_pot[state.frame][0],
-                    xi,
-                    state.xi_stride,
-                    state.sigma_stride,
-                    state.height_stride,
-                    angle,
-                ),
+            # a partial jit would be ideal here for slicing arrays.
+            # current pysages does a global jit; dynamic_slice will not work under jit here
+            dbias_dxi, meta_bias_pot = jit(derivative_bias)(
+                state.loop, xi, state.xi_stride, state.sigma_stride, state.height_stride, angle
             )
-            dbias_dxi, meta_bias_pot, _, _, _, _, _ = bias_result
+
+            dbias_dxi = lax.select(
+                state.loop == 0, np.zeros(state.xi.shape[1], dtype=np.float64), dbias_dxi
+            )
+            meta_bias_pot = lax.select(state.loop == 0, 0.0, meta_bias_pot)
 
         updated_meta_bias_pot = state.meta_bias_pot
         updated_meta_bias_pot = updated_meta_bias_pot.at[state.frame].set(meta_bias_pot)
@@ -501,194 +516,13 @@ def metadynamics(method, snapshot, helpers):
             state.grid_potential,
         )
 
-    return snapshot, initialize, generalize(update, helpers, jit_compile=False)
+    return snapshot, initialize, generalize(update, helpers, jit_compile=True)
 
 
 ## HELPER FUNCTIONS
-
-# expect arrays as inputs and return array as output
-def exp_in_gaussian(delta_xi, sigma):
-
-    sigma_square = 2 * np.multiply(sigma, sigma)
-    delta_xi_square = np.multiply(delta_xi, delta_xi)
-    arg = np.divide(delta_xi_square, sigma_square)
-
-    return np.exp(-arg)
-
-
-# expect floats as inputs and return float as output
-def derivative_exp_in_gaussian(delta_xi, sigma):
-
-    arg = (delta_xi * delta_xi) / (2 * sigma * sigma)
-
-    pre = -(delta_xi) / (sigma * sigma)
-
-    return pre * np.exp(-arg)
-
-
-# for multiple CVs
-def dbias_dxi_cv(j, dbias_dxi_cv_parameters):
-
-    dbias_dxi, xi, xi_stride, sigma_cv, angle = dbias_dxi_cv_parameters
-
-    delta_xi = xi - xi_stride
-
-    # print("delta xi shape")
-    # print(delta_xi.shape)
-
-    delta_xi = periodic_angle(delta_xi, angle)
-
-    sigma = sigma_cv
-
-    exp_in_gaussian_local = exp_in_gaussian(delta_xi, sigma)
-    exp_in_gaussian_local = exp_in_gaussian_local.at[j].set(1)
-
-    ncvs_product = np.product(exp_in_gaussian_local, axis=0)
-
-    local_delta_xi = delta_xi[j]  # xi[j] - xi_stride[j]
-
-    # print("delta xi next shape")
-    # print(local_delta_xi.shape)
-    # print("end")
-    # delta_xi = np.expand_dims(delta_xi, 0)
-    # local_angle = np.expand_dims(angle[0][j], 0)
-    # print(delta_xi.shape)
-    # delta_xi = lax.fori_loop(0, delta_xi.shape[0], periodic_angle, (delta_xi, local_angle))[0]
-    # delta_xi = np.squeeze(delta_xi, 0)
-    # print(delta_xi.shape)
-    # print("\n")
-
-    sigma = sigma_cv[j]
-
-    ncvs_product *= derivative_exp_in_gaussian(local_delta_xi, sigma)
-
-    dbias_dxi = dbias_dxi.at[j].set(ncvs_product)
-
-    return (dbias_dxi, xi, xi_stride, sigma_cv, angle)
-
-
-# to do: add bias potential calculation
-def derivative_bias(i, dbias_parameters):
-
-    dbias_dxi, bias_pot, xi, xi_stride, sigma_stride, height_stride, angle = dbias_parameters
-
-    delta_xi = xi[0] - xi_stride[i]
-
-    # print("delta deriv shape")
-    # print(delta_xi.shape)
-    # print(delta_xi.shape)
-    delta_xi = periodic_angle(delta_xi, angle)
-    # print(delta_xi.shape)
-    # print("end deriv 1\n")
-
-    height = height_stride[i]
-
-    sigma_cv = sigma_stride[i]
-
-    dbias_dxi_local = dbias_dxi
-    dbias_dxi_local = lax.fori_loop(
-        0, xi.shape[1], dbias_dxi_cv, (dbias_dxi_local, xi[0], xi_stride[i], sigma_cv, angle)
-    )[0]
-
-    dbias_dxi = dbias_dxi + height * dbias_dxi_local
-
-    bias_pot = bias_pot + height * np.product(exp_in_gaussian(delta_xi, sigma_cv), axis=0)
-
-    return (dbias_dxi, bias_pot, xi, xi_stride, sigma_stride, height_stride, angle)
-
-
-# bias forces and potential on a grid
-def derivative_bias_grid(i, dbias_parameters):
-
-    (
-        grid_dbias_dxi,
-        grid_bias,
-        grid_index,
-        lower_edges,
-        grid_spacing,
-        xi,
-        sigma,
-        height,
-        angle,
-    ) = dbias_parameters
-
-    grid_index_i = jit(get_jit_index)(grid_index[i])
-
-    coordinate = jit(get_grid_coordinates)(np.asarray(grid_index_i), lower_edges, grid_spacing)
-
-    sigma_local = sigma
-    dbias_dxi_local = grid_dbias_dxi[grid_index_i]
-    dbias_dxi_local = lax.fori_loop(
-        0, xi.shape[1], dbias_dxi_cv, (dbias_dxi_local, coordinate, xi[0], sigma_local, angle)
-    )[0]
-
-    grid_dbias_dxi = grid_dbias_dxi.at[grid_index_i].add(height * dbias_dxi_local)
-
-    delta_xi = coordinate - xi[0]
-
-    # print("dsad shape")
-    # print(delta_xi.shape)
-
-    delta_xi = periodic_angle(delta_xi, angle)
-    # print("end this")
-
-    grid_bias = grid_bias.at[grid_index_i].add(
-        height * np.product(exp_in_gaussian(delta_xi, sigma), axis=0)
-    )
-
-    return (
-        grid_dbias_dxi,
-        grid_bias,
-        grid_index,
-        lower_edges,
-        grid_spacing,
-        xi,
-        sigma,
-        height,
-        angle,
-    )
-
-
-def bias_potential(i, bias_parameters):
-
-    bias_pot, xi, xi_stride, sigma_stride, height_stride, angle = bias_parameters
-
-    delta_xi = xi[0] - xi_stride[i]
-
-    # print("\n")
-    # print("delta biax shape")
-    # print(delta_xi.shape)
-    # print(delta_xi.shape)
-    delta_xi = periodic_angle(delta_xi, angle)
-    # print(delta_xi.shape)
-    # print("end \n")
-
-    height = height_stride[i]
-
-    sigma = sigma_stride[i]
-
-    bias_pot = bias_pot + height * np.product(exp_in_gaussian(delta_xi, sigma), axis=0)
-
-    return (bias_pot, xi, xi_stride, sigma_stride, height_stride, angle)
-
-
-def bias_potential_wmeta(i, bias_parameters):
-
-    bias_pot, xi, xi_stride, sigma_stride, height_initial, deltaT_kB, angle = bias_parameters
-
-    delta_xi = xi[0] - xi_stride[i]
-
-    delta_xi = periodic_angle(delta_xi, angle)
-
-    height = height_initial * np.exp(-bias_pot / deltaT_kB)
-
-    sigma = sigma_stride[i]
-
-    bias_pot = bias_pot + height * np.product(exp_in_gaussian(delta_xi, sigma), axis=0)
-
-    return (bias_pot, xi, xi_stride, sigma_stride, height_initial, deltaT_kB, angle)
-
-
+##############################################################
+# Output files
+##############################################################
 def write_hills_to_file(frame, xi, sigma, height, hillsFile):
 
     with open(hillsFile, "a+") as f:
@@ -717,6 +551,9 @@ def write_colvar_to_file(frame, xi, bias_potential, colvarFile):
         f.write(str(bias_potential) + "\n")
 
 
+##############################################################
+# grid related functions (may be move to grids.py)
+##############################################################
 def get_grid_coordinates(grid_index, lower_edges, grid_spacing):
 
     coordinate = lower_edges + np.multiply(grid_index + 0.5, grid_spacing)
@@ -737,11 +574,6 @@ def build_edges(grid, num_points):
     return (lower_edges, upper_edges, grid_spacing)
 
 
-def get_jit_index(idx):
-
-    return (*np.flip(np.uint32(idx)),)
-
-
 def get_grid_index(x, lower_grid, grid_spacing, grid_shape):
 
     idx = np.rint((x[0] - lower_grid) / grid_spacing - 0.5)
@@ -756,43 +588,156 @@ def get_grid_index(x, lower_grid, grid_spacing, grid_shape):
     return (*np.uint32(idx),)
 
 
+##############################################################
+# return cv difference taking periodicity into account
+# may be move to angle CVs or remove when supported in it.
+##############################################################
 def periodic_angle(cvdifference, angle):
-
-    # return cv difference taking periodicity into account
 
     # non periodidc angle or any other non periodic CV
     def nonperiodic_case(cvdiff):
-
         return cvdiff
 
     # periodic angle - wraps angle between -pi and pi
     # periodic CVs other than angle - not supported
-    def periodic_angle_case(cvdiff):
-        def neg_case(cvdiff):
-            cvdiff = cvdiff + np.float64(2.0 * np.pi)
-            return cvdiff
-
-        def pos_case(cvdiff):
-            cvdiff = cvdiff - np.float64(2.0 * np.pi)
-            return cvdiff
-
-        cvdiff = lax.cond(np.all(cvdiff > np.pi), pos_case, nonperiodic_case, cvdiff)
-        cvdiff = lax.cond(np.all(cvdiff < -np.pi), neg_case, nonperiodic_case, cvdiff)
-
+    def neg_case(cvdiff):
+        cvdiff = cvdiff + np.float64(2.0 * np.pi)
         return cvdiff
 
-    def select_case(i, case_params):
+    def pos_case(cvdiff):
+        cvdiff = cvdiff - np.float64(2.0 * np.pi)
+        return cvdiff
 
-        local_cvdifference, local_angle = case_params
+    cvdifference = np.where(
+        angle,
+        (np.where(cvdifference > np.pi, pos_case(cvdifference), cvdifference)),
+        nonperiodic_case(cvdifference),
+    )
 
-        updated_cvdifference = lax.cond(
-            np.all(local_angle[i]), periodic_angle_case, nonperiodic_case, local_cvdifference[i]
-        )
-
-        local_cvdifference = local_cvdifference.at[i].set(updated_cvdifference)
-
-        return local_cvdifference, local_angle
-
-    cvdifference, angle = lax.fori_loop(0, angle.shape[0], select_case, (cvdifference, angle))
+    cvdifference = np.where(
+        angle,
+        (np.where(cvdifference < -np.pi, neg_case(cvdifference), cvdifference)),
+        nonperiodic_case(cvdifference),
+    )
 
     return cvdifference
+
+
+##############################################################
+# bias and gradient helper functions
+##############################################################
+def exp_in_gaussian(delta_xi, sigma):
+
+    sigma_square = 2 * np.multiply(sigma, sigma)
+    delta_xi_square = np.multiply(delta_xi, delta_xi)
+    arg = np.divide(delta_xi_square, sigma_square)
+
+    return np.exp(-arg)
+
+
+def derivative_exp_in_gaussian(delta_xi, sigma):
+
+    sigma_square = np.multiply(sigma, sigma)
+    delta_xi_square = np.multiply(delta_xi, delta_xi)
+    arg = np.divide(delta_xi_square, 2 * sigma_square)
+    pre = np.divide(-delta_xi, sigma_square)
+
+    return np.multiply(pre, np.exp(-arg))
+
+
+# for multiple CVs - shared with and without grids implementation
+def dbias_dxi_cv(xi, xi_stride, sigma_cv, angle):
+
+    delta_xi = xi - xi_stride
+    delta_xi = jit(periodic_angle)(delta_xi, angle)
+
+    sigma = sigma_cv
+
+    exp_in_gaussian_local = jit(exp_in_gaussian)(delta_xi, sigma)
+    exp_in_gaussian_local_product = np.product(exp_in_gaussian_local, axis=1)
+    exp_in_gaussian_local_repeat = np.repeat(
+        exp_in_gaussian_local_product, exp_in_gaussian_local.shape[1]
+    )
+    exp_in_gaussian_local_repeat = exp_in_gaussian_local_repeat.reshape(exp_in_gaussian_local.shape)
+
+    ncvs_product = jit(np.divide)(exp_in_gaussian_local_repeat, exp_in_gaussian_local)
+    ncvs_product = jit(np.multiply)(ncvs_product, derivative_exp_in_gaussian(delta_xi, sigma))
+
+    return ncvs_product
+
+
+# bias forces and potential without grids
+
+
+def derivative_bias(loop, xi, xi_stride, sigma_stride, height_stride, angle):
+
+    height = height_stride
+    sigma = sigma_stride
+
+    dbias_dxi_local = jit(dbias_dxi_cv)(xi[0], xi_stride, sigma, angle)
+
+    dbias_dxi = height.reshape(-1, 1) * dbias_dxi_local
+    mask = np.arange(dbias_dxi.shape[0] * dbias_dxi.shape[1]) < loop * dbias_dxi.shape[1]
+    mask = mask.reshape(-1, dbias_dxi.shape[1])
+    dbias_dxi = np.sum(dbias_dxi, axis=0, where=mask)
+
+    delta_xi = xi[0] - xi_stride
+    delta_xi = jit(periodic_angle)(delta_xi, angle)
+
+    bias_pot = np.multiply(height, np.product(exp_in_gaussian(delta_xi, sigma), axis=1))
+    mask = np.arange(bias_pot.shape[0]) < loop
+    bias_pot = np.sum(bias_pot, axis=0, where=mask)
+
+    return (dbias_dxi, bias_pot)
+
+
+# bias forces and potential on a grid
+def derivative_bias_grid(dbias_parameters):
+
+    grid_index, lower_edges, grid_spacing, xi, sigma, height, angle = dbias_parameters
+
+    coordinate = jit(get_grid_coordinates)(grid_index, lower_edges, grid_spacing)
+
+    dbias_dxi_local = jit(dbias_dxi_cv)(coordinate, xi[0], sigma, angle)
+
+    grid_dbias_dxi = jit(np.multiply)(height, dbias_dxi_local)
+
+    delta_xi = coordinate - xi[0]
+    delta_xi = jit(periodic_angle)(delta_xi, angle)
+
+    grid_bias = np.multiply(height, np.product(exp_in_gaussian(delta_xi, sigma), axis=1))
+
+    return (grid_dbias_dxi, grid_bias)
+
+
+# for output colvar file
+def bias_potential(bias_parameters):
+
+    xi, xi_stride, sigma_stride, height_stride, angle = bias_parameters
+
+    delta_xi = xi - xi_stride
+    delta_xi = jit(periodic_angle)(delta_xi, angle)
+
+    height = height_stride
+    sigma = sigma_stride
+
+    bias_pot = jit(np.multiply)(height, np.product(exp_in_gaussian(delta_xi, sigma), axis=1))
+    bias_pot = np.sum(bias_pot, axis=0)
+
+    return bias_pot
+
+
+# for updating heights in well-tempered metadynamics
+def bias_potential_wmeta(i, bias_parameters):
+
+    bias_pot, xi, xi_stride, sigma_stride, height_initial, deltaT_kB, angle = bias_parameters
+
+    delta_xi = xi[0] - xi_stride[i]
+    delta_xi = jit(periodic_angle)(delta_xi, angle)
+
+    height = height_initial * np.exp(-bias_pot / deltaT_kB)
+    sigma = sigma_stride[i]
+
+    bias_pot = bias_pot + height * np.product(jit(exp_in_gaussian)(delta_xi, sigma), axis=0)
+
+    return (bias_pot, xi, xi_stride, sigma_stride, height_initial, deltaT_kB, angle)
