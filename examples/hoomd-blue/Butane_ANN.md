@@ -89,7 +89,7 @@ cd /content/ann
 
 <!-- #region id="0W2ukJuuojAl" -->
 ANN gradually learns the free energy from a probability density estimate based on the frequency of visits to grid on collective variable space.
- 
+
 For this Colab, we are using butane as the example molecule.
 <!-- #endregion -->
 
@@ -108,7 +108,7 @@ mode = "--mode=gpu"
 
 def generate_context(kT = kT, dt = dt, mode = mode):
     """
-    Generates a simulation context, we pass this function to the attribute 
+    Generates a simulation context, we pass this function to the attribute
     `run` of our sampling method.
     """
     hoomd.context.initialize(mode)
@@ -325,10 +325,14 @@ import pysages
 <!-- #region id="LknkRvo1o4av" -->
 The next step is to define the collective variable (CV). In this case, we choose the central dihedral angle.
 
-We also define a grid to bin our CV space, and a topology for our neural
-network which will model the free energy.
+We also define a grid to bin our CV space, the topology (tuple indicating the number of
+nodes of each hidden layer) for our neural network which will model the free energy,
+and pass the value of $kT$ for our system specified above.
 
-And pass the value of $kT$ for our system, as specified above.
+The appropriate number of bins depends on the complexity of the free energy landscape,
+a good rule of thumb is to choose between 20 to 100 bins along each CV dimension
+(using higher values for more rugged free energy surfaces), but it can be systematically
+found trying different values for short runs of any given system.
 <!-- #endregion -->
 
 ```python id="B1Z8FWz0o7u_"

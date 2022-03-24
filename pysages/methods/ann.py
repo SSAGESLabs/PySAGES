@@ -12,9 +12,6 @@ the probability density estimate) is used to train a neural network that
 provides a continuous approximation to the free energy.
 The gradient of the neural network model with respect to the CVs is then used
 as biasing force for the simulation.
-
-Implementation of "Learning free energy landscapes using artificial neural networks"
-[J. Chem. Phys. 148, 104111 (2018)](https://doi.org/10.1063/1.5018708).
 """
 
 from functools import partial
@@ -73,9 +70,38 @@ class ANNState(NamedTuple):
 
 
 class ANN(NNSamplingMethod):
+    """
+    Implementation of the sampling method described in
+    "Learning free energy landscapes using artificial neural networks"
+    [J. Chem. Phys. 148, 104111 (2018)](https://doi.org/10.1063/1.5018708).
+    """
+
     snapshot_flags = {"positions", "indices"}
 
     def __init__(self, cvs, grid, topology, kT, *args, **kwargs):
+        """
+        Arguments
+        ---------
+
+        cvs: Union[List, Tuple]
+            List of collective variables.
+
+        grid: Grid
+            Specifies the CV domain and number of bins for discretizing the CV space
+            along each CV dimension.
+
+        topology: Tuple[int]
+            Defines the architecture of the neural network
+            (number of nodes of each hidden layer).
+
+        kT: float
+            Value of kT in the same units as the backend interal energy units.
+
+        kwargs:
+            Optional keyword arguments including the training frequency `train_freq: int`
+            (defaults to 5000).
+        """
+
         super().__init__(cvs, grid, topology, *args, **kwargs)
 
         self.kT = kT
@@ -136,7 +162,14 @@ def _ann(method: ANN, snapshot, helpers):
     return snapshot, initialize, generalize(update, helpers)
 
 
-def build_free_energy_learner(method):
+def build_free_energy_learner(method: ANN):
+    """
+    Returns a function that given a `ANNState` trains the method's neural network
+    paramaters from an estimate to the probability density.
+
+    The training data is regularized by convolving it with a Blackman window.
+    """
+
     kT = method.kT
     grid = method.grid
     dims = grid.shape.size
@@ -182,7 +215,12 @@ def build_free_energy_learner(method):
     return _learn_free_energy
 
 
-def build_force_estimator(method):
+def build_force_estimator(method: ANN):
+    """
+    Returns a function that given the neural network parameters and a CV value,
+    computes the gradient of the network (the mean force) with respect to CV.
+    """
+
     dims = method.grid.shape.size
     model = method.model
     _, layout = unpack(model.parameters)
