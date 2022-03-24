@@ -9,6 +9,8 @@ from pysages.utils import try_import
 import numpy
 import pysages
 
+import time
+
 openmm = try_import("openmm", "simtk.openmm")
 unit = try_import("openmm.unit", "simtk.unit")
 app = try_import("openmm.app", "simtk.openmm.app")
@@ -20,7 +22,7 @@ pi = numpy.pi
 
 # %%
 def generate_simulation(
-    pdb_filename="../../../inputs/alanine-dipeptide/adp.pdb",
+    pdb_filename="../../../../inputs/alanine-dipeptide/adp.pdb",
     T=298.15 * unit.kelvin,
     dt=2.0 * unit.femtoseconds,
 ):
@@ -57,7 +59,7 @@ def generate_simulation(
     simulation.context.setPositions(positions)
     simulation.minimizeEnergy()
 
-    simulation.reporters.append(app.PDBReporter("output.pdb", 1))
+    simulation.reporters.append(app.PDBReporter("output.pdb", 1000))
     simulation.reporters.append(
         app.StateDataReporter("log.dat", 1000, step=True, potentialEnergy=True, temperature=True)
     )
@@ -69,11 +71,13 @@ def generate_simulation(
 def main():
     cvs = (DihedralAngle((4, 6, 8, 14)), DihedralAngle((6, 8, 14, 16)))
 
-    height = 1
-    sigma = 0.1
-    biasfactor = 1
-    stride = 100
-    timesteps = int(1e8)
+    angle = numpy.array([True, True])
+
+    height = 1.2
+    sigma = numpy.array([[0.35, 0.35]])
+    delta_T = -1  # 1500
+    stride = 500
+    timesteps = int(5000)  # int(1e8)
     nstrides = timesteps // stride + 1
     hillsFile = "hills.dat"
     colvarFile = "colvarFile.dat"
@@ -81,23 +85,23 @@ def main():
 
     grid = pysages.Grid(lower=(-pi, -pi), upper=(pi, pi), shape=(50, 50), periodic=True)
 
-    # method = meta(
-    #    cvs, height, sigma, stride, nstrides, biasfactor, colvar_outstride=colvar_outstride)
-
     method = meta(
         cvs,
         height,
         sigma,
         stride,
         nstrides,
-        biasfactor,
+        delta_T,
         colvar_outstride=colvar_outstride,
-        grid=grid,
+        angle=angle,
     )
-
+    # grid = grid
     # , hillsFile=hillsFile, colvarFile=colvarFile)
 
+    tic = time.perf_counter()
     method.run(generate_simulation, timesteps)
+    toc = time.perf_counter()
+    print(f"Completed the simulation in {toc - tic:0.4f} seconds.")
 
 
 # %%
