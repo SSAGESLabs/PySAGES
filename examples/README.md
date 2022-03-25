@@ -14,6 +14,7 @@ Examples for Methods using HOOMD-blue can be found in the subfolder [hoomd-blue]
 
  * Harmonic bias restricting a particle in space: [![Harmonic Bias](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/examples/hoomd-blue/Harmonic_Bias.ipynb)
  * Umbella integration of a particle in an external potential: [![Umbrella Integation](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/examples/hoomd-blue/Umbrella_Integration.ipynb)
+ * Artificial neural networks sampling of the dihedral angle of Butane: [![ANN](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/examples/hoomd-blue/Butane_ANN.ipynb)
 
 ### Script examples
 
@@ -34,7 +35,7 @@ Examples for Methods using OpenMM can be found in the subfolder [openmm](openmm)
 
 ## Installation of the Environment
 
-We have a Google Colab that shows how the MD engines and PySAGES can be installed together as guide to install PySAGES.
+We have a Google Colab that shows how the MD engines and PySAGES can be installed together as a guide to install PySAGES.
 This notebook has a final step that sets up precompiled environments for all the other notebooks as well.
 [![Install Env](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/examples/Install_PySAGES_Environment.ipynb)
 
@@ -53,5 +54,5 @@ All notebooks come in 2 flavors:
 * the `.md` is human readable and used for code revision.
 
 It is our responsibility as developers to have versions in sync with one another in the beginning.
-We recommend to use the `jupytext` package for this. Once a PR is submitted, we have a pre-commit hook to keep them synchronized.
+We recommend using the `jupytext` package for this. Once a PR is submitted, we have a pre-commit hook to keep them synchronized.
 
