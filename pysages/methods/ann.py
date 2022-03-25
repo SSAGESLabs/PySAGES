@@ -7,7 +7,7 @@ Artificial Neural Network (ANN) sampling.
 
 ANN estimates the probability distribution as a function of a set of collective
 variables from the frequency of visits to each bin in a grid in CV space.
-Periodically, the estimate a binned estimate of the free energy (computed from
+Periodically, a binned estimate of the free energy (computed from
 the probability density estimate) is used to train a neural network that
 provides a continuous approximation to the free energy.
 The gradient of the neural network model with respect to the CVs is then used
