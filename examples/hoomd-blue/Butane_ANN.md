@@ -7,7 +7,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.13.7
+      jupytext_version: 1.13.6
   kernelspec:
     display_name: Python 3
     name: python3
@@ -89,7 +89,7 @@ cd /content/ann
 ```
 
 <!-- #region id="0W2ukJuuojAl" -->
-ANN gradually learns the free energy from a probability density estimate based on the frequency of visits to grid on collective variable space.
+ANN gradually learns the free energy from a probability density estimate based on the frequency of visits to the grid on collective variable space.
 
 For this Colab, we are using butane as the example molecule.
 <!-- #endregion -->
@@ -312,7 +312,7 @@ def generate_context(kT = kT, dt = dt, mode = mode):
 ```
 
 <!-- #region id="3UrzENm_oo6U" -->
-Next we load PySAGES and the relevant classes and methods for our problem
+Next, we load PySAGES and the relevant classes and methods for our problem
 <!-- #endregion -->
 
 ```python id="fpMg-o8WomAA"
@@ -345,8 +345,8 @@ method = ANN(cvs, grid, topology, kT)
 ```
 
 <!-- #region id="Fz8BfU34pA_N" -->
-We now run the simulation for $5\times10^5$ time steps.
-Make sure to run with GPU support, otherwise it can take a very long time.
+We now simulate $5\times10^5$ time steps.
+Make sure to run with GPU support, otherwise, it can take a very long time.
 <!-- #endregion -->
 
 ```python colab={"base_uri": "https://localhost:8080/"} id="K951m4BbpUar" outputId="f01ca7e3-69f4-4218-9eb5-cdc022f877b8"
@@ -354,7 +354,7 @@ method.run(generate_context, int(5e5))
 ```
 
 <!-- #region id="PXBKUfK0p9T2" -->
-Let's now plot the free energy ladscape learned with by the ANN sampling method.
+Let's now plot the free energy landscape learned by the ANN sampling method.
 <!-- #endregion -->
 
 ```python id="X69d1R7OpW4P"

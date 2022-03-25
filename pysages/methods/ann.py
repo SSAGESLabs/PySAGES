@@ -5,9 +5,9 @@
 """
 Artificial Neural Network (ANN) sampling.
 
-ANN estimates the probability distribution as function of a set of collective
+ANN estimates the probability distribution as a function of a set of collective
 variables from the frequency of visits to each bin in a grid in CV space.
-Periodically, the estimate an binned estimate of the free energy (computed from
+Periodically, the estimate a binned estimate of the free energy (computed from
 the probability density estimate) is used to train a neural network that
 provides a continuous approximation to the free energy.
 The gradient of the neural network model with respect to the CVs is then used
@@ -48,13 +48,13 @@ class ANNState(NamedTuple):
     hist: JaxArray (grid.shape)
         Histogram of visits to the bins in the collective variable grid.
     phi: JaxArray (grid.shape, CV shape)
-        Current estimate of the free energy.
+        The current estimate of the free energy.
     prob: JaxArray (CV shape)
-        Current estimate of the unnormalized probability distribution.
+        The current estimate of the unnormalized probability distribution.
     nn: NNDada
         Bundle of the neural network parameters, and output scaling coefficients.
     nstep: int
-        Count of the number of times the method's update has been called.
+        Count the number of times the method's update has been called.
     """
 
     xi: JaxArray
@@ -95,7 +95,7 @@ class ANN(NNSamplingMethod):
             (number of nodes of each hidden layer).
 
         kT: float
-            Value of kT in the same units as the backend interal energy units.
+            Value of kT in the same units as the backend internal energy units.
 
         kwargs:
             Optional keyword arguments including the training frequency `train_freq: int`
@@ -164,8 +164,8 @@ def _ann(method: ANN, snapshot, helpers):
 
 def build_free_energy_learner(method: ANN):
     """
-    Returns a function that given a `ANNState` trains the method's neural network
-    paramaters from an estimate to the probability density.
+    Returns a function that given an `ANNState` trains the method's neural network
+    parameters from an estimate to the probability density.
 
     The training data is regularized by convolving it with a Blackman window.
     """
