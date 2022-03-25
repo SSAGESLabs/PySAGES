@@ -2,6 +2,7 @@
 jupyter:
   jupytext:
     formats: ipynb,md
+    main_language: python
     text_representation:
       extension: .md
       format_name: markdown
