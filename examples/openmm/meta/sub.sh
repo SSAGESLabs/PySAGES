@@ -5,5 +5,5 @@ source activate sd-pysages-openmm
 
 module unload python/anaconda-2020.02
 
-python3 alanine-dipeptide-vac_openmm.py
+python3 alanine.py
 

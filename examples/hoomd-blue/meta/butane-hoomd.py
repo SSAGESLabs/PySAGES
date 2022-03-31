@@ -23,8 +23,7 @@ import pysages
 from pysages.collective_variables import Component
 from pysages.collective_variables import DihedralAngle
 
-from pysages.methods import meta
-from pysages.methods.meta import logMeta
+from pysages.methods import Metadynamics as meta, MetaDLogger
 
 from math import sqrt, pi
 
@@ -335,23 +334,18 @@ def main():
 
     height = 0.01
     sigma = 0.1
-    biasfactor = 1
+    deltaT = None
     stride = 50
-    timesteps = int(1e8)
-    nstrides = timesteps // stride + 1
+    timesteps = int(5e3)
+    ngauss = timesteps // stride + 1
     hillsFile = "hills.dat"
-    colvarFile = "colvarFile.dat"
-    colvar_outstride = 50
 
-    method = meta(
-        cvs, height, sigma, stride, nstrides, biasfactor, colvar_outstride=colvar_outstride
-    )  # , hillsFile=hillsFile, colvarFile=colvarFile)
-
-    # callback = logMeta(stride, colvar_outstride, sigma, height, hillsFile, colvarFile)
+    callback = MetaDLogger(stride, sigma, height, hillsFile)
+    method = meta(cvs, height, sigma, stride, ngauss, deltaT)
 
     hoomd.context.initialize("")
 
-    method.run(generate_context, int(1e8))
+    method.run(generate_context, timesteps, callback)
 
 
 if __name__ == "__main__":

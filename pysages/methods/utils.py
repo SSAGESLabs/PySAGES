@@ -9,6 +9,7 @@ This includes callback functors (callable classes).
 """
 
 import jax.numpy as np
+from jax import lax
 
 
 class HistogramLogger:
@@ -72,3 +73,63 @@ class HistogramLogger:
         """
         self.counter = 0
         self.data = []
+
+
+# callback to log hills and other output files in metadynamics
+# NOTE: for OpenMM; issue #16 on openmm-dlext should be resolved for this to work properly.
+class MetaDLogger:
+    """
+    Implements a Callback functor for methods.
+    Logs the state of the collective variable and other parameters in metadynamics.
+    """
+
+    def __init__(self, stride, sigma, height, hillsFile):
+        """
+        logMeta constructor.
+
+        Arguments
+        ---------
+        hills_period:
+            Timesteps between logging of collective variables and metadynamics parameters.
+
+        sigma:
+            Width of the Gaussian bias potential.
+
+        height:
+            Height of the Gaussian bias potential.
+
+        hillsFile:
+            Name of the output hills log file.
+
+        counter:
+            Local frame counter.
+        """
+        self.stride = stride
+        self.sigma = sigma
+        self.height = height
+        self.hillsFile = hillsFile
+        self.counter = 0
+
+    # write hills file
+    def write_hills_to_file(self, xi, sigma, height):
+        with open(self.hillsFile, "a+") as f:
+            f.write(str(self.counter) + "\t")
+            for j in range(xi.shape[0]):
+                f.write(str(xi[j]) + "\t")
+            for j in range(sigma.shape[0]):
+                f.write(str(sigma[j]) + "\t")
+            f.write(str(height) + "\n")
+
+    def __call__(self, snapshot, state, timestep):
+        """
+        Implements the logging itself. Interface as expected for Callbacks.
+        """
+
+        local_loop = lax.select(state.idx == 0, 0, state.idx - 1)
+        # Write hills file containing CV centers and corresponding heights
+        if self.counter != 0 and self.counter % self.stride == 0:
+            self.write_hills_to_file(
+                state.xis[local_loop], state.sigmas[local_loop], state.heights[local_loop]
+            )
+
+        self.counter += 1
