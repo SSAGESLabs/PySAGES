@@ -22,9 +22,9 @@ from jax.lax import cond
 
 from pysages.approxfun import compute_mesh, scale as _scale
 from pysages.grids import build_indexer
-from pysages.utils import Int, JaxArray
 from pysages.methods.core import NNSamplingMethod, generalize
 from pysages.ml.models import MLP
+from pysages.ml.objectives import L2Regularization
 from pysages.ml.optimizers import LevenbergMarquardt
 from pysages.ml.training import (
     NNData,
@@ -33,6 +33,7 @@ from pysages.ml.training import (
     convolve,
 )
 from pysages.ml.utils import blackman_kernel, pack, unpack
+from pysages.utils import Int, JaxArray
 
 
 class ANNState(NamedTuple):
@@ -108,11 +109,11 @@ class ANN(NNSamplingMethod):
         self.train_freq = kwargs.get("train_freq", 5000)
 
         # Neural network and optimizer intialization
-        model = kwargs.get("model", MLP)
-        model_kwargs = kwargs.get("model_kwargs", {})
         scale = partial(_scale, grid=grid)
-        self.model = model(grid.shape.size, 1, topology, transform=scale, **model_kwargs)
-        self.optimizer = kwargs.get("optimizer", LevenbergMarquardt())
+        self.model = MLP(grid.shape.size, 1, topology, transform=scale)
+        self.optimizer = kwargs.get(
+            "optimizer", LevenbergMarquardt(reg=L2Regularization(1e-6))
+        )
 
     def build(self, snapshot, helpers):
         return _ann(self, snapshot, helpers)
@@ -173,6 +174,7 @@ def build_free_energy_learner(method: ANN):
     kT = method.kT
     grid = method.grid
     dims = grid.shape.size
+    model = method.model
 
     # Training data
     inputs = (compute_mesh(grid) + 1) * grid.size / 2 + grid.lower
@@ -181,7 +183,6 @@ def build_free_energy_learner(method: ANN):
     conv = partial(convolve, kernel=smoothing_kernel, boundary=padding)
     smooth = conv if dims > 1 else (lambda y: vmap(conv)(y.T).T)
 
-    model = method.model
     _, layout = unpack(model.parameters)
     fit = build_fitting_function(model, method.optimizer)
 
@@ -204,13 +205,11 @@ def build_free_energy_learner(method: ANN):
         #
         return hist, phi, prob, nn
 
+    def skip_learning(state):
+        return state.hist, state.phi, state.prob, state.nn
+
     def _learn_free_energy(state, in_training_step):
-        return cond(
-            in_training_step,
-            learn_free_energy,
-            lambda state: (state.hist, state.phi, state.prob, state.nn),
-            state,
-        )
+        return cond(in_training_step, learn_free_energy, skip_learning, state)
 
     return _learn_free_energy
 
@@ -221,6 +220,9 @@ def build_force_estimator(method: ANN):
     computes the gradient of the network (the mean force) with respect to CV.
     """
 
+    f32 = np.float32
+    f64 = np.float64
+
     dims = method.grid.shape.size
     model = method.model
     _, layout = unpack(model.parameters)
@@ -230,7 +232,7 @@ def build_force_estimator(method: ANN):
     def estimate_force(data):
         nn, x = data
         params = pack(nn.params, layout)
-        return nn.std * np.float64(model_grad(params, x).flatten())
+        return nn.std * f64(model_grad(params, f32(x)).flatten())
 
     def _estimate_force(nn, x, in_training_regime):
         return cond(in_training_regime, estimate_force, lambda _: np.zeros(dims), (nn, x))
