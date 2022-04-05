@@ -5,7 +5,7 @@
 """
 Adaptive Enhanced Sampling by Force-biasing Using Neural Networks (FUNN).
 
-FUNN learns the generalized mean forces as function of some collective variables,
+FUNN learns the generalized mean forces as a function of some collective variables,
 by training a neural network from a binned estimate of the mean forces estimates.
 It closely follows the Adaptive Biasing Force (ABF) algorithm, except for biasing
 the simulation, which is done from the continuous approximation to the
@@ -51,7 +51,7 @@ class FUNNState(NamedTuple):
     hist: JaxArray (grid.shape)
         Histogram of visits to the bins in the collective variable grid.
     Fsum: JaxArray (grid.shape, CV shape)
-        Cummulative force recorded at each bin of the CV grid.
+        The cumulative force recorded at each bin of the CV grid.
     Wp: JaxArray (CV shape)
         Estimate of the product $W p$ where `p` is the matrix of momenta and
         `W` the Moore-Penrose inverse of the Jacobian of the CVs.
@@ -91,34 +91,31 @@ class FUNN(NNSamplingMethod):
     Implementation of the sampling method described in
     "Adaptive enhanced sampling by force-biasing using neural networks"
     [J. Chem. Phys. 148, 134108 (2018)](https://doi.org/10.1063/1.5020733).
-    """
 
+    Arguments
+    ---------
+    cvs: Union[List, Tuple]
+        List of collective variables.
+    grid: Grid
+        Specifies the CV domain and number of bins for discretizing the CV space
+        along each CV dimension.
+    topology: Tuple[int]
+        Defines the architecture of the neural network
+        (number of nodes of each hidden layer).
+
+    Keyword arguments
+    -----------------
+    N: int
+        Threshold parameter before accounting for the full average of the
+        binned generalized mean force (defaults to 200).
+    train_freq: int
+        Training frequency (defaults to 5000).
+    optimizer:
+        Optimization method used for training defaults to LevenbergMarquardt().
+    """
     snapshot_flags = {"positions", "indices", "momenta"}
 
     def __init__(self, cvs, grid, topology, *args, **kwargs):
-        """
-        Arguments
-        ---------
-        cvs: Union[List, Tuple]
-            List of collective variables.
-        grid: Grid
-            Specifies the CV domain and number of bins for discretizing the CV space
-            along each CV dimension.
-        topology: Tuple[int]
-            Defines the architecture of the neural network
-            (number of nodes of each hidden layer).
-
-        Keyword arguments
-        -----------------
-        N: int
-            Threshold parameter before accounting for the full average of the
-            binned generalized mean force (defaults to 200).
-        train_freq: int
-            Training frequency (defaults to 5000).
-        optimizer:
-            Optimization method used for training defaults to LevenbergMarquardt().
-        """
-
         super().__init__(cvs, grid, topology, *args, **kwargs)
 
         self.N = np.asarray(kwargs.get("N", 200))

@@ -7,7 +7,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.13.7
+      jupytext_version: 1.13.6
   kernelspec:
     display_name: Python 3
     name: python3
@@ -353,7 +353,7 @@ method.run(generate_context, int(5e5))
 ```
 
 <!-- #region id="PXBKUfK0p9T2" -->
-Since the neural network learns the gradient of the free energy, we need a separate way of integratating it to find the free energy surface. Let's plot first the gradient of the free energy.
+Since the neural network learns the gradient of the free energy, we need a separate way of integrating it to find the free energy surface. Let's plot first the gradient of the free energy.
 <!-- #endregion -->
 
 ```python id="X69d1R7OpW4P"
