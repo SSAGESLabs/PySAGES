@@ -111,9 +111,7 @@ class ANN(NNSamplingMethod):
         # Neural network and optimizer intialization
         scale = partial(_scale, grid=grid)
         self.model = MLP(grid.shape.size, 1, topology, transform=scale)
-        self.optimizer = kwargs.get(
-            "optimizer", LevenbergMarquardt(reg=L2Regularization(1e-6))
-        )
+        self.optimizer = kwargs.get("optimizer", LevenbergMarquardt(reg=L2Regularization(1e-6)))
 
     def build(self, snapshot, helpers):
         return _ann(self, snapshot, helpers)

@@ -63,14 +63,14 @@ class FUNNState(NamedTuple):
         Count the number of times the method's update has been called.
     """
 
-    xi:    JaxArray
-    bias:  JaxArray
-    hist:  JaxArray
-    Fsum:  JaxArray
-    F:     JaxArray
-    Wp:    JaxArray
-    Wp_:   JaxArray
-    nn:    NNData
+    xi: JaxArray
+    bias: JaxArray
+    hist: JaxArray
+    Fsum: JaxArray
+    F: JaxArray
+    Wp: JaxArray
+    Wp_: JaxArray
+    nn: NNData
     nstep: Int
 
     def __repr__(self):
@@ -78,11 +78,11 @@ class FUNNState(NamedTuple):
 
 
 class PartialFUNNState(NamedTuple):
-    xi:   JaxArray
+    xi: JaxArray
     hist: JaxArray
     Fsum: JaxArray
-    ind:  Tuple
-    nn:   NNData
+    ind: Tuple
+    nn: NNData
     pred: Bool
 
 
@@ -121,16 +121,14 @@ class FUNN(NNSamplingMethod):
 
         super().__init__(cvs, grid, topology, *args, **kwargs)
 
-        self.N = np.asarray(kwargs.get('N', 200))
+        self.N = np.asarray(kwargs.get("N", 200))
         self.train_freq = kwargs.get("train_freq", 5000)
 
         # Neural network and optimizer intialization
         dims = grid.shape.size
         scale = partial(_scale, grid=grid)
         self.model = MLP(dims, dims, topology, transform=scale)
-        self.optimizer = kwargs.get(
-            "optimizer", LevenbergMarquardt(reg=L2Regularization(1e-6))
-        )
+        self.optimizer = kwargs.get("optimizer", LevenbergMarquardt(reg=L2Regularization(1e-6)))
 
     def build(self, snapshot, helpers):
         return _funn(self, snapshot, helpers)
@@ -175,7 +173,7 @@ def _funn(method, snapshot, helpers):
         xi, Jxi = cv(data)
         #
         p = data.momenta
-        Wp = linalg.solve(Jxi @ Jxi.T, Jxi @ p, sym_pos = "sym")
+        Wp = linalg.solve(Jxi @ Jxi.T, Jxi @ p, sym_pos="sym")
         dWp_dt = (1.5 * Wp - 2.0 * state.Wp + 0.5 * state.Wp_) / dt
         #
         I_xi = get_grid_index(xi)
@@ -209,17 +207,17 @@ def build_free_energy_grad_learner(method: FUNN):
     smoothing_kernel = blackman_kernel(dims, 7)
     padding = "wrap" if grid.is_periodic else "edge"
     conv = partial(convolve, kernel=smoothing_kernel, boundary=padding)
-    smooth = (lambda y: vmap(conv)(y.T).T)
+    smooth = lambda y: vmap(conv)(y.T).T
 
     _, layout = unpack(model.parameters)
     fit = build_fitting_function(model, method.optimizer)
 
     def train(nn, y):
         axes = tuple(range(y.ndim - 1))
-        y, mean, std = normalize(y, axes = axes)
+        y, mean, std = normalize(y, axes=axes)
         reference = smooth(y)
         params = fit(nn.params, inputs, reference).params
-        return NNData(params, mean, std / reference.std(axis = axes))
+        return NNData(params, mean, std / reference.std(axis=axes))
 
     def learn_free_energy_grad(state):
         hist = np.expand_dims(state.hist, state.hist.ndim)
