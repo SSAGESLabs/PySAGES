@@ -13,12 +13,15 @@ generate transition paths.
 """
 
 from typing import Callable, Mapping, NamedTuple, Optional
+from warnings import warn
+
+from jax import numpy as np
 
 from pysages.backends import ContextWrapper
 from pysages.methods.core import SamplingMethod, generalize
 from pysages.utils import JaxArray, copy
 
-import jax.numpy as np
+import sys
 
 
 class FFSState(NamedTuple):
@@ -346,7 +349,8 @@ def running_window(grid, step, old_snapshots, run, sampler, helpers, cv):
                     has_conf_stored = True
 
     if success == 0:
-        raise Exception(f"Error in window {step}\n")
+        warn(f"Unable to estimate probability, exiting early at window {step}\n")
+        sys.exit(0)
 
     if len(new_snapshots) > 0:
         prob_local = float(success) / len(old_snapshots)
