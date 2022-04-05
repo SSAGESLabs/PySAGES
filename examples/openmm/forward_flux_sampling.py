@@ -19,7 +19,7 @@ app = try_import("openmm.app", "simtk.openmm.app")
 pi = numpy.pi
 kB = unit.BOLTZMANN_CONSTANT_kB * unit.AVOGADRO_CONSTANT_NA
 
-adp_pdb = "../inputs/alanine-dipeptide/adp-explicit.pdb"
+adp_pdb = "../inputs/alanine-dipeptide/adp-vacuum.pdb"
 T = 298.15 * unit.kelvin
 dt = 2.0 * unit.femtoseconds
 
@@ -59,47 +59,25 @@ def generate_simulation(pdb_filename=adp_pdb, T=T, dt=dt):
 
 # %%
 def main():
+    available_args = [
+        ("timesteps", "t", int, 1e9, "Max number of timesteps."),
+        ("cv-start", "o", float, 100, "Intial value of the dihedral."),
+        ("cv-distance", "d", float, 50, "Distance from the intial to the final dihedral."),
+        ("window-number", "Nw", int, 4, "Number of windows."),
+        ("sampling-steps", "S", int, 20000, "Period for sampling configurations in the basin."),
+        ("replicas", "R", int, 20, "Number of stored configurations for each window."),
+    ]
     parser = argparse.ArgumentParser(description="Run forward flux sampling.")
-    parser.add_argument(
-        "--timesteps",
-        metavar="t",
-        type=int,
-        default=int(1e9),
-        help="Max number of timesteps",
-        required=False,
-    )
-    parser.add_argument(
-        "--window_number",
-        metavar="Nw",
-        type=int,
-        default=4,
-        help="Number of windows.",
-        required=False,
-    )
-    parser.add_argument(
-        "--sampling_steps",
-        metavar="S",
-        type=int,
-        default=20000,
-        help="Period for sampling configurations in the basin.",
-        required=False,
-    )
-    parser.add_argument(
-        "--replicas",
-        metavar="R",
-        type=int,
-        default=20,
-        help="Number of stored configurations for each window.",
-        required=False,
-    )
+    for (name, short, T, val, doc) in available_args:
+        parser.add_argument("--" + name, "-" + short, type=T, default=T(val), help=doc)
     args = parser.parse_args()
 
     cvs = [DihedralAngle((6, 8, 14, 16))]
     method = FFS(cvs)
 
     dt = 2.0
-    win_0 = (100 / 180) * pi
-    win_f = (150 / 180) * pi
+    win_0 = (args.cv_start / 180) * pi
+    win_f = ((args.cv_start + args.cv_distance) / 180) * pi
 
     method.run(
         generate_simulation,
