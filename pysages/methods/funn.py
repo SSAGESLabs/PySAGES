@@ -113,6 +113,7 @@ class FUNN(NNSamplingMethod):
     optimizer:
         Optimization method used for training defaults to LevenbergMarquardt().
     """
+
     snapshot_flags = {"positions", "indices", "momenta"}
 
     def __init__(self, cvs, grid, topology, *args, **kwargs):
