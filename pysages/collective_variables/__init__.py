@@ -28,3 +28,8 @@ from .coordinates import (
     Component,
     Distance,
 )
+
+from .utils import (
+    get_periods,
+    wrap,
+)
