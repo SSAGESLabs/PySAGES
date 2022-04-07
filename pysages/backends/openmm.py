@@ -147,7 +147,7 @@ def build_helpers(context, sampling_method):
             # TODO: Check if we can omit modifying the masses
             # (in general the masses are unlikely to change)
             velocities = view(snapshot.vel_mass[0])
-            masses = view(snapshot.masses[1])
+            masses = view(snapshot.vel_mass[1])
             velocities[:] = view(prev_snapshot.vel_mass[0])
             masses[:] = view(prev_snapshot.vel_mass[1])
 

@@ -33,6 +33,7 @@ Examples for Methods using OpenMM can be found in the subfolder [openmm](openmm)
 ### Script examples
 
 * ABF with Alanine Dipeptide: [ABF](openmm/abf)
+* Forward flux sampling with Alanine Dipeptide: [FFS](openmm/forward_flux_sampling.py)
 
 ## Installation of the Environment
 

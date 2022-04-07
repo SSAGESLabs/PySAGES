@@ -6,6 +6,7 @@ from pysages.collective_variables import DihedralAngle
 from pysages.methods import FFS
 from pysages.utils import try_import
 
+import argparse
 import numpy
 import pysages
 
@@ -18,7 +19,7 @@ app = try_import("openmm.app", "simtk.openmm.app")
 pi = numpy.pi
 kB = unit.BOLTZMANN_CONSTANT_kB * unit.AVOGADRO_CONSTANT_NA
 
-adp_pdb = "../inputs/alanine-dipeptide/adp-explicit.pdb"
+adp_pdb = "../inputs/alanine-dipeptide/adp-vacuum.pdb"
 T = 298.15 * unit.kelvin
 dt = 2.0 * unit.femtoseconds
 
@@ -58,14 +59,36 @@ def generate_simulation(pdb_filename=adp_pdb, T=T, dt=dt):
 
 # %%
 def main():
+    available_args = [
+        ("timesteps", "t", int, 1e9, "Max number of timesteps."),
+        ("cv-start", "o", float, 100, "Intial value of the dihedral."),
+        ("cv-distance", "d", float, 50, "Distance from the intial to the final dihedral."),
+        ("window-number", "Nw", int, 4, "Number of windows."),
+        ("sampling-steps", "S", int, 20000, "Period for sampling configurations in the basin."),
+        ("replicas", "R", int, 20, "Number of stored configurations for each window."),
+    ]
+    parser = argparse.ArgumentParser(description="Run forward flux sampling.")
+    for (name, short, T, val, doc) in available_args:
+        parser.add_argument("--" + name, "-" + short, type=T, default=T(val), help=doc)
+    args = parser.parse_args()
+
     cvs = [DihedralAngle((6, 8, 14, 16))]
     method = FFS(cvs)
 
     dt = 2.0
-    win_0 = (100 / 180) * pi
-    win_f = (150 / 180) * pi
+    win_0 = (args.cv_start / 180) * pi
+    win_f = ((args.cv_start + args.cv_distance) / 180) * pi
 
-    method.run(generate_simulation, 1e9, dt, win_0, win_f, 4, 20000, 20)
+    method.run(
+        generate_simulation,
+        args.timesteps,
+        dt,
+        win_0,
+        win_f,
+        args.window_number,
+        args.sampling_steps,
+        args.replicas,
+    )
 
 
 # %%
