@@ -6,6 +6,8 @@ from copy import deepcopy
 from importlib import import_module
 from typing import Union
 
+import numpy
+
 from jax import numpy as np
 from jax.tree_util import register_pytree_node
 from plum import Dispatcher
@@ -51,7 +53,7 @@ def copy(t: tuple, *args):
 
 @dispatch
 def copy(x: JaxArray):
-    return np.array(x)
+    return x.copy()
 
 
 @dispatch
@@ -61,7 +63,7 @@ def copy(x, _: ToCPU):
 
 @dispatch
 def copy(x: JaxArray, _: ToCPU):
-    return x.copy()
+    return numpy.asarray(x._value)
 
 
 def identity(x):
