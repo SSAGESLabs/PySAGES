@@ -4,7 +4,7 @@ repos:
   hooks:
   - id: black
 - repo: https://github.com/mwouts/jupytext
-  rev: v1.13.7
+  rev: v1.13.8
   hooks:
   - id: jupytext
     args: [--sync]
