@@ -6,6 +6,7 @@ from typing import NamedTuple, Optional
 
 from jax import numpy as np, lax, grad, value_and_grad, vmap
 
+from pysages.approxfun import compute_mesh
 from pysages.collective_variables import get_periods, wrap
 from pysages.methods.core import SamplingMethod, generalize
 from pysages.utils import JaxArray, gaussian
@@ -140,7 +141,7 @@ def metadynamics(method, snapshot, helpers):
     if method.grid is not None:
         grid = method.grid
         dims = grid.shape.size
-        grid_centers = construct_grid(grid)
+        grid_centers = compute_mesh(grid) * (grid.size / 2)
         get_grid_index = build_indexer(grid)
 
     deposit_gaussian = build_gaussian_accumulator(method)
@@ -159,8 +160,8 @@ def metadynamics(method, snapshot, helpers):
         if method.grid is None:
             bias_grad = bias_pot = None
         else:
-            bias_grad = np.zeros((*method.grid.shape + 1, dims), dtype=np.float64)
-            bias_pot = np.zeros((*method.grid.shape + 1,), dtype=np.float64)
+            bias_grad = np.zeros((*method.grid.shape, dims), dtype=np.float64)
+            bias_pot = np.zeros((*method.grid.shape,), dtype=np.float64)
 
         return MetadynamicsState(bias, xi, heights, centers, sigmas, bias_grad, bias_pot, 0, 0)
 
@@ -197,18 +198,6 @@ def metadynamics(method, snapshot, helpers):
         )
 
     return snapshot, initialize, generalize(update, helpers, jit_compile=True)
-
-
-
-### Helpers
-
-def construct_grid(grid):
-    # generate centers of the grid points for storing bias potential and its gradient
-    indicesArray = np.indices(grid.shape + 1)
-    grid_indices = np.stack((*lax.map(np.ravel, indicesArray),)).T
-    grid_spacing = np.divide(grid.upper - grid.lower, grid.shape)
-    coordinate = grid.lower + np.multiply(grid_indices, grid_spacing)
-    return np.flip(coordinate, axis=1)
 
 
 def build_gaussian_accumulator(method: Metadynamics):
