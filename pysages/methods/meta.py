@@ -97,9 +97,11 @@ class Metadynamics(SamplingMethod):
         Keyword arguments
         -----------------
 
-        kB: Boltzmann constant.
+        kB: Optional[float] = 8.314462618e-3
+            Boltzmann constant (must match the internal units of the backend).
 
-        grid: CV on a grid.
+        grid: Optional[Grid] = None
+            If provided, the gridded version of Metadynamics will be used.
         """
 
         super().__init__(cvs, args, kwargs)
@@ -108,7 +110,7 @@ class Metadynamics(SamplingMethod):
         self.height = height
         self.sigma = sigma
         self.stride = stride
-        self.ngaussians = ngaussians  # TODO: infer from timesteps and frequency
+        self.ngaussians = ngaussians  # TODO: infer from timesteps and stride
         self.deltaT = deltaT
 
         # TODO: remove this if we eventually extract kB from the backend
@@ -125,7 +127,7 @@ def metadynamics(method, snapshot, helpers):
     Initialization and update of bias forces. Interface as expected for methods.
     """
     cv = method.cv
-    height = method.height
+    height_0 = method.height
     sigma = method.sigma
     stride = method.stride
     ngaussians = method.ngaussians
@@ -154,21 +156,18 @@ def metadynamics(method, snapshot, helpers):
         sigmas = np.array(sigma, dtype=np.float64)
 
         # Arrays to store forces and bias potential on a grid.
-        bias_grad = (
-            None
-            if method.grid is None
-            else np.zeros((*method.grid.shape + 1, dims), dtype=np.float64)
-        )
-        bias_pot = (
-            None if method.grid is None else np.zeros((*method.grid.shape + 1,), dtype=np.float64)
-        )
+        if method.grid is None:
+            bias_grad = bias_pot = None
+        else:
+            bias_grad = np.zeros((*method.grid.shape + 1, dims), dtype=np.float64)
+            bias_pot = np.zeros((*method.grid.shape + 1,), dtype=np.float64)
 
         return MetadynamicsState(bias, xi, heights, centers, sigmas, bias_grad, bias_pot, 0, 0)
 
     def update(state, data):
         # calculate CV and the gradient of bias potential `A` along CV -- dA/dxi
         xi, Jxi = cv(data)
-        index_xi = None if method.grid is None else get_grid_index(xi)
+        I_xi = None if method.grid is None else get_grid_index(xi)
         bias = state.bias
 
         # deposit bias potential -- store cv centers, sigma, height depending on stride
@@ -183,11 +182,11 @@ def metadynamics(method, snapshot, helpers):
                 s[0].bias_grad,
                 s[0].bias_pot,
             ),
-            (state, xi, index_xi, height, deltaT, kB, grid_centers),
+            (state, xi, I_xi, height_0, grid_centers),
         )
 
         # evaluate gradient of bias
-        gradA = evaluate_bias_grad(xi, index_xi, heights, centers, sigmas, bias_grad)
+        gradA = evaluate_bias_grad(xi, I_xi, heights, centers, sigmas, bias_grad)
 
         # calculate bias forces
         bias = -Jxi.T @ gradA.flatten()
@@ -214,66 +213,54 @@ def construct_grid(grid):
 
 def build_gaussian_accumulator(method: Metadynamics):
     periods = get_periods(method.cvs)
+    deltaT = method.deltaT
+    kB = method.kB
 
-    # Select method for storing cv centers or storing bias on a grid
+    # Non-gridded approach
+    def deposit_gaussian(params):
+        state, xi, I_xi, height_0, grid_centers = params
+        centers = state.centers.at[state.idx].set(xi.flatten())
 
-    def update_well_tempered_height(params):
-        # update cv centers, heights in non-grid approach
-        state, xi, index_xi, height_initial, deltaT, kB, grid_centers = params
-        heights = state.heights.at[state.idx].set(height_initial)
-        centers = state.centers.at[state.idx].set(xi[0])
+        if deltaT is None:
+            current_height = height_0
+        else:  # if well-tempered
+            V = sum_of_gaussians(xi, state.heights, centers, state.sigmas, periods)
+            current_height = height_0 * np.exp(-V / (deltaT * kB))
 
-        # update heights if well-tempered
-        if deltaT is not None:
-            exp_prod = gaussian(1, state.sigmas, wrap(xi - centers, periods))
-            net_bias_pot = 0.0
-            deltaT_kB = deltaT * kB
-            # fori_loop seems better here than recursive functions
-            def bias_wmeta(_local_idx, _net_bias_pot):
-                _net_bias_pot += (
-                    height_initial * np.exp(-_net_bias_pot / deltaT_kB) * exp_prod[_local_idx]
-                )
-                return _net_bias_pot
+        heights = state.heights.at[state.idx].set(current_height)
 
-            net_bias_pot = lax.fori_loop(0, state.idx, bias_wmeta, net_bias_pot)
-            heights = heights.at[state.idx].set(
-                height_initial * np.exp(-net_bias_pot / (deltaT * kB))
-            )
         return heights, centers, state.sigmas, state.idx + 1, state.bias_grad, state.bias_pot
 
-    # update cv centers, heights, bias and gradient of bias stored on the grid
-    def update_grid_bias_grad(params):
-        state, xi, index_xi, height_initial, deltaT, kB, grid_centers = params
-        heights = state.heights.at[state.idx].set(height_initial)
-        centers = state.centers.at[state.idx].set(xi[0])
-        current_height = height_initial
+    def deposit_gaussian_grid(params):
+        state, xi, I_xi, height_0, grid_centers = params
+        centers = state.centers.at[state.idx].set(xi.flatten())
         bias_grad = state.bias_grad
         bias_pot = state.bias_pot
-        current_sigmas = state.sigmas[state.idx]
 
-        # update heights if well-tempered
-        if deltaT is not None:
-            current_height = height_initial * np.exp(-bias_pot[index_xi] / (deltaT * kB))
-            heights = heights.at[state.idx].set(current_height)
+        if deltaT is None:
+            current_height = height_0
+        else:  # if well-tempered
+            current_height = height_0 * np.exp(-bias_pot[I_xi] / (deltaT * kB))
 
-        # update bias potential and bias gradient on the grid
-        def evaluate_potential(xi, centers):
-            return sum_of_gaussians(xi, current_height, centers, current_sigmas, periods)[0]
+        heights = state.heights.at[state.idx].set(current_height)
 
-        # evaluate bias potential and gradient of the bias using autograd
-        _bias_pot, _bias_grad = vmap(value_and_grad(evaluate_potential), in_axes=(0, None))(
-            grid_centers, xi
-        )
-        bias_pot += _bias_pot.reshape(bias_pot.shape)  # reshape converts to grid format
-        bias_grad += _bias_grad.reshape(bias_grad.shape)  # reshape converts to grid format
+        # Gaussian that is being added
+        def current_gaussian(x):
+            # We use sum_of_gaussians since it already takes care of the wrapping
+            return sum_of_gaussians(x, current_height, xi, state.sigmas, periods)
+
+        # Evaluate bias potential and gradient of the bias using autograd
+        bias_pot_t, bias_grad_t = vmap(value_and_grad(current_gaussian))(grid_centers)
+        bias_pot += bias_pot_t.reshape(bias_pot.shape)  # reshape converts to grid format
+        bias_grad += bias_grad_t.reshape(bias_grad.shape)  # reshape converts to grid format
 
         return heights, centers, state.sigmas, state.idx + 1, bias_grad, bias_pot
 
-    # select method
+    # Select method
     if method.grid is None:
-        return update_well_tempered_height
+        return deposit_gaussian
     else:
-        return update_grid_bias_grad
+        return deposit_gaussian_grid
 
 
 def build_bias_grad_evaluator(method: Metadynamics):
@@ -282,12 +269,13 @@ def build_bias_grad_evaluator(method: Metadynamics):
         periods = get_periods(method.cvs)
 
         # Non-grid-based approach
-        def evaluate_bias_grad(xi, idx, heights, centers, sigmas, bias_grad):
+        def evaluate_bias_grad(xi, I_xi, heights, centers, sigmas, bias_grad):
             return grad(sum_of_gaussians)(xi, heights, centers, sigmas, periods)
+
     else:
 
-        def evaluate_bias_grad(xi, idx, heights, centers, sigmas, bias_grad):
-            return bias_grad[idx]
+        def evaluate_bias_grad(xi, I_xi, heights, centers, sigmas, bias_grad):
+            return bias_grad[I_xi]
 
     return evaluate_bias_grad
 
