@@ -112,7 +112,10 @@ class MetaDLogger:
 
     # write hills file
     def write_hills_to_file(self, xi, sigma, height):
-        with open(self.hillsFile, "a+") as f:
+        """
+        Append the centers, standard deviations and heights to log file.
+        """
+        with open(self.hillsFile, "a+", encoding="utf8") as f:
             f.write(str(self.counter) + "\t")
             for j in range(xi.shape[0]):
                 f.write(str(xi[j]) + "\t")

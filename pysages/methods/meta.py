@@ -2,21 +2,24 @@
 # Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
+"""
+Implementation of Standard and Well-tempered Metadynamics both with optional support for grids.
+"""
+
 from typing import NamedTuple, Optional
 
-from jax import numpy as np, lax, grad, value_and_grad, vmap
+from jax import numpy as np, grad, jit, value_and_grad, vmap
+from jax.lax import cond
 
 from pysages.approxfun import compute_mesh
 from pysages.collective_variables import get_periods, wrap
 from pysages.methods.core import SamplingMethod, generalize
-from pysages.utils import JaxArray, gaussian
+from pysages.utils import JaxArray, gaussian, identity
 from pysages.grids import build_indexer
 
 
 class MetadynamicsState(NamedTuple):
     """
-    Description of bias by metadynamics bias potential for a CV.
-
     Attributes
     ----------
 
@@ -35,11 +38,11 @@ class MetadynamicsState(NamedTuple):
     sigmas: JaxArray
         Widths of the accumulated gaussians.
 
-    bias_grad: JaxArray
-        Array of metadynamics bias gradients for each particle in the simulation stored on a grid.
-
-    bias_pot: JaxArray
+    grid_potential: Optional[JaxArray]
         Array of metadynamics bias potentials stored on a grid.
+
+    grid_gradient: Optional[JaxArray]
+        Array of metadynamics bias gradients for each particle in the simulation stored on a grid.
 
     idx: int
         Index of the next gaussian to be deposited.
@@ -53,8 +56,8 @@ class MetadynamicsState(NamedTuple):
     heights: JaxArray
     centers: JaxArray
     sigmas: JaxArray
-    bias_grad: JaxArray
-    bias_pot: JaxArray
+    grid_potential: Optional[JaxArray]
+    grid_gradient: Optional[JaxArray]
     idx: int
     nstep: int
 
@@ -62,17 +65,32 @@ class MetadynamicsState(NamedTuple):
         return repr("PySAGES" + type(self).__name__)
 
 
+class PartialMetadynamicsState(NamedTuple):
+    """
+    Helper intermediate Metadynamics state
+    """
+
+    xi: JaxArray
+    heights: JaxArray
+    centers: JaxArray
+    sigmas: JaxArray
+    grid_potential: Optional[JaxArray]
+    grid_gradient: Optional[JaxArray]
+    idx: int
+    grid_idx: Optional[JaxArray]
+
+
 class Metadynamics(SamplingMethod):
     """
-    Sampling method for metadynamics.
+    Implementation of Standard and Well-tempered Metadynamics as described in
+    [PNAS 99.20, 12562-6 (2002)](https://doi.org/10.1073/pnas.202427399) and
+    [Phys. Rev. Lett. 100, 020603 (2008)](https://doi.org/10.1103/PhysRevLett.100.020603)
     """
 
     snapshot_flags = {"positions", "indices"}
 
-    def __init__(self, cvs, height, sigma, stride, ngaussians, deltaT=None, *args, **kwargs):
+    def __init__(self, cvs, height, sigma, stride, ngaussians, *args, deltaT=None, **kwargs):
         """
-        Description of method parameters.
-
         Arguments
         ---------
 
@@ -91,58 +109,42 @@ class Metadynamics(SamplingMethod):
         ngaussians: int
             Total number of expected gaussians (timesteps // stride + 1).
 
+        Keyword arguments
+        -----------------
+
         deltaT: Optional[float] = None
             Well-tempered metadynamics $\\Delta T$ parameter
             (if `None` standard metadynamics is used).
 
-        Keyword arguments
-        -----------------
+        grid: Optional[Grid] = None
+            If provided, the gridded version of Metadynamics will be used.
 
         kB: Optional[float] = 8.314462618e-3
             Boltzmann constant (must match the internal units of the backend).
-
-        grid: Optional[Grid] = None
-            If provided, the gridded version of Metadynamics will be used.
         """
 
         super().__init__(cvs, args, kwargs)
 
-        self.cvs = cvs
         self.height = height
         self.sigma = sigma
         self.stride = stride
-        self.ngaussians = ngaussians  # TODO: infer from timesteps and stride
+        self.ngaussians = ngaussians  # NOTE: infer from timesteps and stride
         self.deltaT = deltaT
 
-        # TODO: remove this if we eventually extract kB from the backend
+        # NOTE: remove this if we eventually extract kB from the backend
         self.kB = kwargs.get("kB", 8.314462618e-3)
         self.grid = kwargs.get("grid", None)
 
-    def build(self, snapshot, helpers):
-        self.helpers = helpers
-        return metadynamics(self, snapshot, helpers)
+    def build(self, snapshot, helpers, *args, **kwargs):
+        return _metadynamics(self, snapshot, helpers)
 
 
-def metadynamics(method, snapshot, helpers):
-    """
-    Initialization and update of bias forces. Interface as expected for methods.
-    """
+def _metadynamics(method, snapshot, helpers):
+    # Initialization and update of biasing forces. Interface expected for methods.
     cv = method.cv
-    height_0 = method.height
-    sigma = method.sigma
     stride = method.stride
     ngaussians = method.ngaussians
-    deltaT = method.deltaT
-    kB = method.kB
-    dt = snapshot.dt
     natoms = np.size(snapshot.positions, 0)
-
-    grid_centers = None
-    if method.grid is not None:
-        grid = method.grid
-        dims = grid.shape.size
-        grid_centers = compute_mesh(grid) * (grid.size / 2)
-        get_grid_index = build_indexer(grid)
 
     deposit_gaussian = build_gaussian_accumulator(method)
     evaluate_bias_grad = build_bias_grad_evaluator(method)
@@ -151,120 +153,113 @@ def metadynamics(method, snapshot, helpers):
         bias = np.zeros((natoms, 3), dtype=np.float64)
         xi, _ = cv(helpers.query(snapshot))
 
-        # TODO: for restart; use hills file to initialize corresponding arrays.
+        # NOTE: for restart; use hills file to initialize corresponding arrays.
         heights = np.zeros(ngaussians, dtype=np.float64)
         centers = np.zeros((ngaussians, xi.shape[1]), dtype=np.float64)
-        sigmas = np.array(sigma, dtype=np.float64)
+        sigmas = np.array(method.sigma, dtype=np.float64)
 
         # Arrays to store forces and bias potential on a grid.
         if method.grid is None:
-            bias_grad = bias_pot = None
+            grid_potential = grid_gradient = None
         else:
-            bias_grad = np.zeros((*method.grid.shape, dims), dtype=np.float64)
-            bias_pot = np.zeros((*method.grid.shape,), dtype=np.float64)
-
-        return MetadynamicsState(bias, xi, heights, centers, sigmas, bias_grad, bias_pot, 0, 0)
-
-    def update(state, data):
-        # calculate CV and the gradient of bias potential `A` along CV -- dA/dxi
-        xi, Jxi = cv(data)
-        I_xi = None if method.grid is None else get_grid_index(xi)
-        bias = state.bias
-
-        # deposit bias potential -- store cv centers, sigma, height depending on stride
-        heights, centers, sigmas, idx, bias_grad, bias_pot = lax.cond(
-            ((state.nstep + 1) % stride == 0),
-            deposit_gaussian,
-            lambda s: (
-                s[0].heights,
-                s[0].centers,
-                s[0].sigmas,
-                s[0].idx,
-                s[0].bias_grad,
-                s[0].bias_pot,
-            ),
-            (state, xi, I_xi, height_0, grid_centers),
-        )
-
-        # evaluate gradient of bias
-        gradA = evaluate_bias_grad(xi, I_xi, heights, centers, sigmas, bias_grad)
-
-        # calculate bias forces
-        bias = -Jxi.T @ gradA.flatten()
-        bias = bias.reshape(state.bias.shape)
+            shape = method.grid.shape
+            grid_potential = np.zeros((*shape,), dtype=np.float64)
+            grid_gradient = np.zeros((*shape, shape.size), dtype=np.float64)
 
         return MetadynamicsState(
-            bias, xi, heights, centers, sigmas, bias_grad, bias_pot, idx, state.nstep + 1
+            bias, xi, heights, centers, sigmas, grid_potential, grid_gradient, 0, 0
         )
+
+    def update(state, data):
+        # Compute the collective variable and its jacobian
+        xi, Jxi = cv(data)
+
+        # Deposit gaussian depending on the stride
+        nstep = state.nstep
+        in_deposition_step = (nstep > 0) & (nstep % stride == 0)
+        partial_state = deposit_gaussian(xi, state, in_deposition_step)
+
+        # Evaluate gradient of biasing potential (or generalized force)
+        generalized_force = evaluate_bias_grad(partial_state)
+
+        # Calculate biasing forces
+        bias = -Jxi.T @ generalized_force.flatten()
+        bias = bias.reshape(state.bias.shape)
+
+        return MetadynamicsState(bias, *partial_state[:-1], nstep + 1)
 
     return snapshot, initialize, generalize(update, helpers, jit_compile=True)
 
 
 def build_gaussian_accumulator(method: Metadynamics):
+    """
+    Returns a function that given a `MetadynamicsState`, and the value of the CV,
+    stores the next gaussian that is added to the biasing potential.
+    """
     periods = get_periods(method.cvs)
+    height_0 = method.height
     deltaT = method.deltaT
+    grid = method.grid
     kB = method.kB
 
-    # Non-gridded approach
-    def deposit_gaussian(params):
-        state, xi, I_xi, height_0, grid_centers = params
-        centers = state.centers.at[state.idx].set(xi.flatten())
-
-        if deltaT is None:
-            current_height = height_0
-        else:  # if well-tempered
-            V = sum_of_gaussians(xi, state.heights, centers, state.sigmas, periods)
-            current_height = height_0 * np.exp(-V / (deltaT * kB))
-
-        heights = state.heights.at[state.idx].set(current_height)
-
-        return heights, centers, state.sigmas, state.idx + 1, state.bias_grad, state.bias_pot
-
-    def deposit_gaussian_grid(params):
-        state, xi, I_xi, height_0, grid_centers = params
-        centers = state.centers.at[state.idx].set(xi.flatten())
-        bias_grad = state.bias_grad
-        bias_pot = state.bias_pot
-
-        if deltaT is None:
-            current_height = height_0
-        else:  # if well-tempered
-            current_height = height_0 * np.exp(-bias_pot[I_xi] / (deltaT * kB))
-
-        heights = state.heights.at[state.idx].set(current_height)
-
-        # Gaussian that is being added
-        def current_gaussian(x):
-            # We use sum_of_gaussians since it already takes care of the wrapping
-            return sum_of_gaussians(x, current_height, xi, state.sigmas, periods)
-
-        # Evaluate bias potential and gradient of the bias using autograd
-        bias_pot_t, bias_grad_t = vmap(value_and_grad(current_gaussian))(grid_centers)
-        bias_pot += bias_pot_t.reshape(bias_pot.shape)  # reshape converts to grid format
-        bias_grad += bias_grad_t.reshape(bias_grad.shape)  # reshape converts to grid format
-
-        return heights, centers, state.sigmas, state.idx + 1, bias_grad, bias_pot
-
-    # Select method
-    if method.grid is None:
-        return deposit_gaussian
+    if grid is None:
+        get_grid_index = jit(lambda arg: None)
+        update_grids = jit(lambda *args: (None, None))
     else:
-        return deposit_gaussian_grid
+        grid_mesh = compute_mesh(grid) * (grid.size / 2)
+        get_grid_index = build_indexer(grid)
+
+        def update_grids(pstate, height, xi, sigma):
+            potential, gradient = pstate.grid_potential, pstate.grid_gradient
+            # We use sum_of_gaussians since it already takes care of the wrapping
+            current_gaussian = jit(lambda x: sum_of_gaussians(x, height, xi, sigma, periods))
+            # Evaluate bias potential and gradient of the bias using autograd
+            grid_gaussian, grid_gradients = vmap(value_and_grad(current_gaussian))(grid_mesh)
+            # Reshape so the dimensions are compatible
+            potential += grid_gaussian.reshape(potential.shape)
+            gradient += grid_gradients.reshape(gradient.shape)
+            return potential, gradient
+
+    if deltaT is None:
+        next_height = jit(lambda *args: height_0)
+    else:  # if well-tempered
+        if grid is None:
+            evaluate_potential = jit(lambda pstate: sum_of_gaussians(*pstate[:4], periods))
+        else:
+            evaluate_potential = jit(lambda pstate: pstate.grid_potential[pstate.grid_idx])
+
+        def next_height(pstate):
+            V = evaluate_potential(pstate)
+            return height_0 * np.exp(-V / (deltaT * kB))
+
+    def deposit_gaussian(pstate):
+        xi, idx = pstate.xi, pstate.idx
+        current_height = next_height(pstate)
+        heights = pstate.heights.at[idx].set(current_height)
+        centers = pstate.centers.at[idx].set(xi.flatten())
+        sigmas = pstate.sigmas
+        grid_potential, grid_gradient = update_grids(pstate, current_height, xi, sigmas)
+        return PartialMetadynamicsState(
+            xi, heights, centers, sigmas, grid_potential, grid_gradient, idx + 1, pstate.grid_idx
+        )
+
+    def _deposit_gaussian(xi, state, in_deposition_step):
+        pstate = PartialMetadynamicsState(xi, *state[2:-1], get_grid_index(xi))
+        return cond(in_deposition_step, deposit_gaussian, identity, pstate)
+
+    return _deposit_gaussian
 
 
 def build_bias_grad_evaluator(method: Metadynamics):
-    # Select evaluation method for calculating the gradient of the bias
+    """
+    Returns a function that given the deposited gaussians parameters, computes the
+    gradient of the biasing potential with respect to the CVs.
+    """
     if method.grid is None:
         periods = get_periods(method.cvs)
-
-        # Non-grid-based approach
-        def evaluate_bias_grad(xi, I_xi, heights, centers, sigmas, bias_grad):
-            return grad(sum_of_gaussians)(xi, heights, centers, sigmas, periods)
-
+        evaluate_bias_grad = jit(lambda pstate: grad(sum_of_gaussians)(*pstate[:4], periods))
     else:
-
-        def evaluate_bias_grad(xi, I_xi, heights, centers, sigmas, bias_grad):
-            return bias_grad[I_xi]
+        evaluate_bias_grad = jit(lambda pstate: pstate.grid_gradient[pstate.grid_idx])
 
     return evaluate_bias_grad
 

@@ -2,6 +2,10 @@
 # Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
+"""
+Extra utilities for computations involving collective variables.
+"""
+
 from jax import numpy as np
 
 from pysages.collective_variables.angles import Angle, DihedralAngle
