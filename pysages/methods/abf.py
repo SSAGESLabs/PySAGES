@@ -16,7 +16,6 @@ https://doi.org/10.1063/1.2829861. One important difference is that the time
 derivative of the product :math:`W\\cdot p` (equation 9 of reference) is approximated by a
 second order backward finite difference in the simulation timestep.
 """
-# pylint: disable=invalid-name
 
 from typing import NamedTuple
 
