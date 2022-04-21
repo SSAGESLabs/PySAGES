@@ -22,7 +22,7 @@ pi = numpy.pi
 
 # %%
 def generate_simulation(
-    pdb_filename="../../inputs/alanine-dipeptide/adp.pdb",
+    pdb_filename="../../inputs/alanine-dipeptide/adp-vacuum.pdb",
     T=298.15 * unit.kelvin,
     dt=2.0 * unit.femtoseconds,
 ):
