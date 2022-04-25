@@ -35,6 +35,7 @@ jobs:
         with:
           name: pysages
           path: /tmp/pysages.tar
+          retention-days: 1
 
   forward-flux-sampling:
     runs-on: ubuntu-latest
@@ -88,6 +89,7 @@ jobs:
         with:
           name: harmonic-hist.pdf
           path: /tmp/hist.pdf
+          retention-days: 7
 
   umbrella-integration-hoomd:
     runs-on: ubuntu-latest
@@ -109,3 +111,4 @@ jobs:
         with:
           name: umbrella-integration-plots
           path: /tmp/plots
+          retention-days: 1
