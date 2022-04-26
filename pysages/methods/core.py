@@ -32,6 +32,7 @@ class SamplingMethod(ABC):
     snapshot_flags = set()
 
     def __init__(self, cvs, *args, **kwargs):
+        self.cvs = cvs
         self.cv = build(*cvs)
         self.requires_box_unwrapping = reduce(
             or_, (cv.requires_box_unwrapping for cv in cvs), False
