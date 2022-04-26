@@ -79,7 +79,6 @@ def main():
     ngauss = (
         timesteps // stride + 1
     )  # for now, requires this to store CV centers; later - will be inferred
-    hillsFile = "hills.dat"  # hills output file
 
     # define grid for storing bias pot and grad of bias
     grid = pysages.Grid(lower=(-pi, -pi), upper=(pi, pi), shape=(50, 50), periodic=True)
@@ -87,8 +86,11 @@ def main():
     # method
     method = meta(cvs, height, sigma, stride, ngauss, deltaT, grid=grid)
 
+    # Logging
+    hills_file = "hills.dat"
+    callback = MetaDLogger(hills_file, stride)
+
     tic = time.perf_counter()
-    callback = MetaDLogger(stride, sigma, height, hillsFile)
     method.run(generate_simulation, timesteps, callback)
     toc = time.perf_counter()
     print(f"Completed the simulation in {toc - tic:0.4f} seconds.")

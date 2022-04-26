@@ -155,8 +155,8 @@ def _metadynamics(method, snapshot, helpers):
 
         # NOTE: for restart; use hills file to initialize corresponding arrays.
         heights = np.zeros(ngaussians, dtype=np.float64)
-        centers = np.zeros((ngaussians, xi.shape[1]), dtype=np.float64)
-        sigmas = np.array(method.sigma, dtype=np.float64)
+        centers = np.zeros((ngaussians, xi.size), dtype=np.float64)
+        sigmas = np.array(method.sigma, dtype=np.float64, ndmin=2)
 
         # Arrays to store forces and bias potential on a grid.
         if method.grid is None:

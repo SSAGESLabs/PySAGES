@@ -8,8 +8,7 @@ Collection of helpful classes for methods.
 This includes callback functors (callable classes).
 """
 
-import jax.numpy as np
-from jax import lax
+from jax import numpy as np
 
 
 class HistogramLogger:
@@ -75,64 +74,44 @@ class HistogramLogger:
         self.data = []
 
 
-# callback to log hills and other output files in metadynamics
 # NOTE: for OpenMM; issue #16 on openmm-dlext should be resolved for this to work properly.
 class MetaDLogger:
     """
-    Implements a Callback functor for methods.
-    Logs the state of the collective variable and other parameters in metadynamics.
+    Logs the state of the collective variable and other parameters in Metadynamics.
     """
 
-    def __init__(self, stride, sigma, height, hillsFile):
+    def __init__(self, hills_file, log_period):
         """
-        logMeta constructor.
+        MetaDLogger constructor.
 
         Arguments
         ---------
-        hills_period:
-            Timesteps between logging of collective variables and metadynamics parameters.
-
-        sigma:
-            Width of the Gaussian bias potential.
-
-        height:
-            Height of the Gaussian bias potential.
-
-        hillsFile:
+        hills_file:
             Name of the output hills log file.
 
-        counter:
-            Local frame counter.
+        log_period:
+            Timesteps between logging of collective variables and metadynamics parameters.
         """
-        self.stride = stride
-        self.sigma = sigma
-        self.height = height
-        self.hillsFile = hillsFile
+        self.hills_file = hills_file
+        self.log_period = log_period
         self.counter = 0
 
-    # write hills file
-    def write_hills_to_file(self, xi, sigma, height):
+    def save_hills(self, xi, sigma, height):
         """
         Append the centers, standard deviations and heights to log file.
         """
-        with open(self.hillsFile, "a+", encoding="utf8") as f:
+        with open(self.hills_file, "a+", encoding="utf8") as f:
             f.write(str(self.counter) + "\t")
-            for j in range(xi.shape[0]):
-                f.write(str(xi[j]) + "\t")
-            for j in range(sigma.shape[0]):
-                f.write(str(sigma[j]) + "\t")
+            f.write("\t".join(map(str, xi.flatten())) + "\t")
+            f.write("\t".join(map(str, sigma.flatten())) + "\t")
             f.write(str(height) + "\n")
 
     def __call__(self, snapshot, state, timestep):
         """
         Implements the logging itself. Interface as expected for Callbacks.
         """
-
-        local_loop = lax.select(state.idx == 0, 0, state.idx - 1)
-        # Write hills file containing CV centers and corresponding heights
-        if self.counter != 0 and self.counter % self.stride == 0:
-            self.write_hills_to_file(
-                state.xis[local_loop], state.sigmas[local_loop], state.heights[local_loop]
-            )
+        if self.counter >= self.log_period and self.counter % self.log_period == 0:
+            idx = state.idx - 1 if state.idx > 0 else 0
+            self.save_hills(state.centers[idx], state.sigmas, state.heights[idx])
 
         self.counter += 1

@@ -338,12 +338,11 @@ def main():
     stride = 50
     timesteps = int(5e3)
     ngauss = timesteps // stride + 1
-    hillsFile = "hills.dat"
 
-    callback = MetaDLogger(stride, sigma, height, hillsFile)
     method = meta(cvs, height, sigma, stride, ngauss, deltaT)
 
-    hoomd.context.initialize("")
+    hills_file = "hills.dat"
+    callback = MetaDLogger(hills_file, stride)
 
     method.run(generate_context, timesteps, callback)
 
