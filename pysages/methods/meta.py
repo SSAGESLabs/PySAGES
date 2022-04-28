@@ -163,7 +163,7 @@ def _metadynamics(method, snapshot, helpers):
             grid_potential = grid_gradient = None
         else:
             shape = method.grid.shape
-            grid_potential = np.zeros((*shape,), dtype=np.float64)
+            grid_potential = np.zeros((*shape,), dtype=np.float64) if method.deltaT else None
             grid_gradient = np.zeros((*shape, shape.size), dtype=np.float64)
 
         return MetadynamicsState(
@@ -202,24 +202,6 @@ def build_gaussian_accumulator(method: Metadynamics):
     grid = method.grid
     kB = method.kB
 
-    if grid is None:
-        get_grid_index = jit(lambda arg: None)
-        update_grids = jit(lambda *args: (None, None))
-    else:
-        grid_mesh = compute_mesh(grid) * (grid.size / 2)
-        get_grid_index = build_indexer(grid)
-
-        def update_grids(pstate, height, xi, sigma):
-            potential, gradient = pstate.grid_potential, pstate.grid_gradient
-            # We use sum_of_gaussians since it already takes care of the wrapping
-            current_gaussian = jit(lambda x: sum_of_gaussians(x, height, xi, sigma, periods))
-            # Evaluate bias potential and gradient of the bias using autograd
-            grid_gaussian, grid_gradients = vmap(value_and_grad(current_gaussian))(grid_mesh)
-            # Reshape so the dimensions are compatible
-            potential += grid_gaussian.reshape(potential.shape)
-            gradient += grid_gradients.reshape(gradient.shape)
-            return potential, gradient
-
     if deltaT is None:
         next_height = jit(lambda *args: height_0)
     else:  # if well-tempered
@@ -231,6 +213,32 @@ def build_gaussian_accumulator(method: Metadynamics):
         def next_height(pstate):
             V = evaluate_potential(pstate)
             return height_0 * np.exp(-V / (deltaT * kB))
+
+    if grid is None:
+        get_grid_index = jit(lambda arg: None)
+        update_grids = jit(lambda *args: (None, None))
+    else:
+        grid_mesh = compute_mesh(grid) * (grid.size / 2)
+        get_grid_index = build_indexer(grid)
+        # Reshape so the dimensions are compatible
+        accum = jit(lambda total, val: total + val.reshape(total.shape))
+
+        if deltaT is None:
+            transform = grad
+            pack = jit(lambda x: (x,))
+            # No need to accumulate values for the potential (V is None)
+            update = jit(lambda V, dV, vals: (V, accum(dV, vals)))
+        else:
+            transform = value_and_grad
+            pack = identity
+            update = jit(lambda V, dV, vals, grads: (accum(V, vals), accum(dV, grads)))
+
+        def update_grids(pstate, height, xi, sigma):
+            # We use sum_of_gaussians since it already takes care of the wrapping
+            current_gaussian = jit(lambda x: sum_of_gaussians(x, height, xi, sigma, periods))
+            # Evaluate gradient of bias (and bias potential for WT version)
+            grid_values = pack(vmap(transform(current_gaussian))(grid_mesh))
+            return update(pstate.grid_potential, pstate.grid_gradient, *grid_values)
 
     def deposit_gaussian(pstate):
         xi, idx = pstate.xi, pstate.idx
