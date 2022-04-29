@@ -117,11 +117,20 @@ class Metadynamics(SamplingMethod):
             (if `None` standard metadynamics is used).
 
         grid: Optional[Grid] = None
-            If provided, the gridded version of Metadynamics will be used.
+            If provided, it will be used to accelerate the computation by
+            approximating the bias potential and its gradient over its centers.
 
-        kB: Optional[float] = 8.314462618e-3
-            Boltzmann constant (must match the internal units of the backend).
+        kB: Optional[float]
+            Boltzmann constant. Must be provided for well-tempered metadynamics
+            simulations and should match the internal units of the backend.
         """
+
+        if deltaT is not None and "kB" not in kwargs:
+            raise KeyError(
+                "For well-tempered metadynamics a keyword argument `kB` for "
+                "the value of the Boltzmann constant (that matches the "
+                "internal units of the backend) must be provided."
+            )
 
         super().__init__(cvs, args, kwargs)
 
@@ -131,8 +140,7 @@ class Metadynamics(SamplingMethod):
         self.ngaussians = ngaussians  # NOTE: infer from timesteps and stride
         self.deltaT = deltaT
 
-        # NOTE: remove this if we eventually extract kB from the backend
-        self.kB = kwargs.get("kB", 8.314462618e-3)
+        self.kB = kwargs.get("kB", None)
         self.grid = kwargs.get("grid", None)
 
     def build(self, snapshot, helpers, *args, **kwargs):
