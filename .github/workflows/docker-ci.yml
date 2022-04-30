@@ -69,7 +69,7 @@ jobs:
           docker load --input /tmp/pysages.tar
           docker run -t pysages bash -c "cd PySAGES/examples/openmm/abf/ && python3 ./alanine-dipeptide_openmm.py"
 
-  meta:
+  metad-hoomd:
     runs-on: ubuntu-latest
     needs: build
     steps:
@@ -83,7 +83,7 @@ jobs:
       - name: Load and run test
         run: |
           docker load --input /tmp/pysages.tar
-          docker run -v/tmp:/tmp -t pysages bash -c "cd PySAGES/examples/hoomd-blue/meta/ && python3 butane.py --use-grids=1 --time-steps=5000"
+          docker run -v/tmp:/tmp -t pysages bash -c "cd PySAGES/examples/hoomd-blue/metad/ && python3 butane.py --use-grids=1 --time-steps=5000"
 
   harmonic-bias-hoomd:
     runs-on: ubuntu-latest
