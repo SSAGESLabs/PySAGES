@@ -1,44 +1,39 @@
-"""
-Author: Bradley Dice (bdice@umich.edu)
-Description: The SSAGES Umbrella Sampling example for HOOMD-blue runs a
-             simulation of a butane molecule. This file is meant to run as a
-             standalone script (without SSAGES) for benchmarking and
-             validation.
-    
-Extracted from SSAGES Umbrella Integration Examples
-Modified for PySAGES: Siva Dasetty
-"""
-
-
 #!/usr/bin/env python3
 
+"""
+Metadynamics simulation of a butane molecule in HOOMD-blue and PySAGES.
+Adapted from [SSAGES](https://github.com/SSAGESproject/SSAGES).
+"""
+
+
+# %%
+import argparse
+import sys
+import time
+
 import numpy as np
-import matplotlib.pyplot as plt
-
 import hoomd
-import hoomd.md as md
-import hoomd.dlext
-
-import pysages
-from pysages.collective_variables import Component
-from pysages.collective_variables import DihedralAngle
-
-from pysages.methods import Metadynamics as meta, MetaDLogger
+import hoomd.md
 
 from math import sqrt, pi
 
+from pysages import Grid
+from pysages.collective_variables import DihedralAngle
+from pysages.methods import Metadynamics, MetaDLogger
 
-def generate_context(**kwargs):
 
-    kT = 0.596161
-    dt = 0.02045
+# %%
+kB = 8.314462618e-3
+kT = 0.596161
+dt = 0.02045
 
-    # hoomd.context.initialize('') #--mode=cpu')
 
+# %%
+def generate_context(kT=kT, dt=dt, **kwargs):
+    hoomd.context.initialize("")
     context = hoomd.context.SimulationContext()
 
     with context:
-
         snapshot = hoomd.data.make_snapshot(
             N=14,
             box=hoomd.data.boxdim(Lx=41, Ly=41, Lz=41),
@@ -87,26 +82,25 @@ def generate_context(**kwargs):
 
         mC = 12.00
         mH = 1.008
-        snapshot.particles.mass[:] = [mC, mH, mH, mH, mC, mH, mH, mC, mH, mH, mC, mH, mH, mH]
+
+        # fmt: off
+        snapshot.particles.mass[:] = [
+            mC, mH, mH, mH,  # grouped by carbon atoms
+            mC, mH, mH,
+            mC, mH, mH,
+            mC, mH, mH, mH,
+        ]
 
         reference_charges = np.array(
             [
-                -0.180000,
-                0.060000,
-                0.060000,
-                0.060000,
-                -0.120000,
-                0.060000,
-                0.060000,
-                -0.120000,
-                0.060000,
-                0.060000,
-                -0.180000,
-                0.060000,
-                0.060000,
-                0.060000,
+                -0.180000, 0.060000, 0.060000, 0.060000,  # grouped by carbon atoms
+                -0.120000, 0.060000, 0.060000,
+                -0.120000, 0.060000, 0.060000,
+                -0.180000, 0.060000, 0.060000, 0.060000,
             ]
         )
+        # fmt: on
+
         charge_conversion = 18.22262
         snapshot.particles.charge[:] = charge_conversion * reference_charges[:]
 
@@ -119,21 +113,14 @@ def generate_context(**kwargs):
         snapshot.bonds.typeid[9] = 0
         snapshot.bonds.typeid[10:13] = 1
 
+        # fmt: off
         snapshot.bonds.group[:] = [
-            [0, 2],
-            [0, 1],
-            [0, 3],
-            [0, 4],
-            [4, 5],
-            [4, 6],
-            [4, 7],
-            [7, 8],
-            [7, 9],
-            [7, 10],
-            [10, 11],
-            [10, 12],
-            [10, 13],
+            [0, 2], [0, 1], [0, 3], [0, 4],  # grouped by carbon atoms
+            [4, 5], [4, 6], [4, 7],
+            [7, 8], [7, 9], [7, 10],
+            [10, 11], [10, 12], [10, 13],
         ]
+        # fmt: on
 
         snapshot.angles.resize(24)
         snapshot.angles.typeid[0:2] = 2
@@ -148,32 +135,21 @@ def generate_context(**kwargs):
         snapshot.angles.typeid[16:21] = 1
         snapshot.angles.typeid[21:24] = 2
 
+        # fmt: off
         snapshot.angles.group[:] = [
-            [1, 0, 2],
-            [2, 0, 3],
-            [2, 0, 4],
-            [1, 0, 3],
-            [1, 0, 4],
-            [3, 0, 4],
-            [0, 4, 5],
-            [0, 4, 6],
-            [0, 4, 7],
-            [5, 4, 6],
-            [5, 4, 7],
-            [6, 4, 7],
-            [4, 7, 8],
-            [4, 7, 9],
-            [4, 7, 10],
-            [8, 7, 9],
-            [8, 7, 10],
-            [9, 7, 10],
-            [7, 10, 11],
-            [7, 10, 12],
-            [7, 10, 13],
-            [11, 10, 12],
-            [11, 10, 13],
-            [12, 10, 13],
+            [1, 0, 2], [2, 0, 3], [2, 0, 4],  # grouped by carbon atoms
+            [1, 0, 3], [1, 0, 4], [3, 0, 4],
+            # ---
+            [0, 4, 5], [0, 4, 6], [0, 4, 7],
+            [5, 4, 6], [5, 4, 7], [6, 4, 7],
+            # ---
+            [4, 7, 8], [4, 7, 9], [4, 7, 10],
+            [8, 7, 9], [8, 7, 10], [9, 7, 10],
+            # ---
+            [7, 10, 11], [7, 10, 12], [7, 10, 13],
+            [11, 10, 12], [11, 10, 13], [12, 10, 13],
         ]
+        # fmt: on
 
         snapshot.dihedrals.resize(27)
         snapshot.dihedrals.typeid[0:2] = 2
@@ -189,74 +165,48 @@ def generate_context(**kwargs):
         snapshot.dihedrals.typeid[17:21] = 1
         snapshot.dihedrals.typeid[21:27] = 2
 
+        # fmt: off
         snapshot.dihedrals.group[:] = [
-            [2, 0, 4, 5],
-            [2, 0, 4, 6],
-            [2, 0, 4, 7],
-            [1, 0, 4, 5],
-            [1, 0, 4, 6],
-            [1, 0, 4, 7],
-            [3, 0, 4, 5],
-            [3, 0, 4, 6],
-            [3, 0, 4, 7],
-            [0, 4, 7, 8],
-            [0, 4, 7, 9],
-            [0, 4, 7, 10],
-            [5, 4, 7, 8],
-            [5, 4, 7, 9],
-            [5, 4, 7, 10],
-            [6, 4, 7, 8],
-            [6, 4, 7, 9],
-            [6, 4, 7, 10],
-            [4, 7, 10, 11],
-            [4, 7, 10, 12],
-            [4, 7, 10, 13],
-            [8, 7, 10, 11],
-            [8, 7, 10, 12],
-            [8, 7, 10, 13],
-            [9, 7, 10, 11],
-            [9, 7, 10, 12],
-            [9, 7, 10, 13],
+            [2, 0, 4, 5], [2, 0, 4, 6], [2, 0, 4, 7],  # grouped by pairs of central atoms
+            [1, 0, 4, 5], [1, 0, 4, 6], [1, 0, 4, 7],
+            [3, 0, 4, 5], [3, 0, 4, 6], [3, 0, 4, 7],
+            # ---
+            [0, 4, 7, 8], [0, 4, 7, 9], [0, 4, 7, 10],
+            [5, 4, 7, 8], [5, 4, 7, 9], [5, 4, 7, 10],
+            [6, 4, 7, 8], [6, 4, 7, 9], [6, 4, 7, 10],
+            # ---
+            [4, 7, 10, 11], [4, 7, 10, 12], [4, 7, 10, 13],
+            [8, 7, 10, 11], [8, 7, 10, 12], [8, 7, 10, 13],
+            [9, 7, 10, 11], [9, 7, 10, 12], [9, 7, 10, 13],
         ]
+        # fmt: on
 
         snapshot.pairs.resize(27)
         snapshot.pairs.typeid[0:1] = 0
         snapshot.pairs.typeid[1:11] = 1
         snapshot.pairs.typeid[11:27] = 2
+        # fmt: off
         snapshot.pairs.group[:] = [
             # CCCC
             [0, 10],
             # HCCC
             [0, 8],
             [0, 9],
-            [5, 10],
-            [6, 10],
-            [1, 7],
-            [2, 7],
-            [3, 7],
-            [11, 4],
-            [12, 4],
-            [13, 4],
+            [5, 10], [6, 10],
+            [1, 7], [2, 7], [3, 7],
+            [11, 4], [12, 4], [13, 4],
             # HCCH
-            [1, 5],
-            [1, 6],
-            [2, 5],
-            [2, 6],
-            [3, 5],
-            [3, 6],
-            [5, 8],
-            [6, 8],
-            [5, 9],
-            [6, 9],
-            [8, 11],
-            [8, 12],
-            [8, 13],
-            [9, 11],
-            [9, 12],
-            [9, 13],
+            [1, 5], [1, 6],
+            [2, 5], [2, 6],
+            [3, 5], [3, 6],
+            [5, 8], [6, 8],
+            [5, 9], [6, 9],
+            [8, 11], [8, 12], [8, 13],
+            [9, 11], [9, 12], [9, 13],
         ]
+        # fmt: on
 
-        system = hoomd.init.read_snapshot(snapshot)
+        hoomd.init.read_snapshot(snapshot)
 
         nl_ex = hoomd.md.nlist.cell()
         nl_ex.reset_exclusions(exclusions=["1-2", "1-3", "1-4"])
@@ -297,55 +247,56 @@ def generate_context(**kwargs):
 
         hoomd.md.integrate.mode_standard(dt=dt)
         integrator = hoomd.md.integrate.nvt(group=hoomd.group.all(), kT=kT, tau=100 * dt)
-
-        logger = hoomd.analyze.log(
-            filename="dump-butane.log",
-            quantities=[
-                "temperature",
-                "pressure",
-                "volume",
-                "kinetic_energy",
-                "potential_energy",
-                "bond_harmonic_energy",
-                "angle_harmonic_energy",
-                "dihedral_opls_energy",
-                "pair_lj_energy",
-                "special_pair_lj_energy",
-                "special_pair_coul_energy",
-                "pair_ewald_energy",
-                "pppm_energy",
-            ],
-            period=100,
-            overwrite=True,
-        )
-
-        hoomd.dump.gsd("dump-butane.gsd", period=100, group=hoomd.group.all(), overwrite=True)
+        integrator.randomize_velocities(seed=42)
 
     return context
 
 
-def main():
-
-    cv1 = DihedralAngle([0, 4, 7, 10])
-    cv1.require_box_unwrapping = True
-    cvs = [
-        cv1,
+# %%
+def get_args(argv):
+    available_args = [
+        ("well-tempered", "w", bool, 0, "Whether to use well-tempered metadynamics"),
+        ("use-grids", "g", bool, 0, "Whether to use grid acceleration"),
+        ("log", "l", bool, 0, "Whether to use a callback to log data into a file"),
+        ("time-steps", "t", int, 5e5, "Number of simulation steps"),
     ]
 
-    height = 0.01
-    sigma = 0.1
-    deltaT = None
-    stride = 50
-    timesteps = int(5e3)
-    ngauss = timesteps // stride + 1
+    parser = argparse.ArgumentParser(description="Example script to run metadynamics")
+    for (name, short, T, val, doc) in available_args:
+        parser.add_argument("--" + name, "-" + short, type=T, default=T(val), help=doc)
 
-    method = meta(cvs, height, sigma, stride, ngauss, deltaT)
+    return parser.parse_args(argv)
+
+
+# %%
+def main(argv=[]):
+    args = get_args(argv)
+
+    cvs = [DihedralAngle([0, 4, 7, 10])]
+
+    height = 0.01  # kJ/mol
+    sigma = 0.1  # radians
+    deltaT = 5000 if args.well_tempered else None
+    stride = 50  # frequency for depositing gaussians
+    timesteps = args.time_steps
+    ngauss = timesteps // stride  # total number of gaussians
+
+    grid = Grid(lower=(-pi,), upper=(pi,), shape=(64,), periodic=True)
+    grid = grid if args.use_grids else None
+
+    method = Metadynamics(cvs, height, sigma, stride, ngauss, deltaT=deltaT, kB=kB, grid=grid)
 
     hills_file = "hills.dat"
-    callback = MetaDLogger(hills_file, stride)
+    callback = MetaDLogger(hills_file, stride) if args.log else None
 
+    tic = time.perf_counter()
     method.run(generate_context, timesteps, callback)
+    toc = time.perf_counter()
+    print(f"Completed the simulation in {toc - tic:0.4f} seconds.")
+
+    return method
 
 
+# %%
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])
