@@ -10,12 +10,10 @@ RUN apt-get upgrade -y
 RUN apt-get update && apt-get install -y python3 cmake nvidia-cuda-toolkit git libopenmpi-dev
 RUN apt-get update && apt-get install -y gcc-8 g++-8 python-is-python3 python3-pip
 
+RUN python -m pip install --upgrade pip
+
 ENV CC=gcc-8
 ENV CXX=g++-8
-
-# Install JAX
-RUN python -m pip install --upgrade pip
-RUN python -m pip install --upgrade "jax[cuda]" -f https://storage.googleapis.com/jax-releases/jax_releases.html
 
 # Install HOOMD-blue
 RUN git clone https://github.com/glotzerlab/hoomd-blue.git && cd hoomd-blue && git checkout v2.9.7 && mkdir build && cd build && cmake -DCMAKE_INSTALL_PREFIX=/hoomd-install -DENABLE_CUDA=ON -DENABLE_MPI=ON .. && make -j $(nproc) install
