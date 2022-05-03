@@ -3,11 +3,15 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-PySAGES! No compromises in usability and speed for advanced sampling methods.
-=============================================================================
+PySAGES: Python Suite for Advanced General Ensemble Simulations
+===============================================================
 
-WIP
-PySAGES combines advanced sampling methods from other
+No compromises in usability and speed for advanced sampling methods!
+--------------------------------------------------------------------
+
+PySAGES provides an extensible framework to compute collective variables and to perform
+enhanced-sampling molecular dynamics simulations to discover reation pathways and estimate
+free energies.
 
 .. toctree::
    :maxdepth: 2

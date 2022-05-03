@@ -9,6 +9,7 @@ PySAGES Team
 ### Backends
 
  - Pablo Zubieta
+ - Ludwig Schneider
 
 ### Collective Variables
 
@@ -21,10 +22,19 @@ Many of the methods implemented in this library were ported from the original
 details. Specific contributions to this repository are listed below
 
  - Pablo Zubieta
+ - Ludwig Schneider
+ - [Gustavo Pérez-Lemus](https://github.com/gustavor101)
+ - [Siva Dassety](https://github.com/sivadasetty)
 
-### Machine Learning submodule (`nn`)
+### Machine Learning submodule (`ml`)
 
  - Pablo Zubieta
+
+### Documentation
+
+ - Pablo Zubieta
+ - Ludwig Schneider
+ - [Riccardo Alessandri](https://github.com/ricalessandri)
 
 ### Other
 
