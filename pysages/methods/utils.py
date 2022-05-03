@@ -8,7 +8,7 @@ Collection of helpful classes for methods.
 This includes callback functors (callable classes).
 """
 
-import jax.numpy as np
+from jax import numpy as np
 
 
 class HistogramLogger:
@@ -72,3 +72,46 @@ class HistogramLogger:
         """
         self.counter = 0
         self.data = []
+
+
+# NOTE: for OpenMM; issue #16 on openmm-dlext should be resolved for this to work properly.
+class MetaDLogger:
+    """
+    Logs the state of the collective variable and other parameters in Metadynamics.
+    """
+
+    def __init__(self, hills_file, log_period):
+        """
+        MetaDLogger constructor.
+
+        Arguments
+        ---------
+        hills_file:
+            Name of the output hills log file.
+
+        log_period:
+            Timesteps between logging of collective variables and metadynamics parameters.
+        """
+        self.hills_file = hills_file
+        self.log_period = log_period
+        self.counter = 0
+
+    def save_hills(self, xi, sigma, height):
+        """
+        Append the centers, standard deviations and heights to log file.
+        """
+        with open(self.hills_file, "a+", encoding="utf8") as f:
+            f.write(str(self.counter) + "\t")
+            f.write("\t".join(map(str, xi.flatten())) + "\t")
+            f.write("\t".join(map(str, sigma.flatten())) + "\t")
+            f.write(str(height) + "\n")
+
+    def __call__(self, snapshot, state, timestep):
+        """
+        Implements the logging itself. Interface as expected for Callbacks.
+        """
+        if self.counter >= self.log_period and self.counter % self.log_period == 0:
+            idx = state.idx - 1 if state.idx > 0 else 0
+            self.save_hills(state.centers[idx], state.sigmas, state.heights[idx])
+
+        self.counter += 1
