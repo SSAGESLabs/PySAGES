@@ -18,3 +18,4 @@ It is mainly available here testing purposes.
    :maxdepth: 3
 
    module-pysages-methods
+   module-pysages-collective_variables

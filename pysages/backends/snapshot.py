@@ -4,22 +4,25 @@
 
 from typing import Callable, NamedTuple, Optional, Tuple, Union
 
-from jax import jit
+from jax import jit, numpy as np
 from jaxlib.xla_extension import DeviceArray as JaxArray
-from plum import dispatch
 
-from pysages.utils import copy
-
-import jax.numpy as np
+from pysages.utils import copy, dispatch
 
 
-class Box(NamedTuple("Box", [
-    ("H",      JaxArray),
-    ("origin", JaxArray),
-])):
+class Box(
+    NamedTuple(
+        "Box",
+        [
+            ("H", JaxArray),
+            ("origin", JaxArray),
+        ],
+    )
+):
     """
     Simulation box information (origin and transform matrix).
     """
+
     def __new__(cls, H, origin):
         return super().__new__(cls, np.asarray(H), np.asarray(origin))
 
@@ -32,13 +35,14 @@ class Snapshot(NamedTuple):
     Stores wrappers around the simulation context information: positions,
     velocities, masses, forces, particles ids, box, and time step size.
     """
+
     positions: JaxArray
-    vel_mass:  Union[JaxArray, Tuple[JaxArray, JaxArray]]
-    forces:    JaxArray
-    ids:       JaxArray
-    images:    Optional[JaxArray]
-    box:       Box
-    dt:        Union[JaxArray, float]
+    vel_mass: Union[JaxArray, Tuple[JaxArray, JaxArray]]
+    forces: JaxArray
+    ids: JaxArray
+    images: Optional[JaxArray]
+    box: Box
+    dt: Union[JaxArray, float]
 
     def __repr__(self):
         return "PySAGES " + type(self).__name__
@@ -46,22 +50,22 @@ class Snapshot(NamedTuple):
 
 class SnapshotMethods(NamedTuple):
     positions: Callable
-    indices:   Callable
-    momenta:   Callable
-    masses:    Callable
+    indices: Callable
+    momenta: Callable
+    masses: Callable
 
 
 class HelperMethods(NamedTuple):
-    query:   Callable
+    query: Callable
     restore: Callable
 
 
-@dispatch(precedence = 1)
+@dispatch(precedence=1)
 def copy(s: Box, *args):
     return Box(*(copy(x, *args) for x in s))
 
 
-@dispatch(precedence = 1)
+@dispatch(precedence=1)
 def copy(s: Snapshot, *args):
     return Snapshot(*(copy(x, *args) for x in s))
 
@@ -72,7 +76,7 @@ def restore_vm(view, snapshot, prev_snapshot):
     vel_mass[:] = view(prev_snapshot.vel_mass)
 
 
-def restore(view, snapshot, prev_snapshot, restore_vm = restore_vm):
+def restore(view, snapshot, prev_snapshot, restore_vm=restore_vm):
     # Create a mutable view of the jax arrays
     positions = view(snapshot.positions)
     forces = view(snapshot.forces)

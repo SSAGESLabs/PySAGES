@@ -5,16 +5,23 @@
 """
 Forward Flux Sampling (FFS).
 
-Implementation of the direct version of the Forward Flux Sampling algorithm.
+Implementation of the direct version of the FFS algorithm.
+FFS uses a series of nonintersecting interfaces between the initial and 
+the final states. The initial and final states are defined in terms of 
+an order parameter. The method allows to calculate rate constants and 
+generate transition paths.
 """
 
 from typing import Callable, Mapping, NamedTuple, Optional
+from warnings import warn
+
+from jax import numpy as np
 
 from pysages.backends import ContextWrapper
 from pysages.methods.core import SamplingMethod, generalize
 from pysages.utils import JaxArray, copy
 
-import jax.numpy as np
+import sys
 
 
 class FFSState(NamedTuple):
@@ -39,7 +46,7 @@ class FFS(SamplingMethod):
         See parent class
     kwargs:
         See parent class
-    
+
     Attributes
     ----------
     snapshot_flags:
@@ -49,8 +56,8 @@ class FFS(SamplingMethod):
     snapshot_flags = {"positions", "indices"}
 
     def build(self, snapshot, helpers):
-        self.helpers=helpers
-        return _ffs(self,snapshot,helpers)
+        self.helpers = helpers
+        return _ffs(self, snapshot, helpers)
 
     # We override the default run method as FFS is algorithmically fairly different
     def run(
@@ -66,10 +73,12 @@ class FFS(SamplingMethod):
         verbose: bool = False,
         callback: Optional[Callable] = None,
         context_args: Mapping = dict(),
-        **kwargs
+        **kwargs,
     ):
         """
-        Direct version of the Forward Flux Sampling algorithm.
+        Direct version of the Forward Flux Sampling algorithm
+        [Phys. Rev. Lett. 94, 018104 (2005), https://doi.org/10.1103/PhysRevLett.94.018104;
+        J. Chem. Phys. 124, 024102 (2006), https://doi.org/10.1063/1.2140273].
 
         Arguments
         ---------
@@ -83,22 +92,22 @@ class FFS(SamplingMethod):
             Number of timesteps the simulation is running.
 
         dt: float
-            timestep of the simulation
+            Timestep of the simulation.
 
         win_i: float
-            initial window for the system
+            Initial window for the system.
 
         win_l: float
-            last window to be calculated in ffs
+            Last window to be calculated in FFS.
 
         Nw: int
-            number of equally spaced windows
+            Number of equally spaced windows.
 
         sampling_steps_basin: int
-            period for sampling configurations in the basin
+            Period for sampling configurations in the basin.
 
         Nmax_replicas: int
-            number of stored configuration for each window
+            Number of stored configurations for each window.
 
         verbose: bool
             If True more information will be logged (useful for debbuging).
@@ -118,9 +127,9 @@ class FFS(SamplingMethod):
         with self.context:
             sampler = self.context.sampler
             xi = sampler.state.xi.block_until_ready()
-            windows = np.linspace(win_i, win_l, num = Nw)
+            windows = np.linspace(win_i, win_l, num=Nw)
 
-            is_configuration_good = check_input(windows, xi, verbose = verbose)
+            is_configuration_good = check_input(windows, xi, verbose=verbose)
             if not is_configuration_good:
                 raise ValueError("Bad initial configuration")
 
@@ -130,7 +139,7 @@ class FFS(SamplingMethod):
 
             reference_snapshot = copy(sampler.snapshot)
 
-            # We Initially sample from basin A
+            # We initially sample from basin A
             # TODO: bundle the arguments into data structures
             ini_snapshots = basin_sampling(
                 Nmax_replicas,
@@ -140,19 +149,12 @@ class FFS(SamplingMethod):
                 sampler,
                 reference_snapshot,
                 helpers,
-                cv
+                cv,
             )
 
             # Calculate initial flow
             phi_a, snaps_0 = initial_flow(
-                Nmax_replicas,
-                dt,
-                windows,
-                ini_snapshots,
-                run,
-                sampler,
-                helpers,
-                cv
+                Nmax_replicas, dt, windows, ini_snapshots, run, sampler, helpers, cv
             )
 
             write_to_file(phi_a)
@@ -160,7 +162,7 @@ class FFS(SamplingMethod):
             hist = hist.at[0].set(phi_a)
 
             # Calculate conditional probability for each window
-            for k in range(1,len(windows)):
+            for k in range(1, len(windows)):
                 if k == 1:
                     old_snaps = snaps_0
                 prob, w1_snapshots = running_window(
@@ -178,7 +180,7 @@ class FFS(SamplingMethod):
 
 def _ffs(method, snapshot, helpers):
     """
-    Internal function, that generates an `initialize` and an `update` functions.
+    Internal function that generates an `initialize` and an `update` functions.
     `initialize` is ran once just before the time integration starts and `update`
     is called after each simulation timestep.
 
@@ -188,11 +190,11 @@ def _ffs(method, snapshot, helpers):
 
     snapshot:
         PySAGES snapshot of the simulation (backend dependent).
-    
+
     helpers
         Helper function bundle as generated by
         `SamplingMethod.context.get_backend().build_helpers`.
-    
+
     Returns
     -------
     Tuple `(snapshot, initialize, update)` as described above.
@@ -201,7 +203,7 @@ def _ffs(method, snapshot, helpers):
     dt = snapshot.dt
     natoms = np.size(snapshot.positions, 0)
 
-    #initialize method
+    # initialize method
     def initialize():
         bias = np.zeros((natoms, 3))
         xi, _ = cv(helpers.query(snapshot))
@@ -212,7 +214,7 @@ def _ffs(method, snapshot, helpers):
         bias = state.bias
         return FFSState(bias, xi)
 
-    return snapshot, initialize, generalize(update,helpers)
+    return snapshot, initialize, generalize(update, helpers)
 
 
 def write_to_file(value):
@@ -231,8 +233,10 @@ def increase_snaps(windows, initial_w):
     return windows
 
 
-def check_input(grid, xi, verbose = False):
-    """Verify if the initial configuration is a good one."""
+def check_input(grid, xi, verbose=False):
+    """
+    Verify whether the initial configuration is a good one.
+    """
     is_good = xi < grid[0]
 
     if is_good:
@@ -245,14 +249,7 @@ def check_input(grid, xi, verbose = False):
 
 
 def basin_sampling(
-    max_num_snapshots,
-    sampling_time,
-    grid,
-    run,
-    sampler,
-    reference_snapshot,
-    helpers,
-    cv
+    max_num_snapshots, sampling_time, grid, run, sampler, reference_snapshot, helpers, cv
 ):
     """
     Sampling of basing configurations for initial flux calculations.
@@ -274,18 +271,18 @@ def basin_sampling(
         else:
             helpers.restore(sampler.snapshot, reference_snapshot)
             xi, _ = cv(helpers.query(sampler.snapshot))
-            print("Restoring basing configuration since system leave basin with cv value:\n")
+            print("Restoring basing configuration since system left basin with cv value:\n")
             print(xi)
 
-    print(f"Finish sampling Basin with {max_num_snapshots} snapshots\n")
+    print(f"Finish sampling basin with {max_num_snapshots} snapshots\n")
 
     return basin_snapshots
 
 
-def initial_flow(
-    Num_window0, timestep, grid, initial_snapshots, run, sampler, helpers, cv
-):
-    """Selects snapshots from list generated with `basin_sampling`."""
+def initial_flow(Num_window0, timestep, grid, initial_snapshots, run, sampler, helpers, cv):
+    """
+    Selects snapshots from list generated with `basin_sampling`.
+    """
 
     success = 0
     time_count = 0.0
@@ -295,7 +292,7 @@ def initial_flow(
     for i in range(0, Num_window0):
         print(f"Initial stored configuration: {i}\n")
         helpers.restore(sampler.snapshot, initial_snapshots[i])
-        xi, _= cv(helpers.query(sampler.snapshot))
+        xi, _ = cv(helpers.query(sampler.snapshot))
         print(xi)
 
         has_reached_A = False
@@ -318,7 +315,7 @@ def initial_flow(
     print(f"Finish Initial Flow with {success} succeses over {time_count} time\n")
     phi_a = float(success) / (time_count)
 
-    return phi_a, window0_snaps    
+    return phi_a, window0_snaps
 
 
 def running_window(grid, step, old_snapshots, run, sampler, helpers, cv):
@@ -328,19 +325,19 @@ def running_window(grid, step, old_snapshots, run, sampler, helpers, cv):
     win_value = grid[int(step)]
     has_conf_stored = False
 
-    for i in range(0,len(old_snapshots)):
+    for i in range(0, len(old_snapshots)):
         helpers.restore(sampler.snapshot, old_snapshots[i])
         xi, _ = cv(helpers.query(sampler.snapshot))
         print(f"Stored configuration: {i} of window: {step}\n")
         print(xi)
-        
+
         # limit running time to avoid zombie trajectories
         # this can be probably be improved
         running = True
         while running:
             run(1)
             xi = sampler.state.xi.block_until_ready()
-            
+
             if np.all(xi < win_A):
                 running = False
             elif np.all(xi >= win_value):
@@ -352,7 +349,8 @@ def running_window(grid, step, old_snapshots, run, sampler, helpers, cv):
                     has_conf_stored = True
 
     if success == 0:
-        raise Exception(f"Error in window {step}\n")
+        warn(f"Unable to estimate probability, exiting early at window {step}\n")
+        sys.exit(0)
 
     if len(new_snapshots) > 0:
         prob_local = float(success) / len(old_snapshots)

@@ -18,21 +18,28 @@ from pysages.utils import identity
 #   Base Classes   #
 # ================ #
 
+
 class SamplingMethod(ABC):
     """
     Abstract base class for all sampling methods.
 
-    Defines the constructor that expects the collective variables, the build method to initialize the GPU execution for the biasing and the run method that executes the simulation run. All these are intended be enhanced/overwritten by inheriting classes.
+    Defines the constructor that expects the collective variables,
+    the build method to initialize the GPU execution for the biasing,
+    and the run method that executes the simulation run.
+    All these are intended to be enhanced/overwritten by inheriting classes.
     """
+
     snapshot_flags = set()
 
     def __init__(self, cvs, *args, **kwargs):
+        self.cvs = cvs
         self.cv = build(*cvs)
         self.requires_box_unwrapping = reduce(
             or_, (cv.requires_box_unwrapping for cv in cvs), False
         )
         self.args = args
         self.kwargs = kwargs
+        self.context = []
 
     @abstractmethod
     def build(self, snapshot, helpers, *args, **kwargs):
@@ -45,8 +52,12 @@ class SamplingMethod(ABC):
         pass
 
     def run(
-        self, context_generator: Callable, timesteps: int, callback: Callable = None,
-        context_args: Mapping = dict(), **kwargs
+        self,
+        context_generator: Callable,
+        timesteps: int,
+        callback: Callable = None,
+        context_args: Mapping = None,
+        **kwargs
     ):
         """
         Base implementation of running a single simulation/replica with a sampling method.
@@ -66,10 +77,13 @@ class SamplingMethod(ABC):
             Allows for user defined actions into the simulation workflow of the method.
             `kwargs` gets passed to the backend `run` function.
         """
+        if context_args is None:
+            context_args = dict()
         context = context_generator(**context_args)
-        self.context = ContextWrapper(context, self, callback)
-        with self.context:
-            self.context.run(timesteps, **kwargs)
+        self.context.append(ContextWrapper(context, self, callback))
+        assert len(self.context) == 1
+        with self.context[0]:
+            self.context[0].run(timesteps, **kwargs)
 
 
 class GriddedSamplingMethod(SamplingMethod):
@@ -97,12 +111,13 @@ class NNSamplingMethod(GriddedSamplingMethod):
 #   Utils   #
 # ========= #
 
+
 def check_dims(cvs, grid):
     if len(cvs) != grid.shape.size:
         raise ValueError("Grid and Collective Variable dimensions must match.")
 
 
-def generalize(concrete_update, helpers, jit_compile = True):
+def generalize(concrete_update, helpers, jit_compile=True):
     if jit_compile:
         _jit = jit
     else:

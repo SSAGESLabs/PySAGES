@@ -250,16 +250,11 @@ function-naming-style=snake_case
 #function-rgx=
 
 # Good variable names which should always be accepted, separated by a comma.
-good-names=i,
-           j,
-           k,
-           ex,
-           Run,
-           _
+good-names=i, j, k, ex, Run, xi, cv, Jxi, I_xi, _
 
 # Good variable names regexes, separated by a comma. If names match any regex,
 # they will always be accepted
-good-names-rgxs=
+good-names-rgxs=[a-km-zA-HJ-NP-Z](_[\w\d])?,
 
 # Include a hint for the correct naming format with invalid-name.
 include-naming-hint=yes
@@ -535,7 +530,7 @@ preferred-modules=
 max-args=10
 
 # Maximum number of attributes for a class (see R0902).
-max-attributes=7
+max-attributes=12
 
 # Maximum number of boolean expressions in an if statement (see R0916).
 max-bool-expr=5

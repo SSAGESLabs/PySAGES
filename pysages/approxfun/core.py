@@ -5,13 +5,12 @@
 from abc import ABC
 from dataclasses import dataclass
 from itertools import product
-from jax import jit, vmap
-from plum import dispatch
-from pysages.grids import Grid, Chebyshev
-from pysages.utils import Float, JaxArray
 from typing import NamedTuple
 
-import jax.numpy as np
+from jax import jit, numpy as np, vmap
+
+from pysages.grids import Grid, Chebyshev
+from pysages.utils import Float, JaxArray, dispatch
 
 
 class Fun(NamedTuple):
@@ -19,9 +18,10 @@ class Fun(NamedTuple):
     Stores the coeffiecients of an either Fourier or Chebyshev series
     (or tensor product of series in 2D) approximating a function.
     """
-    scale:         JaxArray
-    coefficients:  JaxArray
-    c0:            Float
+
+    scale: JaxArray
+    coefficients: JaxArray
+    c0: Float
 
 
 @dataclass
@@ -32,10 +32,11 @@ class AbstractFit(ABC):
     that minimizes the squared error with respect to a set of given
     target values.
     """
-    grid:       Grid
-    mesh:       JaxArray
-    pinv:       JaxArray
-    exponents:  JaxArray
+
+    grid: Grid
+    mesh: JaxArray
+    pinv: JaxArray
+    exponents: JaxArray
 
     def __init__(self, grid: Grid):
         ns = collect_exponents(grid)
@@ -54,6 +55,7 @@ class SpectralGradientFit(AbstractFit):
     Specialization of AbstractFit used when the target values correspond
     to the gradient of the function of interest.
     """
+
     pass
 
 
@@ -62,6 +64,7 @@ class SpectralSobolev1Fit(AbstractFit):
     Specialization of AbstractFit used when the target values correspond
     to *both* the values and gradient of the function of interest.
     """
+
     pass
 
 
@@ -81,11 +84,13 @@ def collect_exponents(grid):
     #
     m = 1 - n if grid.is_periodic else 1
     pairs = product(range(1, n), range(m, n))
-    exponents = np.vstack([
-        [(0, i) for i in range(1, n)],
-        [(i, 0) for i in range(1, n)],
-        [t for t in pairs if t[1] != 0 and t[0]**2 + t[1]**2 <= r]
-    ])
+    exponents = np.vstack(
+        [
+            [(0, i) for i in range(1, n)],
+            [(i, 0) for i in range(1, n)],
+            [t for t in pairs if t[1] != 0 and t[0] ** 2 + t[1] ** 2 <= r],
+        ]
+    )
     return exponents
 
 
@@ -106,9 +111,7 @@ def compute_mesh(grid: Grid):
     h = 2 / grid.shape
     o = -1 + h / 2
 
-    nodes = o + h * np.hstack(
-        [np.arange(i).reshape(-1, 1) for i in grid.shape]
-    )
+    nodes = o + h * np.hstack([np.arange(i).reshape(-1, 1) for i in grid.shape])
 
     return _compute_mesh(nodes)
 
@@ -119,18 +122,19 @@ def compute_mesh(grid: Grid[Chebyshev]):
     Returns a Chebyshev-distributed dense mesh with the same shape as `grid`,
     but on the hypercube [-1, 1]ⁿ, where n is the dimensionality of `grid`.
     """
+
     def transform(n):
         return vmap(lambda k: -np.cos((k + 1 / 2) * np.pi / n))
 
-    nodes = np.hstack(
-        [transform(i)(np.arange(i).reshape(-1, 1)) for i in grid.shape]
-    )
+    nodes = np.hstack([transform(i)(np.arange(i).reshape(-1, 1)) for i in grid.shape])
 
     return _compute_mesh(nodes)
 
 
 def _compute_mesh(nodes):
-    components = np.meshgrid(*nodes.T,)
+    components = np.meshgrid(
+        *nodes.T,
+    )
     return np.hstack([v.reshape(-1, 1) for v in components])
 
 
@@ -142,11 +146,15 @@ def vander_builder(grid, exponents):
     ns = exponents
     #
     if grid.is_periodic:
+
         def expand(x):
-            return np.exp(1j * np.pi * ns * x).prod(axis = 1).T
+            return np.exp(1j * np.pi * ns * x).prod(axis=1).T
+
     else:
+
         def expand(x):
-            return (x**ns).prod(axis = 1).T
+            return (x**ns).prod(axis=1).T
+
     #
     return jit(lambda xs: vmap(expand)(xs).reshape(-1, np.size(ns, 0)))
 
@@ -159,20 +167,28 @@ def vandergrad_builder(grid, exponents):
     ns = exponents
     #
     if grid.shape.size == 1:
+
         def flip_multiply(x, y):
             return x
+
     else:
+
         def flip_multiply(x, y):
             return x * np.fliplr(y)
+
     #
     if grid.is_periodic:
+
         def expand(x):
             z = np.exp(-1j * np.pi * ns * x)
             return flip_multiply(ns * z, z).T
+
     else:
+
         def expand(x):
-            z = x**(np.maximum(ns - 1, 0))
+            z = x ** (np.maximum(ns - 1, 0))
             return flip_multiply(ns * z, x).T
+
     #
     return jit(lambda xs: vmap(expand)(xs).reshape(-1, np.size(ns, 0)))
 
@@ -215,17 +231,21 @@ def build_fitter(model: SpectralGradientFit):
     """
     #
     if model.is_periodic:
+
         def fit(dy):
-            std = dy.std(axis = 0)
+            std = dy.std(axis=0)
             std = np.where(std == 0, 1, std)
-            dy = (dy - dy.mean(axis = 0)) / std
+            dy = (dy - dy.mean(axis=0)) / std
             return Fun(std, model.pinv @ dy.flatten(), np.array(0.0))
+
     else:
+
         def fit(dy):
-            std = dy.std(axis = 0)
+            std = dy.std(axis=0)
             std = np.where(std == 0, 1, std)
             dy = dy / std
             return Fun(std, model.pinv @ dy.flatten(), np.array(0.0))
+
     #
     return jit(fit)
 
@@ -241,12 +261,13 @@ def build_fitter(model: SpectralSobolev1Fit):
     #
     def fit(y, dy):
         mean = y.mean()
-        std = np.maximum(y.std(axis = 0).max(), dy.std(axis = 0).max())
+        std = np.maximum(y.std(axis=0).max(), dy.std(axis=0).max())
         std = np.where(std == 0, 1, std)
         y = (y - mean) / std
         dy = dy / std
         cs = model.pinv @ np.hstack((y.flatten(), dy.flatten()))
         return Fun(std, cs[1:], cs[0] + mean / std)
+
     #
     return jit(fit)
 
@@ -260,18 +281,22 @@ def build_evaluator(model):
     vander = vander_builder(model.grid, model.exponents)
     #
     if model.is_periodic:
+
         def restack(x):
             return np.hstack((np.real(x), np.imag(x)))
+
     else:
+
         def restack(x):
             return x
 
     def evaluate(f: Fun, x):
         c0 = f.c0
         cs = f.coefficients
-        x = np.array(x, ndmin = 2)
+        x = np.array(x, ndmin=2)
         y = f.scale * (restack(vander(x)) @ cs + c0)
         return y.reshape(np.size(x, 0), -1)
+
     #
     return jit(evaluate)
 
@@ -285,15 +310,18 @@ def build_grad_evaluator(model):
     vandergrad = vandergrad_builder(model.grid, model.exponents)
 
     if model.is_periodic:
+
         def restack(x):
             return np.hstack((np.imag(x), np.real(x)))
+
     else:
+
         def restack(x):
             return x
 
     def get_gradient(f: Fun, x):
         cs = f.coefficients
-        x = np.array(x, ndmin = 2)
+        x = np.array(x, ndmin=2)
         y = f.scale * (restack(vandergrad(x)) @ cs)
         return y.reshape(x.shape)
 

@@ -8,6 +8,11 @@ from jax import numpy as np, random, tree_flatten, vmap
 from jax.numpy.linalg import norm
 from jaxlib.xla_extension import PyTreeDef
 from numpy import cumsum
+from plum import Dispatcher
+
+
+# Dispatcher for the `ml` submodule
+dispatch = Dispatcher()
 
 
 class ParametersLayout(NamedTuple):
@@ -15,8 +20,9 @@ class ParametersLayout(NamedTuple):
     Holds the information needed to pack flatten parameters of a
     `jax.example_libraries.stax.serial` model.
     """
-    structure:  PyTreeDef
-    shapes:     list
+
+    structure: PyTreeDef
+    shapes: list
     separators: list
 
 
@@ -88,9 +94,6 @@ def blackman(M, n):
 def blackman_kernel(dims, M):
     n = M - 2
     apply = vmap(lambda ns: blackman(M, norm(np.float64(ns)) / 2))
-    inds = np.stack(
-        np.meshgrid(*(np.arange(1 - n, n, 2) for _ in range(dims))),
-        axis = -1
-    )
+    inds = np.stack(np.meshgrid(*(np.arange(1 - n, n, 2) for _ in range(dims))), axis=-1)
     kernel = apply(inds.reshape(-1, dims))
     return (kernel / kernel.sum()).reshape(*(n for _ in range(dims)))

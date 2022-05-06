@@ -10,7 +10,6 @@ from jax import numpy as np
 from jax.lax import cond
 from jax.numpy.linalg import pinv
 from jax.scipy.linalg import solve
-from plum import Dispatcher
 
 from pysages.ml.objectives import (
     Loss,
@@ -24,51 +23,53 @@ from pysages.ml.objectives import (
     build_objective_function,
     sum_squares,
 )
-from pysages.ml.utils import pack, unpack
+from pysages.ml.utils import dispatch, pack, unpack
 from pysages.utils import Bool, Float, Int, JaxArray, try_import
 
 import jax
 
 jopt = try_import("jax.example_libraries.optimizers", "jax.experimental.optimizers")
 
-# Create a dispatcher for this submodule
-dispatch = Dispatcher()
-
 
 # Optimizers parameters
+
 
 class AdamParams(NamedTuple):
     """
     Parameters for the ADAM optimizer.
     """
+
     step_size: Union[Float, Callable] = 1e-2
-    beta_1:    Float = 0.9
-    beta_2:    Float = 0.999
-    tol:       Float = 1e-8
+    beta_1: Float = 0.9
+    beta_2: Float = 0.999
+    tol: Float = 1e-8
 
 
 class LevenbergMarquardtParams(NamedTuple):
     """
     Parameters for the Levenberg-Marquardt optimizer.
     """
-    mu_0:    Float = 1e-1
-    mu_c:    Float = 10.0
-    mu_min:  Float = 1e-8
-    mu_max:  Float = 1e8
-    rho_c:   Float = 1e-1
+
+    mu_0: Float = 1e-1
+    mu_c: Float = 10.0
+    mu_min: Float = 1e-8
+    mu_max: Float = 1e8
+    rho_c: Float = 1e-1
     rho_min: Float = 1e-4
 
 
 # Optimizers state
+
 
 class WrappedState(NamedTuple):
     """
     Holds the data for an optimization run for an optimizer from
     stax.example_libraries.optimizers.
     """
-    data:     Tuple[JaxArray, JaxArray]
-    params:   Any
-    iters:    Int = 0
+
+    data: Tuple[JaxArray, JaxArray]
+    params: Any
+    iters: Int = 0
     improved: Bool = True
 
 
@@ -76,12 +77,13 @@ class LevenbergMarquardtState(NamedTuple):
     """
     Holds the data for a Levenberg-Marquardt optimization run.
     """
-    data:     Tuple[JaxArray, JaxArray]
-    params:   JaxArray
-    errors:   JaxArray
-    cost:     Float
-    mu:       Float
-    iters:    Int = 0
+
+    data: Tuple[JaxArray, JaxArray]
+    params: JaxArray
+    errors: JaxArray
+    cost: Float
+    mu: Float
+    iters: Int = 0
     improved: Bool = True
 
 
@@ -89,13 +91,14 @@ class LevenbergMarquardtBRState(NamedTuple):
     """
     Holds the data for a Bayesian-regularized Levenberg-Marquardt optimization run.
     """
-    data:     Tuple[JaxArray, JaxArray]
-    params:   JaxArray
-    errors:   JaxArray
-    cost:     Float
-    mu:       Float
-    alpha:    Float = 1e-4
-    iters:    Int = 0
+
+    data: Tuple[JaxArray, JaxArray]
+    params: JaxArray
+    errors: JaxArray
+    cost: Float
+    mu: Float
+    alpha: Float = 1e-4
+    iters: Int = 0
     improved: Bool = True
 
 
@@ -103,6 +106,7 @@ class Optimizer:
     """
     Abstract base class for all optimizers.
     """
+
     pass
 
 
@@ -111,10 +115,11 @@ class Adam(Optimizer):
     """
     ADAM optimizer from stax.example_libraries.optimizers.
     """
-    params:    AdamParams = AdamParams()
-    loss:      Loss = SSE()
-    reg:       Regularizer = L2Regularization(0.0)
-    tol:       Float = 1e-4
+
+    params: AdamParams = AdamParams()
+    loss: Loss = SSE()
+    reg: Regularizer = L2Regularization(0.0)
+    tol: Float = 1e-4
     max_iters: Int = 10000
 
 
@@ -123,9 +128,10 @@ class LevenbergMarquardt(Optimizer):
     """
     Levenberg-Marquardt optimizer.
     """
-    params:    LevenbergMarquardtParams = LevenbergMarquardtParams()
-    loss:      Loss = SSE()
-    reg:       Regularizer = L2Regularization(0.0)
+
+    params: LevenbergMarquardtParams = LevenbergMarquardtParams()
+    loss: Loss = SSE()
+    reg: Regularizer = L2Regularization(0.0)
     max_iters: Int = 500
 
 
@@ -134,10 +140,11 @@ class LevenbergMarquardtBR(Optimizer):
     """
     Levenberg-Marquardt optimizer with Bayesian regularization.
     """
-    params:    LevenbergMarquardtParams = LevenbergMarquardtParams()
-    alpha:     Float = np.float64(0.0)
+
+    params: LevenbergMarquardtParams = LevenbergMarquardtParams()
+    alpha: Float = np.float64(0.0)
     max_iters: Int = 500
-    update:    Callable = lambda a, b, c, t: t
+    update: Callable = lambda a, b, c, t: t
 
 
 @dispatch.abstract
@@ -204,7 +211,7 @@ def build(optimizer: LevenbergMarquardt, model):
         H = damped_hessian(J, mu)
         Je = jac_err_prod(J, e_, p_)
         #
-        dp = solve(H, Je, sym_pos = True)
+        dp = solve(H, Je, sym_pos=True)
         p = p_ - dp
         e = error(p, x, y)
         C = cost(e, p)
@@ -239,7 +246,7 @@ def build(optimizer: LevenbergMarquardtBR, model):
         e = error(params, x, y)
         mu = optimizer.params.mu_0
         gamma = np.float64(params.size)
-        beta = (x.size / m)**2 * (x.size - gamma) / sum_squares(e)
+        beta = (x.size / m) ** 2 * (x.size - gamma) / sum_squares(e)
         beta = np.where(beta < 0, 1.0, beta)
         alpha = gamma / sum_squares(params)
         return LevenbergMarquardtBRState((x, y), params, e, np.inf, mu, alpha / beta)
@@ -258,7 +265,7 @@ def build(optimizer: LevenbergMarquardtBR, model):
         Je = J.T @ e_ + alpha_ * p_
         I = np.diag_indices_from(H)
         #
-        dp = solve(H.at[I].add(alpha_ + mu), Je, sym_pos = True)
+        dp = solve(H.at[I].add(alpha_ + mu), Je, sym_pos=True)
         p = p_ - dp
         e = error(p, x, y)
         C = (sum_squares(e) + alpha * sum_squares(p)) / 2
@@ -280,9 +287,7 @@ def build(optimizer: LevenbergMarquardtBR, model):
         alpha, *_ = cond(bad_step, lambda t: t, update_hyperparams, bundle)
         C = (sse + alpha * ssp) / 2
         #
-        return LevenbergMarquardtBRState(
-            data, p, e, C, mu, alpha, iters + ~bad_step, improved
-        )
+        return LevenbergMarquardtBRState(data, p, e, C, mu, alpha, iters + ~bad_step, improved)
 
     return initialize, keep_iterating, update
 
@@ -292,6 +297,6 @@ def update_hyperparams(nlayers, nparams, alpha_0, bundle):
     alpha, H, I, sse, ssp, n = bundle
     gamma = k - alpha * pinv(H.at[I].add(alpha)).trace()
     reset = np.isnan(gamma) | (gamma >= n) | (sse.sum() < 1e-4) | (ssp.sum() < 1e-4)
-    beta = np.where(reset, 1.0, (n / l)**2 * (n - gamma) / sse)
+    beta = np.where(reset, 1.0, (n / l) ** 2 * (n - gamma) / sse)
     alpha = np.where(reset, alpha_0, gamma / ssp)
     return (alpha / beta, H, I, sse, ssp, n)

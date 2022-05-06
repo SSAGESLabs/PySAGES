@@ -4,28 +4,27 @@
 
 from typing import NamedTuple
 
+from jax import numpy as np
 from jax.lax import while_loop
 from jax.scipy import signal
 
 from pysages.ml.optimizers import build
 from pysages.utils import JaxArray
 
-import jax.numpy as np
-
 
 class NNData(NamedTuple):
     params: JaxArray
-    mean:   JaxArray
-    std:    JaxArray
+    mean: JaxArray
+    std: JaxArray
 
 
-def normalize(data, axes = None):
-    mean = data.mean(axis = axes)
-    std = data.std(axis = axes)
+def normalize(data, axes=None):
+    mean = data.mean(axis=axes)
+    std = data.std(axis=axes)
     return (data - mean) / std, mean, std
 
 
-def convolve(data, kernel, boundary = "edge"):
+def convolve(data, kernel, boundary="edge"):
     """
     Wrapper around `jax.scipy.signal.convolve`. It first pads the data,
     depending on the size of the kernel, and chooses a padding mode depending
@@ -38,9 +37,9 @@ def convolve(data, kernel, boundary = "edge"):
         padding = [tuple((s - 1) // 2 for _ in range(n)) for s in kernel.shape]
 
     def pad(slice):
-        return np.pad(slice, padding, mode = boundary)
+        return np.pad(slice, padding, mode=boundary)
 
-    return signal.convolve(pad(data), kernel, mode = "valid")
+    return signal.convolve(pad(data), kernel, mode="valid")
 
 
 def build_fitting_function(model, optimizer):

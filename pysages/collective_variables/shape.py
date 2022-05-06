@@ -2,91 +2,323 @@
 # Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
+"""
+Collective Variables that are calcuated from the shape of group of atoms.
+"""
+
 import jax.numpy as np
 from jax.numpy import linalg
-from .core import CollectiveVariable, AxisCV
 
-
-def gyration_tensor(positions):
-    n = positions.shape[0]
-    S = np.zeros((3, 3))
-    for r in positions:
-        S += np.outer(r, r)
-    return S / n
-
-
-def weighted_gyration_tensor(positions, weights):
-    n = positions.shape[0]
-    S = np.zeros((3, 3))
-    for i in range(n):
-        w, r = weights[i], positions[i]
-        S += w * np.outer(r, r)
-    return S
+from pysages.collective_variables.core import CollectiveVariable, AxisCV
 
 
 class RadiusOfGyration(CollectiveVariable):
+    """
+    Collective Variable that calculates the unweighted radius of gyration as CV.
+
+    Parameters
+    ----------
+    indices: list[int], list[tuple(int)]
+        Must be a list or tuple of atoms (ints or ranges) or groups of atoms.
+        A group is specified as a nested list or tuple of atoms.
+    group_length: int, optional
+        Specify if a fixed group length is expected.
+    """
+
     @property
     def function(self):
+        """
+        Returns
+        -------
+        Callable
+            See `pysages.collective_variables.shape.radius_of_gyration` for details.
+        """
         return radius_of_gyration
 
 
 def radius_of_gyration(positions):
-    n = positions.shape[0]
-    S = np.zeros((3,))
-    # TODO: Replace by `np.sum` and `vmap`
+    """
+    Calculate the radius of gyration for a group of atoms.
+
+    Parameters
+    ----------
+    positions: DeviceArray
+        Array of particle positions used to calculate the radius of gyration.
+
+    Returns
+    -------
+    DeviceArray
+        Radius of gyration vector
+    """
+    group_length = positions.shape[0]
+    rog = np.zeros((3,))
+    # TODO: Replace by `np.sum` and `vmap`  # pylint:disable=fixme
     for r in positions:
-        S[:] += np.dot(r, r)
-    return S / n
+        rog += np.dot(r, r)
+    return rog / group_length
 
 
 def weighted_radius_of_gyration(positions, weights):
-    n = positions.shape[0]
-    R2 = np.zeros((3,))
-    # TODO: Replace by `np.sum` and `vmap`
-    for i in range(n):
+    """
+    Calculate the radius of gyration for a group of atoms weighted by arbitrary weights.
+
+    Parameters
+    ----------
+    positions: DeviceArray
+        Array of particle positions used to calculate the radius of gyration.
+    weights: DeviceArray
+        Array of weights for the positions.
+
+    Returns
+    -------
+    DeviceArray
+        Weighted radius of gyration vector
+    """
+    group_length = positions.shape[0]
+    rog = np.zeros((3,))
+    # TODO: Replace by `np.sum` and `vmap` # pylint:disable=fixme
+    for i in range(group_length):
         w, r = weights[i], positions[i]
-        R2 += w * np.dot(r, r)
-    return R2
+        rog += w * np.dot(r, r)
+    return rog
 
 
 class PrincipalMoment(AxisCV):
+    """
+    Calculate the principal moment as collective variable.
+
+    Parameters
+    ----------
+    indices: list[int], list[tuple(int)]
+        Must be a list or tuple of atoms (ints or ranges) or groups of atoms.
+        A group is specified as a nested list or tuple of atoms.
+    axis: int
+        Index of the cartesian coordinate: 0 (X), 1 (Y), 2 (Z)
+    group_length: Optional[int]
+        Specify if a fixed group length is expected.
+    """
+
     @property
     def function(self):
-        return (lambda rs: principal_moments(rs)[self.axis])
+        """
+        Returns
+        -------
+        Callable
+            Function to calculate the eigenvalue with the specified axis index \
+            of the gyration tensor. \
+            See `pysages.collective_variables.shape.principal_moments` and \
+            `pysages.collective_variables.shape.gyration_tensor` for details.
+        """
+        return lambda rs: principal_moments(rs)[self.axis]
+
+
+def gyration_tensor(positions):
+    """
+    Calculate the gyration tensor for a collection of points in space.
+
+    Parameters
+    ----------
+    positions: DeviceArray
+        Points in space that are equally weighted to calculate the gyration tensor.
+
+    Returns
+    -------
+    DeviceArray
+        Gyration tensor
+    """
+    group_length = positions.shape[0]
+    gyr = np.zeros((3, 3))
+    for r in positions:
+        gyr += np.outer(r, r)
+    return gyr / group_length
+
+
+def weighted_gyration_tensor(positions, weights):
+    """
+    Calculate the gyration tensor for a collection of points in space weighted by arbitrary weights.
+
+    Parameters
+    ----------
+    positions: DeviceArray
+        Points in space that are weighted by `weight` to calculate the gyration tensor.
+    weights: DeviceArray
+        Weights for the points in space e.g. particle masses
+
+    Returns
+    -------
+    DeviceArray
+        Gyration tensor
+    """
+    group_length = positions.shape[0]
+    gyr = np.zeros((3, 3))
+    for i in range(group_length):
+        w, r = weights[i], positions[i]
+        gyr += w * np.outer(r, r)
+    return gyr
 
 
 def principal_moments(positions):
+    """
+    Calculate the principal momements for positions.
+    The principal moments are the eigenvalues of the gyration tensor.
+    See `pysages.collective_variables.shape.gyration_tensor` for details.
+
+    Parameters
+    ----------
+    positions: DeviceArray
+        Points in space that are equally weighted to calculate the gyration tensor.
+
+    Returns
+    -------
+    DeviceArray
+        Eigenvalues of the gyration tensor
+    """
     return linalg.eigvals(gyration_tensor(positions))
 
 
 class Asphericity(CollectiveVariable):
+    """
+    Collective Variable that calculates the Asphericity.
+
+    Parameters
+    ----------
+    indices: list[int], list[tuple(int)]
+        Must be a list or tuple of atoms (ints or ranges) or groups of atoms.
+        A group is specified as a nested list or tuple of atoms.
+
+    group_length: Optional[int]
+        Specify if a fixed group length is expected.
+    """
+
     @property
     def function(self):
+        """
+        Returns
+        -------
+        Callable
+            See `pysages.collective_variables.shape.asphericity` for details.
+        """
         return asphericity
 
 
 def asphericity(positions):
-    λ1, λ2, λ3 = principal_moments(positions)
-    return λ3 - (λ1 + λ2) / 2
+    r"""
+    Calculate the Asphericity from a group of atoms.
+    It is defined as :math:`\lambda_3 - (\lambda_1 + \lambda_2) / 2`, where
+    :math:`\lambda_i` specifies the principal moments of the group of atoms.
+
+    See `pysages.collective_variables.shape.principal_moments` for details.
+
+    Parameters
+    ----------
+    positions: DeviceArray
+        Points in space that are equally weighted to calculate the principal moments.
+
+    Returns
+    -------
+    float
+        Asphericity
+    """
+    lambda1, lambda2, lambda3 = principal_moments(positions)
+    return lambda3 - (lambda1 + lambda2) / 2
 
 
 class Acylindricity(CollectiveVariable):
+    """
+    Collective Variable that calculates the Acylindricity CV.
+
+    Parameters
+    ----------
+    indices: list[int], list[tuple(int)]
+        Must be a list or tuple of atoms (ints or ranges) or groups of atoms.
+        A group is specified as a nested list or tuple of atoms.
+
+    group_length: Optional[int]
+        Specify if a fixed group length is expected.
+    """
+
     @property
     def function(self):
+        """
+        Returns
+        -------
+        Callable
+            See `pysages.collective_variables.shape.acylindricity` for details.
+        """
         return acylindricity
 
 
 def acylindricity(positions):
-    λ1, λ2, _ = principal_moments(positions)
-    return (λ2 - λ1)
+    r"""
+    Calculate the Acylindricity from a group of atoms.
+    It is defined as :math:`\lambda_2 - \lambda_1`,
+    where :math:`\lambda_i` specifies the principal moments of the group of atoms.
+
+    See `pysages.collective_variables.shape.principal_moments` for details.
+
+    Parameters
+    ----------
+    positions: DeviceArray
+        Points in space that are equally weighted to calculate the principal moments from.
+
+    Returns
+    -------
+    float
+        Acylindricity
+    """
+    lambda1, lambda2, _ = principal_moments(positions)
+    return lambda2 - lambda1
 
 
 class ShapeAnisotropy(CollectiveVariable):
+    """
+    Collective Variable that calculates the Shape Anisotropy CV.
+
+    Parameters
+    ----------
+    indices : list[int], list[tuple(int)]
+        Must be a list or tuple of atoms (ints or ranges) or groups of
+        atoms. A group is specified as a nested list or tuple of atoms.
+
+    group_length: Optional[int]
+        Specify if a fixed group length is expected.
+    """
+
     @property
     def function(self):
+        """
+        Returns
+        -------
+        Callable
+            See `pysages.collective_variables.shape.shape_anisotropy` for details.
+        """
         return shape_anisotropy
 
 
 def shape_anisotropy(positions):
-    λ1, λ2, λ3 = principal_moments(positions)
-    return (3 * (λ1**2 + λ2**2 + λ3**2) / (λ1 + λ2 + λ3)**2 - 1) / 2
+    r"""
+    Calculate the shape anisotropy from a group of atoms, defined as:
+
+    .. math::
+
+        \frac{3}{2} \frac{\lambda_1^2 + \lambda_2^2 + \lambda_3^2}
+        {(\lambda_1 + \lambda_2 + \lambda_3)^2} - \frac{1}{2}
+
+    where :math:`\lambda_i` specifies the principal moments of the group of atoms.
+
+    See `pysages.collective_variables.shape.principal_moments` for details.
+
+    Parameters
+    ----------
+    positions: DeviceArray
+        Points in space that are equally weighted to calculate the principal moments from.
+
+    Returns
+    -------
+    float
+        Shape Anisotropy
+    """
+    lambda1, lambda2, lambda3 = principal_moments(positions)
+    return (
+        3 * (lambda1**2 + lambda2**2 + lambda3**2) / (lambda1 + lambda2 + lambda3) ** 2 - 1
+    ) / 2

@@ -27,7 +27,7 @@ CUDA support.
 
 Our installation tutorial on Google Colab enable you to see how PySAGES,
 HOOMD-blue and OpenMM can be built and installed into such environment.
-[![Install Env](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/docs/examples/Install_PySAGES_Environment.ipynb)
+[![Install Env](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/examples/Install_PySAGES_Environment.ipynb)
 
 ## Usage
 

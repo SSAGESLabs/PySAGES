@@ -35,7 +35,7 @@ class ContextWrapper:
             self._backend_name = "lammps"
 
         if self._backend_name is not None:
-            self._backend = import_module('.' + self._backend_name, package="pysages.backends")
+            self._backend = import_module("." + self._backend_name, package="pysages.backends")
         else:
             backends = ", ".join(supported_backends())
             raise ValueError(f"Invalid backend: supported options are ({backends})")

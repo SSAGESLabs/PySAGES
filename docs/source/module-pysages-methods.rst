@@ -9,6 +9,7 @@ Available Methods
 
    pysages.methods.abf.ABF
    pysages.methods.ann.ANN
+   pysages.methods.ffs.FFS
    pysages.methods.funn.FUNN
    pysages.methods.umbrella_integration.UmbrellaIntegration
    pysages.methods.harmonic_bias.HarmonicBias
@@ -33,6 +34,7 @@ Abstract base classes
 
    module-pysages-methods-abf
    module-pysages-methods-ann
+   module-pysages-methods-ffs
    module-pysages-methods-funn
    module-pysages-methods-harmonic_bias
    module-pysages-methods-umbrella

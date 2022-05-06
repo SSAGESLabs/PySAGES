@@ -71,11 +71,7 @@ def take_snapshot(wrapped_context):
     a = box_vectors[0].value_in_unit(unit.nanometer)
     b = box_vectors[1].value_in_unit(unit.nanometer)
     c = box_vectors[2].value_in_unit(unit.nanometer)
-    H = (
-        (a[0], b[0], c[0]),
-        (a[1], b[1], c[1]),
-        (a[2], b[2], c[2])
-    )
+    H = ((a[0], b[0], c[0]), (a[1], b[1], c[1]), (a[2], b[2], c[2]))
     origin = (0.0, 0.0, 0.0)
     dt = context.getIntegrator().getStepSize() / unit.picosecond
     # OpenMM doesn't have images
@@ -92,6 +88,7 @@ def safe_divide(v, invm):
 
 def build_snapshot_methods(context, sampling_method):
     if is_on_gpu(context):
+
         def unpack(vel_mass):
             return vel_mass[:, :3], vel_mass[:, 3:]
 
@@ -100,6 +97,7 @@ def build_snapshot_methods(context, sampling_method):
 
         def masses(snapshot):
             return snapshot.vel_mass[:, 3:]
+
     else:
         unpack = identity
 
@@ -137,7 +135,7 @@ def build_helpers(context, sampling_method):
             return np.int64(2**32 * biases.T)
 
     else:
-        utils = importlib.import_module(".utils", package = "pysages.backends")
+        utils = importlib.import_module(".utils", package="pysages.backends")
         view = utils.view
 
         adapt = identity
@@ -149,7 +147,7 @@ def build_helpers(context, sampling_method):
             # TODO: Check if we can omit modifying the masses
             # (in general the masses are unlikely to change)
             velocities = view(snapshot.vel_mass[0])
-            masses = view(snapshot.masses[1])
+            masses = view(snapshot.vel_mass[1])
             velocities[:] = view(prev_snapshot.vel_mass[0])
             masses[:] = view(prev_snapshot.vel_mass[1])
 
@@ -167,7 +165,7 @@ def build_helpers(context, sampling_method):
 
     snapshot_methods = build_snapshot_methods(context, sampling_method)
     flags = sampling_method.snapshot_flags
-    restore = partial(_restore, view, restore_vm = restore_vm)
+    restore = partial(_restore, view, restore_vm=restore_vm)
     helpers = HelperMethods(build_data_querier(snapshot_methods, flags), restore)
 
     return helpers, bias
@@ -175,18 +173,14 @@ def build_helpers(context, sampling_method):
 
 def check_integrator(context):
     integrator = context.getIntegrator()
-    if (
-        isinstance(integrator, openmm.VariableLangevinIntegrator) or
-        isinstance(integrator, openmm.VariableVerletIntegrator)
+    if isinstance(integrator, openmm.VariableLangevinIntegrator) or isinstance(
+        integrator, openmm.VariableVerletIntegrator
     ):
         raise ValueError("Variable step size integrators are not supported")
 
 
 def bind(
-    wrapped_context: ContextWrapper,
-    sampling_method: SamplingMethod,
-    callback: Callable,
-    **kwargs
+    wrapped_context: ContextWrapper, sampling_method: SamplingMethod, callback: Callable, **kwargs
 ):
     # For OpenMM we need to store a Simulation object as the context,
     simulation = wrapped_context.context
@@ -199,7 +193,7 @@ def bind(
     helpers, bias = build_helpers(wrapped_context.view, sampling_method)
     snapshot = take_snapshot(wrapped_context)
     method_bundle = sampling_method.build(snapshot, helpers)
-    sync_and_bias = partial(bias, sync_backend = wrapped_context.view.synchronize)
+    sync_and_bias = partial(bias, sync_backend=wrapped_context.view.synchronize)
     sampler = Sampler(method_bundle, sync_and_bias, callback)
     force.set_callback_in(context, sampler.update)
     return sampler

@@ -32,9 +32,9 @@ def get_snap(system):
 
     rng = np.random.default_rng()
     for particle in range(N):
-        snapshot.particles.position[particle, 0] = (rng.random() * L - L / 2)
-        snapshot.particles.position[particle, 1] = (rng.random() * L - L / 2)
-        snapshot.particles.position[particle, 2] = (rng.random() * L - L / 2)
+        snapshot.particles.position[particle, 0] = rng.random() * L - L / 2
+        snapshot.particles.position[particle, 1] = rng.random() * L - L / 2
+        snapshot.particles.position[particle, 2] = rng.random() * L - L / 2
 
     return snapshot
 
