@@ -6,6 +6,7 @@
 
 import importlib
 import lammps
+
 #  NOTE: LAMMPS needs to be built as a python module and a shared library (https://docs.lammps.org/Python_install.html)
 #     and with the KOKKOS package enabled, which provides access to per-atom arrays on the device
 
@@ -28,7 +29,7 @@ from lammps.dlext import (
     positions_types,
     rtags,
     velocities_masses,
-    DLextSampler
+    DLextSampler,
 )
 
 from pysages.backends.core import ContextWrapper
@@ -50,7 +51,7 @@ CONTEXTS_SAMPLERS = {}
 
 class Sampler(DLextSampler):
     def __init__(self, sysdef, method_bundle, bias, dt, callback: Callable):
-        _ , initialize, update = method_bundle
+        _, initialize, update = method_bundle
         self.state = initialize()
         self.callback = callback
         self.bias = bias
@@ -64,13 +65,15 @@ class Sampler(DLextSampler):
             ids = asarray(rtags)
             images = asarray(imgs)
             forces = asarray(forces)
-            snap = Snapshot(positions=positions,
-                            vel_mass = vel_mass,
-                            forces=forces,
-                            ids=ids,
-                            images=images,
-                            box=self.pybox,
-                            dt=self.dt)
+            snap = Snapshot(
+                positions=positions,
+                vel_mass=vel_mass,
+                forces=forces,
+                ids=ids,
+                images=images,
+                box=self.pybox,
+                dt=self.dt,
+            )
             self.state = update(snap, self.state)
             self.bias(snap, self.state)
             if self.callback:
@@ -84,19 +87,18 @@ class Sampler(DLextSampler):
         xz = box.getTiltFactorXZ()
         yz = box.getTiltFactorYZ()
         lo = box.getLo()
-        H = (
-            (L.x, xy * L.y, xz * L.z),
-            (0.0,      L.y, yz * L.z),
-            (0.0,      0.0,      L.z)
-        )
+        H = ((L.x, xy * L.y, xz * L.z), (0.0, L.y, yz * L.z), (0.0, 0.0, L.z))
         origin = (lo.x, lo.y, lo.z)
         return Box(H, origin)
 
 
 if hasattr(AccessLocation, "OnDevice"):
+
     def default_location():
         return AccessLocation.OnDevice
+
 else:
+
     def default_location():
         return AccessLocation.OnHost
 
@@ -105,7 +107,7 @@ def is_on_gpu(context):
     return context.on_gpu()
 
 
-def take_snapshot(wrapped_context, location = default_location()):
+def take_snapshot(wrapped_context, location=default_location()):
     #
     context = wrapped_context.context
     sysview = wrapped_context.view
@@ -122,18 +124,14 @@ def take_snapshot(wrapped_context, location = default_location()):
     xz = box.getTiltFactorXZ()
     yz = box.getTiltFactorYZ()
     lo = box.getLo()
-    H = (
-        (L.x, xy * L.y, xz * L.z),
-        (0.0,      L.y, yz * L.z),
-        (0.0,      0.0,      L.z)
-    )
+    H = ((L.x, xy * L.y, xz * L.z), (0.0, L.y, yz * L.z), (0.0, 0.0, L.z))
     origin = (lo.x, lo.y, lo.z)
     dt = context.integrator.dt
     #
     return Snapshot(positions, vel_mass, forces, ids, imgs, Box(H, origin), dt)
 
 
-def update_snapshot(snapshot, sysview, location = default_location()):
+def update_snapshot(snapshot, sysview, location=default_location()):
     #
     positions = asarray(positions_types(sysview, location, AccessMode.Read))
     vel_mass = asarray(velocities_masses(sysview, location, AccessMode.Read))
@@ -146,10 +144,13 @@ def update_snapshot(snapshot, sysview, location = default_location()):
 
 def build_snapshot_methods(sampling_method):
     if sampling_method.requires_box_unwrapping:
+
         def positions(snapshot):
             L = np.diag(snapshot.box.H)
             return snapshot.positions[:, :3] + L * snapshot.images
+
     else:
+
         def positions(snapshot):
             return snapshot.positions
 
@@ -176,8 +177,9 @@ def build_helpers(context, sampling_method):
 
         def sync_forces():
             cupy.cuda.get_current_stream().synchronize()
+
     else:
-        utils = importlib.import_module(".utils", package = "pysages.backends")
+        utils = importlib.import_module(".utils", package="pysages.backends")
         view = utils.view
 
         def sync_forces():
@@ -203,10 +205,7 @@ def build_helpers(context, sampling_method):
 
 
 def bind(
-    wrapped_context: ContextWrapper,
-    sampling_method: SamplingMethod,
-    callback: Callable,
-    **kwargs
+    wrapped_context: ContextWrapper, sampling_method: SamplingMethod, callback: Callable, **kwargs
 ):
     context = wrapped_context.context
     helpers, bias = build_helpers(context, sampling_method)
@@ -217,9 +216,11 @@ def bind(
 
     snapshot = take_snapshot(wrapped_context)
     method_bundle = sampling_method.build(snapshot, helpers)
-    sync_and_bias = partial(bias, sync_backend = sysview.synchronize)
+    sync_and_bias = partial(bias, sync_backend=sysview.synchronize)
     #
-    sampler = Sampler(context.system_definition, method_bundle, sync_and_bias, context.integrator.dt, callback)
+    sampler = Sampler(
+        context.system_definition, method_bundle, sync_and_bias, context.integrator.dt, callback
+    )
     context.integrator.cpp_integrator.setHalfStepHook(sampler)
     #
     CONTEXTS_SAMPLERS[context] = sampler

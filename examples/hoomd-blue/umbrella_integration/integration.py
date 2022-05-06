@@ -71,6 +71,7 @@ def plot_hist(result, bins=50):
 
     fig.savefig("hist.pdf")
 
+
 def external_field(r, A, p, w):
     return A * np.tanh(1 / (2 * np.pi * p * w) * np.cos(p * r))
 
