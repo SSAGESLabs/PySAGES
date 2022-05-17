@@ -216,11 +216,11 @@ centers = list(np.linspace(-1.5, 1.5, 25))
 
 <!-- #region id="q37sUT-tbOMS" -->
 The next parameters we need to run the method are the number of time steps per replica $10^4$, the harmonic biasing spring constant $50$, the log frequency for the histogram $50$, and the number of steps we discard as equilibration before logging $10^3$.
-Since this runs multiple simulations, we expect the next cell to execute for a while.  
+Since this runs multiple simulations, we expect the next cell to execute for a while.
 <!-- #endregion -->
 
 ```python colab={"base_uri": "https://localhost:8080/"} id="wIrPB2N0bFIl" outputId="2f018685-a115-4c66-a21a-eef1d515bd02"
-result = method.run(generate_context, int(1e4), centers, 50., 50, int(1e3))
+result = pysages.run(method, generate_context, int(1e4), centers, 50., 50, int(1e3))
 ```
 
 <!-- #region id="_xFSKCpKb6XF" -->

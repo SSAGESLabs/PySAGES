@@ -237,7 +237,7 @@ Here, the run is just a simple simulation for the number of steps specified with
 
 ```python colab={"base_uri": "https://localhost:8080/"} id="aOXCppWkQnJI" outputId="a34ae4f3-92a9-47ce-cac6-7a02f1aa4a72"
 callback = HistogramLogger(100)
-method.run(generate_context, int(1e4), callback, {"A": 7.0}, profile=True)
+pysages.run(method, generate_context, int(1e4), callback, {"A": 7.0}, profile=True)
 ```
 
 <!-- #region id="_vigR7XaMUD3" -->

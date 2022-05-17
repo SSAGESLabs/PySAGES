@@ -205,7 +205,7 @@ On the GPU this should run in around half an hour.
 <!-- #endregion -->
 
 ```python id="K951m4BbpUar"
-method.run(generate_simulation, timesteps)
+pysages.run(method, generate_simulation, timesteps)
 ```
 
 <!-- #region id="PXBKUfK0p9T2" -->

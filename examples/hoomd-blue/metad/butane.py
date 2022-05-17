@@ -14,6 +14,7 @@ import time
 import numpy as np
 import hoomd
 import hoomd.md
+import pysages
 
 from math import sqrt, pi
 
@@ -290,7 +291,7 @@ def main(argv=[]):
     callback = MetaDLogger(hills_file, stride) if args.log else None
 
     tic = time.perf_counter()
-    method.run(generate_context, timesteps, callback)
+    pysages.run(method, generate_context, timesteps, callback)
     toc = time.perf_counter()
     print(f"Completed the simulation in {toc - tic:0.4f} seconds.")
 

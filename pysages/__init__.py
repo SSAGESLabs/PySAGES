@@ -18,8 +18,11 @@ if not (
     # simulation memory footprints
     os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 
-from ._version import version as __version__
-from ._version import version_tuple
+
+from ._version import (
+    version as __version__,
+    version_tuple,
+)
 
 from .backends import (
     ContextWrapper,
@@ -39,3 +42,5 @@ from . import (
     collective_variables,
     methods,
 )
+
+run = dispatch._functions["run"]
