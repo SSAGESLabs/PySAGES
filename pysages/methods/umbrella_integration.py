@@ -16,18 +16,15 @@ However, the method is not very accurate and it is preferred that more advanced 
 
 from typing import Callable, Optional
 
-from jax import numpy as np
-
 from pysages.backends import ContextWrapper
+from pysages.methods.core import SamplingMethod
 from pysages.methods.harmonic_bias import HarmonicBias
-from pysages.methods.utils import HistogramLogger
+from pysages.methods.utils import HistogramLogger, collect
 from pysages.utils import dispatch
 
 
-class UmbrellaIntegration(HarmonicBias):
+class UmbrellaIntegration(SamplingMethod):
     """
-    Umbrella Integration class.
-
     This class combines harmonic biasing with multiple replicas.
     It also collects histograms of the collective variables throughout the simulations
     for subsequent analysis.
@@ -36,13 +33,39 @@ class UmbrellaIntegration(HarmonicBias):
     Note that this is not very accurate and ususally requires more sophisticated analysis on top.
     """
 
-    def __init__(self, cvs, *args, **kwargs):
+    def __init__(self, cvs, ksprings, centers, hist_periods, hist_offsets=0, **kwargs):
         """
-        Initialization, mostly defining the collective variables and setting up the
-        underlying Harmonic Bias.
+        Initialization, sets up the HarmonicBias subsamplers.
+
+        Arguments
+        ---------
+        centers: list[numbers.Real]
+            CV centers along the path of integration. Its length defines the number replicas.
+
+        ksprings: Union[float, list[float]]
+            Spring constants of the harmonic biasing potential for each replica.
+
+        hist_periods: Union[int, list[int]]
+            Indicates the period for logging the CV into the histogram of each replica.
+
+        hist_offsets: Union[int, list[int]] = 0
+            Offset before starting logging into each replica's histogram.
         """
-        kspring = center = np.zeros(len(cvs))
-        super().__init__(cvs, kspring, center, *args, **kwargs)
+
+        super().__init__(cvs, **kwargs)
+
+        replicas = len(centers)
+        ksprings = collect(ksprings, replicas, "ksprings", float)
+        periods = collect(hist_periods, replicas, "hist_periods", int)
+        offsets = collect(hist_offsets, replicas, "hist_offsets", int)
+
+        self.submethods = [HarmonicBias(cvs, k, c) for (k, c) in zip(ksprings, centers)]
+        self.histograms = [HistogramLogger(p, o) for (p, o) in zip(periods, offsets)]
+
+    # We delegate the sampling work to HarmonicBias
+    # (or possibly other methods in the future)
+    def build(self):  # pylint: disable=arguments-differ
+        pass
 
 
 @dispatch
@@ -50,12 +73,8 @@ def run(  # pylint: disable=arguments-differ
     method: UmbrellaIntegration,
     context_generator: Callable,
     timesteps: int,
-    centers,
-    ksprings,
-    hist_periods,
-    hist_offsets=0,
     context_args: Optional[dict] = None,
-    **kwargs,
+    **kwargs
 ):
     """
     Implementation of the serial execution of umbrella integration with up to linear
@@ -77,18 +96,6 @@ def run(  # pylint: disable=arguments-differ
     timesteps: int
         Number of timesteps the simulation is running.
 
-    centers: list[numbers.Real]
-        CV centers along the path of integration. The length defines the number replicas.
-
-    ksprings: Union[float, list[float]]
-        Spring constants of the harmonic biasing potential for each replica.
-
-    hist_periods: Union[int, list[int]]
-        Describes the period for the histrogram logging of each replica.
-
-    hist_offsets: Union[int, list[int]]
-        Offset applied before starting the histogram of each replica.
-
     context_args: Optional[dict] = None
         Arguments to pass down to `context_generator` to setup the simulation context.
 
@@ -108,23 +115,7 @@ def run(  # pylint: disable=arguments-differ
     def integrate(a_free_energy, nabla_a_free_energy, centers, i):
         return a_free_energy[i - 1] + nabla_a_free_energy[i - 1].T @ (centers[i] - centers[i - 1])
 
-    def collect(arg, n_replica, name, dtype):
-        if isinstance(arg, list):
-            if len(arg) != n_replica:
-                raise RuntimeError(
-                    f"Invalid length for argument {name} " f"(got {len(arg)}, expected {n_replica})"
-                )
-        else:
-            arg = [dtype(arg) for i in range(n_replica)]
-        return arg
-
     context_args = {} if context_args is None else context_args
-
-    n_replica = len(centers)
-    timesteps = collect(timesteps, n_replica, "timesteps", int)
-    ksprings = collect(ksprings, n_replica, "kspring", float)
-    hist_periods = collect(hist_periods, n_replica, "hist_periods", int)
-    hist_offsets = collect(hist_offsets, n_replica, "hist_offsets", int)
 
     result = {}
     result["histogram"] = []
@@ -134,30 +125,27 @@ def run(  # pylint: disable=arguments-differ
     result["nabla_a_free_energy"] = []
     result["a_free_energy"] = []
 
-    states = []
+    # states = []
 
-    for rep in range(n_replica):
-        method.center = centers[rep]
-        method.kspring = ksprings[rep]
-
+    for rep, submethod in enumerate(method.submethods):
         context_args["replica_num"] = rep
         context = context_generator(**context_args)
-        callback = HistogramLogger(hist_periods[rep], hist_offsets[rep])
+        callback = method.histograms[rep]
 
-        wrapped_context = ContextWrapper(context, method, callback)
+        wrapped_context = ContextWrapper(context, submethod, callback)
         with wrapped_context:
-            wrapped_context.run(timesteps[rep], **kwargs)  # pylint: disable=E1102
+            wrapped_context.run(timesteps, **kwargs)  # pylint: disable=E1102
 
-        states.append(wrapped_context.sampler.state)
+        # states.append(wrapped_context.sampler.state)
 
         mean = callback.get_means()
 
-        result["kspring"].append(method.kspring)
-        result["center"].append(method.center)
+        result["kspring"].append(submethod.kspring)
+        result["center"].append(submethod.center)
         result["histogram"].append(callback)
         result["histogram_means"].append(mean)
         result["nabla_a_free_energy"].append(
-            free_energy_gradient(method.kspring, mean, method.center)
+            free_energy_gradient(submethod.kspring, mean, submethod.center)
         )
         # Discrete forward integration of the free-energy
         if rep == 0:
