@@ -16,17 +16,26 @@ from .angles import (
     DihedralAngle,
 )
 
+from .coordinates import (
+    Component,
+    Distance,
+)
+
+from .orientation import (
+    RMSD,
+    RotationAngle,
+    RotationEigenvalues,
+    RotationProjection,
+    SpinAngle,
+    Tilt,
+)
+
 from .shape import (
     RadiusOfGyration,
     PrincipalMoment,
     Asphericity,
     Acylindricity,
     ShapeAnisotropy,
-)
-
-from .coordinates import (
-    Component,
-    Distance,
 )
 
 from .utils import (
