@@ -20,7 +20,7 @@ def generate_context(**kwargs):
     hoomd.context.initialize("")
     context = hoomd.context.SimulationContext()
     with context:
-        print("Operating replica {0}".format(kwargs.get("replica_num")))
+        print(f"Operating replica {kwargs.get('replica_num')}")
         system = hoomd.init.read_gsd("start.gsd")
 
         hoomd.md.integrate.nve(group=hoomd.group.all())
@@ -94,12 +94,12 @@ def plot_energy(result):
 def get_args(argv):
     available_args = [
         ("k-spring", "k", float, 50, "Spring constant for each replica"),
-        ("N-replicas", "N", int, 25, "Number of replicas along the path"),
+        ("replicas", "N", int, 25, "Number of replicas along the path"),
         ("start-path", "s", float, -1.5, "Start point of the path"),
         ("end-path", "e", float, 1.5, "Start point of the path"),
         ("time-steps", "t", int, 1e5, "Number of simulation steps for each replica"),
-        ("log-period", "l", int, 50, "Frequency of logging the CVS for histogram"),
-        ("discard-equi", "d", int, 1e4, "Discard timesteps before logging for equilibration"),
+        ("log-period", "l", int, 50, "Frequency of logging the CVs into each histogram"),
+        ("log-delay", "d", int, 0, "Number of timesteps to discard before logging"),
     ]
     parser = argparse.ArgumentParser(description="Example script to run umbrella integration")
     for (name, short, T, val, doc) in available_args:
@@ -113,17 +113,14 @@ def main(argv):
     args = get_args(argv)
 
     cvs = [Component([0], 0)]
-    method = UmbrellaIntegration(cvs)
 
-    centers = list(np.linspace(args.start_path, args.end_path, args.N_replicas))
+    centers = list(np.linspace(args.start_path, args.end_path, args.replicas))
+    method = UmbrellaIntegration(cvs, args.k_spring, centers, args.log_period, args.log_delay)
+
     result = pysages.run(
         method,
         generate_context,
         args.time_steps,
-        centers,
-        args.k_spring,
-        args.log_period,
-        args.discard_equi,
     )
 
     plot_energy(result)

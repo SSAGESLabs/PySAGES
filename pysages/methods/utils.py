@@ -115,3 +115,18 @@ class MetaDLogger:
             self.save_hills(state.centers[idx], state.sigmas, state.heights[idx])
 
         self.counter += 1
+
+
+def listify(arg, replicas, name, dtype):
+    """
+    Returns a list of with lenght `replicas` of `arg` if `arg` is not a list,
+    or `arg` if it is already a list of length `replicas`.
+    """
+    if isinstance(arg, list):
+        if len(arg) != replicas:
+            raise RuntimeError(
+                f"Invalid length for argument {name} (got {len(arg)}, expected {replicas})"
+            )
+        return arg
+
+    return [dtype(arg) for i in range(replicas)]
