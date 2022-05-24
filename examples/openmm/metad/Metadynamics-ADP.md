@@ -82,12 +82,6 @@ pip install -q . &> /dev/null
 # Metadynamics-biased simulations
 <!-- #endregion -->
 
-```bash id="ppTzMmyyobHB"
-
-mkdir /content/funn
-cd /content/funn
-```
-
 <!-- #region id="0W2ukJuuojAl" -->
 Metadynamics gradually builds a biasing potential from a sum of gaussians that are deposited one at a time every certain number of (user defined) time steps.
 There are two flavors of the algorithm, _Standard Metadynamics_ in which the heights of the gaussians is time independent, and _Well-tempered Metadynamics_ for which the heights of the deposited gaussians decreases depending on how frequently are visited the explored regions of collective variable space.
