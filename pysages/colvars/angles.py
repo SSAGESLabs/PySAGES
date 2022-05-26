@@ -12,7 +12,7 @@ conformation change.
 
 from jax import numpy as np
 from jax.numpy import linalg
-from pysages.collective_variables.core import ThreePointCV, FourPointCV
+from pysages.colvars.core import ThreePointCV, FourPointCV
 
 
 class Angle(ThreePointCV):
@@ -20,7 +20,7 @@ class Angle(ThreePointCV):
 
     Angle collective variables calculated as the angle spanned by three points in space
     (usually atom positions).
-    Take a look at the `pysages.collective_variables.core.ThreePointCV` for details on the
+    Take a look at the `pysages.colvars.core.ThreePointCV` for details on the
     constructor.
     """
 
@@ -32,7 +32,7 @@ class Angle(ThreePointCV):
         Returns
         -------
         Function that calculates the angle value from a simulation snapshot.
-        Look at `pysages.collective_variables.angles.angle` for details.
+        Look at `pysages.colvars.angles.angle` for details.
         """
         return angle
 
@@ -71,7 +71,7 @@ def angle(p1, p2, p3):
 class DihedralAngle(FourPointCV):
     """
     Computes the dihedral angle spanned by four points in space (usually atom positions).
-    Take a look at the `pysages.collective_variables.core.FourPointCV` for details on the
+    Take a look at the `pysages.colvars.core.FourPointCV` for details on the
     constructor.
     """
 
@@ -81,7 +81,7 @@ class DihedralAngle(FourPointCV):
         Returns
         -------
         Function that calculates the dihedral angle value from a simulation snapshot.
-        Look at `pysages.collective_variables.angles.dihedral_angle` for details.
+        Look at `pysages.colvars.angles.dihedral_angle` for details.
         """
         return dihedral_angle
 

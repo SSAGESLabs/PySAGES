@@ -11,7 +11,7 @@ from jax import grad, jit
 from plum import parametric
 
 from pysages.backends import ContextWrapper
-from pysages.collective_variables.core import build
+from pysages.colvars.core import build
 from pysages.utils import dispatch, identity
 
 

@@ -109,7 +109,7 @@ Next we load the PySAGES/OpenMM environment.
 <!-- #endregion -->
 
 ```python colab={"base_uri": "https://localhost:8080/"} id="P6kPLtGI_-66" outputId="98e496cb-b78d-47bf-8b96-f2af942b10fc"
-from pysages.collective_variables import DihedralAngle
+from pysages.colvars import DihedralAngle
 from pysages.methods import HarmonicBias, HistogramLogger
 import numpy as np
 from pysages.utils import try_import
