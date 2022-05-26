@@ -82,12 +82,6 @@ pip install -q . &> /dev/null
 # Metadynamics-biased simulations
 <!-- #endregion -->
 
-```bash id="ppTzMmyyobHB"
-
-mkdir /content/funn
-cd /content/funn
-```
-
 <!-- #region id="0W2ukJuuojAl" -->
 Metadynamics gradually builds a biasing potential from a sum of gaussians that are deposited one at a time every certain number of (user defined) time steps.
 There are two flavors of the algorithm, _Standard Metadynamics_ in which the heights of the gaussians is time independent, and _Well-tempered Metadynamics_ for which the heights of the deposited gaussians decreases depending on how frequently are visited the explored regions of collective variable space.
@@ -205,7 +199,7 @@ On the GPU this should run in around half an hour.
 <!-- #endregion -->
 
 ```python id="K951m4BbpUar"
-pysages.run(method, generate_simulation, timesteps)
+state = pysages.run(method, generate_simulation, timesteps)
 ```
 
 <!-- #region id="PXBKUfK0p9T2" -->
@@ -230,7 +224,6 @@ We are now going to gather the information for the heights, standard deviations 
 
 ```python id="zJqvpbw8szxR"
 P = get_periods(cvs)
-state = method.context[0].sampler.state
 heights = state.heights
 centers = state.centers
 sigmas = state.sigmas
