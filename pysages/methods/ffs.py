@@ -54,6 +54,10 @@ class FFS(SamplingMethod):
 
     snapshot_flags = {"positions", "indices"}
 
+    def __init__(self, cvs, *args, **kwargs):
+        kwargs["cv_grad"] = None
+        super().__init__(cvs, *args, **kwargs)
+
     def build(self, snapshot, helpers):
         self.helpers = helpers
         return _ffs(self, snapshot, helpers)
@@ -214,11 +218,11 @@ def _ffs(method, snapshot, helpers):
     # initialize method
     def initialize():
         bias = np.zeros((natoms, 3))
-        xi, _ = cv(helpers.query(snapshot))
+        xi = cv(helpers.query(snapshot))
         return FFSState(bias, xi)
 
     def update(state, data):
-        xi, _ = cv(data)
+        xi = cv(data)
         bias = state.bias
         return FFSState(bias, xi)
 
@@ -278,7 +282,7 @@ def basin_sampling(
             print(xi)
         else:
             helpers.restore(sampler.snapshot, reference_snapshot)
-            xi, _ = cv(helpers.query(sampler.snapshot))
+            xi = cv(helpers.query(sampler.snapshot))
             print("Restoring basing configuration since system left basin with cv value:\n")
             print(xi)
 
@@ -300,7 +304,7 @@ def initial_flow(Num_window0, timestep, grid, initial_snapshots, run, sampler, h
     for i in range(0, Num_window0):
         print(f"Initial stored configuration: {i}\n")
         helpers.restore(sampler.snapshot, initial_snapshots[i])
-        xi, _ = cv(helpers.query(sampler.snapshot))
+        xi = cv(helpers.query(sampler.snapshot))
         print(xi)
 
         has_reached_A = False
@@ -335,7 +339,7 @@ def running_window(grid, step, old_snapshots, run, sampler, helpers, cv):
 
     for i in range(0, len(old_snapshots)):
         helpers.restore(sampler.snapshot, old_snapshots[i])
-        xi, _ = cv(helpers.query(sampler.snapshot))
+        xi = cv(helpers.query(sampler.snapshot))
         print(f"Stored configuration: {i} of window: {step}\n")
         print(xi)
 

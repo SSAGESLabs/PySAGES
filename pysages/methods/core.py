@@ -7,7 +7,7 @@ from functools import reduce
 from operator import or_
 from typing import Callable, Optional
 
-from jax import jit
+from jax import grad, jit
 from plum import parametric
 
 from pysages.backends import ContextWrapper
@@ -33,7 +33,7 @@ class SamplingMethod(ABC):
 
     def __init__(self, cvs, *args, **kwargs):
         self.cvs = cvs
-        self.cv = build(*cvs)
+        self.cv = build(*cvs, grad=kwargs.get("cv_grad", grad))
         self.requires_box_unwrapping = reduce(
             or_, (cv.requires_box_unwrapping for cv in cvs), False
         )

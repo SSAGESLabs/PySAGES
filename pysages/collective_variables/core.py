@@ -157,10 +157,10 @@ def _get_nargs(function: Callable):
 
 
 def _build(cv: CollectiveVariable, grad=jax_grad):
-    # TODO: Add support for passing weights of compute weights from masses, and # pylint:disable=fixme
-    # to reduce groups with barycenter
+    # TODO: Add support for compute weights from masses # pylint:disable=fixme
     xi = cv.function
     idx = cv.indices
+    gps = cv.groups
 
     if _get_nargs(xi) == 1:
 
@@ -168,52 +168,82 @@ def _build(cv: CollectiveVariable, grad=jax_grad):
             pos = positions[ids[idx]]
             return np.asarray(xi(pos, **kwargs))
 
-    else:
+    elif len(gps) == 0:
 
         def evaluate(positions: JaxArray, ids: JaxArray, **kwargs):
             pos = positions[ids[idx]]
             return np.asarray(xi(*pos, **kwargs))
 
-    function, gradient = jit(evaluate), jit(grad(evaluate))
+    else:
 
-    def apply(pos: JaxArray, ids: JaxArray, **kwargs):
-        xi = np.expand_dims(function(pos, ids, **kwargs).flatten(), 0)
-        Jxi = np.expand_dims(gradient(pos, ids, **kwargs).flatten(), 0)
-        return xi, Jxi
+        def evaluate(positions: JaxArray, ids: JaxArray, **kwargs):
+            pos = positions[ids[idx]]
+            pos = [pos[g] for g in gps]
+            return np.asarray(xi(*pos, **kwargs))
+
+    function = jit(evaluate)
+
+    if grad is None:
+
+        def apply(pos: JaxArray, ids: JaxArray, **kwargs):
+            return np.expand_dims(function(pos, ids, **kwargs).flatten(), 0)
+
+    else:
+
+        gradient = jit(grad(evaluate))
+
+        def apply(pos: JaxArray, ids: JaxArray, **kwargs):
+            xi = np.expand_dims(function(pos, ids, **kwargs).flatten(), 0)
+            Jxi = np.expand_dims(gradient(pos, ids, **kwargs).flatten(), 0)
+            return xi, Jxi
 
     return jit(apply)
 
 
-def build(cv: CollectiveVariable, *cvs: CollectiveVariable):
+def build(cv: CollectiveVariable, *cvs: CollectiveVariable, grad=jax_grad):
     """
     Jit compile and stack collective variables.
 
     Parameters
     ----------
     cv: CollectiveVariable
-       Collective Variable object to jit compile.
+        Collective Variable object to jit compile.
     cvs: list[CollectiveVariable]
-       List of Collective variables that get stacked on top of each other.
+        List of Collective variables that get stacked on top of each other.
+    grad: Optional[Callable]
+        Jax tranform that is used to compute the gradient, if `None` is
+        provided, only the collective variables will be computed.
+        Defaults to `jax.grad`.
 
     Returns
     -------
-    Callable(Snapshot)
-       Jit compiled function, that takes a snapshot object and access position and indices from it.
-       With this information the collective variables and their derivative are computed and returned as a tuple.
+    Callable[Snapshot]
+        Jit compiled function, that takes a snapshot object, and access its
+        positions and indices. With this information the collective variables
+        (and their gradients if `grad is not None`) are computed and returned.
     """
-    cvs = [_build(cv)] + [_build(cv) for cv in cvs]
+    cvs = [_build(cv, grad=grad)] + [_build(cv, grad=grad) for cv in cvs]
 
-    def apply(data):
-        pos = data.positions[:, :3]
-        ids = data.indices
+    if grad is None:
 
-        xis, xis_grads = [], []
-        for cv in cvs:
-            xi, Jxi = cv(pos, ids)
-            xis.append(xi)
-            xis_grads.append(Jxi)
+        def apply(data):
+            pos = data.positions[:, :3]
+            ids = data.indices
+            return np.hstack([cv(pos, ids) for cv in cvs])
 
-        return np.hstack(xis), np.vstack(xis_grads)
+    else:
+
+        def apply(data):
+            pos = data.positions[:, :3]
+            ids = data.indices
+
+            xis, xis_grads = [], []
+            for cv in cvs:
+                xi, Jxi = cv(pos, ids)
+                xis.append(xi)
+                xis_grads.append(Jxi)
+
+            return np.hstack(xis), np.vstack(xis_grads)
 
     return jit(apply)
 
@@ -222,6 +252,7 @@ def _process_groups(indices: Union[List, Tuple]):
     total_group_length = 0
     collected = []
     groups = []
+
     for obj in indices:
         group_found = _is_group(obj)
         if group_found:
@@ -234,6 +265,7 @@ def _process_groups(indices: Union[List, Tuple]):
                 np.arange(total_group_length, total_group_length + group_length, dtype=UInt32)
             )
         total_group_length += group_length
+
     return UInt32(np.hstack(collected)), groups
 
 
