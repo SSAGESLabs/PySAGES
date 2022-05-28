@@ -25,7 +25,7 @@ class RadiusOfGyration(CollectiveVariable):
     squared: Optional[bool]
         Indicates whether to return the squared value.
     weights: Optional[JaxArray]
-        If providede the weighted radius_of_gyration will be computed.
+        If providede the weighted radius of gyration will be computed.
     """
 
     def __init__(self, indices, squared=False, weights=None):
@@ -48,7 +48,7 @@ class RadiusOfGyration(CollectiveVariable):
         else:
             rog = radius_of_gyration
 
-        return rog if self.squared else jit(lambda rs: np.sqrt(rog(rs)))
+        return jit(rog) if self.squared else jit(lambda rs: np.sqrt(rog(rs)))
 
 
 def radius_of_gyration(positions):
