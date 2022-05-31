@@ -44,3 +44,4 @@ from . import (
 )
 
 run = dispatch._functions["run"]
+analyze = dispatch._functions["analyze"]

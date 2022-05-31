@@ -8,6 +8,7 @@ from operator import or_
 from typing import Callable, Optional
 
 from jax import jit
+from plum import parametric
 
 from pysages.backends import ContextWrapper
 from pysages.collective_variables.core import build
@@ -72,6 +73,19 @@ class NNSamplingMethod(GriddedSamplingMethod):
         pass
 
 
+@parametric
+class Result:
+    @classmethod
+    def __infer_type_parameter__(self, method, *args):
+        return type(method)
+
+    @dispatch
+    def __init__(self, method: SamplingMethod, states, callbacks=None):
+        self.method = method
+        self.states = states
+        self.callbacks = callbacks
+
+
 #  Main functions
 #  ==============
 
@@ -118,6 +132,11 @@ def run(
         wrapped_context.run(timesteps, **kwargs)
 
     return wrapped_context.sampler.state
+
+
+@dispatch.abstract
+def analyze(result: Result):
+    pass
 
 
 #  Utils
