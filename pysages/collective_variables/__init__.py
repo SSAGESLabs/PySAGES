@@ -9,4 +9,4 @@ from warnings import warn
 
 from pysages.colvars import *
 
-warn("Importing `pysages.collective_variables` is deprecated. Import `pysages.colvars` insted")
+warn("Importing `pysages.collective_variables` is deprecated. Import `pysages.colvars` instead")
