@@ -8,7 +8,7 @@ import hoomd.dlext
 
 import pysages
 
-from pysages.collective_variables import Component
+from pysages.colvars import Component
 from pysages.methods import HarmonicBias, HistogramLogger
 
 

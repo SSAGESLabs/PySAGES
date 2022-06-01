@@ -8,7 +8,7 @@ Extra utilities for computations involving collective variables.
 
 from jax import numpy as np
 
-from pysages.collective_variables.angles import Angle, DihedralAngle
+from pysages.colvars.angles import Angle, DihedralAngle
 
 
 def get_periods(cvs):

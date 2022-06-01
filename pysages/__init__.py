@@ -39,7 +39,7 @@ from .utils import (
 )
 
 from . import (
-    collective_variables,
+    colvars,
     methods,
 )
 

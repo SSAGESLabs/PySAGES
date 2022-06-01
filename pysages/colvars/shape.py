@@ -9,7 +9,7 @@ Collective Variables that are calcuated from the shape of group of atoms.
 import jax.numpy as np
 from jax.numpy import linalg
 
-from pysages.collective_variables.core import CollectiveVariable, AxisCV
+from pysages.colvars.core import CollectiveVariable, AxisCV
 
 
 class RadiusOfGyration(CollectiveVariable):
@@ -31,7 +31,7 @@ class RadiusOfGyration(CollectiveVariable):
         Returns
         -------
         Callable
-            See `pysages.collective_variables.shape.radius_of_gyration` for details.
+            See `pysages.colvars.shape.radius_of_gyration` for details.
         """
         return radius_of_gyration
 
@@ -106,8 +106,8 @@ class PrincipalMoment(AxisCV):
         Callable
             Function to calculate the eigenvalue with the specified axis index \
             of the gyration tensor. \
-            See `pysages.collective_variables.shape.principal_moments` and \
-            `pysages.collective_variables.shape.gyration_tensor` for details.
+            See `pysages.colvars.shape.principal_moments` and \
+            `pysages.colvars.shape.gyration_tensor` for details.
         """
         return lambda rs: principal_moments(rs)[self.axis]
 
@@ -161,7 +161,7 @@ def principal_moments(positions):
     """
     Calculate the principal momements for positions.
     The principal moments are the eigenvalues of the gyration tensor.
-    See `pysages.collective_variables.shape.gyration_tensor` for details.
+    See `pysages.colvars.shape.gyration_tensor` for details.
 
     Parameters
     ----------
@@ -196,7 +196,7 @@ class Asphericity(CollectiveVariable):
         Returns
         -------
         Callable
-            See `pysages.collective_variables.shape.asphericity` for details.
+            See `pysages.colvars.shape.asphericity` for details.
         """
         return asphericity
 
@@ -207,7 +207,7 @@ def asphericity(positions):
     It is defined as :math:`\lambda_3 - (\lambda_1 + \lambda_2) / 2`, where
     :math:`\lambda_i` specifies the principal moments of the group of atoms.
 
-    See `pysages.collective_variables.shape.principal_moments` for details.
+    See `pysages.colvars.shape.principal_moments` for details.
 
     Parameters
     ----------
@@ -243,7 +243,7 @@ class Acylindricity(CollectiveVariable):
         Returns
         -------
         Callable
-            See `pysages.collective_variables.shape.acylindricity` for details.
+            See `pysages.colvars.shape.acylindricity` for details.
         """
         return acylindricity
 
@@ -254,7 +254,7 @@ def acylindricity(positions):
     It is defined as :math:`\lambda_2 - \lambda_1`,
     where :math:`\lambda_i` specifies the principal moments of the group of atoms.
 
-    See `pysages.collective_variables.shape.principal_moments` for details.
+    See `pysages.colvars.shape.principal_moments` for details.
 
     Parameters
     ----------
@@ -290,7 +290,7 @@ class ShapeAnisotropy(CollectiveVariable):
         Returns
         -------
         Callable
-            See `pysages.collective_variables.shape.shape_anisotropy` for details.
+            See `pysages.colvars.shape.shape_anisotropy` for details.
         """
         return shape_anisotropy
 
@@ -306,7 +306,7 @@ def shape_anisotropy(positions):
 
     where :math:`\lambda_i` specifies the principal moments of the group of atoms.
 
-    See `pysages.collective_variables.shape.principal_moments` for details.
+    See `pysages.colvars.shape.principal_moments` for details.
 
     Parameters
     ----------

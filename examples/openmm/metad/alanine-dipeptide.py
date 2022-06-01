@@ -14,7 +14,7 @@ import time
 import numpy
 import pysages
 
-from pysages.collective_variables import DihedralAngle
+from pysages.colvars import DihedralAngle
 from pysages.methods import Metadynamics, MetaDLogger
 from pysages.utils import try_import
 

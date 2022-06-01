@@ -69,14 +69,14 @@ jobs:
           pylint pysages/methods/utils.py
           pylint pysages/methods/harmonic_bias.py
           pylint pysages/methods/umbrella_integration.py
-          pylint pysages/collective_variables
+          pylint pysages/colvars
           flake8 pysages/methods/__init__.py
           flake8 pysages/methods/abf.py
           flake8 pysages/methods/metad.py
           flake8 pysages/methods/utils.py
           flake8 pysages/methods/harmonic_bias.py
           flake8 pysages/methods/umbrella_integration.py
-          flake8 pysages/collective_variables
+          flake8 pysages/colvars
 
   doc-test:
     runs-on: ubuntu-20.04

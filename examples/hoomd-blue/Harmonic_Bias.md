@@ -154,7 +154,7 @@ with gsd.hoomd.open("harmonic_start.gsd", "wb") as f:
 <!-- #region id="n0Rd-hMnCD-B" -->
 Next, we start running the system, we start with importing the required libraries.
 Noteworthy are here the hoomd package with the MD and dlext module, and the pysages objects.
-We are going to use a collective variable that constrains a particle position. In PySAGES the `Component` class from the `collective_variables` package can achieve this for us.
+We are going to use a collective variable that constrains a particle position. In PySAGES the `Component` class from the `colvars` package can achieve this for us.
 The `HarmonicBias` class is responsible for introducing the bias into the simulation run, while `HistogramLogger` collects the state of the collective variable during the run.
 <!-- #endregion -->
 
@@ -166,7 +166,7 @@ import hoomd.md
 import hoomd.dlext
 
 import pysages
-from pysages.collective_variables import Component
+from pysages.colvars import Component
 from pysages.methods import HarmonicBias, HistogramLogger
 ```
 

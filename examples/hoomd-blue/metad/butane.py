@@ -19,7 +19,7 @@ import pysages
 from math import sqrt, pi
 
 from pysages import Grid
-from pysages.collective_variables import DihedralAngle
+from pysages.colvars import DihedralAngle
 from pysages.methods import Metadynamics, MetaDLogger
 
 

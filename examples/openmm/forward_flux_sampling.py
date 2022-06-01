@@ -2,7 +2,7 @@
 
 
 # %%
-from pysages.collective_variables import DihedralAngle
+from pysages.colvars import DihedralAngle
 from pysages.methods import FFS
 from pysages.utils import try_import
 

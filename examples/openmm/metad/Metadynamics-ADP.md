@@ -151,7 +151,7 @@ Next, we load PySAGES and the relevant classes and methods for our problem
 
 ```python id="fpMg-o8WomAA"
 from pysages.grids import Grid
-from pysages.collective_variables import DihedralAngle
+from pysages.colvars import DihedralAngle
 from pysages.methods import Metadynamics
 
 import pysages
@@ -212,7 +212,7 @@ Let's plot the negative of the sum of gaussians accumulated. This will get close
 from jax import  jit, numpy as np, vmap
 
 from pysages.approxfun import compute_mesh
-from pysages.collective_variables import get_periods
+from pysages.colvars import get_periods
 from pysages.methods.metad import sum_of_gaussians
 
 import matplotlib.pyplot as plt

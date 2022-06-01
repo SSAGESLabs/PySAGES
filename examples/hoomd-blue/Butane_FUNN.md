@@ -317,7 +317,7 @@ Next, we load PySAGES and the relevant classes and methods for our problem
 
 ```python id="fpMg-o8WomAA"
 from pysages.grids import Grid
-from pysages.collective_variables import DihedralAngle
+from pysages.colvars import DihedralAngle
 from pysages.methods import FUNN
 
 import pysages
