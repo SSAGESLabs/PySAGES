@@ -12,7 +12,7 @@ from jax import numpy as np, grad, jit, value_and_grad, vmap
 from jax.lax import cond
 
 from pysages.approxfun import compute_mesh
-from pysages.collective_variables import get_periods, wrap
+from pysages.colvars import get_periods, wrap
 from pysages.methods.core import Result, SamplingMethod, generalize
 from pysages.utils import JaxArray, gaussian, identity
 from pysages.grids import build_indexer
