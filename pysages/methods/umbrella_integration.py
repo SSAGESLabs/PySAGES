@@ -102,6 +102,11 @@ def run(  # pylint: disable=arguments-differ
     kwargs:
         Passed to the backend run function as additional user arguments.
 
+    post_run_action: Optional[Callable] = None
+        Callable function that enables actions after the run execution of PySAGES.
+        Actions are executed inside the generated context. Application for this is writing a final configuration file etc.
+        This function get `context_args` unpacked for additional user arguments just like `context_generator`.
+
     * Note:
         This method does not accept a user defined callback.
     """
@@ -120,7 +125,8 @@ def run(  # pylint: disable=arguments-differ
         with wrapped_context:
             state = wrapped_context.run(timesteps, **kwargs)  # pylint: disable=E1102
             states.append(state)
-
+            if post_run_action:
+                post_run_action(**context_args)
         callbacks.append(callback)
 
     return Result(method, states, callbacks)
