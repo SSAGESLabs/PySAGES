@@ -105,8 +105,10 @@ def run(  # pylint: disable=arguments-differ
 
     post_run_action: Optional[Callable] = None
         Callable function that enables actions after the run execution of PySAGES.
-        Actions are executed inside the generated context. Application for this is writing a final configuration file etc.
-        This function get `context_args` unpacked for additional user arguments just like `context_generator`.
+        Actions are executed inside the generated context.
+        Application for this is writing a final configuration file etc.
+        This function get `context_args` unpacked for additional user
+        arguments just like `context_generator`.
 
     * Note:
         This method does not accept a user defined callback.
