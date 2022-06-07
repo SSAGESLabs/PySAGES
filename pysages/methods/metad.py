@@ -289,6 +289,7 @@ def sum_of_gaussians(xi, heights, centers, sigmas, periods):
     delta_x = wrap(xi - centers, periods)
     return gaussian(heights, sigmas, delta_x).sum()
 
+
 @dispatch
 def analyze(result: Result[Metadynamics]):
     """
@@ -296,9 +297,9 @@ def analyze(result: Result[Metadynamics]):
     """
     method = result.method
     state = result.states
-    
+
     P = get_periods(method.cvs)
-    
+
     heights = state.heights
     centers = state.centers
     sigmas = state.sigmas
@@ -308,7 +309,4 @@ def analyze(result: Result[Metadynamics]):
         f = vmap(lambda x: sum_of_gaussians(x, heights, centers, sigmas, P))
         return f(xs)
 
-    return dict(
-            heights=heights,
-            sigmas=sigmas,
-            metapotential=metapotential)
+    return dict(heights=heights, sigmas=sigmas, metapotential=metapotential)
