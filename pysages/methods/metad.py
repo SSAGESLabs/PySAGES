@@ -12,10 +12,11 @@ from jax import numpy as np, grad, jit, value_and_grad, vmap
 from jax.lax import cond
 
 from pysages.approxfun import compute_mesh
-from pysages.colvars import get_periods, wrap
-from pysages.methods.core import SamplingMethod, generalize
+from pysages.collective_variables import get_periods, wrap
+from pysages.methods.core import Result, SamplingMethod, generalize
 from pysages.utils import JaxArray, gaussian, identity
 from pysages.grids import build_indexer
+from pysages.utils import dispatch
 
 
 class MetadynamicsState(NamedTuple):
@@ -287,3 +288,27 @@ def sum_of_gaussians(xi, heights, centers, sigmas, periods):
     """
     delta_x = wrap(xi - centers, periods)
     return gaussian(heights, sigmas, delta_x).sum()
+
+@dispatch
+def analyze(result: Result[Metadynamics]):
+    """
+    Computes the free energy from the result of an `Metadynamics` run.
+    """
+    method = result.method
+    state = result.states
+    
+    P = get_periods(method.cvs)
+    
+    heights = state.heights
+    centers = state.centers
+    sigmas = state.sigmas
+
+    @jit
+    def metapotential(xs):
+        f = vmap(lambda x: sum_of_gaussians(x, heights, centers, sigmas, P))
+        return f(xs)
+
+    return dict(
+            heights=heights,
+            sigmas=sigmas,
+            metapotential=metapotential)
