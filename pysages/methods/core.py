@@ -97,7 +97,7 @@ def run(
     timesteps: Union[int, float],
     callback: Optional[Callable] = None,
     context_args: Optional[dict] = None,
-    post_run_action: Option[Callable] = None,
+    post_run_action: Optional[Callable] = None,
     **kwargs
 ):
     """
