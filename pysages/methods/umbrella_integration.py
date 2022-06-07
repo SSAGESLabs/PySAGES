@@ -74,6 +74,7 @@ def run(  # pylint: disable=arguments-differ
     context_generator: Callable,
     timesteps: Union[int, float],
     context_args: Optional[dict] = None,
+    post_run_action: Optional[Callable] = None,
     **kwargs
 ):
     """
