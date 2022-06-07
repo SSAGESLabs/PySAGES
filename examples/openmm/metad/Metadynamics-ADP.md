@@ -209,13 +209,8 @@ Let's plot the negative of the sum of gaussians accumulated. This will get close
 <!-- #endregion -->
 
 ```python id="X69d1R7OpW4P"
-from jax import  jit, numpy as np, vmap
-
-from pysages.approxfun import compute_mesh
-from pysages.colvars import get_periods
-from pysages.methods.metad import sum_of_gaussians
-
 import matplotlib.pyplot as plt
+from pysages.approxfun import compute_mesh
 ```
 
 <!-- #region id="6mrlIOfoszBJ" -->
@@ -223,15 +218,8 @@ We are now going to gather the information for the heights, standard deviations 
 <!-- #endregion -->
 
 ```python id="zJqvpbw8szxR"
-P = get_periods(cvs)
-heights = state.heights
-centers = state.centers
-sigmas = state.sigmas
-
-@jit
-def metapotential(xs):
-    f = vmap(lambda x: sum_of_gaussians(x, heights, centers, sigmas, P))
-    return f(xs)
+fe_result = pysages.analyze(run_result)
+metapotential = fe_result['metapotential']
 ```
 
 <!-- #region id="VfTQ5yeyxt8e" -->
@@ -277,11 +265,11 @@ Lastly, we plot the height of the gaussians as a function of time and observe th
 <!-- #endregion -->
 
 ```python colab={"base_uri": "https://localhost:8080/", "height": 457} id="SI_fhUW9CGlP" outputId="5d32f99d-4911-44bb-9d89-69c3e6212cb7"
-_dt = method.context[0].sampler.snapshot.dt
-ts = _dt * 1e-3 * np.arange(0, heights.size) * method.stride
+_dt = dt #method.context[0].sampler.snapshot.dt
+ts = _dt * 1e-3 * numpy.arange(0, fe_result['heights'].size) * run_result.method.stride
 
 fig, ax = plt.subplots(dpi=120)
-ax.plot(ts, heights, "o", mfc="none", ms=4)
+ax.plot(ts, fe_result['heights'], "o", mfc="none", ms=4)
 ax.set_xlabel("time [ns]")
 ax.set_ylabel("height [kJ/mol]")
 plt.show()

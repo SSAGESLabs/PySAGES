@@ -113,11 +113,11 @@ def main(argv=[]):
     callback = MetaDLogger(hills_file, stride) if args.log else None
 
     tic = time.perf_counter()
-    pysages.run(method, generate_simulation, timesteps, callback)
+    run_result = pysages.run(method, generate_simulation, timesteps, callback)
     toc = time.perf_counter()
     print(f"Completed the simulation in {toc - tic:0.4f} seconds.")
 
-    return method
+    return run_result
 
 
 # %%
