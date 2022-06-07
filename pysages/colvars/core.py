@@ -9,15 +9,16 @@ Abstract base classes for collective variables.
 
 from abc import ABC, abstractmethod
 from inspect import signature
-from typing import Callable, List, Tuple, Union
+from typing import Callable, Sequence, Tuple, Union
 
 from jax import grad as jax_grad, jit, numpy as np
+import numpy
 
 from pysages.utils import JaxArray, dispatch
 
 
 UInt32 = np.uint32
-Indices = Union[int, range]
+Indices = Union[numpy.intp, numpy.int, int, range]
 
 
 class CollectiveVariable(ABC):
@@ -209,7 +210,7 @@ def build(cv: CollectiveVariable, *cvs: CollectiveVariable, grad=jax_grad):
     cv: CollectiveVariable
         Collective Variable object to jit compile.
     cvs: list[CollectiveVariable]
-        List of Collective variables that get stacked on top of each other.
+        Sequence of Collective variables that get stacked on top of each other.
     grad: Optional[Callable]
         Jax tranform that is used to compute the gradient, if `None` is
         provided, only the collective variables will be computed.
@@ -248,7 +249,7 @@ def build(cv: CollectiveVariable, *cvs: CollectiveVariable, grad=jax_grad):
     return jit(apply)
 
 
-def _process_groups(indices: Union[List, Tuple]):
+def _process_groups(indices: Union[Sequence, Tuple]):
     total_group_length = 0
     collected = []
     groups = []
@@ -275,7 +276,7 @@ def _is_group(indices: Indices):  # pylint:disable=unused-argument
 
 
 @dispatch
-def _is_group(group: List[Indices]):  # pylint:disable=unused-argument
+def _is_group(group: Sequence[Indices]):  # pylint:disable=unused-argument
     return True
 
 
@@ -285,7 +286,7 @@ def _is_group(obj):
 
 
 @dispatch
-def _group_size(obj: int):  # pylint:disable=unused-argument
+def _group_size(obj: Union[numpy.intp, numpy.int, int]):  # pylint:disable=unused-argument
     return 1
 
 
@@ -295,5 +296,5 @@ def _group_size(obj: range):
 
 
 @dispatch
-def _group_size(obj: Union[List, Tuple]):
+def _group_size(obj: Union[Sequence, Tuple]):
     return sum(_group_size(o) for o in obj)

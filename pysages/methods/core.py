@@ -5,7 +5,7 @@
 from abc import ABC, abstractmethod
 from functools import reduce
 from operator import or_
-from typing import Callable, Optional
+from typing import Callable, Optional, Union
 
 from jax import grad, jit
 from plum import parametric
@@ -94,7 +94,7 @@ class Result:
 def run(
     method: SamplingMethod,
     context_generator: Callable,
-    timesteps: int,
+    timesteps: Union[int, float],
     callback: Optional[Callable] = None,
     context_args: Optional[dict] = None,
     **kwargs
@@ -122,7 +122,7 @@ def run(
     context_args: Optional[dict] = None
         Arguments to pass down to `context_generator` to setup the simulation context.
     """
-
+    timesteps = int(timesteps)
     context_args = {} if context_args is None else context_args
 
     context = context_generator(**context_args)
