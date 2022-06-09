@@ -91,6 +91,7 @@ class Metadynamics(SamplingMethod):
     snapshot_flags = {"positions", "indices"}
 
     def __init__(self, cvs, height, sigma, stride, ngaussians, *args, deltaT=None, **kwargs):
+
         """
         Arguments
         ---------
@@ -293,12 +294,27 @@ def sum_of_gaussians(xi, heights, centers, sigmas, periods):
 @dispatch
 def analyze(result: Result[Metadynamics]):
     """
-    Computes the free energy from the result of a `Metadynamics` run.
+    Helps in calculating the free energy from the final state of `Metadynamics` run.
+    
+    Arguments
+    ---------
+        result: Result[Metadynamics]: Result bundle containing method, final metadynamics state, and callback.
+        
+    Returns
+    -------
+        dict: A ``dict`` with the following keys:
+        
+        heights: 
+            Height of the Gaussian bias potential during the simulation.
+            
+        metapotential: 
+            Function that takes user-defined CV range to compute the deposited bias potential. For standard metadynamics, the free energy along user-defined CV range is the same as the metapotential(cv). In the case of well-tempered metadynamics, the the free energy along user-defined CV range is equal to (T + deltaT)/deltaT x metapotential(cv), where T is the simulation temperature and deltaT is the user-defined paramter in well-tempered metadynamics.
     """
     method = result.method
     state = result.states
 
     P = get_periods(method.cvs)
+
     heights = state.heights
     centers = state.centers
     sigmas = state.sigmas
@@ -308,4 +324,4 @@ def analyze(result: Result[Metadynamics]):
         f = vmap(lambda x: sum_of_gaussians(x, heights, centers, sigmas, P))
         return f(xs)
 
-    return dict(heights=heights, sigmas=sigmas, metapotential=metapotential)
+    return dict(heights=heights, metapotential=metapotential)
