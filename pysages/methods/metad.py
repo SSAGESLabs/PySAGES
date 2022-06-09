@@ -22,7 +22,7 @@ class MetadynamicsState(NamedTuple):
     """
     Helper Metadynamics state
 
-    Attributes
+    Parameters
     ----------
 
     bias: JaxArray
