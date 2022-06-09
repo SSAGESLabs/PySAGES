@@ -20,6 +20,8 @@ from pysages.grids import build_indexer
 
 class MetadynamicsState(NamedTuple):
     """
+    Helper Metadynamics state
+
     Attributes
     ----------
 
