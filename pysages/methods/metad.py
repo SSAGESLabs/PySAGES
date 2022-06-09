@@ -122,7 +122,6 @@ class Metadynamics(SamplingMethod):
         simulations and should match the internal units of the backend.
     """
 
-
     snapshot_flags = {"positions", "indices"}
 
     def __init__(self, cvs, height, sigma, stride, ngaussians, *args, deltaT=None, **kwargs):
