@@ -18,7 +18,7 @@ from pysages.utils import JaxArray, dispatch
 
 
 UInt32 = np.uint32
-Indices = Union[numpy.intp, numpy.int, int, range]
+Indices = Union[numpy.intp, numpy.int_, numpy.intc, int, range]
 
 
 class CollectiveVariable(ABC):
