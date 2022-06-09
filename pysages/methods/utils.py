@@ -85,7 +85,8 @@ class MetaDLogger:
     log_period:
         Timesteps between logging of collective variables and metadynamics parameters.
 
-   """
+    """
+
     def __init__(self, hills_file, log_period):
         """
         MetaDLogger constructor.
