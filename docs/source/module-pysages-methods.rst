@@ -20,6 +20,7 @@ Utility classes for Methods
 .. autosummary::
 
    pysages.methods.utils.HistogramLogger
+   pysages.methods.utils.MetaDLogger
 
 Abstract base classes
 

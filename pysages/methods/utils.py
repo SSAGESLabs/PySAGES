@@ -15,20 +15,18 @@ class HistogramLogger:
     """
     Implements a Callback functor for methods.
     Logs the state of the collective variable to generate histograms.
+
+
+    Parameters
+    ----------
+    period:
+        Timesteps between logging of collective variables.
+
+    offset:
+        Timesteps at the beginning of a run used for equilibration.
     """
 
     def __init__(self, period: int, offset: int = 0):
-        """
-        HistogramLogger constructor.
-
-        Arguments
-        ---------
-        period:
-            Timesteps between logging of collective variables.
-
-        offset:
-            Timesteps at the beginning of a run used for equilibration.
-        """
         self.period = period
         self.counter = 0
         self.offset = offset
@@ -78,19 +76,19 @@ class HistogramLogger:
 class MetaDLogger:
     """
     Logs the state of the collective variable and other parameters in Metadynamics.
-    """
 
+    Parameters
+    ----------
+    hills_file:
+        Name of the output hills log file.
+
+    log_period:
+        Timesteps between logging of collective variables and metadynamics parameters.
+
+   """
     def __init__(self, hills_file, log_period):
         """
         MetaDLogger constructor.
-
-        Arguments
-        ---------
-        hills_file:
-            Name of the output hills log file.
-
-        log_period:
-            Timesteps between logging of collective variables and metadynamics parameters.
         """
         self.hills_file = hills_file
         self.log_period = log_period
