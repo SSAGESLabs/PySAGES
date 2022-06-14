@@ -10,7 +10,7 @@ No compromises in usability and speed for advanced sampling methods!
 --------------------------------------------------------------------
 
 PySAGES provides an extensible framework to compute collective variables and to perform
-enhanced-sampling molecular dynamics simulations to discover reation pathways and estimate
+enhanced-sampling molecular dynamics simulations to discover reaction pathways and estimate
 free energies.
 
 .. toctree::
