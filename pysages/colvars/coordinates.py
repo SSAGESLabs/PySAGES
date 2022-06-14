@@ -56,7 +56,7 @@ def weighted_barycenter(positions, weights):
 
 class Component(AxisCV):
     """
-    Use a specific cartesian component of the center of mass of the group of atom selected
+    Use a specific Cartesian component of the center of mass of the group of atom selected
     via the indices.
 
     Parameters

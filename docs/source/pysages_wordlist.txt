@@ -1,2 +1,17 @@
 Asphericity
 Acylindricity
+JAX
+jit
+jax
+rtype
+cv
+unnormalized
+Blackman
+discretize
+discretizing
+cvs
+Gaussians
+Penrose
+ABF
+args
+kwargs

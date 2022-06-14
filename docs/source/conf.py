@@ -70,3 +70,5 @@ epub_show_urls = "footnote"
 spelling_lang = "en_US"
 tokenizer_lang = "en_US"
 spelling_word_list_filename = "pysages_wordlist.txt"
+spelling_show_suggestions=True
+spelling_warning=True

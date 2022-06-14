@@ -31,7 +31,7 @@ class CollectiveVariable(ABC):
     Parameters
     ----------
     indices: list[int], list[tuple(int)]
-        Must be a list or tuple of atoms (ints or ranges) or groups of atoms.
+        Must be a list or tuple of atoms (integers or ranges) or groups of atoms.
         A group is specified as a nested list or tuple of atoms.
     group_length: int, optional
         Specify if a fixed group length is expected.
@@ -64,17 +64,17 @@ class AxisCV(CollectiveVariable):
     Parameters
     ----------
     indices: list[int], list[tuple(int)]
-        Must be a list or tuple of atoms (ints or ranges) or groups of atoms.
+        Must be a list or tuple of atoms (integers or ranges) or groups of atoms.
         A group is specified as a nested list or tuple of atoms.
     axis: int
-        Index of the cartesian coordinate: 0 (X), 1 (Y), 2 (Z)
+        Index of the Cartesian coordinate: 0 (X), 1 (Y), 2 (Z)
     group_length: int, optional
         Specify if a fixed group length is expected.
     """
 
     def __init__(self, indices, axis, group_length=None):
         if axis not in (0, 1, 2):
-            raise RuntimeError(f"Invalid cartesian axis {axis} index choose 0 (X), 1 (Y), 2 (Z)")
+            raise RuntimeError(f"Invalid Cartesian axis {axis} index choose 0 (X), 1 (Y), 2 (Z)")
         super().__init__(indices, group_length)
         self.axis = axis
 
@@ -211,7 +211,7 @@ def build(cv: CollectiveVariable, *cvs: CollectiveVariable, grad=jax_grad):
     cvs: list[CollectiveVariable]
         List of Collective variables that get stacked on top of each other.
     grad: Optional[Callable]
-        Jax tranform that is used to compute the gradient, if `None` is
+        Jax transform that is used to compute the gradient, if `None` is
         provided, only the collective variables will be computed.
         Defaults to `jax.grad`.
 
