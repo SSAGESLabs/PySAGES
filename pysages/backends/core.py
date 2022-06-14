@@ -3,7 +3,60 @@
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 from importlib import import_module
-from typing import Callable
+from typing import Any, Callable, NamedTuple, Optional
+
+from pysages.utils import Float, JaxArray
+
+JaxMDState = Any
+
+
+class JaxMDContextState(NamedTuple):
+    """
+    Provides an interface for the data structure returned by `JaxMDContext.init_fn` and
+    expected as the single argument of `JaxMDContext.step_fn`.
+
+    Arguments
+    ---------
+    state: JaxMDState
+        Holds the particle information and corresponds to the internal state of
+        `jax_md.simulate` methods.
+
+    extras: Optional[dict]
+        Additional arguments required by `JaxMDContext.step_fn`, these might include for
+        instance, the neighbor list or the time step.
+    """
+
+    state: JaxMDState
+    extras: Optional[dict]
+
+
+class JaxMDContext(NamedTuple):
+    """
+    Provides an interface for the data structure expects from `generate_context` for
+    `jax_md`-backed simulations.
+
+    Arguments
+    ---------
+    init_fn: Callable[..., JaxMDContextState]
+        Initilizes the `jax_md` state. Generally, this will be the `init_fn` of any
+        of the simulation routines in `jax_md` (or wrappers around these).
+
+    step_fn: Callable[..., JaxMDContextState]
+        Takes a state and advances a `jax_md` simulation by one step. Generally, this
+        will be the `apply_fn` of any of the simulation routines in `jax_md` (or wrappers
+        around these).
+
+    box: JaxArray
+        Affine transformation from a unit hypercube to the simulation box.
+
+    dt: Float
+        Step size of the simulation.
+    """
+
+    init_fn: Callable[..., JaxMDContextState]
+    step_fn: Callable[..., JaxMDContextState]
+    box: JaxArray
+    dt: Float
 
 
 class ContextWrapper:
@@ -18,12 +71,14 @@ class ContextWrapper:
         """
         self._backend_name = None
         module_name = type(context).__module__
-        if module_name.startswith("hoomd"):
+        if module_name.startswith("ase.md"):
+            self._backend_name = "ase"
+        elif module_name.startswith("hoomd"):
             self._backend_name = "hoomd"
+        elif isinstance(context, JaxMDContext):
+            self._backend_name = "jax-md"
         elif module_name.startswith("simtk.openmm") or module_name.startswith("openmm"):
             self._backend_name = "openmm"
-        elif module_name.startswith("ase.md"):
-            self._backend_name = "ase"
 
         if self._backend_name is not None:
             self._backend = import_module("." + self._backend_name, package="pysages.backends")
@@ -66,4 +121,4 @@ class ContextWrapper:
 
 
 def supported_backends():
-    return ("ase", "hoomd", "openmm")
+    return ("ase", "hoomd", "jax-md", "openmm")

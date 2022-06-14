@@ -60,7 +60,7 @@ _set_cuda_visible_devices()
 _config_jax()
 
 
-from . import colvars, methods  # noqa: E402, F401
+from . import backends, colvars, methods  # noqa: E402, F401
 from ._version import version as __version__  # noqa: E402, F401
 from ._version import version_tuple as __version_tuple__  # noqa: E402, F401
 from .backends import supported_backends  # noqa: E402, F401
