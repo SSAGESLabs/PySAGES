@@ -286,7 +286,7 @@ def _is_group(obj):
 
 
 @dispatch
-def _group_size(obj: Union[numpy.intp, numpy.int, int]):  # pylint:disable=unused-argument
+def _group_size(obj: Union[numpy.intp, numpy.intc, numpy.int_, int]):  # pylint:disable=unused-argument
     return 1
 
 
