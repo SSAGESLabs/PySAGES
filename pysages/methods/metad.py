@@ -307,7 +307,10 @@ def analyze(result: Result[Metadynamics]):
             Height of the Gaussian bias potential during the simulation.
 
         metapotential:
-            Function that takes user-defined CV range to compute the deposited bias potential. For standard metadynamics, the free energy along user-defined CV range is the same as the metapotential(cv). In the case of well-tempered metadynamics, the the free energy along user-defined CV range is equal to (T + deltaT)/deltaT x metapotential(cv), where T is the simulation temperature and deltaT is the user-defined paramter in well-tempered metadynamics.
+            Function that takes user-defined CV range to compute the deposited bias potential. 
+            For standard metadynamics, the free energy along user-defined CV range is the same as the metapotential(cv). 
+            In the case of well-tempered metadynamics, the the free energy along user-defined CV range is equal to (T + deltaT)/deltaT x metapotential(cv), 
+            where T is the simulation temperature and deltaT is the user-defined paramter in well-tempered metadynamics.
     """
     method = result.method
     state = result.states
