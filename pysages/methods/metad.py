@@ -91,12 +91,6 @@ class Metadynamics(SamplingMethod):
 
     Parameters
     ----------
-
-    def __init__(self, cvs, height, sigma, stride, ngaussians, *args, deltaT=None, **kwargs):
-
-        """
-        Arguments
-        ---------
     cvs:
         Set of user selected collective variable.
 
