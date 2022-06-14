@@ -21,7 +21,9 @@ from pysages.utils import dispatch
 
 class MetadynamicsState(NamedTuple):
     """
-    Attributes
+    Metadynamics helper state
+
+    Parameters
     ----------
 
     bias: JaxArray
@@ -86,46 +88,49 @@ class Metadynamics(SamplingMethod):
     Implementation of Standard and Well-tempered Metadynamics as described in
     [PNAS 99.20, 12562-6 (2002)](https://doi.org/10.1073/pnas.202427399) and
     [Phys. Rev. Lett. 100, 020603 (2008)](https://doi.org/10.1103/PhysRevLett.100.020603)
-    """
 
-    snapshot_flags = {"positions", "indices"}
+    Parameters
+    ----------
 
     def __init__(self, cvs, height, sigma, stride, ngaussians, *args, deltaT=None, **kwargs):
 
         """
         Arguments
         ---------
+    cvs:
+        Set of user selected collective variable.
 
-        cvs:
-            Set of user selected collective variable.
+    height:
+        Initial height of the deposited Gaussians.
 
-        height:
-            Initial height of the deposited Gaussians.
+    sigma:
+        Initial standard deviation of the to-be-deposit Gaussians.
 
-        sigma:
-            Initial standard deviation of the to-be-deposit Gaussians.
+    stride: int
+        Bias potential deposition frequency.
 
-        stride: int
-            Bias potential deposition frequency.
+    ngaussians: int
+        Total number of expected gaussians (timesteps // stride + 1).
 
-        ngaussians: int
-            Total number of expected gaussians (timesteps // stride + 1).
+    Keyword arguments
+    -----------------
 
-        Keyword arguments
-        -----------------
+    deltaT: Optional[float] = None
+        Well-tempered metadynamics $\\Delta T$ parameter
+        (if `None` standard metadynamics is used).
 
-        deltaT: Optional[float] = None
-            Well-tempered metadynamics $\\Delta T$ parameter
-            (if `None` standard metadynamics is used).
+    grid: Optional[Grid] = None
+        If provided, it will be used to accelerate the computation by
+        approximating the bias potential and its gradient over its centers.
 
-        grid: Optional[Grid] = None
-            If provided, it will be used to accelerate the computation by
-            approximating the bias potential and its gradient over its centers.
+    kB: Optional[float]
+        Boltzmann constant. Must be provided for well-tempered metadynamics
+        simulations and should match the internal units of the backend.
+    """
 
-        kB: Optional[float]
-            Boltzmann constant. Must be provided for well-tempered metadynamics
-            simulations and should match the internal units of the backend.
-        """
+    snapshot_flags = {"positions", "indices"}
+
+    def __init__(self, cvs, height, sigma, stride, ngaussians, *args, deltaT=None, **kwargs):
 
         if deltaT is not None and "kB" not in kwargs:
             raise KeyError(

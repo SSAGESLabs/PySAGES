@@ -6,6 +6,7 @@ pysages.methods.utils
 .. autosummary::
 
    pysages.methods.utils.HistogramLogger
+   pysages.methods.utils.MetaDLogger
 
 .. rubric:: Details
 
