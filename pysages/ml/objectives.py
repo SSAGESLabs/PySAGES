@@ -2,7 +2,7 @@
 # Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
-from typing import NamedTuple
+from typing import NamedTuple, Union
 
 from jax import value_and_grad, vmap
 
@@ -122,6 +122,23 @@ def build_objective_function(model, loss: Loss, reg: Regularizer):
 
 
 @dispatch
+def build_objective_function(model, loss: GradientsSSE, reg: Regularizer):
+    apply = grad(
+        lambda p, x: model.apply(p, x.reshape(1, -1)).sum(), argnums = 1
+    )
+    cost = build_cost_function(SSE(), reg)
+
+    def objective(params, inputs, reference):
+        gradients = vmap(lambda x: apply(params, x))(inputs)
+        gradients = gradients.reshape(reference.shape)
+        e = np.asarray(gradients - reference, dtype = np.float32).flatten()
+        ps, _ = unpack(params)
+        return cost(e, ps)
+
+    return objective
+
+
+@dispatch
 def build_objective_function(model, loss: Sobolev1Loss, reg: Regularizer):
     apply = value_and_grad(lambda p, x: model.apply(p, x.reshape(1, -1)).sum(), argnums=1)
     cost = build_cost_function(loss, reg)
@@ -149,7 +166,7 @@ def build_cost_function(loss, reg):
 
 
 @dispatch
-def build_cost_function(loss: SSE, reg: L2Regularization):
+def build_cost_function(loss: Union[SSE, GradientsSSE], reg: L2Regularization):
     r = reg.coeff
 
     def cost(errors, ps):
@@ -159,7 +176,8 @@ def build_cost_function(loss: SSE, reg: L2Regularization):
 
 
 @dispatch
-def build_cost_function(loss: SSE, reg: VarRegularization):
+def build_cost_function(loss: Union[SSE, GradientsSSE], reg: VarRegularization):
+
     def cost(errors, ps):
         # k = ps.size
         return (sum_squares(errors) + ps.var()) / 2
@@ -205,6 +223,22 @@ def build_error_function(model, loss: Loss):
         params = pack(ps, layout)
         prediction = model.apply(params, inputs).reshape(reference.shape)
         return np.asarray(prediction - reference, dtype=np.float32).flatten()
+
+    return error
+
+
+@dispatch
+def build_error_function(model, loss: GradientsLoss):
+    apply = grad(
+        lambda p, x: model.apply(p, x.reshape(1, -1)).sum(), argnums = 1
+    )
+    _, layout = unpack(model.parameters)
+
+    def error(ps, inputs, reference):
+        params = pack(ps, layout)
+        gradients = vmap(lambda x: apply(params, x))(inputs)
+        gradients = gradients.reshape(reference.shape)
+        return np.asarray(gradients - reference, dtype = np.float32).flatten()
 
     return error
 
