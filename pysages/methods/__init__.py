@@ -28,7 +28,7 @@ The functions are just in time compiled for maximum performance.
 For new methods, the user has to implement this interface for custom biasing.
 
 The conducting of simulation runs is designed closer to python's object-oriented design.
-The :py:meth:`core.SamplingMethod.run` function uses a user-provided function to generate the simulation context for the chosen backend.
+The :py:meth:`core.SamplingMethod.run` function uses a user-provided function to generate the simulation context for the chosen back end.
 This member function sets up the necessary replica (simple ones only need one) of the simulation, conducts the bias simulation. Depending on the methods it may also collect information for analysis.
 
 Each method inherits an abstract base implementation from SamplingMethod, see for details the class documentation.
