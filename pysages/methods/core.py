@@ -14,7 +14,6 @@ from pysages.backends import ContextWrapper
 from pysages.colvars.core import build
 from pysages.utils import dispatch, identity
 
-
 #  Base Classes
 #  ============
 
@@ -131,7 +130,8 @@ def run(
     with wrapped_context:
         wrapped_context.run(timesteps, **kwargs)
 
-    return wrapped_context.sampler.state
+    state = wrapped_context.sampler.state
+    return Result(method, state, callback)
 
 
 @dispatch.abstract
