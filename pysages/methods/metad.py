@@ -297,7 +297,7 @@ def analyze(result: Result[Metadynamics]):
 
     Arguments
     ---------
-        result: Result[Metadynamics]: Result bundle containing method, 
+        result: Result[Metadynamics]: Result bundle containing method,
            final metadynamics state, and callback.
 
     Returns
@@ -311,8 +311,8 @@ def analyze(result: Result[Metadynamics]):
             Function that takes user-defined CV range to compute the deposited bias potential.
             For standard metadynamics, the free energy along user-defined CV range is the same
             as the metapotential(cv). In the case of well-tempered metadynamics, the the
-            free energy along user-defined CV range is equal to 
-            (T + deltaT)/deltaT x metapotential(cv), where T is the simulation temperature 
+            free energy along user-defined CV range is equal to
+            (T + deltaT)/deltaT x metapotential(cv), where T is the simulation temperature
             and deltaT is the user-defined paramter in well-tempered metadynamics.
     """
     method = result.method
