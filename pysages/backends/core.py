@@ -2,8 +2,20 @@
 # Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
+from dataclasses import dataclass
 from importlib import import_module
 from typing import Callable
+
+from pysages.utils import Float, JaxArray
+
+
+@dataclass
+class JaxMDContext:
+    box: JaxArray
+    force_fn: Callable
+    init_fn: Callable
+    step_fn: Callable
+    dt: Float
 
 
 class ContextWrapper:
@@ -18,12 +30,14 @@ class ContextWrapper:
         """
         self._backend_name = None
         module_name = type(context).__module__
-        if module_name.startswith("hoomd"):
+        if module_name.startswith("ase.md"):
+            self._backend_name = "ase"
+        elif module_name.startswith("hoomd"):
             self._backend_name = "hoomd"
+        elif isinstance(context, JaxMDContext):
+            self._backend_name = "jax-md"
         elif module_name.startswith("simtk.openmm") or module_name.startswith("openmm"):
             self._backend_name = "openmm"
-        elif module_name.startswith("ase.md"):
-            self._backend_name = "ase"
 
         if self._backend_name is not None:
             self._backend = import_module("." + self._backend_name, package="pysages.backends")
@@ -66,4 +80,4 @@ class ContextWrapper:
 
 
 def supported_backends():
-    return ("ase", "hoomd", "openmm")
+    return ("ase", "hoomd", "jax-md", "openmm")
