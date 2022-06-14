@@ -123,15 +123,13 @@ def build_objective_function(model, loss: Loss, reg: Regularizer):
 
 @dispatch
 def build_objective_function(model, loss: GradientsSSE, reg: Regularizer):
-    apply = grad(
-        lambda p, x: model.apply(p, x.reshape(1, -1)).sum(), argnums = 1
-    )
+    apply = grad(lambda p, x: model.apply(p, x.reshape(1, -1)).sum(), argnums=1)
     cost = build_cost_function(SSE(), reg)
 
     def objective(params, inputs, reference):
         gradients = vmap(lambda x: apply(params, x))(inputs)
         gradients = gradients.reshape(reference.shape)
-        e = np.asarray(gradients - reference, dtype = np.float32).flatten()
+        e = np.asarray(gradients - reference, dtype=np.float32).flatten()
         ps, _ = unpack(params)
         return cost(e, ps)
 
@@ -177,7 +175,6 @@ def build_cost_function(loss: Union[SSE, GradientsSSE], reg: L2Regularization):
 
 @dispatch
 def build_cost_function(loss: Union[SSE, GradientsSSE], reg: VarRegularization):
-
     def cost(errors, ps):
         # k = ps.size
         return (sum_squares(errors) + ps.var()) / 2
@@ -229,16 +226,14 @@ def build_error_function(model, loss: Loss):
 
 @dispatch
 def build_error_function(model, loss: GradientsLoss):
-    apply = grad(
-        lambda p, x: model.apply(p, x.reshape(1, -1)).sum(), argnums = 1
-    )
+    apply = grad(lambda p, x: model.apply(p, x.reshape(1, -1)).sum(), argnums=1)
     _, layout = unpack(model.parameters)
 
     def error(ps, inputs, reference):
         params = pack(ps, layout)
         gradients = vmap(lambda x: apply(params, x))(inputs)
         gradients = gradients.reshape(reference.shape)
-        return np.asarray(gradients - reference, dtype = np.float32).flatten()
+        return np.asarray(gradients - reference, dtype=np.float32).flatten()
 
     return error
 
