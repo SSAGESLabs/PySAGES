@@ -65,3 +65,8 @@ html_theme = "furo"
 
 # -- Options for EPUB output
 epub_show_urls = "footnote"
+
+# Add options for the spell checking.
+spelling_lang='en_US'
+tokenizer_lang='en_US'
+spelling_word_list_filename='pysages_wordlist.txt'
