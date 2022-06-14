@@ -14,7 +14,7 @@ However, the method is not very accurate and it is preferred that more advanced 
 (e.g. the Weighted Histogram Analysis Method) are used for the analysis of the simulations.
 """
 
-from typing import Callable, Optional
+from typing import Callable, Optional, Union
 
 from pysages.backends import ContextWrapper
 from pysages.methods.core import Result, SamplingMethod
@@ -72,7 +72,7 @@ class UmbrellaIntegration(SamplingMethod):
 def run(  # pylint: disable=arguments-differ
     method: UmbrellaIntegration,
     context_generator: Callable,
-    timesteps: int,
+    timesteps: Union[int, float],
     context_args: Optional[dict] = None,
     **kwargs
 ):

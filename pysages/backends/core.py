@@ -36,7 +36,9 @@ class ContextWrapper:
             self._backend = import_module("." + self._backend_name, package="pysages.backends")
         else:
             backends = ", ".join(supported_backends())
-            raise ValueError(f"Invalid backend: supported options are ({backends})")
+            raise ValueError(
+                f"Invalid backend {self._backend_name}: supported options are ({backends})"
+            )
 
         self.context = context
         self.view = None
