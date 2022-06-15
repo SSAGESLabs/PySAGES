@@ -6,7 +6,7 @@
 Forward Flux Sampling (FFS).
 
 Implementation of the direct version of the FFS algorithm.
-FFS uses a series of nonintersecting interfaces between the initial and the final states.
+FFS uses a series of non-intersecting interfaces between the initial and the final states.
 The initial and final states are defined in terms of an order parameter.
 The method allows to calculate rate constants and generate transition paths.
 """
