@@ -16,3 +16,4 @@ ABF
 args
 kwargs
 dihedral
+Anisotropy
