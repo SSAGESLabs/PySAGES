@@ -25,3 +25,4 @@ Jacobian
 Phys
 Rev
 Lett
+equilibration
