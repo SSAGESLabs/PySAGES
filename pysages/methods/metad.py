@@ -13,9 +13,10 @@ from jax.lax import cond
 
 from pysages.approxfun import compute_mesh
 from pysages.colvars import get_periods, wrap
-from pysages.methods.core import SamplingMethod, generalize
+from pysages.methods.core import Result, SamplingMethod, generalize
 from pysages.utils import JaxArray, gaussian, identity
 from pysages.grids import build_indexer
+from pysages.utils import dispatch
 
 
 class MetadynamicsState(NamedTuple):
@@ -90,7 +91,6 @@ class Metadynamics(SamplingMethod):
 
     Parameters
     ----------
-
     cvs:
         Set of user selected collective variable.
 
@@ -288,3 +288,45 @@ def sum_of_gaussians(xi, heights, centers, sigmas, periods):
     """
     delta_x = wrap(xi - centers, periods)
     return gaussian(heights, sigmas, delta_x).sum()
+
+
+@dispatch
+def analyze(result: Result[Metadynamics]):
+    """
+    Helper for calculating the free energy from the final state of a `Metadynamics` run.
+
+    Arguments
+    ---------
+        result: Result[Metadynamics]: Result bundle containing method,
+           final metadynamics state, and callback.
+
+    Returns
+    -------
+        dict: A ``dict`` with the following keys:
+
+        heights:
+            Height of the Gaussian bias potential during the simulation.
+
+        metapotential:
+            Maps a user-provided array of CV values to the corresponding deposited bias potential.
+            For standard metadynamics, the free energy along user-provided CV range is the same
+            as `metapotential(cv)`. In the case of well-tempered metadynamics, the free energy is
+            equal to `(T + deltaT) / deltaT * metapotential(cv)`, where `T` is the simulation
+            temperature and `deltaT` is the user-defined parameter in well-tempered
+            metadynamics.
+    """
+    method = result.method
+    state = result.states
+
+    P = get_periods(method.cvs)
+
+    heights = state.heights
+    centers = state.centers
+    sigmas = state.sigmas
+
+    @jit
+    def metapotential(xs):
+        f = vmap(lambda x: sum_of_gaussians(x, heights, centers, sigmas, P))
+        return f(xs)
+
+    return dict(heights=heights, metapotential=metapotential)
