@@ -20,3 +20,4 @@ Anisotropy
 barycenter
 centroid
 anisotropy
+convolving
