@@ -19,3 +19,4 @@ dihedral
 Anisotropy
 barycenter
 centroid
+anisotropy
