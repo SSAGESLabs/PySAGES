@@ -21,3 +21,4 @@ barycenter
 centroid
 anisotropy
 convolving
+Jacobian
