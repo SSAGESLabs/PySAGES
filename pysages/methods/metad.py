@@ -293,7 +293,7 @@ def sum_of_gaussians(xi, heights, centers, sigmas, periods):
 @dispatch
 def analyze(result: Result[Metadynamics]):
     """
-    Helps in calculating the free energy from the final state of `Metadynamics` run.
+    Helper for calculating the free energy from the final state of a `Metadynamics` run.
 
     Arguments
     ---------
