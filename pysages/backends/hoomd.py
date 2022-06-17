@@ -207,9 +207,7 @@ def bind(
         method_bundle = sampling_method.build(snapshot, helpers)
         sync_and_bias = partial(bias, sync_backend=sysview.synchronize)
 
-        sampler = Sampler(
-            sysview, method_bundle, sync_and_bias, context.integrator.dt, callback
-        )
+        sampler = Sampler(sysview, method_bundle, sync_and_bias, context.integrator.dt, callback)
         context.integrator.cpp_integrator.setHalfStepHook(sampler)
 
         CONTEXTS_SAMPLERS[context] = sampler
