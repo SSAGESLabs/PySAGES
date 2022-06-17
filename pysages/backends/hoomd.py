@@ -70,7 +70,7 @@ class Sampler(DLExtSampler):
             if self.callback:
                 self.callback(snap, self.state, 0)
 
-        super().__init__(sysdef, python_update)
+        super().__init__(sysdef, python_update, AccessMode.Read, default_location())
 
     def _get_pybox(self, box):
         L = box.getL()
