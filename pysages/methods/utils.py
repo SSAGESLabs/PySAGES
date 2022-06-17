@@ -75,7 +75,7 @@ class HistogramLogger:
 # NOTE: for OpenMM; issue #16 on openmm-dlext should be resolved for this to work properly.
 class MetaDLogger:
     """
-    Logs the state of the collective variable and other parameters in Meta-dynamics.
+    Logs the state of the collective variable and other parameters in Metadynamics.
 
     Parameters
     ----------
@@ -83,7 +83,7 @@ class MetaDLogger:
         Name of the output hills log file.
 
     log_period:
-        Time steps between logging of collective variables and Meta-dynamics parameters.
+        Time steps between logging of collective variables and Metadynamics parameters.
 
     """
 

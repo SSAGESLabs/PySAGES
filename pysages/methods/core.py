@@ -107,7 +107,7 @@ def run(
     method: SamplingMethod
 
     context_generator: Callable
-        User defined function that sets up a simulation context with the back end.
+        User defined function that sets up a simulation context with the backend.
         Must return an instance of `hoomd.context.SimulationContext` for HOOMD-blue
         and `openmm.Simulation` for OpenMM. The function gets `context_args`
         unpacked for additional user arguments.
@@ -117,7 +117,7 @@ def run(
 
     callback: Optional[Callable] = None
         Allows for user defined actions into the simulation workflow of the method.
-        `kwargs` gets passed to the back end `run` function.
+        `kwargs` gets passed to the backend `run` function.
 
     context_args: Optional[dict] = None
         Arguments to pass down to `context_generator` to setup the simulation context.

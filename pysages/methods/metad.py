@@ -3,7 +3,7 @@
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 """
-Implementation of Standard and Well-tempered Meta-dynamics both with optional support for grids.
+Implementation of Standard and Well-tempered Metadynamics both with optional support for grids.
 """
 
 from typing import NamedTuple, Optional
@@ -20,13 +20,13 @@ from pysages.grids import build_indexer
 
 class MetadynamicsState(NamedTuple):
     """
-    Meta-dynamics helper state
+    Metadynamics helper state
 
     Parameters
     ----------
 
     bias: JaxArray
-        Array of Meta-dynamics bias forces for each particle in the simulation.
+        Array of Metadynamics bias forces for each particle in the simulation.
 
     xi: JaxArray
         Collective variable value in the last simulation step.
@@ -41,10 +41,10 @@ class MetadynamicsState(NamedTuple):
         Widths of the accumulated Gaussians.
 
     grid_potential: Optional[JaxArray]
-        Array of Meta-dynamics bias potentials stored on a grid.
+        Array of Metadynamics bias potentials stored on a grid.
 
     grid_gradient: Optional[JaxArray]
-        Array of Meta-dynamics bias gradients for each particle in the simulation stored on a grid.
+        Array of Metadynamics bias gradients for each particle in the simulation stored on a grid.
 
     idx: int
         Index of the next Gaussian to be deposited.
@@ -69,7 +69,7 @@ class MetadynamicsState(NamedTuple):
 
 class PartialMetadynamicsState(NamedTuple):
     """
-    Helper intermediate Meta-dynamics state
+    Helper intermediate Metadynamics state
     """
 
     xi: JaxArray
@@ -84,7 +84,7 @@ class PartialMetadynamicsState(NamedTuple):
 
 class Metadynamics(SamplingMethod):
     """
-    Implementation of Standard and Well-tempered Meta-dynamics as described in
+    Implementation of Standard and Well-tempered Metadynamics as described in
     [PNAS 99.20, 12562-6 (2002)](https://doi.org/10.1073/pnas.202427399) and
     [Phys. Rev. Lett. 100, 020603 (2008)](https://doi.org/10.1103/PhysRevLett.100.020603)
 
@@ -110,16 +110,16 @@ class Metadynamics(SamplingMethod):
     -----------------
 
     deltaT: Optional[float] = None
-        Well-tempered Meta-dynamics :math:`\\Delta T` parameter
-        (if `None` standard Meta-dynamics is used).
+        Well-tempered Metadynamics :math:`\\Delta T` parameter
+        (if `None` standard Metadynamics is used).
 
     grid: Optional[Grid] = None
         If provided, it will be used to accelerate the computation by
         approximating the bias potential and its gradient over its centers.
 
     kB: Optional[float]
-        Boltzmann constant. Must be provided for well-tempered Meta-dynamics
-        simulations and should match the internal units of the back end.
+        Boltzmann constant. Must be provided for well-tempered Metadynamics
+        simulations and should match the internal units of the backend.
     """
 
     snapshot_flags = {"positions", "indices"}
@@ -128,7 +128,7 @@ class Metadynamics(SamplingMethod):
 
         if deltaT is not None and "kB" not in kwargs:
             raise KeyError(
-                "For well-tempered Meta-dynamics a keyword argument `kB` for "
+                "For well-tempered Metadynamics a keyword argument `kB` for "
                 "the value of the Boltzmann constant (that matches the "
                 "internal units of the backend) must be provided."
             )
