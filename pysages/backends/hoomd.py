@@ -41,12 +41,12 @@ CONTEXTS_SAMPLERS = {}
 
 
 class Sampler(DLExtSampler):
-    def __init__(self, sysdef, method_bundle, bias, dt, callback: Callable):
+    def __init__(self, sysview, method_bundle, bias, dt, callback: Callable):
         _, initialize, update = method_bundle
         self.state = initialize()
         self.callback = callback
         self.bias = bias
-        box = sysdef.getParticleData().getGlobalBox()
+        box = sysview.particle_data().getGlobalBox()
         self.pybox = self._get_pybox(box)
         self.dt = dt
 
@@ -70,7 +70,7 @@ class Sampler(DLExtSampler):
             if self.callback:
                 self.callback(snap, self.state, 0)
 
-        super().__init__(sysdef, python_update, AccessMode.Read, default_location())
+        super().__init__(sysview, python_update, AccessMode.Read, default_location())
 
     def _get_pybox(self, box):
         L = box.getL()
@@ -208,7 +208,7 @@ def bind(
         sync_and_bias = partial(bias, sync_backend=sysview.synchronize)
 
         sampler = Sampler(
-            context.system_definition, method_bundle, sync_and_bias, context.integrator.dt, callback
+            sysview, method_bundle, sync_and_bias, context.integrator.dt, callback
         )
         context.integrator.cpp_integrator.setHalfStepHook(sampler)
 
