@@ -9,7 +9,7 @@
 PySAGES advanced Methods.
 ==========================
 
-Advanced sampling methods are summarized in this submodule.
+Advanced sampling methods are summarized in this sub-module.
 Methods have two objectives in PySAGES.
 
 - Building python functions that bias simulations.
@@ -46,7 +46,7 @@ Biasing and simulation orchestration can be separated into a different classes.
 The :py:class:`harmonic_bias.HarmonicBias` class for example provides a :py:meth:`harmonic_bias.HarmonicBias.build` function for generate functions for harmonic biasing forces.
 The methods, however, just inherit the basic implementation of a single replica run.
 :py:class:`umbrella_integration.UmbrellaIntegration` on the other hand, does not implement a new biasing method (and thus has no internal state as well).
-Instead it inherits the biasing from :py:class:`harmonic_bias.HarmonicBias` but reimplements :py:meth:`umbrella_integration.UmbrellaIntegration.run`
+Instead it inherits the biasing from :py:class:`harmonic_bias.HarmonicBias` but re-implements :py:meth:`umbrella_integration.UmbrellaIntegration.run`
 to sample multiple replicas along a path to estimate free energy differences.
 """
 

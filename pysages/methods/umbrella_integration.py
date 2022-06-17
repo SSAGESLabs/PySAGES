@@ -30,7 +30,7 @@ class UmbrellaIntegration(SamplingMethod):
     for subsequent analysis.
     By default the class also estimates an approximation of the free energy landscape
     along the given path via umbrella integration.
-    Note that this is not very accurate and ususally requires more sophisticated analysis on top.
+    Note that this is not very accurate and usually requires more sophisticated analysis on top.
     """
 
     def __init__(self, cvs, ksprings, centers, hist_periods, hist_offsets=0, **kwargs):

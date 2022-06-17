@@ -5,7 +5,7 @@
 """
 Collection of helpful classes for methods.
 
-This includes callback functors (callable classes).
+This includes callback functor objects (callable classes).
 """
 
 from jax import numpy as np
@@ -20,10 +20,10 @@ class HistogramLogger:
     Parameters
     ----------
     period:
-        Timesteps between logging of collective variables.
+        Time steps between logging of collective variables.
 
     offset:
-        Timesteps at the beginning of a run used for equilibration.
+        Time steps at the beginning of a run used for equilibration.
     """
 
     def __init__(self, period: int, offset: int = 0):
@@ -42,7 +42,7 @@ class HistogramLogger:
 
     def get_histograms(self, **kwargs):
         """
-        Helper function to generate histrograms from the collected CV data.
+        Helper function to generate histograms from the collected CV data.
         `kwargs` are passed on to `numpy.histogramdd` function.
         """
         data = np.asarray(self.data)
@@ -59,7 +59,7 @@ class HistogramLogger:
 
     def get_cov(self):
         """
-        Returns covariance matrix of the histgram data.
+        Returns covariance matrix of the histogram data.
         """
         data = np.asarray(self.data)
         return np.cov(data.T)
@@ -83,7 +83,7 @@ class MetaDLogger:
         Name of the output hills log file.
 
     log_period:
-        Timesteps between logging of collective variables and metadynamics parameters.
+        Time steps between logging of collective variables and Metadynamics parameters.
 
     """
 
@@ -118,7 +118,7 @@ class MetaDLogger:
 
 def listify(arg, replicas, name, dtype):
     """
-    Returns a list of with lenght `replicas` of `arg` if `arg` is not a list,
+    Returns a list of with length `replicas` of `arg` if `arg` is not a list,
     or `arg` if it is already a list of length `replicas`.
     """
     if isinstance(arg, list):

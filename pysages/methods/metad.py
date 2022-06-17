@@ -27,28 +27,28 @@ class MetadynamicsState(NamedTuple):
     ----------
 
     bias: JaxArray
-        Array of metadynamics bias forces for each particle in the simulation.
+        Array of Metadynamics bias forces for each particle in the simulation.
 
     xi: JaxArray
         Collective variable value in the last simulation step.
 
     heights: JaxArray
-        Height values for all accumulated gaussians (zeros for not yet added gaussians).
+        Height values for all accumulated Gaussians (zeros for not yet added Gaussians).
 
     centers: JaxArray
-        Centers of the accumulated gaussians.
+        Centers of the accumulated Gaussians.
 
     sigmas: JaxArray
-        Widths of the accumulated gaussians.
+        Widths of the accumulated Gaussians.
 
     grid_potential: Optional[JaxArray]
-        Array of metadynamics bias potentials stored on a grid.
+        Array of Metadynamics bias potentials stored on a grid.
 
     grid_gradient: Optional[JaxArray]
-        Array of metadynamics bias gradients for each particle in the simulation stored on a grid.
+        Array of Metadynamics bias gradients for each particle in the simulation stored on a grid.
 
     idx: int
-        Index of the next gaussian to be deposited.
+        Index of the next Gaussian to be deposited.
 
     nstep: int
         Counts the number of times `method.update` has been called.
@@ -104,21 +104,21 @@ class Metadynamics(SamplingMethod):
         Bias potential deposition frequency.
 
     ngaussians: int
-        Total number of expected gaussians (timesteps // stride + 1).
+        Total number of expected Gaussians (`timesteps // stride + 1`).
 
     Keyword arguments
     -----------------
 
     deltaT: Optional[float] = None
-        Well-tempered metadynamics $\\Delta T$ parameter
-        (if `None` standard metadynamics is used).
+        Well-tempered Metadynamics :math:`\\Delta T` parameter
+        (if `None` standard Metadynamics is used).
 
     grid: Optional[Grid] = None
         If provided, it will be used to accelerate the computation by
         approximating the bias potential and its gradient over its centers.
 
     kB: Optional[float]
-        Boltzmann constant. Must be provided for well-tempered metadynamics
+        Boltzmann constant. Must be provided for well-tempered Metadynamics
         simulations and should match the internal units of the backend.
     """
 
@@ -128,7 +128,7 @@ class Metadynamics(SamplingMethod):
 
         if deltaT is not None and "kB" not in kwargs:
             raise KeyError(
-                "For well-tempered metadynamics a keyword argument `kB` for "
+                "For well-tempered Metadynamics a keyword argument `kB` for "
                 "the value of the Boltzmann constant (that matches the "
                 "internal units of the backend) must be provided."
             )
@@ -183,7 +183,7 @@ def _metadynamics(method, snapshot, helpers):
         # Compute the collective variable and its jacobian
         xi, Jxi = cv(data)
 
-        # Deposit gaussian depending on the stride
+        # Deposit Gaussian depending on the stride
         nstep = state.nstep
         in_deposition_step = (nstep > 0) & (nstep % stride == 0)
         partial_state = deposit_gaussian(xi, state, in_deposition_step)
@@ -203,7 +203,7 @@ def _metadynamics(method, snapshot, helpers):
 def build_gaussian_accumulator(method: Metadynamics):
     """
     Returns a function that given a `MetadynamicsState`, and the value of the CV,
-    stores the next gaussian that is added to the biasing potential.
+    stores the next Gaussian that is added to the biasing potential.
     """
     periods = get_periods(method.cvs)
     height_0 = method.height
@@ -243,7 +243,7 @@ def build_gaussian_accumulator(method: Metadynamics):
             update = jit(lambda V, dV, vals, grads: (accum(V, vals), accum(dV, grads)))
 
         def update_grids(pstate, height, xi, sigma):
-            # We use sum_of_gaussians since it already takes care of the wrapping
+            # We use `sum_of_gaussians` since it already takes care of the wrapping
             current_gaussian = jit(lambda x: sum_of_gaussians(x, height, xi, sigma, periods))
             # Evaluate gradient of bias (and bias potential for WT version)
             grid_values = pack(vmap(transform(current_gaussian))(grid_mesh))
@@ -269,7 +269,7 @@ def build_gaussian_accumulator(method: Metadynamics):
 
 def build_bias_grad_evaluator(method: Metadynamics):
     """
-    Returns a function that given the deposited gaussians parameters, computes the
+    Returns a function that given the deposited Gaussians parameters, computes the
     gradient of the biasing potential with respect to the CVs.
     """
     if method.grid is None:
@@ -284,7 +284,7 @@ def build_bias_grad_evaluator(method: Metadynamics):
 # Helper function to evaluate bias potential -- may be moved to analysis part
 def sum_of_gaussians(xi, heights, centers, sigmas, periods):
     """
-    Sum of n-dimensional gaussians potential.
+    Sum of n-dimensional Gaussians potential.
     """
     delta_x = wrap(xi - centers, periods)
     return gaussian(heights, sigmas, delta_x).sum()
