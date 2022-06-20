@@ -63,7 +63,7 @@ First, we install the jaxlib version that matches the CUDA installation of this 
 
 pip install -q --upgrade pip
 # Installs the wheel compatible with CUDA 11 and cuDNN 8.0.5.
-pip install -q --upgrade "jax[cuda11_cudnn805]" -f https://storage.googleapis.com/jax-releases/jax_releases.html &> /dev/null
+pip install -q --upgrade "jax[cuda11_cudnn805]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html &> /dev/null
 ```
 
 <!-- #region id="wAtjM-IroYX8" -->
