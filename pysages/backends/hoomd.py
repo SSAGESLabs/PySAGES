@@ -14,14 +14,13 @@ from jax.dlpack import from_dlpack as asarray
 from hoomd.dlext import (
     AccessLocation,
     AccessMode,
-    HalfStepHook,
     SystemView,
     images,
     net_forces,
     positions_types,
     rtags,
     velocities_masses,
-    DLextSampler,
+    DLExtSampler,
 )
 
 from pysages.backends.core import ContextWrapper
@@ -41,17 +40,17 @@ from pysages.methods import SamplingMethod
 CONTEXTS_SAMPLERS = {}
 
 
-class Sampler(DLextSampler):
-    def __init__(self, sysdef, method_bundle, bias, dt, callback: Callable):
+class Sampler(DLExtSampler):
+    def __init__(self, sysview, method_bundle, bias, dt, callback: Callable):
         _, initialize, update = method_bundle
         self.state = initialize()
         self.callback = callback
         self.bias = bias
-        box = sysdef.getParticleData().getGlobalBox()
+        box = sysview.particle_data().getGlobalBox()
         self.pybox = self._get_pybox(box)
         self.dt = dt
 
-        def python_update(positions, vel_mass, rtags, imgs, forces):
+        def python_update(positions, vel_mass, rtags, imgs, forces, timestep):
             positions = asarray(positions)
             vel_mass = asarray(vel_mass)
             ids = asarray(rtags)
@@ -69,9 +68,9 @@ class Sampler(DLextSampler):
             self.state = update(snap, self.state)
             self.bias(snap, self.state)
             if self.callback:
-                self.callback(snap, self.state, 0)
+                self.callback(snap, self.state, timestep)
 
-        super().__init__(sysdef, python_update)
+        super().__init__(sysview, python_update, default_location(), AccessMode.Read)
 
     def _get_pybox(self, box):
         L = box.getL()
@@ -100,16 +99,14 @@ def is_on_gpu(context):
 
 
 def take_snapshot(wrapped_context, location=default_location()):
-    #
     context = wrapped_context.context
     sysview = wrapped_context.view
-    #
     positions = asarray(positions_types(sysview, location, AccessMode.Read))
     vel_mass = asarray(velocities_masses(sysview, location, AccessMode.Read))
     forces = asarray(net_forces(sysview, location, AccessMode.ReadWrite))
     ids = asarray(rtags(sysview, location, AccessMode.Read))
     imgs = asarray(images(sysview, location, AccessMode.Read))
-    #
+
     box = sysview.particle_data().getGlobalBox()
     L = box.getL()
     xy = box.getTiltFactorXY()
@@ -119,7 +116,7 @@ def take_snapshot(wrapped_context, location=default_location()):
     H = ((L.x, xy * L.y, xz * L.z), (0.0, L.y, yz * L.z), (0.0, 0.0, L.z))
     origin = (lo.x, lo.y, lo.z)
     dt = context.integrator.dt
-    #
+
     return Snapshot(positions, vel_mass, forces, ids, imgs, Box(H, origin), dt)
 
 
@@ -202,21 +199,18 @@ def bind(
     context = wrapped_context.context
     helpers, bias = build_helpers(context, sampling_method)
 
-    sysview = SystemView(context.system_definition)
-    wrapped_context.view = sysview
-    wrapped_context.run = hoomd.run
+    with SystemView(context.system_definition) as sysview:
+        wrapped_context.view = sysview
+        wrapped_context.run = hoomd.run
 
-    snapshot = take_snapshot(wrapped_context)
-    method_bundle = sampling_method.build(snapshot, helpers)
-    sync_and_bias = partial(bias, sync_backend=sysview.synchronize)
-    #
-    sampler = Sampler(
-        context.system_definition, method_bundle, sync_and_bias, context.integrator.dt, callback
-    )
-    context.integrator.cpp_integrator.setHalfStepHook(sampler)
-    #
-    CONTEXTS_SAMPLERS[context] = sampler
-    #
+        snapshot = take_snapshot(wrapped_context)
+        method_bundle = sampling_method.build(snapshot, helpers)
+        sync_and_bias = partial(bias, sync_backend=sysview.synchronize)
+
+        sampler = Sampler(sysview, method_bundle, sync_and_bias, context.integrator.dt, callback)
+        context.integrator.cpp_integrator.setHalfStepHook(sampler)
+
+        CONTEXTS_SAMPLERS[context] = sampler
     return sampler
 
 

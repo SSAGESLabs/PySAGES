@@ -14,7 +14,6 @@ from pysages.backends import ContextWrapper
 from pysages.colvars.core import build
 from pysages.utils import dispatch, identity
 
-
 #  Base Classes
 #  ============
 
@@ -45,7 +44,7 @@ class SamplingMethod(ABC):
     def build(self, snapshot, helpers, *args, **kwargs):
         """
         Returns the snapshot, and two functions: `initialize` and `update`.
-        `initialize` is intended to allocate any runtime information required
+        `initialize` is intended to allocate any run time information required
         by `update`, while `update` is intended to be called after each call to
         the wrapped context's `run` method.
         """
@@ -114,7 +113,7 @@ def run(
         unpacked for additional user arguments.
 
     timesteps: int
-        Number of timesteps the simulation is running.
+        Number of time steps the simulation is running.
 
     callback: Optional[Callable] = None
         Allows for user defined actions into the simulation workflow of the method.
@@ -139,7 +138,8 @@ def run(
         if post_run_action:
             post_run_action(**context_args)
 
-    return wrapped_context.sampler.state
+    state = wrapped_context.sampler.state
+    return Result(method, state, callback)
 
 
 @dispatch.abstract

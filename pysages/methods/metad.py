@@ -13,39 +13,42 @@ from jax.lax import cond
 
 from pysages.approxfun import compute_mesh
 from pysages.colvars import get_periods, wrap
-from pysages.methods.core import SamplingMethod, generalize
+from pysages.methods.core import Result, SamplingMethod, generalize
 from pysages.utils import JaxArray, gaussian, identity
 from pysages.grids import build_indexer
+from pysages.utils import dispatch
 
 
 class MetadynamicsState(NamedTuple):
     """
-    Attributes
+    Metadynamics helper state
+
+    Parameters
     ----------
 
     bias: JaxArray
-        Array of metadynamics bias forces for each particle in the simulation.
+        Array of Metadynamics bias forces for each particle in the simulation.
 
     xi: JaxArray
         Collective variable value in the last simulation step.
 
     heights: JaxArray
-        Height values for all accumulated gaussians (zeros for not yet added gaussians).
+        Height values for all accumulated Gaussians (zeros for not yet added Gaussians).
 
     centers: JaxArray
-        Centers of the accumulated gaussians.
+        Centers of the accumulated Gaussians.
 
     sigmas: JaxArray
-        Widths of the accumulated gaussians.
+        Widths of the accumulated Gaussians.
 
     grid_potential: Optional[JaxArray]
-        Array of metadynamics bias potentials stored on a grid.
+        Array of Metadynamics bias potentials stored on a grid.
 
     grid_gradient: Optional[JaxArray]
-        Array of metadynamics bias gradients for each particle in the simulation stored on a grid.
+        Array of Metadynamics bias gradients for each particle in the simulation stored on a grid.
 
     idx: int
-        Index of the next gaussian to be deposited.
+        Index of the next Gaussian to be deposited.
 
     nstep: int
         Counts the number of times `method.update` has been called.
@@ -85,49 +88,47 @@ class Metadynamics(SamplingMethod):
     Implementation of Standard and Well-tempered Metadynamics as described in
     [PNAS 99.20, 12562-6 (2002)](https://doi.org/10.1073/pnas.202427399) and
     [Phys. Rev. Lett. 100, 020603 (2008)](https://doi.org/10.1103/PhysRevLett.100.020603)
+
+    Parameters
+    ----------
+    cvs:
+        Set of user selected collective variable.
+
+    height:
+        Initial height of the deposited Gaussians.
+
+    sigma:
+        Initial standard deviation of the to-be-deposit Gaussians.
+
+    stride: int
+        Bias potential deposition frequency.
+
+    ngaussians: int
+        Total number of expected Gaussians (`timesteps // stride + 1`).
+
+    Keyword arguments
+    -----------------
+
+    deltaT: Optional[float] = None
+        Well-tempered Metadynamics :math:`\\Delta T` parameter
+        (if `None` standard Metadynamics is used).
+
+    grid: Optional[Grid] = None
+        If provided, it will be used to accelerate the computation by
+        approximating the bias potential and its gradient over its centers.
+
+    kB: Optional[float]
+        Boltzmann constant. Must be provided for well-tempered Metadynamics
+        simulations and should match the internal units of the backend.
     """
 
     snapshot_flags = {"positions", "indices"}
 
     def __init__(self, cvs, height, sigma, stride, ngaussians, *args, deltaT=None, **kwargs):
-        """
-        Arguments
-        ---------
-
-        cvs:
-            Set of user selected collective variable.
-
-        height:
-            Initial height of the deposited Gaussians.
-
-        sigma:
-            Initial standard deviation of the to-be-deposit Gaussians.
-
-        stride: int
-            Bias potential deposition frequency.
-
-        ngaussians: int
-            Total number of expected gaussians (timesteps // stride + 1).
-
-        Keyword arguments
-        -----------------
-
-        deltaT: Optional[float] = None
-            Well-tempered metadynamics $\\Delta T$ parameter
-            (if `None` standard metadynamics is used).
-
-        grid: Optional[Grid] = None
-            If provided, it will be used to accelerate the computation by
-            approximating the bias potential and its gradient over its centers.
-
-        kB: Optional[float]
-            Boltzmann constant. Must be provided for well-tempered metadynamics
-            simulations and should match the internal units of the backend.
-        """
 
         if deltaT is not None and "kB" not in kwargs:
             raise KeyError(
-                "For well-tempered metadynamics a keyword argument `kB` for "
+                "For well-tempered Metadynamics a keyword argument `kB` for "
                 "the value of the Boltzmann constant (that matches the "
                 "internal units of the backend) must be provided."
             )
@@ -182,7 +183,7 @@ def _metadynamics(method, snapshot, helpers):
         # Compute the collective variable and its jacobian
         xi, Jxi = cv(data)
 
-        # Deposit gaussian depending on the stride
+        # Deposit Gaussian depending on the stride
         nstep = state.nstep
         in_deposition_step = (nstep > 0) & (nstep % stride == 0)
         partial_state = deposit_gaussian(xi, state, in_deposition_step)
@@ -202,7 +203,7 @@ def _metadynamics(method, snapshot, helpers):
 def build_gaussian_accumulator(method: Metadynamics):
     """
     Returns a function that given a `MetadynamicsState`, and the value of the CV,
-    stores the next gaussian that is added to the biasing potential.
+    stores the next Gaussian that is added to the biasing potential.
     """
     periods = get_periods(method.cvs)
     height_0 = method.height
@@ -242,7 +243,7 @@ def build_gaussian_accumulator(method: Metadynamics):
             update = jit(lambda V, dV, vals, grads: (accum(V, vals), accum(dV, grads)))
 
         def update_grids(pstate, height, xi, sigma):
-            # We use sum_of_gaussians since it already takes care of the wrapping
+            # We use `sum_of_gaussians` since it already takes care of the wrapping
             current_gaussian = jit(lambda x: sum_of_gaussians(x, height, xi, sigma, periods))
             # Evaluate gradient of bias (and bias potential for WT version)
             grid_values = pack(vmap(transform(current_gaussian))(grid_mesh))
@@ -268,7 +269,7 @@ def build_gaussian_accumulator(method: Metadynamics):
 
 def build_bias_grad_evaluator(method: Metadynamics):
     """
-    Returns a function that given the deposited gaussians parameters, computes the
+    Returns a function that given the deposited Gaussians parameters, computes the
     gradient of the biasing potential with respect to the CVs.
     """
     if method.grid is None:
@@ -283,7 +284,49 @@ def build_bias_grad_evaluator(method: Metadynamics):
 # Helper function to evaluate bias potential -- may be moved to analysis part
 def sum_of_gaussians(xi, heights, centers, sigmas, periods):
     """
-    Sum of n-dimensional gaussians potential.
+    Sum of n-dimensional Gaussians potential.
     """
     delta_x = wrap(xi - centers, periods)
     return gaussian(heights, sigmas, delta_x).sum()
+
+
+@dispatch
+def analyze(result: Result[Metadynamics]):
+    """
+    Helper for calculating the free energy from the final state of a `Metadynamics` run.
+
+    Arguments
+    ---------
+        result: Result[Metadynamics]: Result bundle containing method,
+           final metadynamics state, and callback.
+
+    Returns
+    -------
+        dict: A ``dict`` with the following keys:
+
+        heights:
+            Height of the Gaussian bias potential during the simulation.
+
+        metapotential:
+            Maps a user-provided array of CV values to the corresponding deposited bias potential.
+            For standard metadynamics, the free energy along user-provided CV range is the same
+            as `metapotential(cv)`. In the case of well-tempered metadynamics, the free energy is
+            equal to `(T + deltaT) / deltaT * metapotential(cv)`, where `T` is the simulation
+            temperature and `deltaT` is the user-defined parameter in well-tempered
+            metadynamics.
+    """
+    method = result.method
+    state = result.states
+
+    P = get_periods(method.cvs)
+
+    heights = state.heights
+    centers = state.centers
+    sigmas = state.sigmas
+
+    @jit
+    def metapotential(xs):
+        f = vmap(lambda x: sum_of_gaussians(x, heights, centers, sigmas, P))
+        return f(xs)
+
+    return dict(heights=heights, metapotential=metapotential)

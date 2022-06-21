@@ -5,7 +5,7 @@
 """
 Collection of helpful classes for methods.
 
-This includes callback functors (callable classes).
+This includes callback functor objects (callable classes).
 """
 
 from jax import numpy as np
@@ -15,20 +15,18 @@ class HistogramLogger:
     """
     Implements a Callback functor for methods.
     Logs the state of the collective variable to generate histograms.
+
+
+    Parameters
+    ----------
+    period:
+        Time steps between logging of collective variables.
+
+    offset:
+        Time steps at the beginning of a run used for equilibration.
     """
 
     def __init__(self, period: int, offset: int = 0):
-        """
-        HistogramLogger constructor.
-
-        Arguments
-        ---------
-        period:
-            Timesteps between logging of collective variables.
-
-        offset:
-            Timesteps at the beginning of a run used for equilibration.
-        """
         self.period = period
         self.counter = 0
         self.offset = offset
@@ -44,7 +42,7 @@ class HistogramLogger:
 
     def get_histograms(self, **kwargs):
         """
-        Helper function to generate histrograms from the collected CV data.
+        Helper function to generate histograms from the collected CV data.
         `kwargs` are passed on to `numpy.histogramdd` function.
         """
         data = np.asarray(self.data)
@@ -61,7 +59,7 @@ class HistogramLogger:
 
     def get_cov(self):
         """
-        Returns covariance matrix of the histgram data.
+        Returns covariance matrix of the histogram data.
         """
         data = np.asarray(self.data)
         return np.cov(data.T)
@@ -78,19 +76,20 @@ class HistogramLogger:
 class MetaDLogger:
     """
     Logs the state of the collective variable and other parameters in Metadynamics.
+
+    Parameters
+    ----------
+    hills_file:
+        Name of the output hills log file.
+
+    log_period:
+        Time steps between logging of collective variables and Metadynamics parameters.
+
     """
 
     def __init__(self, hills_file, log_period):
         """
         MetaDLogger constructor.
-
-        Arguments
-        ---------
-        hills_file:
-            Name of the output hills log file.
-
-        log_period:
-            Timesteps between logging of collective variables and metadynamics parameters.
         """
         self.hills_file = hills_file
         self.log_period = log_period
@@ -119,7 +118,7 @@ class MetaDLogger:
 
 def listify(arg, replicas, name, dtype):
     """
-    Returns a list of with lenght `replicas` of `arg` if `arg` is not a list,
+    Returns a list of with length `replicas` of `arg` if `arg` is not a list,
     or `arg` if it is already a list of length `replicas`.
     """
     if isinstance(arg, list):

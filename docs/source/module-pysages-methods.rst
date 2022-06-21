@@ -11,6 +11,7 @@ Available Methods
    pysages.methods.ann.ANN
    pysages.methods.ffs.FFS
    pysages.methods.funn.FUNN
+   pysages.methods.metad.Metadynamics
    pysages.methods.umbrella_integration.UmbrellaIntegration
    pysages.methods.harmonic_bias.HarmonicBias
 
@@ -19,6 +20,7 @@ Utility classes for Methods
 .. autosummary::
 
    pysages.methods.utils.HistogramLogger
+   pysages.methods.utils.MetaDLogger
 
 Abstract base classes
 
@@ -37,6 +39,7 @@ Abstract base classes
    module-pysages-methods-ffs
    module-pysages-methods-funn
    module-pysages-methods-harmonic_bias
+   module-pysages-methods-metad
    module-pysages-methods-umbrella
    module-pysages-methods-utils
    module-pysages-methods-core
