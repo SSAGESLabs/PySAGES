@@ -3,7 +3,7 @@
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 """
-Implementation of Standard and Well-tempered Meta-dynamics both with optional support for grids.
+Implementation of Standard and Well-tempered Metadynamics both with optional support for grids.
 """
 
 from typing import NamedTuple, Optional
@@ -21,7 +21,7 @@ from pysages.utils import dispatch
 
 class MetadynamicsState(NamedTuple):
     """
-    Meta-dynamics helper state
+    Metadynamics helper state
 
     Parameters
     ----------
@@ -70,7 +70,7 @@ class MetadynamicsState(NamedTuple):
 
 class PartialMetadynamicsState(NamedTuple):
     """
-    Helper intermediate Meta-dynamics state
+    Helper intermediate Metadynamics state
     """
 
     xi: JaxArray
@@ -85,7 +85,7 @@ class PartialMetadynamicsState(NamedTuple):
 
 class Metadynamics(SamplingMethod):
     """
-    Implementation of Standard and Well-tempered Meta-dynamics as described in
+    Implementation of Standard and Well-tempered Metadynamics as described in
     [PNAS 99.20, 12562-6 (2002)](https://doi.org/10.1073/pnas.202427399) and
     [Phys. Rev. Lett. 100, 020603 (2008)](https://doi.org/10.1103/PhysRevLett.100.020603)
 
