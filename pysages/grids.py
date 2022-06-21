@@ -72,11 +72,25 @@ class Grid:
         return type_parameter(self) is Periodic
 
 
+def build_grid(T, lower, upper, shape):
+    return Grid[T](lower, upper, shape)
+
+
 @dispatch
 def convert(grid: Grid, T: type):
     if not issubclass(T, Grid):
         raise TypeError(f"Cannot convert Grid to a {repr(T)}")
     return T(grid.lower, grid.upper, grid.shape)
+
+
+def get_info(grid: Grid):
+    T = type_parameter(grid)
+    grid_args = (
+        tuple(float(x) for x in grid.lower),
+        tuple(float(x) for x in grid.upper),
+        tuple(int(x) for x in grid.shape),
+    )
+    return (T, *grid_args)
 
 
 @dispatch
