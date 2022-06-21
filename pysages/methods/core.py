@@ -96,6 +96,7 @@ def run(
     timesteps: Union[int, float],
     callback: Optional[Callable] = None,
     context_args: Optional[dict] = None,
+    post_run_action: Optional[Callable] = None,
     **kwargs
 ):
     """
@@ -120,6 +121,12 @@ def run(
 
     context_args: Optional[dict] = None
         Arguments to pass down to `context_generator` to setup the simulation context.
+
+    post_run_action: Optional[Callable] = None
+        Callable function that enables actions after the run execution of PySAGES.
+        Actions are executed inside the generated context. Example uses for this
+        include writing a final configuration file. This function gets `context_args`
+        unpacked just like `context_generator`.
     """
     timesteps = int(timesteps)
     context_args = {} if context_args is None else context_args
@@ -129,6 +136,8 @@ def run(
 
     with wrapped_context:
         wrapped_context.run(timesteps, **kwargs)
+        if post_run_action:
+            post_run_action(**context_args)
 
     state = wrapped_context.sampler.state
     return Result(method, state, callback)

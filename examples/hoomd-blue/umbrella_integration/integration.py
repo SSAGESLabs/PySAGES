@@ -110,6 +110,15 @@ def get_args(argv):
     return args
 
 
+def post_run_action(**kwargs):
+    hoomd.dump.gsd(
+        filename=f"final_{kwargs.get('replica_num')}.gsd",
+        overwrite=True,
+        period=None,
+        group=hoomd.group.all(),
+    )
+
+
 def main(argv):
     args = get_args(argv)
 
@@ -118,7 +127,9 @@ def main(argv):
     centers = list(np.linspace(args.start_path, args.end_path, args.replicas))
     method = UmbrellaIntegration(cvs, args.k_spring, centers, args.log_period, args.log_delay)
 
-    raw_result = pysages.run(method, generate_context, args.time_steps)
+    raw_result = pysages.run(
+        method, generate_context, args.time_steps, post_run_action=post_run_action
+    )
     result = pysages.analyze(raw_result)
 
     plot_energy(result)
