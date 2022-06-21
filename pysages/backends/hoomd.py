@@ -50,7 +50,7 @@ class Sampler(DLExtSampler):
         self.pybox = self._get_pybox(box)
         self.dt = dt
 
-        def python_update(positions, vel_mass, rtags, imgs, forces):
+        def python_update(positions, vel_mass, rtags, imgs, forces, timestep):
             positions = asarray(positions)
             vel_mass = asarray(vel_mass)
             ids = asarray(rtags)
@@ -68,7 +68,7 @@ class Sampler(DLExtSampler):
             self.state = update(snap, self.state)
             self.bias(snap, self.state)
             if self.callback:
-                self.callback(snap, self.state, 0)
+                self.callback(snap, self.state, timestep)
 
         super().__init__(sysview, python_update, default_location(), AccessMode.Read)
 
