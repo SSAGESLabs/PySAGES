@@ -85,8 +85,8 @@ class ABF(GriddedSamplingMethod):
 
     snapshot_flags = {"positions", "indices", "momenta"}
 
-    def __init__(self, cvs, grid, *args, **kwargs):
-        super().__init__(cvs, grid, *args, **kwargs)
+    def __init__(self, cvs, grid, **kwargs):
+        super().__init__(cvs, grid, **kwargs)
         self.N = np.asarray(self.kwargs.get("N", 200))
 
     def build(self, snapshot, helpers, *args, **kwargs):

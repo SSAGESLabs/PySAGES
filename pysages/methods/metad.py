@@ -124,7 +124,7 @@ class Metadynamics(SamplingMethod):
 
     snapshot_flags = {"positions", "indices"}
 
-    def __init__(self, cvs, height, sigma, stride, ngaussians, *args, deltaT=None, **kwargs):
+    def __init__(self, cvs, height, sigma, stride, ngaussians, deltaT=None, **kwargs):
 
         if deltaT is not None and "kB" not in kwargs:
             raise KeyError(
@@ -133,7 +133,7 @@ class Metadynamics(SamplingMethod):
                 "internal units of the backend) must be provided."
             )
 
-        super().__init__(cvs, args, kwargs)
+        super().__init__(cvs, **kwargs)
 
         self.height = height
         self.sigma = sigma
