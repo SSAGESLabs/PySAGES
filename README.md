@@ -1,5 +1,7 @@
 # PySAGES
 
+![example workflow](https://github.com/SSAGESLabs/PySAGES/actions/workflows/ci/badge.svg)
+
 PySAGES (Python Suite for Advanced General Ensemble Simulations) is an Python
 implementation of [SSAGES](https://ssagesproject.github.io) with support for GPUs.
 
