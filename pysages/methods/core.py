@@ -12,7 +12,7 @@ from jax import grad, jit
 from plum import parametric
 
 from pysages.backends import ContextWrapper
-from pysages.grids import build_grid, get_info
+from pysages.grids import Grid, NoGrid, build_grid, get_info
 from pysages.colvars.core import build
 from pysages.utils import dispatch, identity
 
@@ -180,9 +180,15 @@ def default_setstate(method, state):
     method.__init__(**args, **kwargs)
 
 
-def check_dims(cvs, grid):
+@dispatch
+def check_dims(cvs, grid: Grid):
     if len(cvs) != grid.shape.size:
         raise ValueError("Grid and Collective Variable dimensions must match.")
+
+
+@dispatch
+def check_dims(cvs, grid: NoGrid):
+    pass
 
 
 def generalize(concrete_update, helpers, jit_compile=True):
