@@ -1,9 +1,9 @@
-PySAGES Collective Variables
-----------------------------
+Collective Variables
+--------------------
 
 .. rubric:: Overview
 
-Available Collective Variables
+In PySAGES Available Collective Variables
 
 .. autosummary::
 
