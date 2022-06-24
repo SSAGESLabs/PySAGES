@@ -3,7 +3,7 @@ Collective Variables
 
 .. rubric:: Overview
 
-In PySAGES Available Collective Variables
+Collective Variables available in PySAGES
 
 .. autosummary::
 
