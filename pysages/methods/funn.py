@@ -116,8 +116,8 @@ class FUNN(NNSamplingMethod):
 
     snapshot_flags = {"positions", "indices", "momenta"}
 
-    def __init__(self, cvs, grid, topology, *args, **kwargs):
-        super().__init__(cvs, grid, topology, *args, **kwargs)
+    def __init__(self, cvs, grid, topology, **kwargs):
+        super().__init__(cvs, grid, topology, **kwargs)
 
         self.N = np.asarray(kwargs.get("N", 200))
         self.train_freq = kwargs.get("train_freq", 5000)

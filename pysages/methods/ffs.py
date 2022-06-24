@@ -54,9 +54,9 @@ class FFS(SamplingMethod):
 
     snapshot_flags = {"positions", "indices"}
 
-    def __init__(self, cvs, *args, **kwargs):
+    def __init__(self, cvs, **kwargs):
         kwargs["cv_grad"] = None
-        super().__init__(cvs, *args, **kwargs)
+        super().__init__(cvs, **kwargs)
 
     def build(self, snapshot, helpers):
         self.helpers = helpers

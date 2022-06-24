@@ -4,6 +4,7 @@
 
 from abc import ABC, abstractmethod
 from functools import reduce
+from inspect import getfullargspec
 from operator import or_
 from typing import Callable, Optional, Union
 
@@ -11,8 +12,10 @@ from jax import grad, jit
 from plum import parametric
 
 from pysages.backends import ContextWrapper
+from pysages.grids import Grid, NoGrid, build_grid, get_info
 from pysages.colvars.core import build
 from pysages.utils import dispatch, identity
+
 
 #  Base Classes
 #  ============
@@ -28,17 +31,22 @@ class SamplingMethod(ABC):
     All these are intended to be enhanced/overwritten by inheriting classes.
     """
 
+    __special_args__ = set()
     snapshot_flags = set()
 
-    def __init__(self, cvs, *args, **kwargs):
+    def __init__(self, cvs, **kwargs):
         self.cvs = cvs
         self.cv = build(*cvs, grad=kwargs.get("cv_grad", grad))
         self.requires_box_unwrapping = reduce(
             or_, (cv.requires_box_unwrapping for cv in cvs), False
         )
-        self.args = args
         self.kwargs = kwargs
-        self.context = []
+
+    def __getstate__(self):
+        return default_getstate(self)
+
+    def __setstate__(self, state):
+        default_setstate(self, state)
 
     @abstractmethod
     def build(self, snapshot, helpers, *args, **kwargs):
@@ -52,10 +60,20 @@ class SamplingMethod(ABC):
 
 
 class GriddedSamplingMethod(SamplingMethod):
-    def __init__(self, cvs, grid, *args, **kwargs):
+    __special_args__ = {"grid"}
+
+    def __init__(self, cvs, grid, **kwargs):
         check_dims(cvs, grid)
-        super().__init__(cvs, *args, **kwargs)
+        super().__init__(cvs, **kwargs)
         self.grid = grid
+
+    def __getstate__(self):
+        return (get_info(self.grid), *default_getstate(self))
+
+    def __setstate__(self, state):
+        grid_args, args, kwargs = state
+        args["grid"] = build_grid(*grid_args)
+        default_setstate(self, (args, kwargs))
 
     @abstractmethod
     def build(self, snapshot, helpers, *args, **kwargs):
@@ -63,8 +81,8 @@ class GriddedSamplingMethod(SamplingMethod):
 
 
 class NNSamplingMethod(GriddedSamplingMethod):
-    def __init__(self, cvs, grid, topology, *args, **kwargs):
-        super().__init__(cvs, grid, *args, **kwargs)
+    def __init__(self, cvs, grid, topology, **kwargs):
+        super().__init__(cvs, grid, **kwargs)
         self.topology = topology
 
     @abstractmethod
@@ -152,9 +170,25 @@ def analyze(result: Result):
 #  =====
 
 
-def check_dims(cvs, grid):
+def default_getstate(method: SamplingMethod):
+    init_args = set(getfullargspec(method.__init__).args[1:]) - method.__special_args__
+    return {key: method.__dict__[key] for key in init_args}, method.kwargs
+
+
+def default_setstate(method, state):
+    args, kwargs = state
+    method.__init__(**args, **kwargs)
+
+
+@dispatch
+def check_dims(cvs, grid: Grid):
     if len(cvs) != grid.shape.size:
         raise ValueError("Grid and Collective Variable dimensions must match.")
+
+
+@dispatch
+def check_dims(cvs, grid: NoGrid):
+    pass
 
 
 def generalize(concrete_update, helpers, jit_compile=True):

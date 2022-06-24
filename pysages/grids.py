@@ -26,6 +26,10 @@ class Chebyshev(GridType):
     pass
 
 
+class NoGrid:
+    pass
+
+
 @parametric
 @dataclass
 class Grid:
@@ -73,10 +77,36 @@ class Grid:
 
 
 @dispatch
+def build_grid(T, lower, upper, shape):
+    return Grid[T](lower, upper, shape)
+
+
+@dispatch
+def build_grid(grid: NoGrid):
+    return grid
+
+
+@dispatch
 def convert(grid: Grid, T: type):
     if not issubclass(T, Grid):
         raise TypeError(f"Cannot convert Grid to a {repr(T)}")
     return T(grid.lower, grid.upper, grid.shape)
+
+
+@dispatch
+def get_info(grid: Grid):
+    T = type_parameter(grid)
+    grid_args = (
+        tuple(float(x) for x in grid.lower),
+        tuple(float(x) for x in grid.upper),
+        tuple(int(x) for x in grid.shape),
+    )
+    return (T, *grid_args)
+
+
+@dispatch
+def get_info(grid: NoGrid):
+    return (grid,)
 
 
 @dispatch

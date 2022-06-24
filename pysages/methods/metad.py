@@ -13,9 +13,9 @@ from jax.lax import cond
 
 from pysages.approxfun import compute_mesh
 from pysages.colvars import get_periods, wrap
-from pysages.methods.core import Result, SamplingMethod, generalize
+from pysages.methods.core import Result, GriddedSamplingMethod, generalize
 from pysages.utils import JaxArray, gaussian, identity
-from pysages.grids import build_indexer
+from pysages.grids import NoGrid, build_indexer
 from pysages.utils import dispatch
 
 
@@ -83,7 +83,7 @@ class PartialMetadynamicsState(NamedTuple):
     grid_idx: Optional[JaxArray]
 
 
-class Metadynamics(SamplingMethod):
+class Metadynamics(GriddedSamplingMethod):
     """
     Implementation of Standard and Well-tempered Metadynamics as described in
     [PNAS 99.20, 12562-6 (2002)](https://doi.org/10.1073/pnas.202427399) and
@@ -124,7 +124,7 @@ class Metadynamics(SamplingMethod):
 
     snapshot_flags = {"positions", "indices"}
 
-    def __init__(self, cvs, height, sigma, stride, ngaussians, *args, deltaT=None, **kwargs):
+    def __init__(self, cvs, height, sigma, stride, ngaussians, deltaT=None, **kwargs):
 
         if deltaT is not None and "kB" not in kwargs:
             raise KeyError(
@@ -133,7 +133,8 @@ class Metadynamics(SamplingMethod):
                 "internal units of the backend) must be provided."
             )
 
-        super().__init__(cvs, args, kwargs)
+        kwargs["grid"] = kwargs.get("grid", NoGrid)
+        super().__init__(cvs, **kwargs)
 
         self.height = height
         self.sigma = sigma
@@ -142,7 +143,6 @@ class Metadynamics(SamplingMethod):
         self.deltaT = deltaT
 
         self.kB = kwargs.get("kB", None)
-        self.grid = kwargs.get("grid", None)
 
     def build(self, snapshot, helpers, *args, **kwargs):
         return _metadynamics(self, snapshot, helpers)
@@ -168,7 +168,7 @@ def _metadynamics(method, snapshot, helpers):
         sigmas = np.array(method.sigma, dtype=np.float64, ndmin=2)
 
         # Arrays to store forces and bias potential on a grid.
-        if method.grid is None:
+        if method.grid is NoGrid:
             grid_potential = grid_gradient = None
         else:
             shape = method.grid.shape
@@ -214,7 +214,7 @@ def build_gaussian_accumulator(method: Metadynamics):
     if deltaT is None:
         next_height = jit(lambda *args: height_0)
     else:  # if well-tempered
-        if grid is None:
+        if grid is NoGrid:
             evaluate_potential = jit(lambda pstate: sum_of_gaussians(*pstate[:4], periods))
         else:
             evaluate_potential = jit(lambda pstate: pstate.grid_potential[pstate.grid_idx])
@@ -223,7 +223,7 @@ def build_gaussian_accumulator(method: Metadynamics):
             V = evaluate_potential(pstate)
             return height_0 * np.exp(-V / (deltaT * kB))
 
-    if grid is None:
+    if grid is NoGrid:
         get_grid_index = jit(lambda arg: None)
         update_grids = jit(lambda *args: (None, None))
     else:
@@ -272,7 +272,7 @@ def build_bias_grad_evaluator(method: Metadynamics):
     Returns a function that given the deposited Gaussians parameters, computes the
     gradient of the biasing potential with respect to the CVs.
     """
-    if method.grid is None:
+    if method.grid is NoGrid:
         periods = get_periods(method.cvs)
         evaluate_bias_grad = jit(lambda pstate: grad(sum_of_gaussians)(*pstate[:4], periods))
     else:

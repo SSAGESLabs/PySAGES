@@ -79,7 +79,7 @@ class ANN(NNSamplingMethod):
 
     snapshot_flags = {"positions", "indices"}
 
-    def __init__(self, cvs, grid, topology, kT, *args, **kwargs):
+    def __init__(self, cvs, grid, topology, kT, **kwargs):
         """
         Arguments
         ---------
@@ -103,7 +103,7 @@ class ANN(NNSamplingMethod):
             (defaults to 5000).
         """
 
-        super().__init__(cvs, grid, topology, *args, **kwargs)
+        super().__init__(cvs, grid, topology, **kwargs)
 
         self.kT = kT
         self.train_freq = kwargs.get("train_freq", 5000)
