@@ -319,17 +319,30 @@ def analyze(result: Result[Metadynamics]):
             well-tempered metadynamics.
     """
     method = result.method
-    state = result.states
+    states = result.states
 
     P = get_periods(method.cvs)
 
-    heights = state.heights
-    centers = state.centers
-    sigmas = state.sigmas
+    if len(states) == 1:
+        heights = states[0].heights
+        centers = states[0].centers
+        sigmas = states[0].sigmas
 
-    @jit
-    def metapotential(xs):
-        f = vmap(lambda x: sum_of_gaussians(x, heights, centers, sigmas, P))
-        return f(xs)
+        metapotential = jit(vmap(lambda x: sum_of_gaussians(x, heights, centers, sigmas, P)))
 
-    return dict(heights=heights, metapotential=metapotential)
+        return dict(heights=heights, metapotential=metapotential)
+
+    # For multiple-replicas runs we return a list heights and functions
+    # (one for each replica)
+
+    def build_metapotential(heights, centers, sigmas):
+        return jit(vmap(lambda x: sum_of_gaussians(x, heights, centers, sigmas, P)))
+
+    heights = []
+    metapotentials = []
+
+    for s in states:
+        heights.append(s.heights)
+        metapotentials.append(build_metapotential(s.heights, s.centers, s.sigmas))
+
+    return dict(heights=heights, metapotential=metapotentials)

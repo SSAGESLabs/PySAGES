@@ -14,12 +14,12 @@ However, the method is not very accurate and it is preferred that more advanced 
 (e.g. the Weighted Histogram Analysis Method) are used for the analysis of the simulations.
 """
 
+from copy import deepcopy
 from typing import Callable, Optional, Union
 
-from pysages.backends import ContextWrapper
-from pysages.methods.core import Result, SamplingMethod
+from pysages.methods.core import Result, SamplingMethod, _run
 from pysages.methods.harmonic_bias import HarmonicBias
-from pysages.methods.utils import HistogramLogger, listify
+from pysages.methods.utils import HistogramLogger, listify, SerialExecutor
 from pysages.utils import dispatch
 
 
@@ -75,6 +75,7 @@ def run(  # pylint: disable=arguments-differ
     timesteps: Union[int, float],
     context_args: Optional[dict] = None,
     post_run_action: Optional[Callable] = None,
+    executor=SerialExecutor(),
     **kwargs
 ):
     """
@@ -112,24 +113,31 @@ def run(  # pylint: disable=arguments-differ
     * Note:
         This method does not accept a user defined callback.
     """
-
+    timesteps = int(timesteps)
     context_args = {} if context_args is None else context_args
 
-    states = []
-    callbacks = []
+    def submit_work(executor, method, context_args, callback):
+        return executor.submit(
+            _run,
+            method,
+            context_generator,
+            timesteps,
+            context_args,
+            callback,
+            post_run_action,
+            **kwargs
+        )
 
-    for rep, submethod in enumerate(method.submethods):
-        context_args["replica_num"] = rep
-        context = context_generator(**context_args)
-        callback = method.histograms[rep]
-        wrapped_context = ContextWrapper(context, submethod, callback)
-
-        with wrapped_context:
-            state = wrapped_context.run(timesteps, **kwargs)  # pylint: disable=E1102
-            states.append(state)
-            if post_run_action:
-                post_run_action(**context_args)
-        callbacks.append(callback)
+    futures = []
+    with executor as ex:
+        for rep, submethod in enumerate(method.submethods):
+            local_context_args = deepcopy(context_args)
+            local_context_args["replica_num"] = rep
+            callback = method.histograms[rep]
+            futures.append(submit_work(ex, submethod, local_context_args, callback))
+        results = [future.result() for future in futures]
+        states = [r.states for r in results]
+        callbacks = [r.callbacks for r in results]
 
     return Result(method, states, callbacks)
 
