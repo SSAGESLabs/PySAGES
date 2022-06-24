@@ -6,7 +6,7 @@ from copy import deepcopy
 from functools import partial
 from typing import Callable, NamedTuple
 
-from jax import jit, numpy as np
+from jax import default_backend as default_device, jit, numpy as np
 
 from pysages.backends.core import ContextWrapper
 from pysages.backends.snapshot import (
@@ -72,8 +72,12 @@ def build_snapshot_methods(context, sampling_method):
 def build_helpers(context, sampling_method):
     # Depending on the device being used we need to use either cupy or numpy
     # (or numba) to generate a view of jax's DeviceArrays
-    utils = importlib.import_module(".utils", package="pysages.backends")
-    view = utils.view
+    if default_device() == "gpu":
+        cupy = importlib.import_module("cupy")
+        view = cupy.asarray
+    else:
+        utils = importlib.import_module(".utils", package="pysages.backends")
+        view = utils.view
 
     def restore_vm(view, snapshot, prev_snapshot):
         # TODO: Check if we can omit modifying the masses
@@ -92,6 +96,11 @@ def build_helpers(context, sampling_method):
 
 
 def wrap_step_fn(simulation, sampler, callback):
+    """
+    Wraps the original step function of the `ase.md.MolecularDynamics`
+    instance `simulation`, and injects calls to the sampling method's `update`
+    and the user provided callback.
+    """
     number_of_steps = simulation.get_number_of_steps
     step = simulation.step
 
@@ -107,13 +116,17 @@ def wrap_step_fn(simulation, sampler, callback):
 
 
 class View(NamedTuple):
-    step: Callable
+    step: Callable  # stores the original step function
     synchronize: Callable
 
 
 def bind(
     wrapped_context: ContextWrapper, sampling_method: SamplingMethod, callback: Callable, **kwargs
 ):
+    """
+    Entry point for the backend code, it gets called when the simulation
+    context is wrapped within `pysages.run`.
+    """
     context = wrapped_context.context
     snapshot = take_snapshot(context)
     helpers = build_helpers(wrapped_context.view, sampling_method)
