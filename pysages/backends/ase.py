@@ -91,21 +91,23 @@ def build_helpers(context, sampling_method):
     return helpers
 
 
-def build_runner(simulation, sampler, callback):
+def wrap_step_fn(simulation, sampler, callback):
+    number_of_steps = simulation.get_number_of_steps
+    step = simulation.step
 
-    def run(timesteps):
-        for i in range(timesteps):
-            sampler.snapshot = take_snapshot(simulation)
-            sampler.state = sampler.update(sampler.snapshot, sampler.state)
-            forces = deepcopy(sampler.snapshot.forces + sampler.state.bias)
-            simulation.step(forces=forces)
-            if callback:
-                callback(sampler.snapshot, sampler.state, i)
+    def sampler_step():
+        sampler.snapshot = take_snapshot(simulation)
+        sampler.state = sampler.update(sampler.snapshot, sampler.state)
+        forces = deepcopy(sampler.snapshot.forces + sampler.state.bias)
+        step(forces=forces)
+        if callback:
+            callback(sampler.snapshot, sampler.state, number_of_steps())
 
-    return run
+    simulation.step = sampler_step
 
 
 class View(NamedTuple):
+    step: Callable
     synchronize: Callable
 
 
@@ -117,6 +119,7 @@ def bind(
     helpers = build_helpers(wrapped_context.view, sampling_method)
     method_bundle = sampling_method.build(snapshot, helpers)
     sampler = Sampler(method_bundle)
-    wrapped_context.view = View((lambda: None))
-    wrapped_context.run = build_runner(context, sampler, callback)
+    wrapped_context.view = View(context.step, (lambda: None))
+    wrap_step_fn(context, sampler, callback)
+    wrapped_context.run = context.run
     return sampler
