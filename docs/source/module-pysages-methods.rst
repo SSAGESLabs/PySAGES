@@ -3,7 +3,7 @@ Advanced Sampling Methods
 
 .. rubric:: Overview
 
-In PySAGES Available Methods
+Methods available in PySAGES
 
 .. autosummary::
 
