@@ -30,3 +30,5 @@ Metadynamics
 backend
 backends
 colab
+alanine
+dipeptide
