@@ -35,10 +35,9 @@ No compromises in usability and speed for enhanced-sampling methods!
 PySAGES addresses these challenges by offering a python interface between highly optimized simulation engines and the researcher to implement collective variables and enhanced-sampling methods.
 However, PySAGES already provides an extensible framework to compute collective variables and to perform enhanced-sampling molecular dynamics simulations to discover reaction pathways and estimate free energies.
 Most research objectives are achievable by using these implemented collective variables and methods.
-PySAGES connects these methods automatically to a highly optimized simulation back.
-We support two backends at the moment: `HOOMD-blue <https://glotzerlab.engin.umich.edu/hoomd-blue>`__ and
+PySAGES currently supports automatically connecting these methods to `HOOMD-blue <https://glotzerlab.engin.umich.edu/hoomd-blue>`__ and
 `OpenMM <http://openmm.org/>`__.
-Both engines have in common that they offer a python interface to the user and implement the simulation on GPUs for best performance.
+Both engines offer a python interface to the user and implement the simulation on GPUs for best performance.
 PySAGES interacts with both backends directly on the GPU memory, no copying between GPU and host memory is required.
 This approach allows biased simulations without slowing the backend simulation engines down.
 Still, PySAGES implements all methods and collective variables as pure python for access and modification.
