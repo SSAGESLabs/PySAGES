@@ -63,8 +63,8 @@ The dependencies for a PySAGES installation depend on your desired simulation ba
 Depending on your system setup, it may be necessary to reinstall the simulation backend, especially if you do not have write permission for your current installation.
 On top of the current installation, it is required that you install a plugin that connects PySAGES with the simulation engine:
 
- - For HOOMD-blue, visit `HOOMD DLPack Plugin <https://github.com/SSAGESLabs/hoomd-dlext>`__.
- - For OpenMM, go to `OpenMM DLPack Plugin <https://github.com/SSAGESLabs/openmm-dlext>`__.
+ - For HOOMD-blue, visit `HOOMD DLPack Plugin <https://github.com/SSAGESLabs/hoomd-dlext>`__
+ - For OpenMM, go to `OpenMM DLPack Plugin <https://github.com/SSAGESLabs/openmm-dlext>`__
 
 and follow their installation instructions.
 
