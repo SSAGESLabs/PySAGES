@@ -27,7 +27,7 @@ As a result, exploring a system by unbiased MD is insufficient to obtain good st
 To still investigate systems with high energy barriers, enhanced-sampling methods have been established.
 Typically, a configuration can be reduced to a collective variable (order parameter), and the simulation is biased based on these collective variables.
 The challenge for computer simulations is that i) almost every interesting system has its own collective variable description and ii) the implementation
-of collective variables and methods has run to efficiently on modern computers, to allow reasonable insights into the observable of interest.
+of collective variables and methods has to run efficiently on modern computers, to allow reasonable insights into the observable of interest.
 
 No compromises in usability and speed for enhanced-sampling methods!
 --------------------------------------------------------------------
