@@ -84,7 +84,7 @@ For the latest version of PySAGES, it is possible to deploy simulations with a `
 At the moment we cannot guarantee a stable docker image for PySAGES.
 
 Our installation tutorial on Google Colab enables you to see how PySAGES,
-HOOMD-blue and OpenMM can be built and installed:
+HOOMD-blue, and OpenMM can be built and installed:
 `Install Colab <https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/examples/Install_PySAGES_Environment.ipynb>`__
 
 
