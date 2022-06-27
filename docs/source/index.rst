@@ -25,7 +25,7 @@ Molecular dynamics (MD) simulations are powerful tools to investigate the static
 However, even with modern computer architecture and the fastest simulation software, computation time is limited and valuable.
 As a result, exploring a system by unbiased MD is insufficient to obtain good statistics, especially if the free-energy landscape is separated by high barriers.
 To address this well know drawback enhanced-sampling methods have been established.
-Typically, a configuration can be reduced to a collective variable (order parameter) and the simulation is biased based on these collective variables.
+Typically, a configuration can be reduced to a collective variable (order parameter), and the simulation is biased based on these collective variables.
 The challenge for computer simulations is that i) almost every interesting system has its own collective variable description and ii) the implementation
 of collective variables and methods has run efficiently on modern computers, to allow reasonable insights into the observable of interest.
 
