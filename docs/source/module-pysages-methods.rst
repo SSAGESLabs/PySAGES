@@ -1,9 +1,9 @@
-PySAGES Advanced Sampling Methods
----------------------------------
+Advanced Sampling Methods
+-------------------------
 
 .. rubric:: Overview
 
-Available Methods
+Methods available in PySAGES
 
 .. autosummary::
 
