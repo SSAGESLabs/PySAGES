@@ -3,7 +3,7 @@ PySAGES
 
 .. rubric:: Overview
 
-This documentation and software is under development, the API and implementation may change in the future.
+This documentation and software are under development. The API and implementation may change in the future.
 
 .. rubric:: Details
 
