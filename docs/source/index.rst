@@ -63,17 +63,17 @@ The dependencies for a PySAGES installation depend on your desired simulation ba
 Depending on your system setup, it may be necessary to reinstall the simulation backend, especially if you do not have write permission for your current installation.
 On top of the current installation, it is required that you install a plugin that connects PySAGES with the simulation engine:
 
- - For HOOMD-blue visit `HOOMD DLPack Plugin <https://github.com/SSAGESLabs/hoomd-dlext>`__.
- - For OpenMM go to `OpenMM DLPack Plugin <https://github.com/SSAGESLabs/openmm-dlext>`__.
+ - For HOOMD-blue, visit `HOOMD DLPack Plugin <https://github.com/SSAGESLabs/hoomd-dlext>`__.
+ - For OpenMM, go to `OpenMM DLPack Plugin <https://github.com/SSAGESLabs/openmm-dlext>`__.
 
-And follow their installation instruction.
+And follow their installation instructions.
 
-PySAGES also depends on `JAX <https://github.com/google/jax/>`__, follow their installation
+PySAGES also depends on `JAX <https://github.com/google/jax/>`__; follow their installation
 guide to set it up. *NOTE:* make sure you have jaxlib installed before using PySAGES.
 Depending on your local setup, you will have to install the jaxlib CPU version or the CUDA-compatible flavor.
 To utilize full GPU with PySAGES CUDA support of HOOMD-blue, HOOMD-dlext and JAX are required.
 
-After the install requirements are satisfied PySAGES can be installed with `pip`.
+Once the installation requirements are satisfied, PySAGES can be installed with `pip`.
 ```
 git clone https://github.com/SSAGESLabs/PySAGES.git
 cd PySAGES
