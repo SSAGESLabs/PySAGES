@@ -66,7 +66,7 @@ On top of the current installation, it is required that you install a plugin tha
  - For HOOMD-blue, visit `HOOMD DLPack Plugin <https://github.com/SSAGESLabs/hoomd-dlext>`__.
  - For OpenMM, go to `OpenMM DLPack Plugin <https://github.com/SSAGESLabs/openmm-dlext>`__.
 
-And follow their installation instructions.
+and follow their installation instructions.
 
 PySAGES also depends on `JAX <https://github.com/google/jax/>`__; follow their installation
 guide to set it up. *NOTE:* make sure you have jaxlib installed before using PySAGES.
