@@ -47,13 +47,13 @@ Getting Started
 ---------------
 
 PySAGES is designed to seamlessly integrate with your existing simulations.
-For an easily accessible start we prepared examples in Google Colab documents, they enable easy access to a working simulation environment including GPU hardware.
-For an example of using PySAGES with HOOMD-blue checkout `this <https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/examples/hoomd-blue/Umbrella_Integration.ipynb>`__ example for simple umbrella integration.
-If you are working with OpenMM we offer `this <https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/examples/openmm/Harmonic_Bias.ipynb>`__ notebook, which explores the Alanine Dipeptide dihedral angle via harmonic biasing.
+For an approachable start we prepared examples in Google Colab documents, which provide easy access to a working simulation environment and GPU hardware.
+For an example of using PySAGES with HOOMD-blue, check out `this <https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/examples/hoomd-blue/Umbrella_Integration.ipynb>`__ example for simple umbrella integration.
+If you are working with OpenMM, we offer `this <https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/examples/openmm/Harmonic_Bias.ipynb>`__ notebook, which explores the alanine dipeptide dihedral angle via harmonic biasing.
 Using the notebooks enables you to get started with PySAGES without installation.
 For a productive deployment, we recommend a full installation.
 
-We offer more examples, both Google Colab notebooks, and bare metal, in the PySAGES GitHub repository `examples <https://github.com/SSAGESLabs/PySAGES/tree/main/examples>`__.
+We offer more examples, in the form of both Google Colab notebooks and bare metal, in the PySAGES GitHub repository `examples <https://github.com/SSAGESLabs/PySAGES/tree/main/examples>`__.
 
 
 Installation
