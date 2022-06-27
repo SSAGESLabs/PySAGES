@@ -7,7 +7,7 @@
 PySAGES (Python Suite for Advanced General Ensemble Simulations) is a Python
 implementation of [SSAGES](https://ssagesproject.github.io) with support for GPUs.
 
-**NOTICE**: This is in early stages of development, expect breaking changes.
+**NOTICE**: This is in early stages of development. Expect breaking changes.
 
 ## Installation
 
