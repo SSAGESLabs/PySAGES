@@ -38,9 +38,9 @@ Most research objectives are achievable by using these implemented collective va
 PySAGES currently supports automatically connecting these methods to `HOOMD-blue <https://glotzerlab.engin.umich.edu/hoomd-blue>`__ and
 `OpenMM <http://openmm.org/>`__.
 Both engines offer a python interface to the user and implement the simulation on GPUs for best performance.
-PySAGES interacts with both backends directly on the GPU memory, no copying between GPU and host memory is required.
+PySAGES interacts with both backends directly on the GPU memory; copying between GPU and host memory is not required.
 This approach allows biased simulations without slowing the backend simulation engines down.
-Still, PySAGES implements all methods and collective variables as pure python for access and modification.
+PySAGES still implements all methods and collective variables as pure python for access and modification.
 
 
 Getting Started
