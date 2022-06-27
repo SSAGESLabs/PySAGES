@@ -33,10 +33,10 @@ unit = try_import("openmm.unit", "simtk.unit")
 
 class Sampler:
     def __init__(self, method_bundle, bias, callback: Callable):
-        snapshot, initialize, update = method_bundle
+        snapshot, initialize, method_update = method_bundle
         self.snapshot = snapshot
         self.state = initialize()
-        self._update = update
+        self._update = method_update
         self.bias = bias
         self.callback = callback
 

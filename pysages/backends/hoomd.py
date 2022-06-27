@@ -41,46 +41,35 @@ CONTEXTS_SAMPLERS = {}
 
 
 class Sampler(DLExtSampler):
-    def __init__(self, sysview, method_bundle, bias, dt, callback: Callable):
-        _, initialize, update = method_bundle
+    def __init__(self, sysview, method_bundle, bias, callback: Callable):
+        initial_snapshot, initialize, method_update = method_bundle
         self.state = initialize()
         self.callback = callback
         self.bias = bias
-        box = sysview.particle_data().getGlobalBox()
-        self.pybox = self._get_pybox(box)
-        self.dt = dt
+        self.box = initial_snapshot.box
+        self.dt = initial_snapshot.dt
 
-        def python_update(positions, vel_mass, rtags, imgs, forces, timestep):
+        def update(positions, vel_mass, rtags, imgs, forces, timestep):
             positions = asarray(positions)
             vel_mass = asarray(vel_mass)
             ids = asarray(rtags)
             images = asarray(imgs)
             forces = asarray(forces)
-            snap = Snapshot(
+            snapshot = Snapshot(
                 positions=positions,
                 vel_mass=vel_mass,
                 forces=forces,
                 ids=ids,
                 images=images,
-                box=self.pybox,
+                box=self.box,
                 dt=self.dt,
             )
-            self.state = update(snap, self.state)
-            self.bias(snap, self.state)
+            self.state = method_update(snapshot, self.state)
+            self.bias(snapshot, self.state)
             if self.callback:
-                self.callback(snap, self.state, timestep)
+                self.callback(snapshot, self.state, timestep)
 
-        super().__init__(sysview, python_update, default_location(), AccessMode.Read)
-
-    def _get_pybox(self, box):
-        L = box.getL()
-        xy = box.getTiltFactorXY()
-        xz = box.getTiltFactorXZ()
-        yz = box.getTiltFactorYZ()
-        lo = box.getLo()
-        H = ((L.x, xy * L.y, xz * L.z), (0.0, L.y, yz * L.z), (0.0, 0.0, L.z))
-        origin = (lo.x, lo.y, lo.z)
-        return Box(H, origin)
+        super().__init__(sysview, update, default_location(), AccessMode.Read)
 
 
 if hasattr(AccessLocation, "OnDevice"):
@@ -207,10 +196,11 @@ def bind(
         method_bundle = sampling_method.build(snapshot, helpers)
         sync_and_bias = partial(bias, sync_backend=sysview.synchronize)
 
-        sampler = Sampler(sysview, method_bundle, sync_and_bias, context.integrator.dt, callback)
+        sampler = Sampler(sysview, method_bundle, sync_and_bias, callback)
         context.integrator.cpp_integrator.setHalfStepHook(sampler)
 
         CONTEXTS_SAMPLERS[context] = sampler
+
     return sampler
 
 
