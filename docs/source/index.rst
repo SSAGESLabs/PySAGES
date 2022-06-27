@@ -24,7 +24,7 @@ PySAGES: Python Suite for Advanced General Ensemble Simulations
 Molecular dynamics (MD) simulations are powerful tools to investigate the static and dynamic properties of a given system.
 However, even with modern computer architecture and the fastest simulation software, computation time is limited and valuable.
 As a result, exploring a system by unbiased MD is insufficient to obtain good statistics, especially if the free-energy landscape is separated by high barriers.
-To address this well know drawback enhanced-sampling methods have been established.
+To still investigate systems with high energy barriers, enhanced-sampling methods have been established.
 Typically, a configuration can be reduced to a collective variable (order parameter), and the simulation is biased based on these collective variables.
 The challenge for computer simulations is that i) almost every interesting system has its own collective variable description and ii) the implementation
 of collective variables and methods has run to efficiently on modern computers, to allow reasonable insights into the observable of interest.
@@ -32,7 +32,7 @@ of collective variables and methods has run to efficiently on modern computers, 
 No compromises in usability and speed for enhanced-sampling methods!
 --------------------------------------------------------------------
 
-PySAGES addresses these challenges by offering a python interface between highly optimized simulation engines and the researcher to implement collective variables and enhance-sampling methods.
+PySAGES addresses these challenges by offering a python interface between highly optimized simulation engines and the researcher to implement collective variables and enhanced-sampling methods.
 However, PySAGES already provides an extensible framework to compute collective variables and to perform enhanced-sampling molecular dynamics simulations to discover reaction pathways and estimate free energies.
 Most research objectives are achievable by using these implemented collective variables and methods.
 PySAGES connects these methods automatically to a highly optimized simulation back.
