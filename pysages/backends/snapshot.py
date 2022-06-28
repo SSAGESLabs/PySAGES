@@ -57,7 +57,6 @@ class SnapshotMethods(NamedTuple):
 
 class HelperMethods(NamedTuple):
     query: Callable
-    restore: Callable
 
 
 @dispatch(precedence=1)

@@ -41,28 +41,24 @@ CONTEXTS_SAMPLERS = {}
 
 
 class Sampler(DLExtSampler):
-    def __init__(self, sysview, method_bundle, bias, callback: Callable):
+    def __init__(self, sysview, method_bundle, bias, callback: Callable, restore):
         initial_snapshot, initialize, method_update = method_bundle
         self.state = initialize()
         self.callback = callback
         self.bias = bias
         self.box = initial_snapshot.box
         self.dt = initial_snapshot.dt
+        self._restore = restore
 
-        def update(positions, vel_mass, rtags, imgs, forces, timestep):
-            positions = asarray(positions)
-            vel_mass = asarray(vel_mass)
-            ids = asarray(rtags)
-            images = asarray(imgs)
-            forces = asarray(forces)
+        def update(positions, vel_mass, rtags, images, forces, timestep):
             snapshot = Snapshot(
-                positions=positions,
-                vel_mass=vel_mass,
-                forces=forces,
-                ids=ids,
-                images=images,
-                box=self.box,
-                dt=self.dt,
+                asarray(positions),
+                asarray(vel_mass),
+                asarray(forces),
+                asarray(rtags),
+                asarray(images),
+                self.box,
+                self.dt,
             )
             self.state = method_update(snapshot, self.state)
             self.bias(snapshot, self.state)
@@ -70,6 +66,21 @@ class Sampler(DLExtSampler):
                 self.callback(snapshot, self.state, timestep)
 
         super().__init__(sysview, update, default_location(), AccessMode.Read)
+
+    def restore(self, prev_snapshot):
+        def restore_callback(positions, vel_mass, rtags, images, forces, n):
+            snapshot = Snapshot(
+                asarray(positions),
+                asarray(vel_mass),
+                asarray(forces),
+                asarray(rtags),
+                asarray(images),
+                self.box,
+                self.dt,
+            )
+            self._restore(snapshot, prev_snapshot)
+
+        self.forward_data(restore_callback, default_location(), AccessMode.Overwrite)
 
 
 if hasattr(AccessLocation, "OnDevice"):
@@ -109,17 +120,6 @@ def take_snapshot(wrapped_context, location=default_location()):
     return Snapshot(positions, vel_mass, forces, ids, imgs, Box(H, origin), dt)
 
 
-def update_snapshot(snapshot, sysview, location=default_location()):
-    #
-    positions = asarray(positions_types(sysview, location, AccessMode.Read))
-    vel_mass = asarray(velocities_masses(sysview, location, AccessMode.Read))
-    forces = asarray(net_forces(sysview, location, AccessMode.ReadWrite))
-    ids = asarray(rtags(sysview, location, AccessMode.Read))
-    imgs = asarray(images(sysview, location, AccessMode.Read))
-    #
-    return Snapshot(positions, vel_mass, forces, ids, imgs, snapshot.box, snapshot.dt)
-
-
 def build_snapshot_methods(sampling_method):
     if sampling_method.requires_box_unwrapping:
 
@@ -132,18 +132,21 @@ def build_snapshot_methods(sampling_method):
         def positions(snapshot):
             return snapshot.positions
 
+    @jit
     def indices(snapshot):
         return snapshot.ids
 
+    @jit
     def momenta(snapshot):
         M = snapshot.vel_mass[:, 3:]
         V = snapshot.vel_mass[:, :3]
         return (M * V).flatten()
 
+    @jit
     def masses(snapshot):
         return snapshot.vel_mass[:, 3:]
 
-    return SnapshotMethods(jit(positions), jit(indices), jit(momenta), jit(masses))
+    return SnapshotMethods(jit(positions), indices, momenta, masses)
 
 
 def build_helpers(context, sampling_method):
@@ -177,16 +180,16 @@ def build_helpers(context, sampling_method):
     snapshot_methods = build_snapshot_methods(sampling_method)
     flags = sampling_method.snapshot_flags
     restore = partial(_restore, view)
-    helpers = HelperMethods(build_data_querier(snapshot_methods, flags), restore)
+    helpers = HelperMethods(build_data_querier(snapshot_methods, flags))
 
-    return helpers, bias
+    return helpers, restore, bias
 
 
 def bind(
     wrapped_context: ContextWrapper, sampling_method: SamplingMethod, callback: Callable, **kwargs
 ):
     context = wrapped_context.context
-    helpers, bias = build_helpers(context, sampling_method)
+    helpers, restore, bias = build_helpers(context, sampling_method)
 
     with SystemView(context.system_definition) as sysview:
         wrapped_context.view = sysview
@@ -196,7 +199,7 @@ def bind(
         method_bundle = sampling_method.build(snapshot, helpers)
         sync_and_bias = partial(bias, sync_backend=sysview.synchronize)
 
-        sampler = Sampler(sysview, method_bundle, sync_and_bias, callback)
+        sampler = Sampler(sysview, method_bundle, sync_and_bias, callback, restore)
         context.integrator.cpp_integrator.setHalfStepHook(sampler)
 
         CONTEXTS_SAMPLERS[context] = sampler
