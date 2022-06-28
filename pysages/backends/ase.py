@@ -2,7 +2,6 @@
 # Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
-from copy import deepcopy
 from functools import partial
 from typing import Callable, NamedTuple
 
@@ -18,6 +17,7 @@ from pysages.backends.snapshot import (
     restore as _restore,
 )
 from pysages.methods import SamplingMethod
+from pysages.utils import ToCPU, copy
 
 import importlib
 
@@ -102,21 +102,20 @@ def wrap_step_fn(simulation, sampler, callback):
     and the user provided callback.
     """
     number_of_steps = simulation.get_number_of_steps
-    step = simulation.step
+    simulation._step = simulation.step
 
-    def sampler_step():
+    def wrapped_step():
         sampler.snapshot = take_snapshot(simulation)
         sampler.state = sampler.update(sampler.snapshot, sampler.state)
-        forces = deepcopy(sampler.snapshot.forces + sampler.state.bias)
-        step(forces=forces)
+        forces = copy(sampler.snapshot.forces + sampler.state.bias, ToCPU())
+        simulation._step(forces=forces)
         if callback:
             callback(sampler.snapshot, sampler.state, number_of_steps())
 
-    simulation.step = sampler_step
+    simulation.step = wrapped_step
 
 
 class View(NamedTuple):
-    step: Callable  # stores the original step function
     synchronize: Callable
 
 
@@ -132,7 +131,7 @@ def bind(
     helpers = build_helpers(wrapped_context.view, sampling_method)
     method_bundle = sampling_method.build(snapshot, helpers)
     sampler = Sampler(method_bundle)
-    wrapped_context.view = View(context.step, (lambda: None))
+    wrapped_context.view = View((lambda: None))
     wrap_step_fn(context, sampler, callback)
     wrapped_context.run = context.run
     return sampler
