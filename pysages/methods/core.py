@@ -14,6 +14,7 @@ from plum import parametric
 from pysages.backends import ContextWrapper
 from pysages.grids import Grid, build_grid, get_info
 from pysages.colvars.core import build
+from pysages.methods.restraints import canonicalize
 from pysages.utils import dispatch, identity
 from pysages.methods.utils import ReplicasConfiguration, methods_dispatch
 
@@ -67,6 +68,7 @@ class GriddedSamplingMethod(SamplingMethod):
         check_dims(cvs, grid)
         super().__init__(cvs, **kwargs)
         self.grid = grid
+        self.restraints = canonicalize(kwargs.get("restraints", None), cvs)
 
     def __getstate__(self):
         return (get_info(self.grid), *default_getstate(self))
