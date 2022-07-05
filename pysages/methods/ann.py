@@ -33,7 +33,7 @@ from pysages.ml.training import (
     convolve,
 )
 from pysages.ml.utils import blackman_kernel, pack, unpack
-from pysages.utils import Int, JaxArray
+from pysages.utils import Int, JaxArray, dispatch
 
 
 class ANNState(NamedTuple):
@@ -42,18 +42,25 @@ class ANNState(NamedTuple):
 
     Parameters
     ----------
+
     xi : JaxArray (CV shape)
         Last collective variable recorded in the simulation.
+
     bias : JaxArray (natoms, 3)
         Array with biasing forces for each particle.
+
     hist: JaxArray (grid.shape)
         Histogram of visits to the bins in the collective variable grid.
+
     phi: JaxArray (grid.shape, CV shape)
         The current estimate of the free energy.
+
     prob: JaxArray (CV shape)
         The current estimate of the unnormalized probability distribution.
+
     nn: NNDada
         Bundle of the neural network parameters, and output scaling coefficients.
+
     nstep: int
         Count the number of times the method's update has been called.
     """
@@ -98,11 +105,12 @@ class ANN(NNSamplingMethod):
         kT: float
             Value of kT in the same units as the backend internal energy units.
 
-        kwargs:
-            Optional keyword arguments including the training frequency `train_freq: int`
-            (defaults to 5000).
-        """
+        Keyword arguments
+        -----------------
 
+        train_freq: int = 5000
+            Training frequency.
+        """
         super().__init__(cvs, grid, topology, **kwargs)
 
         self.kT = kT
@@ -111,7 +119,8 @@ class ANN(NNSamplingMethod):
         # Neural network and optimizer intialization
         scale = partial(_scale, grid=grid)
         self.model = MLP(grid.shape.size, 1, topology, transform=scale)
-        self.optimizer = kwargs.get("optimizer", LevenbergMarquardt(reg=L2Regularization(1e-6)))
+        default_optimizer = LevenbergMarquardt(reg=L2Regularization(1e-6))
+        self.optimizer = kwargs.get("optimizer", default_optimizer)
 
     def build(self, snapshot, helpers):
         return _ann(self, snapshot, helpers)
@@ -212,6 +221,7 @@ def build_free_energy_learner(method: ANN):
     return _learn_free_energy
 
 
+@dispatch
 def build_force_estimator(method: ANN):
     """
     Returns a function that given the neural network parameters and a CV value,
@@ -221,18 +231,24 @@ def build_force_estimator(method: ANN):
     f32 = np.float32
     f64 = np.float64
 
-    dims = method.grid.shape.size
+    grid = method.grid
+    dims = grid.shape.size
     model = method.model
     _, layout = unpack(model.parameters)
 
     model_grad = grad(lambda p, x: model.apply(p, x).sum(), argnums=1)
 
-    def estimate_force(data):
+    def predict_force(data):
         nn, x = data
         params = pack(nn.params, layout)
         return nn.std * f64(model_grad(params, f32(x)).flatten())
 
-    def _estimate_force(nn, x, in_training_regime):
-        return cond(in_training_regime, estimate_force, lambda _: np.zeros(dims), (nn, x))
+    def zero_force(data):
+        return np.zeros(dims)
 
-    return _estimate_force
+    def estimate_force(xi, I_xi, nn, in_training_regime):
+        in_bounds = np.all(np.array(I_xi) != grid.shape)
+        use_nn = in_training_regime & in_bounds
+        return cond(use_nn, predict_force, zero_force, (nn, xi))
+
+    return estimate_force
