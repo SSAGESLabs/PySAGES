@@ -2,6 +2,8 @@
 # Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
+# flake8: noqa F401
+
 """
 PySAGES: Python Suite for Advanced General Ensemble Simulations
 """
@@ -67,6 +69,7 @@ from .grids import (  # noqa: E402, F401
 )
 
 from .methods import (  # noqa: E402, F401
+    CVRestraints,
     ReplicasConfiguration,
     SerialExecutor,
 )
