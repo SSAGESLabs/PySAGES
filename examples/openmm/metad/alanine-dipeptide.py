@@ -105,7 +105,7 @@ def main(argv=[]):
     deltaT = 5000 if args.well_tempered else None
     stride = 500  # frequency for depositing gaussians
     timesteps = args.time_steps
-    ngauss = timesteps // stride  # total number of gaussians
+    ngauss = timesteps // stride + 1  # total number of gaussians
 
     # Grid for storing bias potential and its gradient
     grid = pysages.Grid(lower=(-pi, -pi), upper=(pi, pi), shape=(50, 50), periodic=True)
