@@ -15,7 +15,7 @@ from pysages.approxfun import compute_mesh
 from pysages.colvars import get_periods, wrap
 from pysages.methods.core import Result, GriddedSamplingMethod, generalize
 from pysages.utils import JaxArray, gaussian, identity
-from pysages.grids import NoGrid, build_indexer
+from pysages.grids import build_indexer
 from pysages.utils import dispatch
 
 
@@ -88,43 +88,42 @@ class Metadynamics(GriddedSamplingMethod):
     Implementation of Standard and Well-tempered Metadynamics as described in
     [PNAS 99.20, 12562-6 (2002)](https://doi.org/10.1073/pnas.202427399) and
     [Phys. Rev. Lett. 100, 020603 (2008)](https://doi.org/10.1103/PhysRevLett.100.020603)
-
-    Parameters
-    ----------
-    cvs:
-        Set of user selected collective variable.
-
-    height:
-        Initial height of the deposited Gaussians.
-
-    sigma:
-        Initial standard deviation of the to-be-deposit Gaussians.
-
-    stride: int
-        Bias potential deposition frequency.
-
-    ngaussians: int
-        Total number of expected Gaussians (`timesteps // stride + 1`).
-
-    Keyword arguments
-    -----------------
-
-    deltaT: Optional[float] = None
-        Well-tempered Metadynamics :math:`\\Delta T` parameter
-        (if `None` standard Metadynamics is used).
-
-    grid: Optional[Grid] = None
-        If provided, it will be used to accelerate the computation by
-        approximating the bias potential and its gradient over its centers.
-
-    kB: Optional[float]
-        Boltzmann constant. Must be provided for well-tempered Metadynamics
-        simulations and should match the internal units of the backend.
     """
 
     snapshot_flags = {"positions", "indices"}
 
     def __init__(self, cvs, height, sigma, stride, ngaussians, deltaT=None, **kwargs):
+        """
+        Parameters
+        ----------
+
+        cvs:
+            Set of user selected collective variable.
+
+        height:
+            Initial height of the deposited Gaussians.
+
+        sigma:
+            Initial standard deviation of the to-be-deposit Gaussians.
+
+        stride: int
+            Bias potential deposition frequency.
+
+        ngaussians: int
+            Total number of expected Gaussians (`timesteps // stride + 1`).
+
+        deltaT: Optional[float] = None
+            Well-tempered Metadynamics :math:`\\Delta T` parameter
+            (if `None` standard Metadynamics is used).
+
+        grid: Optional[Grid] = None
+            If provided, it will be used to accelerate the computation by
+            approximating the bias potential and its gradient over its centers.
+
+        kB: Optional[float]
+            Boltzmann constant. Must be provided for well-tempered Metadynamics
+            simulations and should match the internal units of the backend.
+        """
 
         if deltaT is not None and "kB" not in kwargs:
             raise KeyError(
@@ -133,7 +132,7 @@ class Metadynamics(GriddedSamplingMethod):
                 "internal units of the backend) must be provided."
             )
 
-        kwargs["grid"] = kwargs.get("grid", NoGrid)
+        kwargs["grid"] = kwargs.get("grid", None)
         super().__init__(cvs, **kwargs)
 
         self.height = height
@@ -168,7 +167,7 @@ def _metadynamics(method, snapshot, helpers):
         sigmas = np.array(method.sigma, dtype=np.float64, ndmin=2)
 
         # Arrays to store forces and bias potential on a grid.
-        if method.grid is NoGrid:
+        if method.grid is None:
             grid_potential = grid_gradient = None
         else:
             shape = method.grid.shape
@@ -214,7 +213,7 @@ def build_gaussian_accumulator(method: Metadynamics):
     if deltaT is None:
         next_height = jit(lambda *args: height_0)
     else:  # if well-tempered
-        if grid is NoGrid:
+        if grid is None:
             evaluate_potential = jit(lambda pstate: sum_of_gaussians(*pstate[:4], periods))
         else:
             evaluate_potential = jit(lambda pstate: pstate.grid_potential[pstate.grid_idx])
@@ -223,7 +222,7 @@ def build_gaussian_accumulator(method: Metadynamics):
             V = evaluate_potential(pstate)
             return height_0 * np.exp(-V / (deltaT * kB))
 
-    if grid is NoGrid:
+    if grid is None:
         get_grid_index = jit(lambda arg: None)
         update_grids = jit(lambda *args: (None, None))
     else:
@@ -272,7 +271,7 @@ def build_bias_grad_evaluator(method: Metadynamics):
     Returns a function that given the deposited Gaussians parameters, computes the
     gradient of the biasing potential with respect to the CVs.
     """
-    if method.grid is NoGrid:
+    if method.grid is None:
         periods = get_periods(method.cvs)
         evaluate_bias_grad = jit(lambda pstate: grad(sum_of_gaussians)(*pstate[:4], periods))
     else:
@@ -295,25 +294,29 @@ def analyze(result: Result[Metadynamics]):
     """
     Helper for calculating the free energy from the final state of a `Metadynamics` run.
 
-    Arguments
-    ---------
-        result: Result[Metadynamics]: Result bundle containing method,
-           final metadynamics state, and callback.
+    Parameters
+    ----------
+
+    result: Result[Metadynamics]:
+        Result bundle containing method, final metadynamics state, and callback.
 
     Returns
     -------
-        dict: A ``dict`` with the following keys:
 
-        heights:
+    dict:
+        A dictionary with the following keys:
+
+        heights: JaxArray
             Height of the Gaussian bias potential during the simulation.
 
-        metapotential:
-            Maps a user-provided array of CV values to the corresponding deposited bias potential.
-            For standard metadynamics, the free energy along user-provided CV range is the same
-            as `metapotential(cv)`. In the case of well-tempered metadynamics, the free energy is
-            equal to `(T + deltaT) / deltaT * metapotential(cv)`, where `T` is the simulation
-            temperature and `deltaT` is the user-defined parameter in well-tempered
-            metadynamics.
+        metapotential: Callable
+            Maps a user-provided array of CV values to the corresponding deposited bias
+            potential. For standard metadynamics, the free energy along user-provided CV
+            range is the same as `metapotential(cv)`.
+            In the case of well-tempered metadynamics, the free energy is equal to
+            `(T + deltaT) / deltaT * metapotential(cv)`, where `T` is the simulation
+            temperature and `deltaT` is the user-defined parameter in
+            well-tempered metadynamics.
     """
     method = result.method
     state = result.states

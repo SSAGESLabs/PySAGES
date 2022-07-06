@@ -12,7 +12,7 @@ from jax import grad, jit
 from plum import parametric
 
 from pysages.backends import ContextWrapper
-from pysages.grids import Grid, NoGrid, build_grid, get_info
+from pysages.grids import Grid, build_grid, get_info
 from pysages.colvars.core import build
 from pysages.utils import dispatch, identity
 
@@ -120,8 +120,9 @@ def run(
     """
     Base implementation for running a single simulation with the specified `SamplingMethod`.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
+
     method: SamplingMethod
 
     context_generator: Callable
@@ -187,7 +188,7 @@ def check_dims(cvs, grid: Grid):
 
 
 @dispatch
-def check_dims(cvs, grid: NoGrid):
+def check_dims(cvs, grid: type(None)):  # noqa: F811 # pylint: disable=C0116,E0102
     pass
 
 
