@@ -3,7 +3,8 @@
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 """
-Implementation of Standard and Well-tempered Metadynamics both with optional support for grids.
+Implementation of Standard and Well-tempered Metadynamics
+both with optional support for grids.
 """
 
 from typing import NamedTuple, Optional
@@ -45,7 +46,7 @@ class MetadynamicsState(NamedTuple):
         Array of Metadynamics bias potentials stored on a grid.
 
     grid_gradient: Optional[JaxArray]
-        Array of Metadynamics bias gradients for each particle in the simulation stored on a grid.
+        Array of Metadynamics bias gradients evaluated on a grid.
 
     idx: int
         Index of the next Gaussian to be deposited.
@@ -225,6 +226,7 @@ def build_gaussian_accumulator(method: Metadynamics):
     if grid is None:
         get_grid_index = jit(lambda arg: None)
         update_grids = jit(lambda *args: (None, None))
+        should_deposit = jit(lambda pred, _: pred)
     else:
         grid_mesh = compute_mesh(grid) * (grid.size / 2)
         get_grid_index = build_indexer(grid)
@@ -248,6 +250,10 @@ def build_gaussian_accumulator(method: Metadynamics):
             grid_values = pack(vmap(transform(current_gaussian))(grid_mesh))
             return update(pstate.grid_potential, pstate.grid_gradient, *grid_values)
 
+        def should_deposit(in_deposition_step, I_xi):
+            in_bounds = ~(np.any(np.array(I_xi) == grid.shape))
+            return in_deposition_step & in_bounds
+
     def deposit_gaussian(pstate):
         xi, idx = pstate.xi, pstate.idx
         current_height = next_height(pstate)
@@ -260,8 +266,10 @@ def build_gaussian_accumulator(method: Metadynamics):
         )
 
     def _deposit_gaussian(xi, state, in_deposition_step):
-        pstate = PartialMetadynamicsState(xi, *state[2:-1], get_grid_index(xi))
-        return cond(in_deposition_step, deposit_gaussian, identity, pstate)
+        I_xi = get_grid_index(xi)
+        pstate = PartialMetadynamicsState(xi, *state[2:-1], I_xi)
+        predicate = should_deposit(in_deposition_step, I_xi)
+        return cond(predicate, deposit_gaussian, identity, pstate)
 
     return _deposit_gaussian
 
@@ -271,11 +279,22 @@ def build_bias_grad_evaluator(method: Metadynamics):
     Returns a function that given the deposited Gaussians parameters, computes the
     gradient of the biasing potential with respect to the CVs.
     """
-    if method.grid is None:
+    grid = method.grid
+
+    if grid is None:
         periods = get_periods(method.cvs)
         evaluate_bias_grad = jit(lambda pstate: grad(sum_of_gaussians)(*pstate[:4], periods))
     else:
-        evaluate_bias_grad = jit(lambda pstate: pstate.grid_gradient[pstate.grid_idx])
+
+        def zero_force(_):
+            return np.zeros(grid.shape.size)
+
+        def get_force(pstate):
+            return pstate.grid_gradient[pstate.grid_idx]
+
+        def evaluate_bias_grad(pstate):
+            ob = np.any(np.array(pstate.grid_idx) == grid.shape)  # out of bounds
+            return cond(ob, zero_force, get_force, pstate)
 
     return evaluate_bias_grad
 
