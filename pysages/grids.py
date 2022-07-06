@@ -26,10 +26,6 @@ class Chebyshev(GridType):
     pass
 
 
-class NoGrid:
-    pass
-
-
 @parametric
 @dataclass
 class Grid:
@@ -82,7 +78,7 @@ def build_grid(T, lower, upper, shape):
 
 
 @dispatch
-def build_grid(grid: NoGrid):
+def build_grid(grid: type(None)):  # noqa: F811 # pylint: disable=C0116,E0102
     return grid
 
 
@@ -105,7 +101,7 @@ def get_info(grid: Grid):
 
 
 @dispatch
-def get_info(grid: NoGrid):
+def get_info(grid: type(None)):  # noqa: F811 # pylint: disable=C0116,E0102
     return (grid,)
 
 
@@ -127,7 +123,7 @@ def build_indexer(grid: Grid):
 
 
 @dispatch
-def build_indexer(grid: Grid[Periodic]):
+def build_indexer(grid: Grid[Periodic]):  # noqa: F811 # pylint: disable=C0116,E0102
     """
     Returns a function which takes a position `x` and computes the integer
     indices of the entry within the grid that contains `x`. It `x` lies outside
@@ -144,7 +140,7 @@ def build_indexer(grid: Grid[Periodic]):
 
 
 @dispatch
-def build_indexer(grid: Grid[Chebyshev]):
+def build_indexer(grid: Grid[Chebyshev]):  # noqa: F811 # pylint: disable=C0116,E0102
     """
     Returns a function which takes a position `x` and computes the integer
     indices of the entry within the grid that contains `x`. The bins within the
