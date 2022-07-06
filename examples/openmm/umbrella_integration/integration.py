@@ -87,6 +87,7 @@ def main(argv):
         executor=get_executor(args),
     )
     result = pysages.analyze(raw_result)
+    print(result)
 
     return result
 
