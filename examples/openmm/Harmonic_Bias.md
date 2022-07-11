@@ -2,7 +2,6 @@
 jupyter:
   jupytext:
     formats: ipynb,md
-    main_language: python
     text_representation:
       extension: .md
       format_name: markdown
@@ -10,6 +9,7 @@ jupyter:
       jupytext_version: 1.14.0
   kernelspec:
     display_name: Python 3
+    language: python
     name: python3
 ---
 

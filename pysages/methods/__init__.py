@@ -59,4 +59,10 @@ from .funn import FUNN
 from .harmonic_bias import HarmonicBias
 from .umbrella_integration import UmbrellaIntegration
 from .metad import Metadynamics
-from .utils import HistogramLogger, MetaDLogger
+from .utils import (
+    HistogramLogger,
+    MetaDLogger,
+    ReplicasConfiguration,
+    SerialExecutor,
+    methods_dispatch,
+)

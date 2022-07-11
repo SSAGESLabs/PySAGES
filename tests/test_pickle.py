@@ -55,6 +55,8 @@ METHODS_ARGS = {
         "hills_file": "tmp.txt",
         "log_period": 158,
     },
+    "ReplicasConfiguration": {},
+    "SerialExecutor": {},
 }
 
 

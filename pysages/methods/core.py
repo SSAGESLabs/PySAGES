@@ -15,6 +15,7 @@ from pysages.backends import ContextWrapper
 from pysages.grids import Grid, build_grid, get_info
 from pysages.colvars.core import build
 from pysages.utils import dispatch, identity
+from pysages.methods.utils import ReplicasConfiguration, methods_dispatch
 
 
 #  Base Classes
@@ -103,6 +104,10 @@ class Result:
         self.callbacks = callbacks
 
 
+class ReplicaResult(Result):
+    pass
+
+
 #  Main functions
 #  ==============
 
@@ -115,6 +120,7 @@ def run(
     callback: Optional[Callable] = None,
     context_args: Optional[dict] = None,
     post_run_action: Optional[Callable] = None,
+    config: ReplicasConfiguration = ReplicasConfiguration(),
     **kwargs
 ):
     """
@@ -146,20 +152,95 @@ def run(
         Actions are executed inside the generated context. Example uses for this
         include writing a final configuration file. This function gets `context_args`
         unpacked just like `context_generator`.
+
+    config: ReplicasConfiguration = ReplicasConfiguration()
+        Specifies the number of replicas of the simulation to generate.
+        It also contains an `executor` which will manage different process
+        or threads in case the multiple simulation are to be run in parallel.
+        Defaults to `ReplicasConfiguration(1, SerialExecutor())`,
+        which means only one simulation is run.
+
     """
     timesteps = int(timesteps)
     context_args = {} if context_args is None else context_args
 
+    def submit_work(executor, method, callback):
+        return executor.submit(
+            _run,
+            method,
+            context_generator,
+            timesteps,
+            context_args,
+            callback,
+            post_run_action,
+            **kwargs
+        )
+
+    with config.executor as ex:
+        futures = [submit_work(ex, method, callback) for _ in range(config.copies)]
+        results = [future.result() for future in futures]
+        states = [r.states for r in results]
+        callbacks = None if callback is None else [r.callbacks for r in results]
+
+    return Result(method, states, callbacks)
+
+
+def _run(method, *args, **kwargs):
+    run = methods_dispatch._functions["run"]
+    return run(method, *args, **kwargs)
+
+
+# We use `methods_dispatch` instead of the global dispatcher `dispatch` to
+# separate the definitions for a single run vs multiple replica simulations.
+@methods_dispatch
+def run(  # noqa: F811 # pylint: disable=C0116,E0102
+    method: SamplingMethod,
+    context_generator: Callable,
+    timesteps: Union[int, float],
+    context_args: Optional[dict] = None,
+    callback: Optional[Callable] = None,
+    post_run_action: Optional[Callable] = None,
+    **kwargs
+):
+    """
+    Base implementation for running a single simulation with the specified `SamplingMethod`.
+
+    Arguments
+    ---------
+    method: SamplingMethod
+    context_generator: Callable
+        User defined function that sets up a simulation context with the backend.
+        Must return an instance of `hoomd.context.SimulationContext` for HOOMD-blue
+        and `openmm.Simulation` for OpenMM. The function gets `context_args`
+        unpacked for additional user arguments.
+    timesteps: int
+        Number of time steps the simulation is running.
+    context_args: Optional[dict] = None
+        Arguments to pass down to `context_generator` to setup the simulation context.
+    callback: Optional[Callable] = None
+        Allows for user defined actions into the simulation workflow of the method.
+        `kwargs` gets passed to the backend `run` function. Default value is `None`.
+    post_run_action: Optional[Callable] = None
+        Callable function that enables actions after the run execution of PySAGES.
+        Actions are executed inside the generated context. Example uses for this
+        include writing a final configuration file. This function gets `context_args`
+        unpacked just like `context_generator`.
+
+    *Note*: All arguments must be pickable.
+
+    """
+
+    context_args = {} if context_args is None else context_args
+    timesteps = int(timesteps)
+
     context = context_generator(**context_args)
     wrapped_context = ContextWrapper(context, method, callback)
-
     with wrapped_context:
         wrapped_context.run(timesteps, **kwargs)
         if post_run_action:
             post_run_action(**context_args)
 
-    state = wrapped_context.sampler.state
-    return Result(method, state, callback)
+    return ReplicaResult(method, wrapped_context.sampler.state, callback)
 
 
 @dispatch.abstract
