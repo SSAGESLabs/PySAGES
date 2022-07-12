@@ -32,11 +32,12 @@ unit = try_import("openmm.unit", "simtk.unit")
 
 
 class Sampler:
-    def __init__(self, method_bundle, bias, callback: Callable):
-        snapshot, initialize, update = method_bundle
+    def __init__(self, method_bundle, bias, callback: Callable, restore):
+        snapshot, initialize, method_update = method_bundle
         self.snapshot = snapshot
         self.state = initialize()
-        self._update = update
+        self._update = method_update
+        self._restore = restore
         self.bias = bias
         self.callback = callback
 
@@ -45,6 +46,9 @@ class Sampler:
         self.bias(self.snapshot, self.state)
         if self.callback:
             self.callback(self.snapshot, self.state, timestep)
+
+    def restore(self, prev_snapshot):
+        self._restore(self.snapshot, prev_snapshot)
 
 
 def is_on_gpu(view: ContextView):
@@ -166,9 +170,9 @@ def build_helpers(context, sampling_method):
     snapshot_methods = build_snapshot_methods(context, sampling_method)
     flags = sampling_method.snapshot_flags
     restore = partial(_restore, view, restore_vm=restore_vm)
-    helpers = HelperMethods(build_data_querier(snapshot_methods, flags), restore)
+    helpers = HelperMethods(build_data_querier(snapshot_methods, flags))
 
-    return helpers, bias
+    return helpers, restore, bias
 
 
 def check_integrator(context):
@@ -190,10 +194,10 @@ def bind(
     force.add_to(context)  # OpenMM will handle the lifetime of the force
     wrapped_context.view = force.view(context)
     wrapped_context.run = simulation.step
-    helpers, bias = build_helpers(wrapped_context.view, sampling_method)
+    helpers, restore, bias = build_helpers(wrapped_context.view, sampling_method)
     snapshot = take_snapshot(wrapped_context)
     method_bundle = sampling_method.build(snapshot, helpers)
     sync_and_bias = partial(bias, sync_backend=wrapped_context.view.synchronize)
-    sampler = Sampler(method_bundle, sync_and_bias, callback)
+    sampler = Sampler(method_bundle, sync_and_bias, callback, restore)
     force.set_callback_in(context, sampler.update)
     return sampler

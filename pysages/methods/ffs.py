@@ -281,7 +281,7 @@ def basin_sampling(
             print("Storing basing configuration with cv value:\n")
             print(xi)
         else:
-            helpers.restore(sampler.snapshot, reference_snapshot)
+            sampler.restore(reference_snapshot)
             xi = cv(helpers.query(sampler.snapshot))
             print("Restoring basing configuration since system left basin with cv value:\n")
             print(xi)
@@ -303,7 +303,7 @@ def initial_flow(Num_window0, timestep, grid, initial_snapshots, run, sampler, h
 
     for i in range(0, Num_window0):
         print(f"Initial stored configuration: {i}\n")
-        helpers.restore(sampler.snapshot, initial_snapshots[i])
+        sampler.restore(initial_snapshots[i])
         xi = cv(helpers.query(sampler.snapshot))
         print(xi)
 
@@ -338,7 +338,7 @@ def running_window(grid, step, old_snapshots, run, sampler, helpers, cv):
     has_conf_stored = False
 
     for i in range(0, len(old_snapshots)):
-        helpers.restore(sampler.snapshot, old_snapshots[i])
+        sampler.restore(old_snapshots[i])
         xi = cv(helpers.query(sampler.snapshot))
         print(f"Stored configuration: {i} of window: {step}\n")
         print(xi)
