@@ -48,6 +48,10 @@ METHODS_ARGS = {
         "grid": pysages.Grid(lower=(-pi), upper=(pi), shape=(32), periodic=True),
         "kB": 614.0,
     },
+    "SpectralABF": {
+        "cvs": [pysages.colvars.Component([0], 0), pysages.colvars.Component([0], 1)],
+        "grid": pysages.Grid(lower=(1, 1), upper=(5, 5), shape=(32, 32)),
+    },
     "HistogramLogger": {
         "period": 1,
         "offset": 1,
