@@ -106,12 +106,11 @@ def piv(positions, neighbor_list, params):
     j_pos = all_atom_positions[position_pairs[:,3]]
     
     piv_solute_blocks = vmap(get_piv_block, in_axes=(0, 0, None))(i_pos, j_pos, params.switching_params)
+    piv_solute_block_index = vmap(cantor_pair, in_axes=(0,0))(position_pairs[:,0], position_pairs[:,2])
     
-    # sort based ij combination
-    
-    
-    print(piv_solute_blocks)
-    
+    idx_solute_sort = np.argsort(piv_solute_block_index)
+    piv_solute_blocks = piv_solute_blocks[idx_solute_sort]
+
     if solvent_oxygen_list:
                 
         nsolute_types = len(solute_list)
@@ -141,12 +140,18 @@ def piv(positions, neighbor_list, params):
         j_pos = all_atom_positions[solvent_i_j[:,2]]
                 
         piv_solute_solvent_blocks = vmap(get_piv_block, in_axes=(0, 0, None))(i_pos, j_pos, params.switching_params)
+        piv_solute_solvent_block_index = solvent_i_j[:,0]
         
-        print("sol")
-        print(piv_solute_solvent_blocks)
-        print("end")
+        idx_solvent_sort = np.argsort(piv_solute_block_index)
+        piv_solute_solvent_blocks = piv_solute_solvent_blocks[idx_solvent_sort]
+
+        piv_blocks = np.concatenate( (piv_solute_blocks, piv_solute_solvent_blocks), axis=0)
+
+    else:
         
-    print("\n")
+        piv_blocks = piv_solute_blocks
+        
+    return piv_blocks
     
     
 def get_solute_atoms(solute_list, solute_list_index):
@@ -170,3 +175,16 @@ def get_piv_block(i_pos, j_pos, switching_params):
     
     return s_r
     
+    
+def cantor_pair(index1, index2):
+    """
+    Generates an uniuqe integer using two integers via Cantor pair function.
+    This unique integer can be mapped back to the two integers, if needed.
+    """
+    
+    pi = index1 + index2
+    pi = pi * (pi + 1)
+    pi *= 0.5
+    pi += index2
+    
+    return np.int32(pi)
