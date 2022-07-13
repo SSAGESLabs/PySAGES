@@ -77,36 +77,32 @@ class ABF(GriddedSamplingMethod):
     Attributes
     ----------
 
-    snapshot_flags
+    snapshot_flags:
         Indicate the system properties required from a snapshot.
+
+    Parameters
+    ----------
+
+    cvs: Union[List, Tuple]
+        Set of user selected collective variable.
+
+    grid: Grid
+        Specifies the collective variables domain and number of bins for discretizing
+        the CV space along each CV dimension.
+
+    N: Optional[int] = 500
+        Threshold parameter before accounting for the full average
+        of the adaptive biasing force.
+
+    restraints: Optional[CVRestraints] = None
+        If provided, indicate that harmonic restraints will be applied when any
+        collective variable lies outside the box from `restraints.lower` to
+        `restraints.upper`.
     """
 
     snapshot_flags = {"positions", "indices", "momenta"}
 
     def __init__(self, cvs, grid, **kwargs):
-        """
-        Arguments
-        ---------
-
-        cvs: Union[List, Tuple]
-            Set of user selected collective variable.
-
-        grid: Grid
-            Specifies the collective variables domain and number of bins for discretizing
-            the CV space along each CV dimension.
-
-        Keyword arguments
-        -----------------
-
-        N: int = 500
-            Threshold parameter before accounting for the full average
-            of the adaptive biasing force.
-
-        restraints: Optional[CVRestraints] = None
-            If provided, indicate that harmonic restraints will be applied when any
-            collective variable lies outside the box from `restraints.lower` to
-            `restraints.upper`.
-        """
         super().__init__(cvs, grid, **kwargs)
         self.N = np.asarray(self.kwargs.get("N", 500))
 
@@ -114,8 +110,8 @@ class ABF(GriddedSamplingMethod):
         """
         Build the functions for the execution of ABF
 
-        Arguments
-        ---------
+        Parameters
+        ----------
 
         snapshot:
             PySAGES snapshot of the simulation (backend dependent).
@@ -136,8 +132,9 @@ def _abf(method, snapshot, helpers):
     """
     Internal function that generates the init and update functions.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
+
     method: ABF
         Class that generates the functions.
     snapshot:
@@ -180,8 +177,9 @@ def _abf(method, snapshot, helpers):
         """
         Advance the state of the ABF simulation.
 
-        Arguments
-        ---------
+        Parameters
+        ----------
+
         state: ABFstate
             Old ABFstate from the previous simutlation step.
         data: JaxArray

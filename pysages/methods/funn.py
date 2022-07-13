@@ -100,43 +100,39 @@ class FUNN(NNSamplingMethod):
     Implementation of the sampling method described in
     "Adaptive enhanced sampling by force-biasing using neural networks"
     [J. Chem. Phys. 148, 134108 (2018)](https://doi.org/10.1063/1.5020733).
+
+    Parameters
+    ----------
+    cvs: Union[List, Tuple]
+        List of collective variables.
+
+    grid: Grid
+        Specifies the CV domain and number of bins for discretizing the CV space
+        along each CV dimension.
+
+    topology: Tuple[int]
+        Defines the architecture of the neural network
+        (number of nodes of each hidden layer).
+
+    N: Optional[int] = 500
+        Threshold parameter before accounting for the full average of the
+        binned generalized mean force.
+
+    train_freq: Optional[int] = 5000
+        Training frequency.
+
+    optimizer: Optional[Optimizer]
+        Optimization method used for training, defaults to LevenbergMarquardt().
+
+    restraints: Optional[CVRestraints] = None
+        If provided, indicate that harmonic restraints will be applied when any
+        collective variable lies outside the box from `restraints.lower` to
+        `restraints.upper`.
     """
 
     snapshot_flags = {"positions", "indices", "momenta"}
 
     def __init__(self, cvs, grid, topology, **kwargs):
-        """
-        Arguments
-        ---------
-        cvs: Union[List, Tuple]
-            List of collective variables.
-
-        grid: Grid
-            Specifies the CV domain and number of bins for discretizing the CV space
-            along each CV dimension.
-
-        topology: Tuple[int]
-            Defines the architecture of the neural network
-            (number of nodes of each hidden layer).
-
-        Keyword arguments
-        -----------------
-
-        N: int = 500
-            Threshold parameter before accounting for the full average of the
-            binned generalized mean force.
-
-        train_freq: int = 5000
-            Training frequency.
-
-        optimizer:
-            Optimization method used for training, defaults to LevenbergMarquardt().
-
-        restraints: Optional[CVRestraints] = None
-            If provided, indicate that harmonic restraints will be applied when any
-            collective variable lies outside the box from `restraints.lower` to
-            `restraints.upper`.
-        """
         super().__init__(cvs, grid, topology, **kwargs)
 
         self.N = np.asarray(kwargs.get("N", 500))

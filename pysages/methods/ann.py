@@ -82,35 +82,31 @@ class ANN(NNSamplingMethod):
     Implementation of the sampling method described in
     "Learning free energy landscapes using artificial neural networks"
     [J. Chem. Phys. 148, 104111 (2018)](https://doi.org/10.1063/1.5018708).
+
+    Parameters
+    ----------
+
+    cvs: Union[List, Tuple]
+        List of collective variables.
+
+    grid: Grid
+        Specifies the CV domain and number of bins for discretizing the CV space
+        along each CV dimension.
+
+    topology: Tuple[int]
+        Defines the architecture of the neural network
+        (number of nodes of each hidden layer).
+
+    kT: float
+        Value of `kT` in the same units as the backend internal energy units.
+
+    train_freq: Optional[int] = 5000
+        Training frequency.
     """
 
     snapshot_flags = {"positions", "indices"}
 
     def __init__(self, cvs, grid, topology, kT, **kwargs):
-        """
-        Arguments
-        ---------
-
-        cvs: Union[List, Tuple]
-            List of collective variables.
-
-        grid: Grid
-            Specifies the CV domain and number of bins for discretizing the CV space
-            along each CV dimension.
-
-        topology: Tuple[int]
-            Defines the architecture of the neural network
-            (number of nodes of each hidden layer).
-
-        kT: float
-            Value of kT in the same units as the backend internal energy units.
-
-        Keyword arguments
-        -----------------
-
-        train_freq: int = 5000
-            Training frequency.
-        """
         super().__init__(cvs, grid, topology, **kwargs)
 
         self.kT = kT
