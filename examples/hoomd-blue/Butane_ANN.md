@@ -35,12 +35,12 @@ rm -rf /tmp/cookies.txt
 
 mkdir -p $PYSAGES_ENV .
 unzip -qquo pysages-env.zip -d $PYSAGES_ENV
-apt-cache policy libcudnn8
-apt install --allow-change-held-packages libcudnn8=8.4.1.50-1+cuda11.6
 ```
 
-```python id="LlVSU_-FoD4w"
-!update-alternatives --auto libcudnn &> /dev/null
+```bash id="LlVSU_-FoD4w"
+apt-cache policy libcudnn8
+apt install --allow-change-held-packages libcudnn8=8.4.1.50-1+cuda11.6
+update-alternatives --auto libcudnn &> /dev/null
 ```
 
 ```python id="EMAWp8VloIk4"
