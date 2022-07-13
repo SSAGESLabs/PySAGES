@@ -35,6 +35,8 @@ rm -rf /tmp/cookies.txt
 
 mkdir -p $PYSAGES_ENV .
 unzip -qquo pysages-env.zip -d $PYSAGES_ENV
+apt-cache policy libcudnn8
+apt install --allow-change-held-packages libcudnn8=8.4.1.50-1+cuda11.6
 ```
 
 ```python id="LlVSU_-FoD4w"
@@ -350,7 +352,7 @@ Make sure to run with GPU support, otherwise, it can take a very long time.
 <!-- #endregion -->
 
 ```python colab={"base_uri": "https://localhost:8080/"} id="K951m4BbpUar" outputId="f01ca7e3-69f4-4218-9eb5-cdc022f877b8"
-method.run(generate_context, int(5e5))
+result = pysages.run(method, generate_context, int(5e5))
 ```
 
 <!-- #region id="PXBKUfK0p9T2" -->
@@ -365,7 +367,7 @@ import matplotlib.pyplot as plt
 ```python id="6W7Xf0ilqAcm"
 xi = (compute_mesh(grid) + 1) / 2 * grid.size + grid.lower
 
-state = method.context[0].sampler.state
+state = result.states[0]
 fes = -state.phi + state.phi.max()
 ```
 
