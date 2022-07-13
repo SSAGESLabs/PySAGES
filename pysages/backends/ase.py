@@ -19,15 +19,23 @@ from pysages.backends.snapshot import (
 from pysages.methods import SamplingMethod
 from pysages.utils import ToCPU, copy
 
-import importlib
-
 
 class Sampler:
-    def __init__(self, method_bundle):
+    def __init__(self, atoms, method_bundle):
         snapshot, initialize, update = method_bundle
+        self.atoms = atoms
         self.snapshot = snapshot
         self.state = initialize()
         self.update = update
+
+    def restore(self, prev_snapshot):
+        atoms = self.atoms
+        velocities, masses = prev_snapshot.vel_mass
+        atoms.set_positions(prev_snapshot.positions)
+        atoms.set_masses(masses)  # masses need to be set before velocities
+        atoms.set_velocities(velocities)
+        atoms.set_cell(list(prev_snapshot.box.H))
+        self.snapshot = prev_snapshot
 
 
 def take_snapshot(simulation):
@@ -70,27 +78,9 @@ def build_snapshot_methods(context, sampling_method):
 
 
 def build_helpers(context, sampling_method):
-    # Depending on the device being used we need to use either cupy or numpy
-    # (or numba) to generate a view of jax's DeviceArrays
-    if default_device() == "gpu":
-        cupy = importlib.import_module("cupy")
-        view = cupy.asarray
-    else:
-        utils = importlib.import_module(".utils", package="pysages.backends")
-        view = utils.view
-
-    def restore_vm(view, snapshot, prev_snapshot):
-        # TODO: Check if we can omit modifying the masses
-        # (in general the masses are unlikely to change)
-        velocities = view(snapshot.vel_mass[0])
-        masses = view(snapshot.vel_mass[1])
-        velocities[:] = view(prev_snapshot.vel_mass[0])
-        masses[:] = view(prev_snapshot.vel_mass[1])
-
     snapshot_methods = build_snapshot_methods(context, sampling_method)
     flags = sampling_method.snapshot_flags
-    restore = partial(_restore, view, restore_vm=restore_vm)
-    helpers = HelperMethods(build_data_querier(snapshot_methods, flags), restore)
+    helpers = HelperMethods(build_data_querier(snapshot_methods, flags))
 
     return helpers
 
@@ -130,7 +120,7 @@ def bind(
     snapshot = take_snapshot(context)
     helpers = build_helpers(wrapped_context.view, sampling_method)
     method_bundle = sampling_method.build(snapshot, helpers)
-    sampler = Sampler(method_bundle)
+    sampler = Sampler(context.atoms, method_bundle)
     wrapped_context.view = View((lambda: None))
     wrap_step_fn(context, sampler, callback)
     wrapped_context.run = context.run
