@@ -14,6 +14,7 @@ from plum import parametric
 from pysages.backends import ContextWrapper
 from pysages.grids import Grid, build_grid, get_info
 from pysages.colvars.core import build
+from pysages.methods.restraints import canonicalize
 from pysages.utils import dispatch, identity
 from pysages.methods.utils import ReplicasConfiguration, methods_dispatch
 
@@ -67,6 +68,7 @@ class GriddedSamplingMethod(SamplingMethod):
         check_dims(cvs, grid)
         super().__init__(cvs, **kwargs)
         self.grid = grid
+        self.restraints = canonicalize(kwargs.get("restraints", None), cvs)
 
     def __getstate__(self):
         return (get_info(self.grid), *default_getstate(self))
@@ -205,21 +207,27 @@ def run(  # noqa: F811 # pylint: disable=C0116,E0102
     """
     Base implementation for running a single simulation with the specified `SamplingMethod`.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
+
     method: SamplingMethod
+
     context_generator: Callable
         User defined function that sets up a simulation context with the backend.
         Must return an instance of `hoomd.context.SimulationContext` for HOOMD-blue
         and `openmm.Simulation` for OpenMM. The function gets `context_args`
         unpacked for additional user arguments.
+
     timesteps: int
         Number of time steps the simulation is running.
+
     context_args: Optional[dict] = None
         Arguments to pass down to `context_generator` to setup the simulation context.
+
     callback: Optional[Callable] = None
         Allows for user defined actions into the simulation workflow of the method.
         `kwargs` gets passed to the backend `run` function. Default value is `None`.
+
     post_run_action: Optional[Callable] = None
         Callable function that enables actions after the run execution of PySAGES.
         Actions are executed inside the generated context. Example uses for this
@@ -227,7 +235,6 @@ def run(  # noqa: F811 # pylint: disable=C0116,E0102
         unpacked just like `context_generator`.
 
     *Note*: All arguments must be pickable.
-
     """
 
     context_args = {} if context_args is None else context_args

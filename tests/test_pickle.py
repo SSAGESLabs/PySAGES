@@ -16,6 +16,7 @@ METHODS_ARGS = {
     "ABF": {
         "cvs": [pysages.colvars.Component([0], 0)],
         "grid": pysages.Grid(lower=(-pi), upper=(pi), shape=(32), periodic=True),
+        "restraints": pysages.CVRestraints(lower=(-pi), upper=(pi), kl=1, ku=1),
     },
     "ANN": {
         "cvs": [pysages.colvars.Component([0], 0)],
@@ -57,6 +58,7 @@ METHODS_ARGS = {
     },
     "ReplicasConfiguration": {},
     "SerialExecutor": {},
+    "CVRestraints": {"lower": (-pi, -pi), "upper": (pi, pi), "kl": (0.0, 1.0), "ku": (1.0, 0.0)},
 }
 
 
