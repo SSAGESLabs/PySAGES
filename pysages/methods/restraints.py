@@ -52,7 +52,7 @@ def canonicalize(restraints: CVRestraints, cvs):  # noqa: F811 # pylint: disable
     lower, upper, kl, ku = restraints
 
     kl = np.asarray(kl).flatten()  # flatten ensures we get vectors
-    ku = np.asarray(ku).reshape()
+    ku = np.asarray(ku).flatten()
     lower = np.where(kl == 0, -np.inf, np.asarray(lower).flatten())
     upper = np.where(ku == 0, np.inf, np.asarray(upper).flatten())
 
