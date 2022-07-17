@@ -217,7 +217,7 @@ jobs:
         run: |
           SCRIPT="cd PySAGES/examples/hoomd-blue/umbrella_integration &&"
           SCRIPT="${SCRIPT} python3 ./gen_gsd.py &&"
-          SCRIPT="${SCRIPT} mpirun --allow-run-as-root --oversubscribe -n 3"
+          SCRIPT="${SCRIPT} mpirun --allow-run-as-root --oversubscribe -n 2"
           SCRIPT="${SCRIPT} python3 -m mpi4py.futures"
           SCRIPT="${SCRIPT} integration.py --replicas=5 --time-steps=1000 --mpi &&"
           SCRIPT="${SCRIPT} mkdir /tmp/plots && mv *.pdf /tmp/plots/"
