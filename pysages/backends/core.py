@@ -31,12 +31,16 @@ class ContextWrapper:
             self._backend_name = "hoomd"
         elif module_name.startswith("simtk.openmm") or module_name.startswith("openmm"):
             self._backend_name = "openmm"
+        elif module_name.startswith("ase.md"):
+            self._backend_name = "ase"
 
         if self._backend_name is not None:
             self._backend = import_module("." + self._backend_name, package="pysages.backends")
         else:
             backends = ", ".join(supported_backends())
-            raise ValueError(f"Invalid backend: supported options are ({backends})")
+            raise ValueError(
+                f"Invalid backend {self._backend_name}: supported options are ({backends})"
+            )
 
         self.context = context
         self.view = None
@@ -71,4 +75,4 @@ class ContextWrapper:
 
 
 def supported_backends():
-    return ("hoomd", "openmm")
+    return ("ase", "hoomd", "openmm")

@@ -5,11 +5,11 @@ Cartesian Coordinate Collective Variables
 
 .. autosummary::
 
-   pysages.collective_variables.coordinates.Component
-   pysages.collective_variables.coordinates.Distance
+   pysages.colvars.coordinates.Component
+   pysages.colvars.coordinates.Distance
 
 .. rubric:: Details
 
-.. automodule:: pysages.collective_variables.coordinates
+.. automodule:: pysages.colvars.coordinates
     :synopsis: Python classes for coordinate-based collective variables.
     :members:

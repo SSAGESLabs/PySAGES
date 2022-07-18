@@ -1,4 +1,4 @@
 sphinx
 jaxlib
 furo
-
+sphinxcontrib-spelling

@@ -7,7 +7,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.13.8
+      jupytext_version: 1.14.0
   kernelspec:
     display_name: Python 3
     name: python3
@@ -60,7 +60,7 @@ First, we install the jaxlib version that matches the CUDA installation of this 
 
 pip install -q --upgrade pip &> /dev/null
 # Installs the wheel compatible with CUDA 11 and cuDNN 8.2 or newer.
-pip install -q --upgrade "jax[cuda]" -f https://storage.googleapis.com/jax-releases/jax_releases.html &> /dev/null
+pip install -q --upgrade "jax[cuda]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html &> /dev/null
 ```
 
 <!-- #region id="mx0IRythaTyG" -->
@@ -163,12 +163,12 @@ import hoomd.md
 import hoomd.dlext
 
 import pysages
-from pysages.collective_variables import Component
+from pysages.colvars import Component
 from pysages.methods import UmbrellaIntegration
 ```
 
 ```python id="RsZhjfm2U5ps"
-param1 = {"A": 0.5, "w": 0.2, "p": 2}
+params = {"A": 0.5, "w": 0.2, "p": 2}
 
 """
 Generates a simulation context, we pass this function to the attribute `run` of our sampling method.
@@ -177,7 +177,7 @@ def generate_context(**kwargs):
     hoomd.context.initialize("")
     context = hoomd.context.SimulationContext()
     with context:
-        print("Operating replica {0}".format(kwargs.get("replica_num")))
+        print(f"Operating replica {kwargs.get("replica_num")}")
         system = hoomd.init.read_gsd("start.gsd")
 
         hoomd.md.integrate.nve(group=hoomd.group.all())
@@ -190,7 +190,7 @@ def generate_context(**kwargs):
         dpd.pair_coeff.set("B", "B", A=5., gamma=1.0)
 
         periodic = hoomd.md.external.periodic()
-        periodic.force_coeff.set('A', A=param1["A"], i=0, w=param1["w"], p=param1["p"])
+        periodic.force_coeff.set('A', A=params["A"], i=0, w=params["w"], p=params["p"])
         periodic.force_coeff.set('B', A=0.0, i=0, w=0.02, p=1)
     return context
 
@@ -202,7 +202,6 @@ With the ability to generate the simulation context, we start to set up the umbr
 
 ```python id="_o7puY5Sao5h"
 cvs = [Component([0], 0),]
-method = UmbrellaIntegration(cvs)
 
 ```
 
@@ -215,12 +214,17 @@ centers = list(np.linspace(-1.5, 1.5, 25))
 ```
 
 <!-- #region id="q37sUT-tbOMS" -->
-The next parameters we need to run the method are the number of time steps per replica $10^4$, the harmonic biasing spring constant $50$, the log frequency for the histogram $50$, and the number of steps we discard as equilibration before logging $10^3$.
-Since this runs multiple simulations, we expect the next cell to execute for a while.  
+The next parameters we need to define and run the method are the harmonic biasing spring constant,
+(which we set to to $50$), the log frequency for the histogram ($50$), the number of steps we discard
+as equilibration before logging ($10^3$), and the number of time steps per replica ($10^4$).
+
+Since this runs multiple simulations, we expect the next cell to execute for a while.
 <!-- #endregion -->
 
 ```python colab={"base_uri": "https://localhost:8080/"} id="wIrPB2N0bFIl" outputId="2f018685-a115-4c66-a21a-eef1d515bd02"
-result = method.run(generate_context, int(1e4), centers, 50., 50, int(1e3))
+method = UmbrellaIntegration(cvs, 50.0, centers, 50, int(1e3))
+raw_result = pysages.run(method, generate_context, int(1e4))
+result = pysages.analyze(raw_result)
 ```
 
 <!-- #region id="_xFSKCpKb6XF" -->
@@ -233,25 +237,25 @@ bins =50
 fig, ax = plt.subplots(2, 2)
 
 counter = 0
-hist_per = len(result["center"])//4+1
+hist_per = len(result["centers"])//4+1
 for x in range(2):
     for y in range(2):
         for i in range(hist_per):
-            if counter+i < len(result["center"]):
-                center = np.asarray(result["center"][counter+i])
-                histo, edges = result["histogram"][counter+i].get_histograms(bins=bins)
+            if counter+i < len(result["centers"]):
+                center = np.asarray(result["centers"][counter+i])
+                histo, edges = result["histograms"][counter+i].get_histograms(bins=bins)
                 edges = np.asarray(edges)[0]
                 edges = (edges[1:] + edges[:-1]) / 2
-                ax[x,y].plot(edges, histo, label="center {0}".format(center))
-                ax[x,y].legend(loc="best", fontsize="xx-small")
-                ax[x,y].set_yscale("log")
+                ax[x, y].plot(edges, histo, label=f"center {center}")
+                ax[x, y].legend(loc="best", fontsize="xx-small")
+                ax[x, y].set_yscale("log")
         counter += hist_per
-while counter < len(result["center"]):
-    center = np.asarray(result["center"][counter])
-    histo, edges = result["histogram"][counter].get_histograms(bins=bins)
+while counter < len(result["centers"]):
+    center = np.asarray(result["centers"][counter])
+    histo, edges = result["histograms"][counter].get_histograms(bins=bins)
     edges = np.asarray(edges)[0]
     edges = (edges[1:] + edges[:-1]) / 2
-    ax[1,1].plot(edges, histo, label="center {0}".format(center))
+    ax[1,1].plot(edges, histo, label=f"center {center}")
     counter += 1
 ```
 
@@ -261,21 +265,21 @@ And finally, as the last step, we can visualize the estimated free-energy path f
 
 ```python colab={"base_uri": "https://localhost:8080/", "height": 297} id="_UKh6FyLcN9y" outputId="cba839f6-78e8-43c3-f540-5567c5c4b00e"
 def external_field(r, A, p, w):
-    return A*np.tanh(1/(2*np.pi*p*w)*np.cos(p*r))
+    return A * np.tanh(1 / (2 * np.pi * p * w) * np.cos(p * r))
 
 fig, ax = plt.subplots()
 
 ax.set_xlabel("CV")
 ax.set_ylabel("Free energy $[\epsilon]$")
-center = np.asarray(result["center"])
-a_free_energy = np.asarray(result["a_free_energy"])
-offset = np.min(a_free_energy)
-ax.plot(center, a_free_energy-offset, color="teal")
+centers = np.asarray(result["centers"])
+free_energy = np.asarray(result["free_energy"])
+offset = np.min(free_energy)
+ax.plot(centers, free_energy - offset, color="teal")
 
 x = np.linspace(-2, 2, 50)
-data = external_field(x, **param1)
+data = external_field(x, **params)
 offset = np.min(data)
-ax.plot(x, data-offset, label="test")
+ax.plot(x, data - offset, label="test")
 
 ```
 

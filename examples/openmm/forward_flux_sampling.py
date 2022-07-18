@@ -2,7 +2,7 @@
 
 
 # %%
-from pysages.collective_variables import DihedralAngle
+from pysages.colvars import DihedralAngle
 from pysages.methods import FFS
 from pysages.utils import try_import
 
@@ -79,7 +79,8 @@ def main():
     win_0 = (args.cv_start / 180) * pi
     win_f = ((args.cv_start + args.cv_distance) / 180) * pi
 
-    method.run(
+    pysages.run(
+        method,
         generate_simulation,
         args.timesteps,
         dt,

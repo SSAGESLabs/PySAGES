@@ -2,7 +2,7 @@
 
 
 # %%
-from pysages.collective_variables import DihedralAngle
+from pysages.colvars import DihedralAngle
 from pysages.methods import ABF
 from pysages.utils import try_import
 
@@ -61,7 +61,7 @@ def main():
     grid = pysages.Grid(lower=(-pi, -pi), upper=(pi, pi), shape=(32, 32), periodic=True)
     method = ABF(cvs, grid)
 
-    method.run(generate_simulation, 50)
+    pysages.run(method, generate_simulation, 25)
 
 
 # %%

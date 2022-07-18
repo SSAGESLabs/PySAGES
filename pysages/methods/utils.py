@@ -5,30 +5,73 @@
 """
 Collection of helpful classes for methods.
 
-This includes callback functors (callable classes).
+This includes callback functor objects (callable classes).
 """
 
+from concurrent.futures import Executor, Future
 from jax import numpy as np
+from plum import Dispatcher
+
+# We use this to dispatch on the different `run` implementations
+# for `SamplingMethod`s.
+methods_dispatch = Dispatcher()
+
+
+class SerialExecutor(Executor):
+    """
+    Subclass of `concurrent.futures.Executor` used as the default
+    task manager. It will execute all tasks in serial.
+    """
+
+    def submit(self, fn, *args, **kwargs):  # pylint: disable=arguments-differ
+        """
+        Executes `fn(*args, **kwargs)` and returns a `Future` object wrapping the result.
+        """
+        future = Future()
+        future.set_result(fn(*args, **kwargs))
+        return future
+
+
+class ReplicasConfiguration:
+    """
+    Stores the information necessary to execute multiple simulation runs,
+    including the number of copies of the system and the task manager.
+    """
+
+    def __init__(self, copies: int = 1, executor=SerialExecutor()):
+        """
+        ReplicasConfiguration constructor.
+
+        Parameters
+        ----------
+        copies: int
+            Number of replicas of the simulation system to be generated.
+            Defaults to `1`.
+
+        executor:
+            Task manager that satisfies the `concurrent.futures.Executor` interface.
+            Defaults to `SerialExecutor()`.
+        """
+        self.copies = copies
+        self.executor = executor
 
 
 class HistogramLogger:
     """
     Implements a Callback functor for methods.
     Logs the state of the collective variable to generate histograms.
+
+
+    Parameters
+    ----------
+    period:
+        Time steps between logging of collective variables.
+
+    offset:
+        Time steps at the beginning of a run used for equilibration.
     """
 
     def __init__(self, period: int, offset: int = 0):
-        """
-        HistogramLogger constructor.
-
-        Arguments
-        ---------
-        period:
-            Timesteps between logging of collective variables.
-
-        offset:
-            Timesteps at the beginning of a run used for equilibration.
-        """
         self.period = period
         self.counter = 0
         self.offset = offset
@@ -44,7 +87,7 @@ class HistogramLogger:
 
     def get_histograms(self, **kwargs):
         """
-        Helper function to generate histrograms from the collected CV data.
+        Helper function to generate histograms from the collected CV data.
         `kwargs` are passed on to `numpy.histogramdd` function.
         """
         data = np.asarray(self.data)
@@ -61,7 +104,7 @@ class HistogramLogger:
 
     def get_cov(self):
         """
-        Returns covariance matrix of the histgram data.
+        Returns covariance matrix of the histogram data.
         """
         data = np.asarray(self.data)
         return np.cov(data.T)
@@ -78,19 +121,19 @@ class HistogramLogger:
 class MetaDLogger:
     """
     Logs the state of the collective variable and other parameters in Metadynamics.
+
+    Parameters
+    ----------
+    hills_file:
+        Name of the output hills log file.
+
+    log_period:
+        Time steps between logging of collective variables and Metadynamics parameters.
     """
 
     def __init__(self, hills_file, log_period):
         """
         MetaDLogger constructor.
-
-        Arguments
-        ---------
-        hills_file:
-            Name of the output hills log file.
-
-        log_period:
-            Timesteps between logging of collective variables and metadynamics parameters.
         """
         self.hills_file = hills_file
         self.log_period = log_period
@@ -115,3 +158,18 @@ class MetaDLogger:
             self.save_hills(state.centers[idx], state.sigmas, state.heights[idx])
 
         self.counter += 1
+
+
+def listify(arg, replicas, name, dtype):
+    """
+    Returns a list of with length `replicas` of `arg` if `arg` is not a list,
+    or `arg` if it is already a list of length `replicas`.
+    """
+    if isinstance(arg, list):
+        if len(arg) != replicas:
+            raise RuntimeError(
+                f"Invalid length for argument {name} (got {len(arg)}, expected {replicas})"
+            )
+        return arg
+
+    return [dtype(arg) for i in range(replicas)]

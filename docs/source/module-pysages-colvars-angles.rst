@@ -5,11 +5,11 @@ Angles as collective variables
 
 .. autosummary::
 
-   pysages.collective_variables.angles.Angle
-   pysages.collective_variables.angles.DihedralAngle
+   pysages.colvars.angles.Angle
+   pysages.colvars.angles.DihedralAngle
 
 .. rubric:: Details
 
-.. automodule:: pysages.collective_variables.angles
+.. automodule:: pysages.colvars.angles
     :synopsis: Python classes angle collective variables.
     :members:

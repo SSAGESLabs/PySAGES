@@ -9,7 +9,7 @@ Biasing a simulation towards a value of a collective variable is the foundation 
 number of advanced sampling methods - umbrella integration, WHAM, string method to name a few.
 This method implements such a bias.
 
-The hamiltonian is amended with a term
+The Hamiltonian is amended with a term
 :math:`\\mathcal{H} = \\mathcal{H}_0 + \\mathcal{H}_\\mathrm{HB}(\\xi)` where
 :math:`\\mathcal{H}_\\mathrm{HB}(\\xi) = \\boldsymbol{K}/2 (\\xi_0 - \\xi)^2`
 biases the simulations around the collective variable :math:`\\xi_0`.
@@ -19,7 +19,7 @@ from typing import NamedTuple
 
 from jax import numpy as np
 
-from pysages.methods.core import SamplingMethod, generalize
+from pysages.methods.core import SamplingMethod, default_getstate, generalize
 from pysages.utils import JaxArray
 
 
@@ -28,7 +28,7 @@ class HarmonicBiasState(NamedTuple):
     Description of a state biased by a harmonic potential for a CV.
 
     bias: JaxArray
-        Array with harmic biasing forces for each particle in the simulation.
+        Array with harmonic biasing forces for each particle in the simulation.
     xi: JaxArray
         Collective variable value of the last simulation step.
     """
@@ -45,9 +45,10 @@ class HarmonicBias(SamplingMethod):
     Harmonic bias method class.
     """
 
+    __special_args__ = {"kspring", "center"}
     snapshot_flags = {"positions", "indices"}
 
-    def __init__(self, cvs, kspring, center, *args, **kwargs):
+    def __init__(self, cvs, kspring, center, **kwargs):
         """
         Arguments
         ---------
@@ -58,10 +59,16 @@ class HarmonicBias(SamplingMethod):
         center:
             An array of length `N` representing the minimum of the harmonic biasing potential.
         """
-        super().__init__(cvs, args, kwargs)
+        super().__init__(cvs, **kwargs)
         self.cv_dimension = len(cvs)
         self.kspring = kspring
         self.center = center
+
+    def __getstate__(self):
+        state, kwargs = default_getstate(self)
+        state["kspring"] = self._kspring
+        state["center"] = self._center
+        return state, kwargs
 
     @property
     def kspring(self):

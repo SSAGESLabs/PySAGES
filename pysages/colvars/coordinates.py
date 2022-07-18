@@ -9,7 +9,7 @@ Collective Variables that are computed from the Cartesian coordinates.
 from jax import numpy as np
 from jax.numpy import linalg
 
-from pysages.collective_variables.core import TwoPointCV, AxisCV
+from pysages.colvars.core import TwoPointCV, AxisCV
 
 
 def barycenter(positions):
@@ -56,7 +56,7 @@ def weighted_barycenter(positions, weights):
 
 class Component(AxisCV):
     """
-    Use a specific cartesian component of the center of mass of the group of atom selected
+    Use a specific Cartesian component of the center of mass of the group of atom selected
     via the indices.
 
     Parameters

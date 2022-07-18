@@ -7,7 +7,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.13.8
+      jupytext_version: 1.14.0
   kernelspec:
     display_name: Python 3
     name: python3
@@ -61,7 +61,7 @@ First, we install the jaxlib version that matches the CUDA installation of this 
 
 pip install -q --upgrade pip &> /dev/null
 # Installs the wheel compatible with CUDA 11 and cuDNN 8.2 or newer.
-pip install -q --upgrade "jax[cuda]" -f https://storage.googleapis.com/jax-releases/jax_releases.html &> /dev/null
+pip install -q --upgrade "jax[cuda]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html &> /dev/null
 ```
 
 <!-- #region id="mx0IRythaTyG" -->
@@ -154,7 +154,7 @@ with gsd.hoomd.open("harmonic_start.gsd", "wb") as f:
 <!-- #region id="n0Rd-hMnCD-B" -->
 Next, we start running the system, we start with importing the required libraries.
 Noteworthy are here the hoomd package with the MD and dlext module, and the pysages objects.
-We are going to use a collective variable that constrains a particle position. In PySAGES the `Component` class from the `collective_variables` package can achieve this for us.
+We are going to use a collective variable that constrains a particle position. In PySAGES the `Component` class from the `colvars` package can achieve this for us.
 The `HarmonicBias` class is responsible for introducing the bias into the simulation run, while `HistogramLogger` collects the state of the collective variable during the run.
 <!-- #endregion -->
 
@@ -166,7 +166,7 @@ import hoomd.md
 import hoomd.dlext
 
 import pysages
-from pysages.collective_variables import Component
+from pysages.colvars import Component
 from pysages.methods import HarmonicBias, HistogramLogger
 ```
 
@@ -237,7 +237,7 @@ Here, the run is just a simple simulation for the number of steps specified with
 
 ```python colab={"base_uri": "https://localhost:8080/"} id="aOXCppWkQnJI" outputId="a34ae4f3-92a9-47ce-cac6-7a02f1aa4a72"
 callback = HistogramLogger(100)
-method.run(generate_context, int(1e4), callback, {"A": 7.0}, profile=True)
+pysages.run(method, generate_context, int(1e4), callback, {"A": 7.0}, profile=True)
 ```
 
 <!-- #region id="_vigR7XaMUD3" -->

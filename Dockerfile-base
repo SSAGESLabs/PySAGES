@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y doxygen swig nvidia-cuda-dev nvidia-cud
 # Install python dependencies
 RUN python -m pip install --upgrade pip
 RUN python -m pip install numpy
+RUN env MPICC=$(which mpicc) python -m pip install mpi4py
 
 ENV CC=gcc-8
 ENV CXX=g++-8

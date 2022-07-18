@@ -73,10 +73,36 @@ class Grid:
 
 
 @dispatch
+def build_grid(T, lower, upper, shape):
+    return Grid[T](lower, upper, shape)
+
+
+@dispatch
+def build_grid(grid: type(None)):  # noqa: F811 # pylint: disable=C0116,E0102
+    return grid
+
+
+@dispatch
 def convert(grid: Grid, T: type):
     if not issubclass(T, Grid):
         raise TypeError(f"Cannot convert Grid to a {repr(T)}")
     return T(grid.lower, grid.upper, grid.shape)
+
+
+@dispatch
+def get_info(grid: Grid):
+    T = type_parameter(grid)
+    grid_args = (
+        tuple(float(x) for x in grid.lower),
+        tuple(float(x) for x in grid.upper),
+        tuple(int(x) for x in grid.shape),
+    )
+    return (T, *grid_args)
+
+
+@dispatch
+def get_info(grid: type(None)):  # noqa: F811 # pylint: disable=C0116,E0102
+    return (grid,)
 
 
 @dispatch
@@ -97,7 +123,7 @@ def build_indexer(grid: Grid):
 
 
 @dispatch
-def build_indexer(grid: Grid[Periodic]):
+def build_indexer(grid: Grid[Periodic]):  # noqa: F811 # pylint: disable=C0116,E0102
     """
     Returns a function which takes a position `x` and computes the integer
     indices of the entry within the grid that contains `x`. It `x` lies outside
@@ -114,7 +140,7 @@ def build_indexer(grid: Grid[Periodic]):
 
 
 @dispatch
-def build_indexer(grid: Grid[Chebyshev]):
+def build_indexer(grid: Grid[Chebyshev]):  # noqa: F811 # pylint: disable=C0116,E0102
     """
     Returns a function which takes a position `x` and computes the integer
     indices of the entry within the grid that contains `x`. The bins within the
