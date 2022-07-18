@@ -7,7 +7,7 @@ from typing import Callable, NamedTuple, Optional, Tuple, Union
 from jax import jit, numpy as np
 from jaxlib.xla_extension import DeviceArray as JaxArray
 
-from pysages.utils import copy, dispatch
+from pysages.utils import copy, dispatch, identity
 
 
 class Box(
@@ -57,7 +57,6 @@ class SnapshotMethods(NamedTuple):
 
 class HelperMethods(NamedTuple):
     query: Callable
-    restore: Callable
 
 
 @dispatch(precedence=1)
@@ -87,6 +86,10 @@ def restore(view, snapshot, prev_snapshot, restore_vm=restore_vm):
     ids[:] = view(prev_snapshot.ids)
     # Special handling for velocities and masses
     restore_vm(view, snapshot, prev_snapshot)
+    # Overwrite images if the backend uses them
+    if snapshot.images is not None:
+        images = view(snapshot.images)
+        images[:] = view(prev_snapshot.images)
 
 
 def build_data_querier(snapshot_methods, flags):
