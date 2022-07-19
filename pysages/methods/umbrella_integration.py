@@ -135,9 +135,9 @@ def run(  # pylint: disable=arguments-differ
             local_context_args["replica_num"] = rep
             callback = method.histograms[rep]
             futures.append(submit_work(ex, submethod, local_context_args, callback))
-        results = [future.result() for future in futures]
-        states = [r.states for r in results]
-        callbacks = [r.callbacks for r in results]
+    results = [future.result() for future in futures]
+    states = [r.states for r in results]
+    callbacks = [r.callbacks for r in results]
 
     return Result(method, states, callbacks)
 
