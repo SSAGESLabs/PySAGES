@@ -35,9 +35,9 @@ def main():
     center_cv += [1.0, -0.3]
 
     method = Unbias(cvs)
-    callback = HistogramLogger(100)
+    callback = HistogramLogger(10)
 
-    raw_result = pysages.run(method, generate_context, int(1e3), callback)
+    raw_result = pysages.run(method, generate_context, int(1e2), callback)
 
     print(np.asarray(raw_result.callbacks[0].data))
 
