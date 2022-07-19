@@ -23,14 +23,15 @@ class UnbiasedState(NamedTuple):
     """
     Description of a state for unbiased simulations.
 
-    bias: JaxArray
-        Array with zero biasing force in the simulation.
     xi: JaxArray
         Collective variable value of the last simulation step.
-    """
 
     bias: JaxArray
+        Array with zero biasing force in the simulation.
+    """
+
     xi: JaxArray
+    bias: JaxArray
 
     def __repr__(self):
         return repr("PySAGES" + type(self).__name__)
@@ -49,11 +50,12 @@ class Unbiased(SamplingMethod):
         """
         Arguments
         ---------
+
         cvs: Union[List, Tuple]
             A list or tuple of collective variables, length `N`.
         """
+        kwargs["cv_grad"] = None
         super().__init__(cvs, **kwargs)
-        self.cv_dimension = len(cvs)
 
     def __getstate__(self):
         state, kwargs = default_getstate(self)
@@ -68,11 +70,11 @@ def _unbias(method, snapshot, helpers):
     natoms = np.size(snapshot.positions, 0)
 
     def initialize():
-        bias = None
-        return UnbiasedState(None, None)
+        xi = cv(helpers.query(snapshot))
+        return UnbiasedState(xi, None)
 
     def update(state, data):
-        xi, Jxi = cv(data)
-        return UnbiasedState(None, xi)
+        xi = cv(data)
+        return UnbiasedState(xi, None)
 
     return snapshot, initialize, generalize(update, helpers)
