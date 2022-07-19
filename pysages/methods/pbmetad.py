@@ -3,7 +3,7 @@
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 """
-Implementation of Standard and Well-tempered Metadynamics both with optional support for grids.
+Implementation of Parallel Bias Well-tempered Metadynamics with optional support for grids.
 """
 
 from typing import NamedTuple, Optional
@@ -16,75 +16,13 @@ from pysages.collective_variables import get_periods, wrap
 from pysages.methods.core import SamplingMethod, generalize
 from pysages.utils import JaxArray, gaussian, identity
 from pysages.grids import build_indexer
+from pysages.methods.metad import MetadynamicsState, PartialMetadynamicsState
 
 
-class MetadynamicsState(NamedTuple):
+class ParallelBiasMetadynamics(SamplingMethod):
     """
-    Attributes
-    ----------
-
-    bias: JaxArray
-        Array of metadynamics bias forces for each particle in the simulation.
-
-    xi: JaxArray
-        Collective variable value in the last simulation step.
-
-    heights: JaxArray
-        Height values for all accumulated gaussians (zeros for not yet added gaussians).
-
-    centers: JaxArray
-        Centers of the accumulated gaussians.
-
-    sigmas: JaxArray
-        Widths of the accumulated gaussians.
-
-    grid_potential: Optional[JaxArray]
-        Array of metadynamics bias potentials stored on a grid.
-
-    grid_gradient: Optional[JaxArray]
-        Array of metadynamics bias gradients for each particle in the simulation stored on a grid.
-
-    idx: int
-        Index of the next gaussian to be deposited.
-
-    nstep: int
-        Counts the number of times `method.update` has been called.
-    """
-
-    bias: JaxArray
-    xi: JaxArray
-    heights: JaxArray
-    centers: JaxArray
-    sigmas: JaxArray
-    grid_potential: Optional[JaxArray]
-    grid_gradient: Optional[JaxArray]
-    idx: int
-    nstep: int
-
-    def __repr__(self):
-        return repr("PySAGES" + type(self).__name__)
-
-
-class PartialMetadynamicsState(NamedTuple):
-    """
-    Helper intermediate Metadynamics state
-    """
-
-    xi: JaxArray
-    heights: JaxArray
-    centers: JaxArray
-    sigmas: JaxArray
-    grid_potential: Optional[JaxArray]
-    grid_gradient: Optional[JaxArray]
-    idx: int
-    grid_idx: Optional[JaxArray]
-
-
-class Metadynamics(SamplingMethod):
-    """
-    Implementation of Standard and Well-tempered Metadynamics as described in
-    [PNAS 99.20, 12562-6 (2002)](https://doi.org/10.1073/pnas.202427399) and
-    [Phys. Rev. Lett. 100, 020603 (2008)](https://doi.org/10.1103/PhysRevLett.100.020603)
+    Implementation of Parallel Bias Metadynamics as described in
+    [J. Chem. Theory Comput. 11, 5062–5067 (2015)](https://doi.org/10.1021/acs.jctc.5b00846)
     """
 
     snapshot_flags = {"positions", "indices"}
@@ -144,10 +82,10 @@ class Metadynamics(SamplingMethod):
         self.grid = kwargs.get("grid", None)
 
     def build(self, snapshot, helpers, *args, **kwargs):
-        return _metadynamics(self, snapshot, helpers)
+        return _parallelbiasmetadynamics(self, snapshot, helpers)
 
 
-def _metadynamics(method, snapshot, helpers):
+def _parallelbiasmetadynamics(method, snapshot, helpers):
     # Initialization and update of biasing forces. Interface expected for methods.
     cv = method.cv
     stride = method.stride
