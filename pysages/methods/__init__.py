@@ -77,4 +77,4 @@ from .utils import (
     methods_dispatch,
 )
 from .restraints import CVRestraints
-from .unbias import Unbias
+from .unbias import Unbiased

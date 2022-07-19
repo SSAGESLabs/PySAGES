@@ -97,7 +97,10 @@ def wrap_step_fn(simulation, sampler, callback):
     def wrapped_step():
         sampler.snapshot = take_snapshot(simulation)
         sampler.state = sampler.update(sampler.snapshot, sampler.state)
-        forces = copy(sampler.snapshot.forces + sampler.state.bias, ToCPU())
+        if sampler.state.bias is not None:
+            forces = copy(sampler.snapshot.forces + sampler.state.bias, ToCPU())
+        else:
+            forces = copy(sampler.snapshot.forces, ToCPU())
         simulation._step(forces=forces)
         if callback:
             callback(sampler.snapshot, sampler.state, number_of_steps())

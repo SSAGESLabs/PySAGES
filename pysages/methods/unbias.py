@@ -19,7 +19,7 @@ from pysages.methods.core import SamplingMethod, default_getstate, generalize
 from pysages.utils import JaxArray
 
 
-class UnbiasState(NamedTuple):
+class UnbiasedState(NamedTuple):
     """
     Description of a state for unbiased simulations.
 
@@ -36,7 +36,7 @@ class UnbiasState(NamedTuple):
         return repr("PySAGES" + type(self).__name__)
 
 
-class Unbias(SamplingMethod):
+class Unbiased(SamplingMethod):
     """
     Unbias method class.
 
@@ -68,11 +68,11 @@ def _unbias(method, snapshot, helpers):
     natoms = np.size(snapshot.positions, 0)
 
     def initialize():
-        bias = np.zeros((natoms, 3))
-        return UnbiasState(bias, None)
+        bias = None
+        return UnbiasedState(None, None)
 
     def update(state, data):
         xi, Jxi = cv(data)
-        return UnbiasState(state.bias, xi)
+        return UnbiasedState(None, xi)
 
     return snapshot, initialize, generalize(update, helpers)

@@ -9,7 +9,7 @@ import hoomd.dlext
 import pysages
 
 from pysages.colvars import Component
-from pysages.methods import Unbias, HistogramLogger
+from pysages.methods import Unbiased, HistogramLogger
 
 
 def generate_context(**kwargs):
@@ -34,7 +34,7 @@ def main():
     center_cv = [0.0]
     center_cv += [1.0, -0.3]
 
-    method = Unbias(cvs)
+    method = Unbiased(cvs)
     callback = HistogramLogger(10)
 
     raw_result = pysages.run(method, generate_context, int(1e2), callback)
