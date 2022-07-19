@@ -180,7 +180,7 @@ jobs:
           path: /tmp/hist.pdf
           retention-days: 7
 
-  unbias-hoomd:
+  unbiased-hoomd:
     runs-on: ubuntu-latest
     needs: build
     steps:
@@ -194,7 +194,7 @@ jobs:
       - name: Load and run test
         run: |
           docker load --input /tmp/pysages.tar
-          docker run -v/tmp:/tmp -t pysages bash -c "cd PySAGES/examples/hoomd-blue/unbias/ && ./run.sh"
+          docker run -v/tmp:/tmp -t pysages bash -c "cd PySAGES/examples/hoomd-blue/unbiased/ && ./run.sh"
 
   umbrella-integration-hoomd:
     runs-on: ubuntu-latest
