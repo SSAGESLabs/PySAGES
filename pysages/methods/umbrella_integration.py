@@ -15,6 +15,7 @@ However, the method is not very accurate and it is preferred that more advanced 
 """
 
 from copy import deepcopy
+from concurrent.futures import as_completed
 from typing import Callable, Optional, Union
 
 from pysages.methods.core import Result, SamplingMethod, _run
@@ -135,7 +136,7 @@ def run(  # pylint: disable=arguments-differ
             local_context_args["replica_num"] = rep
             callback = method.histograms[rep]
             futures.append(submit_work(ex, submethod, local_context_args, callback))
-        results = [future.result() for future in futures]
+        results = [future.result() for future in as_completed(futures)]
         states = [r.states for r in results]
         callbacks = [r.callbacks for r in results]
 

@@ -3,6 +3,7 @@
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 from abc import ABC, abstractmethod
+from concurrent.futures import as_completed
 from functools import reduce
 from inspect import getfullargspec
 from operator import or_
@@ -180,7 +181,7 @@ def run(
 
     with config.executor as ex:
         futures = [submit_work(ex, method, callback) for _ in range(config.copies)]
-        results = [future.result() for future in futures]
+        results = [future.result() for future in as_completed(futures)]
         states = [r.states for r in results]
         callbacks = None if callback is None else [r.callbacks for r in results]
 
