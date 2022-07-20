@@ -25,6 +25,12 @@ METHODS_ARGS = {
         "topology": (15, 23),
         "kT": 1.0,
     },
+    "CFF": {
+        "cvs": [pysages.colvars.Component([0], 0)],
+        "grid": pysages.Grid(lower=(-pi), upper=(pi), shape=(32), periodic=True),
+        "topology": (14,),
+        "kT": 1.0,
+    },
     "FFS": {
         "cvs": [pysages.colvars.Component([0], 0)],
     },
