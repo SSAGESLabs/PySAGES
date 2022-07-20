@@ -10,6 +10,7 @@ pi = np.pi
 
 METHODS_ARGS = {
     "HarmonicBias": {"cvs": [pysages.colvars.Component([0], 0)], "kspring": 15.0, "center": 0.7},
+    "Unbiased": {"cvs": [pysages.colvars.Component([0], 0)]},
     "SamplingMethod": {
         "cvs": [pysages.colvars.Component([0], 0)],
     },
