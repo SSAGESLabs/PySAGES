@@ -90,7 +90,7 @@ class Distance(TwoPointCV):
 def distance(p1, p2):
     """
     Returns the distance between two points in space or
-    between the barycenter of two groups of points in space.
+    between the barycenters of two groups of points in space.
 
     Parameters
     ----------
