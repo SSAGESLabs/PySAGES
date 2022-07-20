@@ -14,7 +14,7 @@ from jax.lax import cond
 from pysages.approxfun import compute_mesh
 from pysages.collective_variables import get_periods, wrap
 from pysages.methods.core import SamplingMethod, generalize
-from pysages.utils import JaxArray, gaussian, identity
+from pysages.utils import JaxArray, identity
 from pysages.grids import build_indexer
 from pysages.methods.metad import MetadynamicsState, PartialMetadynamicsState
 
@@ -23,6 +23,9 @@ class ParallelBiasMetadynamics(SamplingMethod):
     """
     Implementation of Parallel Bias Metadynamics as described in
     [J. Chem. Theory Comput. 11, 5062–5067 (2015)](https://doi.org/10.1021/acs.jctc.5b00846)
+    
+    Compared to well-tempered metadynamics, the total bias potential expression and height at which
+    bias is deposited for each CV is different in parallel bias metadynamics.
     """
 
     snapshot_flags = {"positions", "indices"}
@@ -47,28 +50,21 @@ class ParallelBiasMetadynamics(SamplingMethod):
         ngaussians: int
             Total number of expected gaussians (timesteps // stride + 1).
 
+        deltaT: float = None
+            Well-tempered metadynamics $\\Delta T$ parameter to set the energy
+            scale for sampling.
+            
+        kB: float
+            Boltzmann constant. It should match the internal units of the backend.
+
         Keyword arguments
         -----------------
-
-        deltaT: Optional[float] = None
-            Well-tempered metadynamics $\\Delta T$ parameter
-            (if `None` standard metadynamics is used).
-
+        
         grid: Optional[Grid] = None
             If provided, it will be used to accelerate the computation by
             approximating the bias potential and its gradient over its centers.
 
-        kB: Optional[float]
-            Boltzmann constant. Must be provided for well-tempered metadynamics
-            simulations and should match the internal units of the backend.
         """
-
-        if deltaT is not None and "kB" not in kwargs:
-            raise KeyError(
-                "For well-tempered metadynamics a keyword argument `kB` for "
-                "the value of the Boltzmann constant (that matches the "
-                "internal units of the backend) must be provided."
-            )
 
         super().__init__(cvs, args, kwargs)
 
@@ -77,8 +73,8 @@ class ParallelBiasMetadynamics(SamplingMethod):
         self.stride = stride
         self.ngaussians = ngaussians  # NOTE: infer from timesteps and stride
         self.deltaT = deltaT
-
         self.kB = kwargs.get("kB", None)
+        
         self.grid = kwargs.get("grid", None)
 
     def build(self, snapshot, helpers, *args, **kwargs):
@@ -100,7 +96,7 @@ def _parallelbiasmetadynamics(method, snapshot, helpers):
         xi, _ = cv(helpers.query(snapshot))
 
         # NOTE: for restart; use hills file to initialize corresponding arrays.
-        heights = np.zeros(ngaussians, dtype=np.float64)
+        heights = np.zeros((ngaussians, xi.size), dtype=np.float64)
         centers = np.zeros((ngaussians, xi.size), dtype=np.float64)
         sigmas = np.array(method.sigma, dtype=np.float64, ndmin=2)
 
@@ -109,7 +105,7 @@ def _parallelbiasmetadynamics(method, snapshot, helpers):
             grid_potential = grid_gradient = None
         else:
             shape = method.grid.shape
-            grid_potential = np.zeros((*shape,), dtype=np.float64) if method.deltaT else None
+            grid_potential = np.zeros((*shape,), dtype=np.float64)
             grid_gradient = np.zeros((*shape, shape.size), dtype=np.float64)
 
         return MetadynamicsState(
@@ -148,43 +144,35 @@ def build_gaussian_accumulator(method: Metadynamics):
     grid = method.grid
     kB = method.kB
 
-    if deltaT is None:
-        next_height = jit(lambda *args: height_0)
-    else:  # if well-tempered
-        if grid is None:
-            evaluate_potential = jit(lambda pstate: sum_of_gaussians(*pstate[:4], periods))
-        else:
-            evaluate_potential = jit(lambda pstate: pstate.grid_potential[pstate.grid_idx])
+    if grid is None:
+        evaluate_potential = jit(lambda pstate: sum_of_gaussians(*pstate[:4], periods))
+    #else:
+    #    evaluate_potential = jit(lambda pstate: pstate.grid_potential[pstate.grid_idx])
 
-        def next_height(pstate):
-            V = evaluate_potential(pstate)
-            return height_0 * np.exp(-V / (deltaT * kB))
+    def next_height(pstate):
+        V = evaluate_potential(pstate)
+        return height_0 * np.exp(-V / (deltaT * kB))
 
     if grid is None:
         get_grid_index = jit(lambda arg: None)
         update_grids = jit(lambda *args: (None, None))
-    else:
-        grid_mesh = compute_mesh(grid) * (grid.size / 2)
-        get_grid_index = build_indexer(grid)
-        # Reshape so the dimensions are compatible
-        accum = jit(lambda total, val: total + val.reshape(total.shape))
-
-        if deltaT is None:
-            transform = grad
-            pack = jit(lambda x: (x,))
-            # No need to accumulate values for the potential (V is None)
-            update = jit(lambda V, dV, vals: (V, accum(dV, vals)))
-        else:
-            transform = value_and_grad
-            pack = identity
-            update = jit(lambda V, dV, vals, grads: (accum(V, vals), accum(dV, grads)))
-
-        def update_grids(pstate, height, xi, sigma):
-            # We use sum_of_gaussians since it already takes care of the wrapping
-            current_gaussian = jit(lambda x: sum_of_gaussians(x, height, xi, sigma, periods))
-            # Evaluate gradient of bias (and bias potential for WT version)
-            grid_values = pack(vmap(transform(current_gaussian))(grid_mesh))
-            return update(pstate.grid_potential, pstate.grid_gradient, *grid_values)
+    #else:
+    #    grid_mesh = compute_mesh(grid) * (grid.size / 2)
+    #    get_grid_index = build_indexer(grid)
+    #    # Reshape so the dimensions are compatible
+    #    accum = jit(lambda total, val: total + val.reshape(total.shape))
+#
+#
+    #    transform = value_and_grad
+    #    pack = identity
+    #    update = jit(lambda V, dV, vals, grads: (accum(V, vals), accum(dV, grads)))
+#
+    #    def update_grids(pstate, height, xi, sigma):
+    #        # We use sum_of_gaussians since it already takes care of the wrapping
+    #        current_gaussian = jit(lambda x: sum_of_gaussians(x, height, xi, sigma, periods))
+    #        # Evaluate gradient of bias (and bias potential for WT version)
+    #        grid_values = pack(vmap(transform(current_gaussian))(grid_mesh))
+    #        return update(pstate.grid_potential, pstate.grid_gradient, *grid_values)
 
     def deposit_gaussian(pstate):
         xi, idx = pstate.xi, pstate.idx
@@ -212,8 +200,8 @@ def build_bias_grad_evaluator(method: Metadynamics):
     if method.grid is None:
         periods = get_periods(method.cvs)
         evaluate_bias_grad = jit(lambda pstate: grad(sum_of_gaussians)(*pstate[:4], periods))
-    else:
-        evaluate_bias_grad = jit(lambda pstate: pstate.grid_gradient[pstate.grid_idx])
+    #else:
+    #    evaluate_bias_grad = jit(lambda pstate: pstate.grid_gradient[pstate.grid_idx])
 
     return evaluate_bias_grad
 
@@ -225,3 +213,24 @@ def sum_of_gaussians(xi, heights, centers, sigmas, periods):
     """
     delta_x = wrap(xi - centers, periods)
     return gaussian(heights, sigmas, delta_x).sum()
+
+
+def parallel_bias(x):
+    """
+    Sum array `x` along each of its row (`axis = 1`),
+    Parallel bias potential
+    V_PB = 
+    """
+    # calculate epx( (-1/kT)*Gaussian ) for each CV using VMAP
+    vmap(gaussian_singleCV)(x)
+    
+    # sum the result and return it
+    
+    return v_pb
+
+
+def gaussian_singleCV(a, sigma, cv_diff):
+    """
+    N-dimensional origin-centered gaussian with height `a` and standard deviation `sigma`.
+    """
+    return a * np.exp(-(cv_diff / sigma) ** 2 / 2)
