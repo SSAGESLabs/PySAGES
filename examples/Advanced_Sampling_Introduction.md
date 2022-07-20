@@ -50,8 +50,8 @@ unzip -qquo pysages-env.zip -d $PYSAGES_ENV
 ```
 
 ```bash colab={"base_uri": "https://localhost:8080/"} id="LlVSU_-FoD4w" outputId="85971918-c9b9-44b6-8898-3557ae165cc9"
-apt-cache policy libcudnn8
-apt install --allow-change-held-packages libcudnn8=8.4.1.50-1+cuda11.6
+apt-cache policy libcudnn8 &> /dev/null
+apt install --allow-change-held-packages libcudnn8=8.4.1.50-1+cuda11.6 &> /dev/null
 update-alternatives --auto libcudnn &> /dev/null
 ```
 
