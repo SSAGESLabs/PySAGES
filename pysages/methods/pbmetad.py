@@ -23,7 +23,7 @@ class ParallelBiasMetadynamics(SamplingMethod):
     """
     Implementation of Parallel Bias Metadynamics as described in
     [J. Chem. Theory Comput. 11, 5062–5067 (2015)](https://doi.org/10.1021/acs.jctc.5b00846)
-    
+
     Compared to well-tempered metadynamics, the total bias potential expression and height at which
     bias is deposited for each CV is different in parallel bias metadynamics.
     """
@@ -53,13 +53,13 @@ class ParallelBiasMetadynamics(SamplingMethod):
         deltaT: float = None
             Well-tempered metadynamics $\\Delta T$ parameter to set the energy
             scale for sampling.
-            
+
         kB: float
             Boltzmann constant. It should match the internal units of the backend.
 
         Keyword arguments
         -----------------
-        
+
         grid: Optional[Grid] = None
             If provided, it will be used to accelerate the computation by
             approximating the bias potential and its gradient over its centers.
@@ -74,7 +74,7 @@ class ParallelBiasMetadynamics(SamplingMethod):
         self.ngaussians = ngaussians  # NOTE: infer from timesteps and stride
         self.deltaT = deltaT
         self.kB = kwargs.get("kB", None)
-        
+
         self.grid = kwargs.get("grid", None)
 
     def build(self, snapshot, helpers, *args, **kwargs):
@@ -146,7 +146,7 @@ def build_gaussian_accumulator(method: Metadynamics):
 
     if grid is None:
         evaluate_potential = jit(lambda pstate: sum_of_gaussians(*pstate[:4], periods))
-    #else:
+    # else:
     #    evaluate_potential = jit(lambda pstate: pstate.grid_potential[pstate.grid_idx])
 
     def next_height(pstate):
@@ -156,17 +156,17 @@ def build_gaussian_accumulator(method: Metadynamics):
     if grid is None:
         get_grid_index = jit(lambda arg: None)
         update_grids = jit(lambda *args: (None, None))
-    #else:
+    # else:
     #    grid_mesh = compute_mesh(grid) * (grid.size / 2)
     #    get_grid_index = build_indexer(grid)
     #    # Reshape so the dimensions are compatible
     #    accum = jit(lambda total, val: total + val.reshape(total.shape))
-#
-#
+    #
+    #
     #    transform = value_and_grad
     #    pack = identity
     #    update = jit(lambda V, dV, vals, grads: (accum(V, vals), accum(dV, grads)))
-#
+    #
     #    def update_grids(pstate, height, xi, sigma):
     #        # We use sum_of_gaussians since it already takes care of the wrapping
     #        current_gaussian = jit(lambda x: sum_of_gaussians(x, height, xi, sigma, periods))
@@ -200,7 +200,7 @@ def build_bias_grad_evaluator(method: Metadynamics):
     if method.grid is None:
         periods = get_periods(method.cvs)
         evaluate_bias_grad = jit(lambda pstate: grad(sum_of_gaussians)(*pstate[:4], periods))
-    #else:
+    # else:
     #    evaluate_bias_grad = jit(lambda pstate: pstate.grid_gradient[pstate.grid_idx])
 
     return evaluate_bias_grad
@@ -219,13 +219,13 @@ def parallel_bias(x):
     """
     Sum array `x` along each of its row (`axis = 1`),
     Parallel bias potential
-    V_PB = 
+    V_PB =
     """
     # calculate epx( (-1/kT)*Gaussian ) for each CV using VMAP
     vmap(gaussian_singleCV)(x)
-    
+
     # sum the result and return it
-    
+
     return v_pb
 
 
@@ -233,4 +233,4 @@ def gaussian_singleCV(a, sigma, cv_diff):
     """
     N-dimensional origin-centered gaussian with height `a` and standard deviation `sigma`.
     """
-    return a * np.exp(-(cv_diff / sigma) ** 2 / 2)
+    return a * np.exp(-((cv_diff / sigma) ** 2) / 2)
