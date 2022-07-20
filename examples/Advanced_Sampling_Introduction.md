@@ -39,7 +39,7 @@ wget -q --load-cookies /tmp/cookies.txt "$BASE_URL&confirm=$(wget -q --save-cook
 rm -rf /tmp/cookies.txt
 ```
 
-```python colab={"base_uri": "https://localhost:8080/"} id="KRPmkpd9n_NG" outputId="ed5763e2-a491-4a06-a6d8-ef92b9785f42"
+```python colab={"base_uri": "https://localhost:8080/"} id="KRPmkpd9n_NG" outputId="04c4281e-57d3-4f48-ce52-fb010a585708"
 %env PYSAGES_ENV=/env/pysages
 ```
 
@@ -49,7 +49,7 @@ mkdir -p $PYSAGES_ENV .
 unzip -qquo pysages-env.zip -d $PYSAGES_ENV
 ```
 
-```bash id="LlVSU_-FoD4w" outputId="b096965b-3eae-49e8-fd40-a889b363edc9" colab={"base_uri": "https://localhost:8080/"}
+```bash colab={"base_uri": "https://localhost:8080/"} id="LlVSU_-FoD4w" outputId="85971918-c9b9-44b6-8898-3557ae165cc9"
 apt-cache policy libcudnn8
 apt install --allow-change-held-packages libcudnn8=8.4.1.50-1+cuda11.6
 update-alternatives --auto libcudnn &> /dev/null
@@ -201,7 +201,7 @@ def potential(x, rmin=0, rmax=100, amplitude=1, roughness=4, periodicity=1):
 * symmeteric around the origin
 <!-- #endregion -->
 
-```python colab={"base_uri": "https://localhost:8080/", "height": 283} id="7N11Y8GOSY1_" outputId="9180a353-65de-4f93-8159-42709fa1a87a"
+```python colab={"base_uri": "https://localhost:8080/", "height": 283} id="7N11Y8GOSY1_" outputId="dc967313-d57e-47da-f7d3-d0f2672357a6"
 import matplotlib.pyplot as plt
 fig, ax = plt.subplots()
 ax.set_xlabel(r"$r$ $[\sigma]$")
@@ -297,10 +297,8 @@ Here we choose the distance from the origin as the collective variable.
 We use PySAGES to define this collective variable.
 <!-- #endregion -->
 
-```python id="fpMg-o8WomAA" colab={"base_uri": "https://localhost:8080/"} outputId="a914779d-2902-4007-a6c5-cbb14ee1bfeb"
+```python colab={"base_uri": "https://localhost:8080/"} id="fpMg-o8WomAA" outputId="65ecfefb-bf51-4ba8-d0a1-20992cdf34f4"
 from pysages.colvars import Distance
-from pysages.methods import HarmonicBias
-
 import pysages
 
 # Distance from our particle to origin (particle 1)
@@ -309,11 +307,12 @@ cvs = [Distance( (0, 1))]
 
 <!-- #region id="LknkRvo1o4av" -->
 ### Unbiased simulation
-Next, we are interested in an unbiased simulation. Using PySAGES, we can achieve this, by running with a harmonic bias (more later) with zero spring constant.
+Next, we are interested in an unbiased simulation. PySAGES offers a special method for unbiased simulations, that can still record the collective variable.
 <!-- #endregion -->
 
 ```python id="B1Z8FWz0o7u_"
-method = HarmonicBias(cvs, kspring=0, center=0)
+from pysages.methods import Unbiased
+method = Unbiased(cvs)
 ```
 
 <!-- #region id="AD7ANSvsrGg5" -->
@@ -330,7 +329,7 @@ We now simulate $1\times10^5$ time steps.
 To investigate the unbiased trajectory and statistics.
 <!-- #endregion -->
 
-```python colab={"base_uri": "https://localhost:8080/"} id="K951m4BbpUar" outputId="f62594a9-86ae-4048-99e8-e6121feb9021"
+```python colab={"base_uri": "https://localhost:8080/"} id="K951m4BbpUar" outputId="25117256-c8f4-499d-e1b1-e84235915549"
 result = pysages.run(method, generate_context, int(1e5), callback=hist)
 ```
 
@@ -338,7 +337,7 @@ result = pysages.run(method, generate_context, int(1e5), callback=hist)
 Let's see how the particle moved in this potential landscape.
 <!-- #endregion -->
 
-```python id="X69d1R7OpW4P" colab={"base_uri": "https://localhost:8080/", "height": 314} outputId="64025eb7-1c53-4c7c-fdc6-ff9d5e3888d5"
+```python colab={"base_uri": "https://localhost:8080/", "height": 314} id="X69d1R7OpW4P" outputId="fa45c920-8f4b-4f44-ef22-27d3b6c525d5"
 def plot_one_result(result):
   histogram_log = result.callbacks[0]
   cv_log = np.asarray(histogram_log.data)
@@ -403,12 +402,15 @@ We can start biasing by using a simple harmonic biasing, where we bias the syste
 
 $$H_B(r) = - k (c-r)^2\sigma^2$$ 
 
+PySAGES offers a preimplemented method class, that we are utilizing.
+
 In our example toy system, we choose $c=2\sigma$ as a maximum of our external potential.
 
 We don't know a priori what a good spring constant is. Let's start with $k=1 k_BT$. 
 <!-- #endregion -->
 
-```python id="Wt4LVNYe0Q_4" colab={"base_uri": "https://localhost:8080/"} outputId="8b2e38bd-2468-4374-860a-f39f2f4a0bf0"
+```python colab={"base_uri": "https://localhost:8080/"} id="Wt4LVNYe0Q_4" outputId="7f808010-310c-41fc-d75d-e347282a60ac"
+from pysages.methods import HarmonicBias
 method = HarmonicBias(cvs, kspring=1, center=2)
 hist = HistogramLogger(period=100)
 result = pysages.run(method, generate_context, int(1e5), callback=hist)
@@ -418,7 +420,7 @@ result = pysages.run(method, generate_context, int(1e5), callback=hist)
 Ok, we analyze the trajectory as before to see how the energy landscape is explored now.
 <!-- #endregion -->
 
-```python colab={"base_uri": "https://localhost:8080/", "height": 314} id="238HVay7O3TA" outputId="7c196a5a-3172-4138-8390-11aa6a8e0ecb"
+```python colab={"base_uri": "https://localhost:8080/", "height": 314} id="238HVay7O3TA" outputId="8fc7f687-c7a2-4b4e-ea38-e6e395690e16"
 plot_one_result(result)
 ```
 
@@ -426,7 +428,7 @@ plot_one_result(result)
 We observe that the free-energy barrier at $c=2$ is already much better explored, but the biasing force is not strong enough to pull the particle out of the free-energy minimum. Let's try $k=100k_BT$.
 <!-- #endregion -->
 
-```python colab={"base_uri": "https://localhost:8080/", "height": 488} id="JvHWb-sSO6Qe" outputId="3d5920c6-0112-4312-804b-11991b8e30d6"
+```python colab={"base_uri": "https://localhost:8080/", "height": 488} id="JvHWb-sSO6Qe" outputId="0bee9280-5efa-4020-b59d-cc3966615fb0"
 method = HarmonicBias(cvs, kspring=100, center=2)
 hist = HistogramLogger(period=100)
 result = pysages.run(method, generate_context, int(1e5), callback=hist)
@@ -439,7 +441,7 @@ Ok, now the system mostly oscillates around the maximum with two minima, but the
 The spring constant is so strong, that restricts the exploration of the phase space too much. Let's try the middle ground instead $k=10k_BT$.
 <!-- #endregion -->
 
-```python colab={"base_uri": "https://localhost:8080/", "height": 488} id="OLwF9M6qTWv5" outputId="6945f646-bf19-470d-a588-dc571cdb6203"
+```python colab={"base_uri": "https://localhost:8080/", "height": 488} id="OLwF9M6qTWv5" outputId="18c35b98-f89c-478e-835d-ce9e62fd0798"
 kspring=10
 method = HarmonicBias(cvs, kspring=kspring, center=2)
 hist = HistogramLogger(period=100)
@@ -455,7 +457,7 @@ We observe multiple transitions between the minima at $c=1$ and $c=2$ (rare even
 We now analyze the histograms of this trajectory to determine the free-energy landscape $A(\xi)$ from the biased simulation.
 <!-- #endregion -->
 
-```python colab={"base_uri": "https://localhost:8080/", "height": 283} id="uT8IyjLqR4cE" outputId="ded67699-e414-4d8c-d1ac-2c8db4bed74f"
+```python colab={"base_uri": "https://localhost:8080/", "height": 283} id="uT8IyjLqR4cE" outputId="aaed032a-d86c-481a-ac25-8cdcbaec35d0"
 from scipy import integrate
 def plot_one_histogram(result):
   histogram_log = result.callbacks[0]
@@ -487,7 +489,7 @@ So let's compare to the expected free-energy profile.
 $$A(\xi) = -k_BT \ln(p_{eq}(\xi) + C$$ 
 <!-- #endregion -->
 
-```python colab={"base_uri": "https://localhost:8080/", "height": 318} id="22xGRaXk8jyG" outputId="7e976fcb-4da7-4052-c91b-6a9e372ca047"
+```python colab={"base_uri": "https://localhost:8080/", "height": 318} id="22xGRaXk8jyG" outputId="71cba847-939f-46d8-98fe-fae3ac672105"
 def plot_one_free_energy(result):
   histogram_log = result.callbacks[0]
   
@@ -600,7 +602,7 @@ $$w_i(\xi) = k/2 (\xi - \xi_0(t_i))^2$$
 Example: 10 evenly spaced points between 0 and 4.
 <!-- #endregion -->
 
-```python colab={"base_uri": "https://localhost:8080/", "height": 287} id="34u5P_jKpcqZ" outputId="ccee8ba6-109a-4cc9-af54-fc664129c5bd"
+```python colab={"base_uri": "https://localhost:8080/", "height": 287} id="34u5P_jKpcqZ" outputId="0bede70b-26f3-49a4-f481-a39d17d24375"
 centers = list(np.linspace(1e-1, 4-1e-1, 10)) + [4]
 kspring = 100
 fig, ax = plt.subplots()
@@ -628,7 +630,7 @@ Goal: $\Rightarrow$ overlapping histograms
 $$\int \text{d} \xi p_i^b(\xi) p_{i+1}^b(\xi) \gg 0$$
 <!-- #endregion -->
 
-```python colab={"base_uri": "https://localhost:8080/"} id="CtaNDUQ0SrTZ" outputId="500a439f-adde-4263-a4e0-f8907a12b01e"
+```python colab={"base_uri": "https://localhost:8080/"} id="CtaNDUQ0SrTZ" outputId="10fe459e-df8b-4b7f-d513-89f40540b788"
 from pysages.methods import UmbrellaIntegration
 method = UmbrellaIntegration(cvs, ksprings=kspring, centers=centers, hist_periods=100)
 result = pysages.run(method, generate_context, int(1e5))
@@ -640,7 +642,7 @@ You can already see one downside, we have to run multiple replicas, which consum
 Let's see what the histograms look like.
 <!-- #endregion -->
 
-```python colab={"base_uri": "https://localhost:8080/", "height": 283} id="xdUuQ9z5XCEH" outputId="0cc66594-0bc0-4999-e8a5-f249ce1435d4"
+```python colab={"base_uri": "https://localhost:8080/", "height": 283} id="xdUuQ9z5XCEH" outputId="0d40ef10-93fb-44e7-9da3-3d766b3323f7"
 def plot_multi_histogram(result):
   fig, ax = plt.subplots()
   ax.set_xlabel(r"$\xi$ $[\sigma]$")
@@ -702,7 +704,7 @@ Let's see how PySAGES analyzes it for us and produces the free-energy result.
 
 <!-- #endregion -->
 
-```python colab={"base_uri": "https://localhost:8080/", "height": 320} id="RpoHwWULX2Nj" outputId="4a671da3-aa6d-4094-c4b8-d1bdd9a2af8c"
+```python colab={"base_uri": "https://localhost:8080/", "height": 283} id="RpoHwWULX2Nj" outputId="b3ea9fb3-ba3c-40c3-9abc-ba5ad4f09782"
 def plot_umbrella_free_energy(result):
   processed_result = pysages.analyze(result)
   
@@ -840,7 +842,7 @@ And the probability decreases if we move towards $A$ ($t < 1/2$) the probability
 
 <!-- #endregion -->
 
-```python id="9N5aSjdbmlZ0" colab={"base_uri": "https://localhost:8080/", "height": 281} outputId="31a572c4-5298-41e2-ec67-a090c3886482"
+```python colab={"base_uri": "https://localhost:8080/", "height": 281} id="9N5aSjdbmlZ0" outputId="1ec04fd7-89f9-4d07-976b-0e9a29f8db74"
 fig, ax =plt.subplots()
 ax.set_xlabel("$t$")
 ax.set_xlim((0,1))
