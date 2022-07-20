@@ -14,7 +14,7 @@ jupyter:
 ---
 
 <!-- #region id="xe7khOTGtjrw" -->
-#Introduction into Advanced Sampling
+# Introduction to Advanced Sampling Methods
 
 Ludwig Schneider and Juan de Pablo
 
