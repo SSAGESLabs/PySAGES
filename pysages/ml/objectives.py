@@ -4,8 +4,7 @@
 
 from typing import NamedTuple, Union
 
-from jax import value_and_grad, vmap
-
+from jax import grad, value_and_grad, vmap
 from pysages.ml.utils import (
     dispatch,
     number_of_weights,
