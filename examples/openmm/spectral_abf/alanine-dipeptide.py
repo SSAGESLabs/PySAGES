@@ -10,7 +10,6 @@ For other supported commandline parameters, check `python3 alanine-dipeptide.py 
 
 # %%
 import argparse
-import os
 import sys
 import time
 
@@ -36,7 +35,7 @@ kB = kB.value_in_unit(unit.kilojoules_per_mole / unit.kelvin)
 
 T = 298.15 * unit.kelvin
 dt = 2.0 * unit.femtoseconds
-adp_pdb = os.path.join(os.pardir, os.pardir, "inputs", "alanine-dipeptide", "adp-vacuum.pdb")
+adp_pdb = "adp-vacuum.pdb"
 
 
 # %%
@@ -63,7 +62,6 @@ def generate_simulation(pdb_filename=adp_pdb, T=T, dt=dt):
     positions = pdb.getPositions(asNumpy=True)
 
     integrator = openmm.LangevinIntegrator(T, 1 / unit.picosecond, dt)
-
     integrator.setRandomNumberSeed(42)
 
     # platform = openmm.Platform.getPlatformByName(platform)
