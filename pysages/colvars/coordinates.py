@@ -84,27 +84,27 @@ class Distance(TwoPointCV):
 
     @property
     def function(self):
-        return distance
+        if len(self.groups) == 0:
+            return distance
+        return lambda r1, r2: distance(barycenter(r1), barycenter(r2))
 
 
-def distance(p1, p2):
+def distance(r1, r2):
     """
     Returns the distance between two points in space or
     between the barycenters of two groups of points in space.
 
     Parameters
     ----------
-    p1 : DeviceArray
+    r1: DeviceArray
         Array containing the position in space of the first point or group of points.
-    p2 : DeviceArray
+    r2: DeviceArray
         Array containing the position in space of the second point or group of points.
 
     Returns
     -------
-    distance : float
+    distance: float
         Distance between the two points.
     """
-    r1 = barycenter(p1)
-    r2 = barycenter(p2)
 
     return linalg.norm(r1 - r2)
