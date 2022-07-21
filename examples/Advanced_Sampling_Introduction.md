@@ -98,7 +98,7 @@ pip install -q . &> /dev/null
 # Advanced Sampling Methods
 <!-- #endregion -->
 
-```bash id="ppTzMmyyobHB" outputId="9ba2e260-1585-4bd7-8fee-4f0404dd1449" colab={"base_uri": "https://localhost:8080/"}
+```bash colab={"base_uri": "https://localhost:8080/"} id="ppTzMmyyobHB" outputId="9ba2e260-1585-4bd7-8fee-4f0404dd1449"
 
 mkdir /content/advanced_sampling
 cd /content/advanced_sampling
@@ -245,7 +245,7 @@ $$p(r) \propto 2\pi r^2 e^{-\beta E(r)}$$
 Hence we can obtain the free energy with a logarithmic correction.
 <!-- #endregion -->
 
-```python id="LH8Pw8MT8naI" outputId="3286b4ec-1a73-4a40-d07a-399ec53c537e" colab={"base_uri": "https://localhost:8080/", "height": 422}
+```python colab={"base_uri": "https://localhost:8080/", "height": 422} id="LH8Pw8MT8naI" outputId="3286b4ec-1a73-4a40-d07a-399ec53c537e"
 import matplotlib.pyplot as plt
 fig, ax = plt.subplots()
 ax.set_xlabel(r"$r$ $[\sigma]$")
