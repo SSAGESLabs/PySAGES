@@ -7,7 +7,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.14.0
+      jupytext_version: 1.13.6
   kernelspec:
     display_name: Python 3
     name: python3
@@ -110,7 +110,7 @@ Many systems have rugged free-energy landscapes, where different basins are divi
 ### Examples:
 #### Collective molecular transitions
 * Protein folding
-* Protein ligand binding
+* Protein-ligand binding
 * Liqid membrane fusion
 <!-- #endregion -->
 
@@ -125,9 +125,9 @@ Smirnova, Yuliya G., et al. "Solvent-exposed tails as prestalk transition states
 <!-- #endregion -->
 
 <!-- #region id="hz7pwhbZXzZp" -->
-#### Phase transisions
-* Liquid-vapor transisition
-* Crystalization
+#### Phase transitions
+* Liquid-vapor transition
+* Crystallization
 * Shape transitions
 * Magnetization (Ising model)
 
@@ -146,7 +146,7 @@ $⇒$ Reduction of the phase space $\hat\xi(\{\vec{r}, \vec{p}\})$. In general, 
 [Note: the hat "$\hat\ $" indicates that it is a collective variable that explicitly depends on the underlying molecular configuration. Without the "$\hat\ $" it usually indicates a scalar, like a target.]
 
 Examples:
-* center of mass of molecule
+* center of mass of the molecule
 * opening angle of protein
 * magnetization
 * [more common options in PySAGES](https://pysages.readthedocs.io/en/latest/module-pysages-colvars.html)
@@ -155,10 +155,10 @@ Examples:
 <!-- #region id="0W2ukJuuojAl" -->
 ## Example system: particle in multi-well
 
-Let's start exploring an esay system and find the free-energy landscape.
+Let's start exploring an easy system and find the free-energy landscape.
 
 * a priori $A(\xi)$ is unknown
-* but we can measure density of states $p(\xi)$
+* but we can measure the density of states $p(\xi)$
 
 We can recover the free-energy profile from $p(\xi)$
 
@@ -187,7 +187,7 @@ $$p \propto e^{-\beta \Delta E} \ll 1$$
 Let's examine such a system via computer simulations.
 
 *   fast to integration
-*   custom bond potential to shape free-energy landscape
+*   custom bond potential to shape the free-energy landscape
 
 $$P(r) = Ar^2 + A(1-e^{-r^2})\cos(r p \pi)$$
 <!-- #endregion -->
@@ -208,7 +208,7 @@ def potential(x, rmin=0, rmax=100, amplitude=1., roughness=4, periodicity=1):
 
 <!-- #region id="Mx-KolPTSAJR" -->
 * customizable roughness and steepness
-* symmeteric around the origin
+* symmetric around the origin
 <!-- #endregion -->
 
 ```python colab={"base_uri": "https://localhost:8080/", "height": 283} id="7N11Y8GOSY1_" outputId="38faa096-7a15-42fc-b1c8-80795a0dade9"
@@ -233,16 +233,16 @@ fig.show()
 ```
 
 <!-- #region id="DMsdND6wWgEj" -->
-* we can choose and adjust the potental
+* We can choose and adjust the potential
 
 > Here we choose a system with multiple basins separated by energy barriers.
 
-However, the free-energy of this system is not the energy of this bond.
+However, the free energy of this system is not the energy of this bond.
 Because we are using a distance the system is best described in radial coordinates, which includes the Jacobi determinant $2\pi r^2$ in the weight.
 
 $$p(r) \propto 2\pi r^2 e^{-\beta E(r)}$$
 
-Hence we can obtain the free-energy with a logarithmic correction.
+Hence we can obtain the free energy with a logarithmic correction.
 <!-- #endregion -->
 
 ```python id="LH8Pw8MT8naI" outputId="3286b4ec-1a73-4a40-d07a-399ec53c537e" colab={"base_uri": "https://localhost:8080/", "height": 422}
@@ -270,7 +270,7 @@ fig.show()
 
 <!-- #region id="Y-G6S8xa8ihG" -->
 * Notice how the unlikely short distances remove the first minimum around 0
-* use of a single bond between two particle to realize the potential in 
+* use of a single bond between two particles to realize the potential in 
 HOOMD-blue
 <!-- #endregion -->
 
@@ -326,7 +326,7 @@ def generate_context(**kwargs):
 
 <!-- #region id="j3XPDwd0jR1q" -->
 The bond realizes the custom energy landscape between two particles.
-In this case, we can determine the free-energy with the Jacobian correction and the bond energy. This is only true because of the simple nature of this toy system. Usually, the free energy is unknown and needs to be discovered via advanced sampling methods.
+In this case, we can determine the free energy with the Jacobian correction and the bond energy. This is only true because of the simple nature of this toy system. Usually, the free energy is unknown and needs to be discovered via advanced sampling methods.
 
 <!-- #endregion -->
 
@@ -407,7 +407,7 @@ plot_one_result(result)
 ```
 
 <!-- #region id="Kf_CMdih90Cd" -->
-We see, that the system actually never leaves the local minimum around $\xi=3$.
+We see, that the system never leaves the local minimum around $\xi=3$.
 Since the phase space is not fully explored the prediction of the free energy is not complete. Here the system is not even equilibrated.
 
 
@@ -423,7 +423,7 @@ Introducing a weight function $w(\xi(\{r,p\}))$ to allow phase space exploration
 $$p(\{(r,p)\}) \propto p_{eq}(\{r,p\})/w(\xi(\{r, p\}))$$
 $p(\{(r,p)\})$ is the biased distribution, $p_{eq}$ refers to the unbiased equilibrium distribution.
 
-Find the biase distribution as a function of the collective variable $\xi$.
+Find the biased distribution as a function of the collective variable $\xi$.
 $$p(\xi) = \int\text{d}r\text{d}p \delta(\xi - \hat\xi) p(\{(r,p\}))$$
 $$p(\xi) = \int\text{d}r\text{d}p \delta(\xi - \hat\xi) \frac{p_{eq}(\{(r,p)\})}{w(\xi)}$$
 $$p(\xi) = \frac{1}{w(\xi)} \int\text{d}r\text{d}p \delta(\xi - \hat\xi) p_{eq}(\{(r,p)\})$$
@@ -448,7 +448,7 @@ We can start biasing by using a simple harmonic biasing, where we bias the syste
 
 $$H^b(r) = \frac{k}{2} (c-r)^2$$ 
 
-PySAGES offers a preimplemented method class, that we are utilizing.
+PySAGES offers a pre-implemented method class, that we are utilizing.
 
 In our example toy system, we choose $c=2\sigma$ as a maximum of our external potential.
 
@@ -471,7 +471,7 @@ plot_one_result(result)
 ```
 
 <!-- #region id="Wy1I3QdCPOqm" -->
-We observe that the free-energy barrier at $c=2\sigma$ is already much better explored, but the biasing force is only strong enough to pull the particle accross the barrier once. 
+We observe that the free-energy barrier at $c=2\sigma$ is already much better explored, but the biasing force is only strong enough to pull the particle across the barrier once. 
 
 Let's try $k=100\frac{k_BT}{\sigma^2}$.
 <!-- #endregion -->
@@ -565,7 +565,7 @@ plot_one_free_energy(result)
 
 <!-- #region id="e2YtfQlQ8jO9" -->
 That estimation is not bad.
-We get the approximate right shape in the middle and that could be further improved by running the sampling trajectory longer. Or try a differnt spring constant. [Try it out!]
+We get the approximate right shape in the middle and that could be further improved by running the sampling trajectory longer. Or try a different spring constant. [Try it out!]
 
 But there are still some issues because we still cannot sample the entire space:
 
@@ -642,8 +642,8 @@ not directly solvable.
 
 Ideal $e^{-\beta H^b_{i}}(\xi) \propto p_{eq}(\xi)$ and differentiable.
 
-*  For now we us a harmonic potential
-*  fix system with a spring to point on path.
+*  For now we use a harmonic potential
+*  fix the system with a spring to point on the path.
 $$H^b_{i}(\xi) = k/2 (\xi - \xi_0(t_i))^2$$
 *  combine different points into one analysis
 <!-- #endregion -->
@@ -779,7 +779,7 @@ Difficulties:
 
 
 1.   choose a good spring constant
->  * too large and the histogram don't overlap
+>  * too large and the histograms don't overlap
 >  * too small and you can sample barriers 
 2.   choose a good number of replicas
 
@@ -869,7 +869,7 @@ Iterate:
 4.   Re-parametrize the string points.
 > Such that $|\xi_0^s(t_i) - \xi_0^s(t_{i+1})| = $const.
 > *  cancels out parallel force component
-> *  well discretized string
+> * well-discretized string
 > *  requires a norm in $\xi$ space. For example $L^2$ norm in $\xi$ space.
 
 Stop iteration if converged and test $\Delta V^\perp = 0$.
