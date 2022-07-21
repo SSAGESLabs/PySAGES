@@ -7,14 +7,14 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.14.0
+      jupytext_version: 1.13.6
   kernelspec:
     display_name: Python 3
     name: python3
 ---
 
 <!-- #region id="xe7khOTGtjrw" -->
-# Introduction to Advanced Sampling Methods
+# Introduction to Advanced Sampling
 
 Ludwig Schneider and Juan de Pablo
 
@@ -39,7 +39,7 @@ wget -q --load-cookies /tmp/cookies.txt "$BASE_URL&confirm=$(wget -q --save-cook
 rm -rf /tmp/cookies.txt
 ```
 
-```python colab={"base_uri": "https://localhost:8080/"} id="KRPmkpd9n_NG" outputId="04c4281e-57d3-4f48-ce52-fb010a585708"
+```python colab={"base_uri": "https://localhost:8080/"} id="KRPmkpd9n_NG" outputId="34bb6ffa-98ad-42dd-acef-30d11fc66459"
 %env PYSAGES_ENV=/env/pysages
 ```
 
@@ -49,7 +49,7 @@ mkdir -p $PYSAGES_ENV .
 unzip -qquo pysages-env.zip -d $PYSAGES_ENV
 ```
 
-```bash colab={"base_uri": "https://localhost:8080/"} id="LlVSU_-FoD4w" outputId="85971918-c9b9-44b6-8898-3557ae165cc9"
+```bash id="LlVSU_-FoD4w"
 apt-cache policy libcudnn8 &> /dev/null
 apt install --allow-change-held-packages libcudnn8=8.4.1.50-1+cuda11.6 &> /dev/null
 update-alternatives --auto libcudnn &> /dev/null
@@ -88,7 +88,9 @@ Now we can finally install PySAGES. We clone the newest version from [here](http
 
 rm -rf PySAGES
 git clone https://github.com/SSAGESLabs/PySAGES.git &> /dev/null
+#git clone https://github.com/pabloferz/PySAGES.git
 cd PySAGES
+#git checkout non-group-cvs
 pip install -q . &> /dev/null
 ```
 
@@ -96,14 +98,14 @@ pip install -q . &> /dev/null
 # Advanced Sampling Methods
 <!-- #endregion -->
 
-```bash id="ppTzMmyyobHB"
+```bash id="ppTzMmyyobHB" outputId="9ba2e260-1585-4bd7-8fee-4f0404dd1449" colab={"base_uri": "https://localhost:8080/"}
 
 mkdir /content/advanced_sampling
 cd /content/advanced_sampling
 ```
 
 <!-- #region id="jnMtDUgyXEsr" -->
-Many systems have a separated free-energy landscape, where different basins are divided by energy barriers.
+Many systems have rugged free-energy landscapes, where different basins are divided by energy barriers.
 
 ### Examples:
 #### Collective molecular transitions
@@ -113,10 +115,12 @@ Many systems have a separated free-energy landscape, where different basins are 
 <!-- #endregion -->
 
 <!-- #region id="mHOcKW-fXoK5" -->
+<div>
 <img src=https://pubs.acs.org/cms/10.1021/ja910050x/asset/images/large/ja-2009-10050x_0008.jpeg width=500>
-
+</div>
+<div>
 <img src=https://pubs.acs.org/cms/10.1021/ja910050x/asset/images/large/ja-2009-10050x_0011.jpeg width=500>
-
+<div>
 Smirnova, Yuliya G., et al. "Solvent-exposed tails as prestalk transition states for membrane fusion at low hydration." Journal of the American Chemical Society 132.19 (2010): 6710-6718
 <!-- #endregion -->
 
@@ -128,15 +132,18 @@ Smirnova, Yuliya G., et al. "Solvent-exposed tails as prestalk transition states
 * Magnetization (Ising model)
 
 ![picture](https://upload.wikimedia.org/wikipedia/commons/e/e6/Ising_quench_b10.gif)
+
 Wikipedia: https://en.wikipedia.org/wiki/Ising_model
 <!-- #endregion -->
 
 <!-- #region id="0iCFnwF6aJ3P" -->
-###Collective Variable (order parameter)
+### Collective Variables
+Also known as order parameters in other contexts.
 
 Usually, such transitions can be described in terms of order parameters/collective variables (CV).
 
 $⇒$ Reduction of the phase space $\hat\xi(\{\vec{r}, \vec{p}\})$. In general, a collective variable can be multi-dimensional.
+[Note: the hat "$\hat\ $" indicates that it is a collective variable that explicitly depends on the underlying molecular configuration. Without the "$\hat\ $" it usually indicates a scalar, like a target.]
 
 Examples:
 * center of mass of molecule
@@ -146,8 +153,9 @@ Examples:
 <!-- #endregion -->
 
 <!-- #region id="0W2ukJuuojAl" -->
-## Toy system: particle in multi-well
+## Example system: particle in multi-well
 
+Let's start exploring an esay system and find the free-energy landscape.
 
 * a priori $A(\xi)$ is unknown
 * but we can measure density of states $p(\xi)$
@@ -157,11 +165,11 @@ We can recover the free-energy profile from $p(\xi)$
 $$A = - \frac{1}{\beta}\ln(Z)$$
 
 * $A$: free-energy
-* $Z$: partition function
+* $Z$: NVT partition function
 
 We can formulate the partial partition function for a collective variable $\xi$
 
-$$Z(\xi) = \int\text{d}^N\vec{r}_i\text{d}^N\vec{p}_i \delta (\hat\xi(\{\vec{r}, \vec{p}\}) e^{-\beta H(\{(\vec{r}_i, \vec{p}_i\})}$$
+$$Z(\xi) = \int\text{d}^N\vec{r}_i\text{d}^N\vec{p}_i \delta (\hat\xi(\{\vec{r}, \vec{p}\} - \xi) e^{-\beta H(\{(\vec{r}_i, \vec{p}_i\})}$$
 Normalization:
 $$p(\xi) = \frac{\int\text{d}^N\vec{r}_i\text{d}^N\vec{p}_i \delta (\hat\xi(\{\vec{r}, \vec{p}\} -\xi) e^{-\beta H(\{(\vec{r}_i, \vec{p}_i\})}}{\int\text{d}^N\vec{r}_i\text{d}^N\vec{p}_i e^{-\beta H(\{(\vec{r}_i, \vec{p}_i\})}}$$
 
@@ -180,12 +188,14 @@ Let's examine such a system via computer simulations.
 
 *   fast to integration
 *   custom bond potential to shape free-energy landscape
+
+$$P(r) = Ar^2 + A(1-e^{-r^2})\cos(r p \pi)$$
 <!-- #endregion -->
 
 ```python id="lD3EKXNDRJiL"
 import numpy as np
 
-def potential(x, rmin=0, rmax=100, amplitude=1, roughness=4, periodicity=1):
+def potential(x, rmin=0, rmax=100, amplitude=1., roughness=4, periodicity=1):
   energy = x**2
   energy += (1-np.exp(-x**2))*roughness*np.cos(periodicity*x*np.pi)
   energy *= amplitude
@@ -201,11 +211,12 @@ def potential(x, rmin=0, rmax=100, amplitude=1, roughness=4, periodicity=1):
 * symmeteric around the origin
 <!-- #endregion -->
 
-```python colab={"base_uri": "https://localhost:8080/", "height": 283} id="7N11Y8GOSY1_" outputId="dc967313-d57e-47da-f7d3-d0f2672357a6"
+```python colab={"base_uri": "https://localhost:8080/", "height": 283} id="7N11Y8GOSY1_" outputId="38faa096-7a15-42fc-b1c8-80795a0dade9"
 import matplotlib.pyplot as plt
 fig, ax = plt.subplots()
 ax.set_xlabel(r"$r$ $[\sigma]$")
-ax.set_ylabel(r"$A$ $[k_B T]$")
+ax.set_ylabel(r"$E$ $[k_B T]$")
+ax.set_xlim((0,4))
 
 x = np.linspace(0,4,100)
 ax.plot(x, potential(x)[0], label="reference")
@@ -224,11 +235,43 @@ fig.show()
 <!-- #region id="DMsdND6wWgEj" -->
 * we can choose and adjust the potental
 
-
 > Here we choose a system with multiple basins separated by energy barriers.
 
+However, the free-energy of this system is not the energy of this bond.
+Because we are using a distance the system is best described in radial coordinates, which includes the Jacobi determinant $2\pi r^2$ in the weight.
 
-* use of a single bond to the phantom particle to realize the potential in HOOMD-blue
+$$p(r) \propto 2\pi r^2 e^{-\beta E(r)}$$
+
+Hence we can obtain the free-energy with a logarithmic correction.
+<!-- #endregion -->
+
+```python id="LH8Pw8MT8naI" outputId="3286b4ec-1a73-4a40-d07a-399ec53c537e" colab={"base_uri": "https://localhost:8080/", "height": 422}
+import matplotlib.pyplot as plt
+fig, ax = plt.subplots()
+ax.set_xlabel(r"$r$ $[\sigma]$")
+ax.set_ylabel(r"$A$ $[k_B T]$")
+ax.set_xlim((0,4))
+
+def correct_free_energy(x, energy):
+  corrected_free_energy = energy - np.log(2*np.pi*x**2)
+  corrected_free_energy -= corrected_free_energy[1]
+  return corrected_free_energy
+
+
+x = np.linspace(0,4,100)
+ax.plot(x, correct_free_energy(x, potential(x)[0]), label="reference")
+ax.plot(x, correct_free_energy(x,potential(x, roughness=6)[0]), label="rougher")
+ax.plot(x, correct_free_energy(x, potential(x, amplitude=2)[0]), label="steeper")
+ax.plot(x, correct_free_energy(x, potential(x, periodicity=2)[0]), label="more minima")
+
+ax.legend(loc="best")
+fig.show()
+```
+
+<!-- #region id="Y-G6S8xa8ihG" -->
+* Notice how the unlikely short distances remove the first minimum around 0
+* use of a single bond between two particle to realize the potential in 
+HOOMD-blue
 <!-- #endregion -->
 
 ```python id="BBvC7Spoog82"
@@ -242,7 +285,7 @@ def generate_context(**kwargs):
     Generates a simulation context, we pass this function to the attribute
     `run` of our sampling method.
     """
-    fes_coeffs = kwargs.get("fes_coeffs", {"amplitude": 1, "roughness": 4, "periodicity": 1})
+    fes_coeffs = kwargs.get("fes_coeffs", {"amplitude": 1., "roughness": 4, "periodicity": 1})
     hoomd.context.initialize("")
 
     ### System Definition
@@ -256,8 +299,8 @@ def generate_context(**kwargs):
     snapshot.particles.typeid[0] = 0
     snapshot.particles.typeid[1] = 1
 
-    # Refernce particle at extension 2.8 and ghost particle at origin 
-    positions = np.array([[2.8,  0,  0], [0, 0,  0]])
+    # Refernce particle at an extension and a ghost particle at origin 
+    positions = np.array([[3.0,  0,  0], [0, 0,  0]])
 
     snapshot.particles.position[:] = positions[:]
 
@@ -275,7 +318,6 @@ def generate_context(**kwargs):
     dt=1e-3
     hoomd.md.integrate.mode_standard(dt = dt)
     # We do not integrate the ghost particle
-    integration_group = hoomd.group.type("P")
     integrator = hoomd.md.integrate.nvt(group = hoomd.group.all(), kT = kBT, tau = 100*dt)
     integrator.randomize_velocities(seed = 42)
 
@@ -283,8 +325,8 @@ def generate_context(**kwargs):
 ```
 
 <!-- #region id="j3XPDwd0jR1q" -->
-The bond realizes the custom energy landscape via a frozen particle in the center.
-In this case, the energy is equivalent to free energy. This is only true, because of the simple nature of this toy system. Usually, the free energy is unknown and needs to be discovered via advanced sampling methods.
+The bond realizes the custom energy landscape between two particles.
+In this case, we can determine the free-energy with the Jacobian correction and the bond energy. This is only true because of the simple nature of this toy system. Usually, the free energy is unknown and needs to be discovered via advanced sampling methods.
 
 <!-- #endregion -->
 
@@ -297,17 +339,19 @@ Here we choose the distance from the origin as the collective variable.
 We use PySAGES to define this collective variable.
 <!-- #endregion -->
 
-```python colab={"base_uri": "https://localhost:8080/"} id="fpMg-o8WomAA" outputId="65ecfefb-bf51-4ba8-d0a1-20992cdf34f4"
+```python id="fpMg-o8WomAA"
 from pysages.colvars import Distance
 import pysages
 
 # Distance from our particle to origin (particle 1)
-cvs = [Distance( (0, 1))]
+cvs = [Distance(([0], [1]))]
 ```
 
 <!-- #region id="LknkRvo1o4av" -->
 ### Unbiased simulation
-Next, we are interested in an unbiased simulation. PySAGES offers a special method for unbiased simulations, that can still record the collective variable.
+Next, we are interested in an unbiased simulation.
+
+PySAGES offers a special method for unbiased simulations, that can still record the collective variable.
 <!-- #endregion -->
 
 ```python id="B1Z8FWz0o7u_"
@@ -329,7 +373,7 @@ We now simulate $1\times10^5$ time steps.
 To investigate the unbiased trajectory and statistics.
 <!-- #endregion -->
 
-```python colab={"base_uri": "https://localhost:8080/"} id="K951m4BbpUar" outputId="25117256-c8f4-499d-e1b1-e84235915549"
+```python colab={"base_uri": "https://localhost:8080/"} id="K951m4BbpUar" outputId="2051295a-ad51-4b43-e4a7-5daf893b2c87"
 result = pysages.run(method, generate_context, int(1e5), callback=hist)
 ```
 
@@ -337,7 +381,7 @@ result = pysages.run(method, generate_context, int(1e5), callback=hist)
 Let's see how the particle moved in this potential landscape.
 <!-- #endregion -->
 
-```python colab={"base_uri": "https://localhost:8080/", "height": 314} id="X69d1R7OpW4P" outputId="fa45c920-8f4b-4f44-ef22-27d3b6c525d5"
+```python colab={"base_uri": "https://localhost:8080/", "height": 383} id="X69d1R7OpW4P" outputId="63ba3b7b-b4fe-4e52-9e0c-1d07e446e30d"
 def plot_one_result(result):
   histogram_log = result.callbacks[0]
   cv_log = np.asarray(histogram_log.data)
@@ -351,8 +395,10 @@ def plot_one_result(result):
 
   ax2 = ax.twiny()
   ax2.set_xlabel(r"$A(\xi)$ $[k_BT]$")
-  cv_range = np.linspace(0, 4, 200)
-  ax2.plot(potential(cv_range)[0], cv_range, label="energy landscape", color="orange")
+  x = np.linspace(0, 4, 200)
+  corrected_free_energy = potential(x)[0]- np.log(2*np.pi*x**2)
+  corrected_free_energy -= corrected_free_energy[1]
+  ax2.plot(correct_free_energy(x, potential(x)[0]), x, label="energy landscape", color="orange")
 
   ax.legend(loc="center right")
   ax2.legend(loc="upper left")
@@ -400,16 +446,16 @@ So it is not necessary to modify the MD backend and via [JAX](https://jax.readth
 
 We can start biasing by using a simple harmonic biasing, where we bias the system towards one of the less explored regions in phase space.
 
-$$H_B(r) = - k (c-r)^2\sigma^2$$ 
+$$H^b(r) = \frac{k}{2} (c-r)^2$$ 
 
 PySAGES offers a preimplemented method class, that we are utilizing.
 
 In our example toy system, we choose $c=2\sigma$ as a maximum of our external potential.
 
-We don't know a priori what a good spring constant is. Let's start with $k=1 k_BT$. 
+We don't know a priori what a good spring constant is. Let's start with $k=1 \frac{k_BT}{\sigma^2}$. 
 <!-- #endregion -->
 
-```python colab={"base_uri": "https://localhost:8080/"} id="Wt4LVNYe0Q_4" outputId="7f808010-310c-41fc-d75d-e347282a60ac"
+```python colab={"base_uri": "https://localhost:8080/"} id="Wt4LVNYe0Q_4" outputId="334a584b-bf7e-433c-b773-0e283707f6c8"
 from pysages.methods import HarmonicBias
 method = HarmonicBias(cvs, kspring=1, center=2)
 hist = HistogramLogger(period=100)
@@ -420,15 +466,17 @@ result = pysages.run(method, generate_context, int(1e5), callback=hist)
 Ok, we analyze the trajectory as before to see how the energy landscape is explored now.
 <!-- #endregion -->
 
-```python colab={"base_uri": "https://localhost:8080/", "height": 314} id="238HVay7O3TA" outputId="8fc7f687-c7a2-4b4e-ea38-e6e395690e16"
+```python colab={"base_uri": "https://localhost:8080/", "height": 383} id="238HVay7O3TA" outputId="1d2fe838-12ca-4596-c58a-4d226fa02dfd"
 plot_one_result(result)
 ```
 
 <!-- #region id="Wy1I3QdCPOqm" -->
-We observe that the free-energy barrier at $c=2$ is already much better explored, but the biasing force is not strong enough to pull the particle out of the free-energy minimum. Let's try $k=100k_BT$.
+We observe that the free-energy barrier at $c=2\sigma$ is already much better explored, but the biasing force is only strong enough to pull the particle accross the barrier once. 
+
+Let's try $k=100\frac{k_BT}{\sigma^2}$.
 <!-- #endregion -->
 
-```python colab={"base_uri": "https://localhost:8080/", "height": 488} id="JvHWb-sSO6Qe" outputId="0bee9280-5efa-4020-b59d-cc3966615fb0"
+```python colab={"base_uri": "https://localhost:8080/", "height": 540} id="JvHWb-sSO6Qe" outputId="cf24fa42-46c3-4112-c0a5-526d8b0fa499"
 method = HarmonicBias(cvs, kspring=100, center=2)
 hist = HistogramLogger(period=100)
 result = pysages.run(method, generate_context, int(1e5), callback=hist)
@@ -438,10 +486,10 @@ plot_one_result(result)
 <!-- #region id="jUxAakh1SnS5" -->
 Ok, now the system mostly oscillates around the maximum with two minima, but these two minima are not close to the actual minima of the free-energy landscape.
 
-The spring constant is so strong, that restricts the exploration of the phase space too much. Let's try the middle ground instead $k=10k_BT$.
+The spring constant is so strong, that restricts the exploration of the phase space too much. Let's try the middle ground instead $k=10\frac{k_BT}{\sigma^2}$.
 <!-- #endregion -->
 
-```python colab={"base_uri": "https://localhost:8080/", "height": 488} id="OLwF9M6qTWv5" outputId="18c35b98-f89c-478e-835d-ce9e62fd0798"
+```python colab={"base_uri": "https://localhost:8080/", "height": 540} id="OLwF9M6qTWv5" outputId="4f894a37-5076-48ed-dcf9-dcb7f5c4b331"
 kspring=10
 method = HarmonicBias(cvs, kspring=kspring, center=2)
 hist = HistogramLogger(period=100)
@@ -452,12 +500,12 @@ plot_one_result(result)
 <!-- #region id="XuMle2u3R1MS" -->
 This looks much better!
 
-We observe multiple transitions between the minima at $c=1$ and $c=2$ (rare events), so the phase space is better explored. We also see that the lower minimum is frequented more than the upper one as expected.
+We observe multiple transitions between the minima at $c=1\sigma$ and $c=3\sigma$ (rare events), so the phase space is better explored. We also see that the lower minimum is frequented more than the upper one as expected.
 
 We now analyze the histograms of this trajectory to determine the free-energy landscape $A(\xi)$ from the biased simulation.
 <!-- #endregion -->
 
-```python colab={"base_uri": "https://localhost:8080/", "height": 283} id="uT8IyjLqR4cE" outputId="aaed032a-d86c-481a-ac25-8cdcbaec35d0"
+```python colab={"base_uri": "https://localhost:8080/", "height": 283} id="uT8IyjLqR4cE" outputId="17253273-ae96-43ca-d10a-1d35ccb196c3"
 from scipy import integrate
 def plot_one_histogram(result):
   histogram_log = result.callbacks[0]
@@ -470,7 +518,7 @@ def plot_one_histogram(result):
 
   x = edges[0][:-1] + np.diff(edges[0])/2
   ax.plot(x, hist, label=r"biased $p(\xi)$")
-  weight = np.exp(-kspring*(x-2)**2)
+  weight = np.exp(-kBT*kspring/2*(x-2)**2)
   unbiased_distribution = hist/weight
   unbiased_distribution /= integrate.simpson(unbiased_distribution, x)
   ax.plot(x, unbiased_distribution, label=r"unbiased $p_{eq}(\xi)$")
@@ -489,7 +537,7 @@ So let's compare to the expected free-energy profile.
 $$A(\xi) = -k_BT \ln(p_{eq}(\xi) + C$$ 
 <!-- #endregion -->
 
-```python colab={"base_uri": "https://localhost:8080/", "height": 318} id="22xGRaXk8jyG" outputId="71cba847-939f-46d8-98fe-fae3ac672105"
+```python colab={"base_uri": "https://localhost:8080/", "height": 318} id="22xGRaXk8jyG" outputId="d70e5c6e-8c34-449f-92d9-30f864187672"
 def plot_one_free_energy(result):
   histogram_log = result.callbacks[0]
   
@@ -501,15 +549,14 @@ def plot_one_free_energy(result):
 
   x = edges[0][:-1] + np.diff(edges[0])/2
 
-  weight = np.exp(-kspring/2*(x-2)**2)
+  weight = np.exp(-kBT*kspring/2*(x-2)**2)
   unbiased_distribution = hist/weight
   unbiased_distribution /= integrate.simpson(unbiased_distribution, x)
 
   estimated_profile = -kBT * np.log(unbiased_distribution)
   constant_C = -np.min(estimated_profile) + np.min(potential(x)[0])
   ax.plot(x, estimated_profile + constant_C, label=r"estimated $A(\xi)$")
-  
-  ax.plot(x, potential(x)[0], label=r"true $A(\xi)$")
+  ax.plot(x, correct_free_energy(x, potential(x)[0]), label=r"true $A(\xi)$")
 
   ax.legend(loc="best")
   fig.show()
@@ -518,16 +565,15 @@ plot_one_free_energy(result)
 
 <!-- #region id="e2YtfQlQ8jO9" -->
 That estimation is not bad.
-We get the approximate right shape in the middle and that could be further improved by running the sampling trajectory longer.
-[Try it out!]
+We get the approximate right shape in the middle and that could be further improved by running the sampling trajectory longer. Or try a differnt spring constant. [Try it out!]
 
 But there are still some issues because we still cannot sample the entire space:
 
-*  we do not find the minima at 0
 *  the up trend on the right is uncovered
-*  the second minima is overestimated
+*  the energy barrier is underestimated
+*  the first minimum is under-sampled
 
-Can we bias simulations in these regions too, to improve sampling coverage in these regions too?
+Can we bias simulations in these regions too, to improve sampling coverage?
 
 ## Umbrella Sampling
 
@@ -555,64 +601,64 @@ Goal:
 Obtain the free-energy profile along the path $A(\xi_0(t))$.
 
 
+
+<!-- #endregion -->
+
+<!-- #region id="ZP8nVLsJr-xj" -->
 Discretize the path $\xi_0(t_i)$ and bias the simulation at each point $i$ along the path.
 
-$$H^b(\{(r)\}) = H^b(\{(r)\}) + w_i(\xi(\{(r)\}))$$
+$$H_i(\{(r)\}) = H^0(\{(r)\}) + H^b_{i}(\xi(\{(r)\}))$$
 
-$w_i$ biases the system close to $\xi_0(t_i)$ along the path.
+$H^b_{i}$ biases the system close to $\xi_0(t_i)$ along the path.
 
 $$p_i^u(\xi) = \frac{\int\text{d}r e^{-\beta H(r)} \delta(\hat\xi(r) - \xi)}{\int\text{d}r e^{-\beta H(r)}}$$
 
-$$p_i^b(\xi) = \frac{\int\text{d}r e^{-\beta[H(r) + w_i(\hat\xi(r))]} \delta(\hat\xi(r) - \xi)}{\int\text{d}r e^{-\beta[H(r) + w_i(\hat\xi(r))]}}$$
+$$p_i^b(\xi) = \frac{\int\text{d}r e^{-\beta[H(r) + H^b_{i}(\hat\xi(r))]} \delta(\hat\xi(r) - \xi)}{\int\text{d}r e^{-\beta[H(r) + H^b_{i}(\hat\xi(r))]}}$$
 
-$$  = e^{-\beta w_i(\xi)} \frac{\int\text{d}r e^{-\beta[H(r)} \delta(\hat\xi(r) - \xi)}{\int\text{d}r e^{-\beta[H(r) + w_i(\hat\xi(r))]}}$$
+$$  = e^{-\beta H^b_{i}(\xi)} \frac{\int\text{d}r e^{-\beta H(r)} \delta(\hat\xi(r) - \xi)}{\int\text{d}r e^{-\beta[H(r) + H^b_{i}(\hat\xi(r))]}}$$
 
-$$\Rightarrow p_i^u(\xi) = p_i^b(\xi) e^{-\beta w_i(\xi)} \frac{\int \text{d} r e^{-\beta w_i(\xi(r))} e^{-\beta H(r)}}{\int\text{d}r e^{-\beta H(r)}}$$
+$$\Rightarrow p_i^u(\xi) = p_i^b(\xi) e^{\beta H^b_{i}(\xi)} \frac{\int \text{d} r e^{-\beta H^b_{i}(\xi(r))} e^{-\beta H(r)}}{\int\text{d}r e^{-\beta H(r)}}$$
 
 So we can describe the last term as a thermal average.
 
-$$\Rightarrow p_i^u(\xi) = p_i^b(\xi) e^{-\beta w_i(\xi)} \langle e^{-\beta w_i}\rangle$$
+$$\Rightarrow p_i^u(\xi) = p_i^b(\xi) e^{\beta H^b_{i}(\xi)} \langle e^{-\beta H^b_{i}}\rangle$$
 
 And the free energy is
 
-$$A_i(\xi) = -k_BT \ln(p_i^b(\xi) - w_i(\xi) + F_i$$
-With $F_i = -k_BT\ln(\langle e^{-\beta w_i}\rangle)$ as constant independent of $\xi$.
+$$A_i(\xi) = -k_BT \ln(p_i^b(\xi)) - H^b_{i}(\xi) + F_i$$
+With $F_i = -k_BT\ln(\langle e^{-\beta H^b_{i}}\rangle)$ as constant independent of $\xi$.
 
 With a single biasing potential $F_i$ does not matter. $A(\xi)$ is defined up to a constant.
 
 But if we want to combine multiple windows, we have to estimate it.
 
-$$e^{-\beta F_i} = \langle e^{-\beta w_i}\rangle$$
-$$ = \int \text{d} \xi p^u(\xi) e^{-\beta w_i(\xi)}$$
-$$ = \int\text{d}\xi e^{-\beta [A(\xi) + w_i(\xi)}$$
+$$e^{-\beta F_i} = \langle e^{-\beta H^b_{i}}\rangle$$
+$$ = \int \text{d} \xi p^u(\xi) e^{-\beta H^b_{i}(\xi)}$$
+$$ = \int\text{d}\xi e^{-\beta [A(\xi) + H^b_{i}(\xi)}$$
 
 not directly solvable.
 
 ### Shape of the potential
 
-Ideal $w_i(\xi) = p_{eq}(\xi)$ and differentiable.
+Ideal $e^{-\beta H^b_{i}}(\xi) \propto p_{eq}(\xi)$ and differentiable.
 
-*  For now we harmonic potential
+*  For now we us a harmonic potential
 *  fix system with a spring to point on path.
-$$w_i(\xi) = k/2 (\xi - \xi_0(t_i))^2$$
+$$H^b_{i}(\xi) = k/2 (\xi - \xi_0(t_i))^2$$
 *  combine different points into one analysis
 <!-- #endregion -->
 
-<!-- #region id="TsNuKjMvRTvd" -->
-Example: 10 evenly spaced points between 0 and 4.
-<!-- #endregion -->
-
-```python colab={"base_uri": "https://localhost:8080/", "height": 287} id="34u5P_jKpcqZ" outputId="0bede70b-26f3-49a4-f481-a39d17d24375"
-centers = list(np.linspace(1e-1, 4-1e-1, 10)) + [4]
+```python colab={"base_uri": "https://localhost:8080/", "height": 322} id="34u5P_jKpcqZ" outputId="d193536c-1ef4-4eaa-abcc-e4d0af9e9501"
+centers = np.linspace(0, 4, 10)
 kspring = 100
 fig, ax = plt.subplots()
 ax.set_xlabel(r"$\xi$")
 ax.set_ylabel(r"$H_i(\xi)$")
-ax.set_ylim((-3, 20))
+ax.set_ylim((-10, 20))
 ax.set_xlim((0,4))
 
 x = np.linspace(0, 4, 200)
-ax.plot(x, potential(x)[0], label="potential")
+ax.plot(x, correct_free_energy(x, potential(x)[0]), label="potential")
 for point in centers:
   label = None
   if point == 0:
@@ -630,7 +676,7 @@ Goal: $\Rightarrow$ overlapping histograms
 $$\int \text{d} \xi p_i^b(\xi) p_{i+1}^b(\xi) \gg 0$$
 <!-- #endregion -->
 
-```python colab={"base_uri": "https://localhost:8080/"} id="CtaNDUQ0SrTZ" outputId="10fe459e-df8b-4b7f-d513-89f40540b788"
+```python colab={"base_uri": "https://localhost:8080/"} id="CtaNDUQ0SrTZ" outputId="3255e692-bfbd-4f97-cc21-8659aa2b5b37"
 from pysages.methods import UmbrellaIntegration
 method = UmbrellaIntegration(cvs, ksprings=kspring, centers=centers, hist_periods=100)
 result = pysages.run(method, generate_context, int(1e5))
@@ -642,7 +688,7 @@ You can already see one downside, we have to run multiple replicas, which consum
 Let's see what the histograms look like.
 <!-- #endregion -->
 
-```python colab={"base_uri": "https://localhost:8080/", "height": 283} id="xdUuQ9z5XCEH" outputId="0d40ef10-93fb-44e7-9da3-3d766b3323f7"
+```python colab={"base_uri": "https://localhost:8080/", "height": 283} id="xdUuQ9z5XCEH" outputId="453c6048-9992-4b30-e91d-e0c81c146b83"
 def plot_multi_histogram(result):
   fig, ax = plt.subplots()
   ax.set_xlabel(r"$\xi$ $[\sigma]$")
@@ -663,7 +709,7 @@ The result is OK, good enough for our test case here. We have some overlap betwe
 
 Now, how can we combine these histograms into a single free-energy profile?
 
-$$A_i(\xi) = -k_BT \ln(p_i^b(\xi) - w_i(\xi) + F_i$$
+$$A_i(\xi) = -k_BT \ln(p_i^b(\xi)) - H^b_{i}(\xi) + F_i$$
 
 
 One option is weighted histogram analysis (WHAM), but that works best for one-dimensional collective variables. (Implement it yourself, all you need from PySAGES is available.)
@@ -672,7 +718,7 @@ Here we are using a simple umbrella integration instead.
 
 Idea: differentiate by $\xi$ to eliminate $F_i$.
 
-$$\frac{\partial A_i^u}{\partial \xi} = - k_BT \frac{\partial \ln(p_i^b(\xi))}{\partial \xi} - \frac{\partial w_i(\xi)}{\partial \xi}$$
+$$\frac{\partial A_i^u}{\partial \xi} = - k_BT \frac{\partial \ln(p_i^b(\xi))}{\partial \xi} - \frac{\partial H^b_{i}(\xi)}{\partial \xi}$$
 
 For this we approximate $p_i^b(\xi)$ as a Gaussian with the mean $\bar\xi_i$ and variance $\sigma_i^b$.
 
@@ -680,14 +726,14 @@ $$p_i^b(\xi) = \frac{1}{\sigma_i^b \sqrt{2\pi}} e^{-\frac{1}{2} \frac{(\xi-\xi_i
 
 approximating up to second order gives us 
 
-$$\frac{\partial A_i^u}{\partial \xi} = - k_BT \frac{\xi-\hat\xi_i}{\sigma_i^{b2}} - k_i (\xi - \xi_0(t_i)).$$
+$$\frac{\partial A_i^u}{\partial \xi} = - k_BT \frac{\xi-\bar\xi_i}{\sigma_i^{b2}} - k_i (\xi - \xi_0(t_i)).$$
 We can also approximate up to first order only
 $$\frac{\partial A_i^u}{\partial \xi} =  k_i (\xi - \xi_0(t_i)),$$
 which is easily expandable to higher order collective variables and the implementation in PySAGES.
 
 Now we can combine all these windows
 
-$$\frac{\partial A}{\partial \xi} = \sum_i p_i(\xi) \frac{\partial A}{\partial \xi}$$
+$$\frac{\partial A}{\partial \xi} = \sum_i p_i(\xi) \frac{\partial A_i^u}{\partial \xi}$$
 with
 $$p_i(\xi) = \frac{a_i(\xi)}{\sum_j a_j(\xi)}$$
 and
@@ -704,7 +750,7 @@ Let's see how PySAGES analyzes it for us and produces the free-energy result.
 
 <!-- #endregion -->
 
-```python colab={"base_uri": "https://localhost:8080/", "height": 283} id="RpoHwWULX2Nj" outputId="b3ea9fb3-ba3c-40c3-9abc-ba5ad4f09782"
+```python colab={"base_uri": "https://localhost:8080/", "height": 318} id="RpoHwWULX2Nj" outputId="4292617c-3b4a-4278-b484-b40eea8a0fea"
 def plot_umbrella_free_energy(result):
   processed_result = pysages.analyze(result)
   
@@ -713,10 +759,11 @@ def plot_umbrella_free_energy(result):
   ax.set_ylabel(r"A(\xi)")
   ax.set_xlim((0, 4))
 
-  ax.plot(processed_result["centers"], processed_result["free_energy"], label=r"estimated $A(\xi)$")
+  centers = np.asarray(processed_result["centers"])[:,0]
+  free_energy = np.asarray(processed_result["free_energy"])
+  ax.plot(centers, free_energy, label=r"estimated $A(\xi)$")
   x = np.linspace(0, 4, 50)
-  ax.plot(x, potential(x)[0], label=r"true $A(\xi)$")
-
+  ax.plot(x, correct_free_energy(x, potential(x)[0]), label=r"true $A(\xi)$")
   ax.legend(loc="best")
   fig.show()
 plot_umbrella_free_energy(result)
@@ -726,9 +773,17 @@ plot_umbrella_free_energy(result)
 This appears to be much better.
 Even with the crude approximations, we were doing we can estimate the shape of the potential.
 
-Just the beginning at very small $\xi$ are overestimating the decrease in the free-energy initially.
-This is an issue with umbrella integration, where histograms at the edge of windows are not correctly analyzed.
-There is a fix for this in the literature [Kästner, Johannes. "Umbrella sampling." Wiley Interdisciplinary Reviews: Computational Molecular Science 1.6 (2011): 932-942.](https://wires.onlinelibrary.wiley.com/doi/abs/10.1002/wcms.66) but this is out of scope for our introduction here.
+Just the second minimum is underestimated, which could be fixed with more sampling and more sampling points in that vicinity. [Try it out!]
+
+Difficulties:
+
+
+1.   choose a good spring constant
+>  * too large and the histogram don't overlap
+>  * too small and you can sample barriers 
+2.   choose a good number of replicas
+
+
 
 Can we do better than this?
 Yes, of course:
@@ -799,7 +854,7 @@ Solution: use a cubic spline-interpolation
 *  differentiable
 
 $\Rightarrow$ perpendicular component $\Delta V^\perp$!
-$\Rightarrow$ smooth path $\xi_0^s(t) with $\xi_0^s(t) = \xi(t_i)$.
+$\Rightarrow$ smooth path $\xi_0^s(t)$ with $\xi_0^s(t) = \xi(t_i)$.
 
 #### Improved string method
 
@@ -842,7 +897,7 @@ And the probability decreases if we move towards $A$ ($t < 1/2$) the probability
 
 <!-- #endregion -->
 
-```python colab={"base_uri": "https://localhost:8080/", "height": 281} id="9N5aSjdbmlZ0" outputId="1ec04fd7-89f9-4d07-976b-0e9a29f8db74"
+```python colab={"base_uri": "https://localhost:8080/", "height": 281} id="9N5aSjdbmlZ0" outputId="b69bdb1f-06bc-459e-c593-9dc8b60f5706"
 fig, ax =plt.subplots()
 ax.set_xlabel("$t$")
 ax.set_xlim((0,1))
