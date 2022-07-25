@@ -10,6 +10,7 @@ pi = np.pi
 
 METHODS_ARGS = {
     "HarmonicBias": {"cvs": [pysages.colvars.Component([0], 0)], "kspring": 15.0, "center": 0.7},
+    "Unbiased": {"cvs": [pysages.colvars.Component([0], 0)]},
     "SamplingMethod": {
         "cvs": [pysages.colvars.Component([0], 0)],
     },
@@ -22,6 +23,12 @@ METHODS_ARGS = {
         "cvs": [pysages.colvars.Component([0], 0)],
         "grid": pysages.Grid(lower=(-pi), upper=(pi), shape=(32), periodic=True),
         "topology": (15, 23),
+        "kT": 1.0,
+    },
+    "CFF": {
+        "cvs": [pysages.colvars.Component([0], 0)],
+        "grid": pysages.Grid(lower=(-pi), upper=(pi), shape=(32), periodic=True),
+        "topology": (14,),
         "kT": 1.0,
     },
     "FFS": {
@@ -47,6 +54,10 @@ METHODS_ARGS = {
         "deltaT": 0.1,
         "grid": pysages.Grid(lower=(-pi), upper=(pi), shape=(32), periodic=True),
         "kB": 614.0,
+    },
+    "SpectralABF": {
+        "cvs": [pysages.colvars.Component([0], 0), pysages.colvars.Component([0], 1)],
+        "grid": pysages.Grid(lower=(1, 1), upper=(5, 5), shape=(32, 32)),
     },
     "HistogramLogger": {
         "period": 1,

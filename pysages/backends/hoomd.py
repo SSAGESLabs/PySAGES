@@ -171,6 +171,8 @@ def build_helpers(context, sampling_method):
         # TODO: check if this can be JIT compiled with numba.
         # Forces may be computed asynchronously on the GPU, so we need to
         # synchronize them before applying the bias.
+        if state.bias is None:
+            return
         sync_backend()
         forces = view(snapshot.forces)
         biases = view(state.bias.block_until_ready())

@@ -180,9 +180,9 @@ def run(
 
     with config.executor as ex:
         futures = [submit_work(ex, method, callback) for _ in range(config.copies)]
-        results = [future.result() for future in futures]
-        states = [r.states for r in results]
-        callbacks = None if callback is None else [r.callbacks for r in results]
+    results = [future.result() for future in futures]
+    states = [r.states for r in results]
+    callbacks = None if callback is None else [r.callbacks for r in results]
 
     return Result(method, states, callbacks)
 

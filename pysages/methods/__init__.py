@@ -64,11 +64,13 @@ from .core import SamplingMethod
 
 from .abf import ABF
 from .ann import ANN
+from .cff import CFF
 from .ffs import FFS
 from .funn import FUNN
 from .harmonic_bias import HarmonicBias
 from .umbrella_integration import UmbrellaIntegration
 from .metad import Metadynamics
+from .spectral_abf import SpectralABF
 from .utils import (
     HistogramLogger,
     MetaDLogger,
@@ -77,3 +79,4 @@ from .utils import (
     methods_dispatch,
 )
 from .restraints import CVRestraints
+from .unbiased import Unbiased
