@@ -6,7 +6,7 @@ from typing import NamedTuple
 
 from jax import numpy as np, random, tree_flatten, vmap
 from jax.numpy.linalg import norm
-from jaxlib.xla_extension import PyTreeDef
+from jax.tree_util import PyTreeDef
 from numpy import cumsum
 from plum import Dispatcher
 
