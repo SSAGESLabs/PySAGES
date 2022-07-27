@@ -152,9 +152,8 @@ def build_gaussian_accumulator(method: ParallelBiasMetadynamics):
 
     if grid is None:
         evaluate_potential_cv = jit(lambda pstate: get_bias_each_cv(*pstate[:4], periods))
-        evaluate_potential = jit(lambda pstate: parallelbias(*pstate[:4], beta, periods))
-
-    # else:
+        #evaluate_potential = jit(lambda pstate: parallelbias(*pstate[:4], beta, periods))
+    #else:
     #    evaluate_potential = jit(lambda pstate: pstate.grid_potential[pstate.grid_idx])
 
     def next_height(pstate):
@@ -170,21 +169,15 @@ def build_gaussian_accumulator(method: ParallelBiasMetadynamics):
         update_grids = jit(lambda *args: (None, None))
         should_deposit = jit(lambda pred, _: pred)
 
-    # else:
+    #else:
     #    grid_mesh = compute_mesh(grid) * (grid.size / 2)
     #    get_grid_index = build_indexer(grid)
     #    # Reshape so the dimensions are compatible
     #    accum = jit(lambda total, val: total + val.reshape(total.shape))
 
-    #    if deltaT is None:
-    #        transform = grad
-    #        pack = jit(lambda x: (x,))
-    #        # No need to accumulate values for the potential (V is None)
-    #        update = jit(lambda V, dV, vals: (V, accum(dV, vals)))
-    #    else:
-    #        transform = value_and_grad
-    #        pack = identity
-    #        update = jit(lambda V, dV, vals, grads: (accum(V, vals), accum(dV, grads)))
+    #    transform = value_and_grad
+    #    pack = identity
+    #    update = jit(lambda V, dV, vals, grads: (accum(V, vals), accum(dV, grads)))
 
     #    def update_grids(pstate, height, xi, sigma):
     #        # We use `sum_of_gaussians` since it already takes care of the wrapping
@@ -272,13 +265,13 @@ def get_bias_each_cv(xi, heights, centers, sigmas, periods):
 @dispatch
 def analyze(result: Result[ParallelBiasMetadynamics]):
     """
-    Helper for calculating the free energy from the final state of a `Metadynamics` run.
+    Helper for calculating the free energy from the final state of a `Parallel Bias Metadynamics` run.
 
     Parameters
     ----------
 
-    result: Result[Metadynamics]:
-        Result bundle containing method, final metadynamics state, and callback.
+    result: Result[ParallelBiasMetadynamics]:
+        Result bundle containing method, final parallel bias metadynamics state, and callback.
 
     Returns
     -------
@@ -287,16 +280,15 @@ def analyze(result: Result[ParallelBiasMetadynamics]):
         A dictionary with the following keys:
 
         heights: JaxArray
-            Height of the Gaussian bias potential during the simulation.
+            Height of the Gaussian bias potential along each CV during the simulation.
 
-        metapotential: Callable
+        parallelbias_metapotential: Callable
             Maps a user-provided array of CV values to the corresponding deposited bias
-            potential. For standard metadynamics, the free energy along user-provided CV
-            range is the same as `metapotential(cv)`.
-            In the case of well-tempered metadynamics, the free energy is equal to
-            `(T + deltaT) / deltaT * metapotential(cv)`, where `T` is the simulation
+            potential. The free energy along each user-provided CV
+            range is similar to well-tempered metadynamics i.e., the free energy is equal to
+            `(T + deltaT) / deltaT * parallelbias_metapotential(cv)`, where `T` is the simulation
             temperature and `deltaT` is the user-defined parameter in
-            well-tempered metadynamics.
+            parallel bias metadynamics.
     """
     method = result.method
     states = result.states
@@ -308,21 +300,29 @@ def analyze(result: Result[ParallelBiasMetadynamics]):
         centers = states[0].centers
         sigmas = states[0].sigmas
 
-        metapotential = jit(vmap(lambda x: sum_of_gaussians(x, heights, centers, sigmas, P)))
-
-        return dict(heights=heights, metapotential=metapotential)
+        pbmetad_potential_cv = jit(vmap(lambda x: get_bias_each_cv(x, heights, centers, sigmas, P)))
+        pbmetad_potential = jit(vmap(lambda x, beta: parallelbias(x, heights, centers, sigmas, beta, P), in_axes=(0, None)))
+        
+        return dict(centers=centers, heights=heights, pbmetad_potential_cv=pbmetad_potential_cv, pbmetad_potential=pbmetad_potential)
 
     # For multiple-replicas runs we return a list heights and functions
     # (one for each replica)
 
-    def build_metapotential(heights, centers, sigmas):
-        return jit(vmap(lambda x: sum_of_gaussians(x, heights, centers, sigmas, P)))
+    def build_pbmetapotential_cv(heights, centers, sigmas):
+        return jit(vmap(lambda x: get_bias_each_cv(x, heights, centers, sigmas, P)))
+    
+    def build_pbmetapotential(heights, centers, sigmas):
+        return jit(vmap(lambda x, beta: parallelbias(x, heights, centers, sigmas, beta, P), in_axes=(0, None)))
 
     heights = []
-    metapotentials = []
+    centers = []
+    pbmetad_potentials_cv = []
+    pbmetad_potentials = []
 
     for s in states:
+        centers.append(s.centers)
         heights.append(s.heights)
-        metapotentials.append(build_metapotential(s.heights, s.centers, s.sigmas))
+        pbmetad_potentials_cv.append(build_pbmetapotential_cv(s.heights, s.centers, s.sigmas))
+        pbmetad_potentials.append(build_pbmetapotential(s.heights, s.centers, s.sigmas))
 
-    return dict(heights=heights, metapotential=metapotentials)
+    return dict(centers=centers, heights=heights, pbmetad_potential_cv=pbmetad_potentials_cv, pbmetad_potential=pbmetad_potentials)
