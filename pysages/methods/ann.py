@@ -17,12 +17,12 @@ as biasing force for the simulation.
 from functools import partial
 from typing import NamedTuple
 
-from jax import grad, numpy as np, vmap
+from jax import grad, jit, numpy as np, vmap
 from jax.lax import cond
 
 from pysages.approxfun import compute_mesh, scale as _scale
 from pysages.grids import build_indexer
-from pysages.methods.core import NNSamplingMethod, generalize
+from pysages.methods.core import NNSamplingMethod, Result, generalize
 from pysages.ml.models import MLP
 from pysages.ml.objectives import L2Regularization
 from pysages.ml.optimizers import LevenbergMarquardt
@@ -158,7 +158,7 @@ def _ann(method: ANN, snapshot, helpers):
         xi, Jxi = cv(data)
         I_xi = get_grid_index(xi)
         hist = hist.at[I_xi].add(1)
-        F = estimate_force(nn, xi, in_training_regime)
+        F = estimate_force(xi, I_xi, nn, in_training_regime)
         bias = np.reshape(-Jxi.T @ F, state.bias.shape)
         #
         return ANNState(xi, bias, hist, phi, prob, nn, nstep + 1)
@@ -248,3 +248,67 @@ def build_force_estimator(method: ANN):
         return cond(use_nn, predict_force, zero_force, (nn, xi))
 
     return estimate_force
+
+
+@dispatch
+def analyze(result: Result[ANN]):
+    """
+    Parameters
+    ----------
+
+    result: Result[ANN]
+        Result bundle containing the method, final states, and callbacks.
+
+    dict:
+        A dictionary with the following keys:
+
+        histogram: JaxArray
+            A histogram of the visits to each bin in the CV grid.
+
+        free_energy: JaxArray
+            Free energy at each bin in the CV grid.
+
+        mesh: JaxArray
+            These are the values of the CVs that are used as inputs for training.
+
+        nn: NNData
+            Parameters of the resulting trained neural network.
+
+        fes_fn: Callable[[JaxArray], JaxArray]
+            Function that allows to interpolate the free energy in the CV domain defined
+            by the grid.
+    """
+
+    method = result.method
+    states = result.states
+
+    grid = method.grid
+    mesh = (compute_mesh(grid) + 1) * grid.size / 2 + grid.lower
+    model = method.model
+    _, layout = unpack(model.parameters)
+
+    def build_fes_fn(nn):
+        params = pack(nn.params, layout)
+        return jit(lambda x: nn.std * model.apply(params, x))
+
+    def first_or_all(seq):
+        return seq[0] if len(seq) == 1 else seq
+
+    histograms = []
+    free_energies = []
+    nns = []
+    fes_fns = []
+
+    for s in states:
+        histograms.append(s.hist)
+        free_energies.append(s.phi - s.phi.min())
+        nns.append(s.nn)
+        fes_fns.append(build_fes_fn(s.nn))
+
+    return dict(
+        histogram=first_or_all(histograms),
+        free_energy=first_or_all(free_energies),
+        mesh=mesh,
+        nn=first_or_all(nns),
+        fes_fn=first_or_all(fes_fns),
+    )
