@@ -107,14 +107,15 @@ def main(argv=[]):
     stride = 500  # frequency for depositing gaussians
     timesteps = args.time_steps
     ngauss = timesteps // stride + 1  # total number of gaussians
-    
 
     # Grid for storing bias potential and its gradient
     grid = pysages.Grid(lower=(-pi, -pi), upper=(pi, pi), shape=(50, 50), periodic=True)
     grid = grid if args.use_grids else None
 
     # Method
-    method = ParallelBiasMetadynamics(cvs, height, sigma, stride, ngauss, T_val, deltaT, kB, grid=None)
+    method = ParallelBiasMetadynamics(
+        cvs, height, sigma, stride, ngauss, T_val, deltaT, kB, grid=None
+    )
 
     # Logging
     hills_file = "hills.dat"
@@ -126,11 +127,11 @@ def main(argv=[]):
     print(f"Completed the simulation in {toc - tic:0.4f} seconds.")
 
     ####   # Analysis: Calculate free energy using the deposited bias potential
-####   
+    ####
     ####   # generate CV values on a grid to evaluate bias potential
     ####   plot_grid = pysages.Grid(lower=(-pi, -pi), upper=(pi, pi), shape=(64, 64), periodic=True)
     ####   xi = (compute_mesh(plot_grid) + 1) / 2 * plot_grid.size + plot_grid.lower
-####   
+    ####
     ####   # determine bias factor depending on method (for standard = 1 and for well-tempered = (T+deltaT)/deltaT)
     ####   alpha = (
     ####       1
@@ -138,27 +139,27 @@ def main(argv=[]):
     ####       else (T.value_in_unit(unit.kelvin) + method.deltaT) / method.deltaT
     ####   )
     ####   kT = kB * T.value_in_unit(unit.kelvin)
-####   
+    ####
     ####   # extract metapotential function from result
     ####   result = pysages.analyze(run_result)
     ####   metapotential = result["metapotential"]
-####   
+    ####
     ####   # report in kT and set min free energy to zero
     ####   A = metapotential(xi) * -alpha / kT
     ####   A = A - A.min()
     ####   A = A.reshape(plot_grid.shape)
-####   
+    ####
     ####   # plot and save free energy to a PNG file
     ####   fig, ax = plt.subplots(dpi=120)
-####   
+    ####
     ####   im = ax.imshow(A, interpolation="bicubic", origin="lower", extent=[-pi, pi, -pi, pi])
     ####   ax.contour(A, levels=12, linewidths=0.75, colors="k", extent=[-pi, pi, -pi, pi])
     ####   ax.set_xlabel(r"$\phi$")
     ####   ax.set_ylabel(r"$\psi$")
-####   
+    ####
     ####   cbar = plt.colorbar(im)
     ####   cbar.ax.set_ylabel(r"$A~[k_{B}T]$", rotation=270, labelpad=20)
-####   
+    ####
     ####   fig.savefig("adp-fe.png", dpi=fig.dpi)
 
     return run_result
