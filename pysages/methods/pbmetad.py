@@ -24,7 +24,7 @@ class ParallelBiasMetadynamics(GriddedSamplingMethod):
     """
     Implementation of Parallel Bias Metadynamics as described in
     [J. Chem. Theory Comput. 11, 5062–5067 (2015)](https://doi.org/10.1021/acs.jctc.5b00846)
-    
+
     Compared to well-tempered metadynamics, the height of Gaussian bias deposited along
     each CV is different in parallel bias metadynamics. In addition, the total bias potential
     has a slightly different expression involving the sum of exponential of Gaussians (see Eq. 8)
@@ -56,13 +56,13 @@ class ParallelBiasMetadynamics(GriddedSamplingMethod):
         deltaT: float = None
             Well-tempered metadynamics $\\Delta T$ parameter to set the energy
             scale for sampling.
-            
+
         kB: float
             Boltzmann constant. It should match the internal units of the backend.
 
         Keyword arguments
         -----------------
-        
+
         grid: Optional[Grid] = None
             If provided, it will be used to accelerate the computation by
             approximating the bias potential and its gradient over its centers.
@@ -147,30 +147,30 @@ def build_gaussian_accumulator(method: ParallelBiasMetadynamics):
     deltaT = method.deltaT
     grid = method.grid
     kB = method.kB
-    beta = 1/(kB * T)
+    beta = 1 / (kB * T)
     kB_deltaT = kB * deltaT
 
-    if grid is None:       
+    if grid is None:
         evaluate_potential_cv = jit(lambda pstate: get_bias_each_cv(*pstate[:4], periods))
         evaluate_potential = jit(lambda pstate: parallelbias(*pstate[:4], beta, periods))
-        
-    #else:
+
+    # else:
     #    evaluate_potential = jit(lambda pstate: pstate.grid_potential[pstate.grid_idx])
 
     def next_height(pstate):
         V = evaluate_potential_cv(pstate)
-        w = height_0 * np.exp(-V / kB_deltaT) 
-        switching_probability_sum = np.sum(np.exp(-beta*V))
-        switching_probability = np.exp(-beta*V)/switching_probability_sum
-        
+        w = height_0 * np.exp(-V / kB_deltaT)
+        switching_probability_sum = np.sum(np.exp(-beta * V))
+        switching_probability = np.exp(-beta * V) / switching_probability_sum
+
         return w * switching_probability
 
     if grid is None:
         get_grid_index = jit(lambda arg: None)
         update_grids = jit(lambda *args: (None, None))
         should_deposit = jit(lambda pred, _: pred)
-        
-    #else:
+
+    # else:
     #    grid_mesh = compute_mesh(grid) * (grid.size / 2)
     #    get_grid_index = build_indexer(grid)
     #    # Reshape so the dimensions are compatible
@@ -225,7 +225,7 @@ def build_bias_grad_evaluator(method: ParallelBiasMetadynamics):
     grid = method.grid
     T = method.T
     kB = method.kB
-    beta = 1/(kB * T)
+    beta = 1 / (kB * T)
 
     if grid is None:
         periods = get_periods(method.cvs)
@@ -248,13 +248,14 @@ def build_bias_grad_evaluator(method: ParallelBiasMetadynamics):
 # Helper function to evaluate parallel bias potential
 def parallelbias(xi, heights, centers, sigmas, beta, periods):
     """
-    Evaluate parallel bias potential according to Eq. 8 in 
+    Evaluate parallel bias potential according to Eq. 8 in
     [J. Chem. Theory Comput. 11, 5062–5067 (2015)](https://doi.org/10.1021/acs.jctc.5b00846)
     """
     bias_each_cv = get_bias_each_cv(xi, heights, centers, sigmas, periods)
-    exp_sum_gaussian = np.exp(-beta*bias_each_cv)
-    
-    return -(1/beta) * np.log(np.sum(exp_sum_gaussian))
+    exp_sum_gaussian = np.exp(-beta * bias_each_cv)
+
+    return -(1 / beta) * np.log(np.sum(exp_sum_gaussian))
+
 
 # Helper function to evaluate parallel bias potential along each CV
 def get_bias_each_cv(xi, heights, centers, sigmas, periods):
@@ -264,7 +265,7 @@ def get_bias_each_cv(xi, heights, centers, sigmas, periods):
     delta_xi_each_cv = wrap(xi - centers, periods)
     gaussian_each_cv = heights * np.exp(-((delta_xi_each_cv / sigmas) ** 2) / 2)
     bias_each_cv = np.sum(gaussian_each_cv, axis=0)
-    
+
     return bias_each_cv
 
 
@@ -325,5 +326,3 @@ def analyze(result: Result[ParallelBiasMetadynamics]):
         metapotentials.append(build_metapotential(s.heights, s.centers, s.sigmas))
 
     return dict(heights=heights, metapotential=metapotentials)
-
-
