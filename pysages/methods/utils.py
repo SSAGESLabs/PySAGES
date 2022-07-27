@@ -147,7 +147,7 @@ class MetaDLogger:
             f.write(str(self.counter) + "\t")
             f.write("\t".join(map(str, xi.flatten())) + "\t")
             f.write("\t".join(map(str, sigma.flatten())) + "\t")
-            f.write(str(height) + "\n")
+            f.write("\t".join(map(str, height.flatten())) + "\n")
 
     def __call__(self, snapshot, state, timestep):
         """
