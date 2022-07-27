@@ -70,6 +70,7 @@ from .funn import FUNN
 from .harmonic_bias import HarmonicBias
 from .umbrella_integration import UmbrellaIntegration
 from .metad import Metadynamics
+from .pbmetad import ParallelBiasMetadynamics
 from .spectral_abf import SpectralABF
 from .utils import (
     HistogramLogger,
