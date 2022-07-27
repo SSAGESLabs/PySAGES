@@ -127,79 +127,79 @@ def main(argv=[]):
     print(f"Completed the simulation in {toc - tic:0.4f} seconds.")
 
     # Analysis: Calculate free energy using the deposited bias potential
-    
+
     # generate CV values on a grid to evaluate bias potential
     plot_1Dgrid = pysages.Grid(lower=(-pi), upper=(pi), shape=(64), periodic=True)
     plot_2Dgrid = pysages.Grid(lower=(-pi, -pi), upper=(pi, pi), shape=(64, 64), periodic=True)
-    
+
     xi_1D = (compute_mesh(plot_1Dgrid) + 1) / 2 * plot_1Dgrid.size + plot_1Dgrid.lower
     xi_1D_2CVs = np.hstack((xi_1D, xi_1D))
     xi_2D = (compute_mesh(plot_2Dgrid) + 1) / 2 * plot_2Dgrid.size + plot_2Dgrid.lower
-    
+
     # determine bias factor = (T+deltaT)/deltaT)
     alpha = (T.value_in_unit(unit.kelvin) + method.deltaT) / method.deltaT
     kT = kB * T.value_in_unit(unit.kelvin)
-    beta = 1/kT
+    beta = 1 / kT
 
     # extract metapotential function from result
     result = pysages.analyze(run_result)
     centers = result["centers"]
     heights = result["heights"]
-    
+
     pbmetad_potential_cv = result["pbmetad_potential_cv"]
     pbmetad_potential = result["pbmetad_potential"]
 
     # report in kT and set min free energy to zero
     A_cv = pbmetad_potential_cv(xi_1D_2CVs) * -alpha / kT
     A_cv = A_cv - A_cv.min(axis=0)
-    A_cv1 = A_cv[:,0].reshape(plot_1Dgrid.shape)
-    A_cv2 = A_cv[:,1].reshape(plot_1Dgrid.shape)
-    
-    #A = pbmetad_potential(xi_2D, beta) * -alpha / kT
-    #A = A - A.min()
-    #A = A.reshape(plot_2Dgrid.shape)
-    
+    A_cv1 = A_cv[:, 0].reshape(plot_1Dgrid.shape)
+    A_cv2 = A_cv[:, 1].reshape(plot_1Dgrid.shape)
+
+    # A = pbmetad_potential(xi_2D, beta) * -alpha / kT
+    # A = A - A.min()
+    # A = A.reshape(plot_2Dgrid.shape)
+
     # plot and save free energy along each CV to a PNG file
-    fig = plt.figure(figsize=(16,12),dpi=120)
-    fig.subplots_adjust(hspace=0.5,wspace=0.4)
+    fig = plt.figure(figsize=(16, 12), dpi=120)
+    fig.subplots_adjust(hspace=0.5, wspace=0.4)
 
     # plot centers along phi
-    ax = fig.add_subplot(3, 3, 1) 
-    ax.scatter(np.arange(np.shape(centers)[0]), centers[:,0], s=20, color='blue')
+    ax = fig.add_subplot(3, 3, 1)
+    ax.scatter(np.arange(np.shape(centers)[0]), centers[:, 0], s=20, color="blue")
     ax.set_xlabel(r"Step")
     ax.set_ylabel(r"$\phi$")
-    ax.set_yticks(np.arange(-pi, pi+pi/2, step=(pi/2)), ['-π','-π/2','0','π/2','π'])
-    
+    ax.set_yticks(np.arange(-pi, pi + pi / 2, step=(pi / 2)), ["-π", "-π/2", "0", "π/2", "π"])
+
     # plot centers along psi
-    ax = fig.add_subplot(3, 3, 2) 
-    ax.scatter(np.arange(np.shape(centers)[0]), centers[:,1], s=20, color='red')
+    ax = fig.add_subplot(3, 3, 2)
+    ax.scatter(np.arange(np.shape(centers)[0]), centers[:, 1], s=20, color="red")
     ax.set_xlabel(r"Step")
     ax.set_ylabel(r"$\psi$")
-    ax.set_yticks(np.arange(-pi, pi+pi/2, step=(pi/2)), ['-π','-π/2','0','π/2','π'])
-    
+    ax.set_yticks(np.arange(-pi, pi + pi / 2, step=(pi / 2)), ["-π", "-π/2", "0", "π/2", "π"])
+
     # plot height along phi
-    ax = fig.add_subplot(3, 3, 4) 
-    ax.scatter(np.arange(np.shape(heights)[0]), heights[:,0], s=20, color='blue')
+    ax = fig.add_subplot(3, 3, 4)
+    ax.scatter(np.arange(np.shape(heights)[0]), heights[:, 0], s=20, color="blue")
     ax.set_xlabel(r"Step")
     ax.set_ylabel(r"$W(\phi) ~[k_{B}T]$")
-    
+
     # plot height along psi
-    ax = fig.add_subplot(3, 3, 5) 
-    ax.scatter(np.arange(np.shape(heights)[0]), heights[:,1], s=20, color='red')
+    ax = fig.add_subplot(3, 3, 5)
+    ax.scatter(np.arange(np.shape(heights)[0]), heights[:, 1], s=20, color="red")
     ax.set_xlabel(r"Step")
     ax.set_ylabel(r"$W(\psi) ~[k_{B}T]$")
-    
+
     # plot free energy along phi
-    ax = fig.add_subplot(3, 3, 7) 
-    ax.plot(xi_1D, A_cv1, lw=3, color='blue')
-    ax.set_xticks(np.arange(-pi, pi+pi/2, step=(pi/2)), ['-π','-π/2','0','π/2','π'])
+    ax = fig.add_subplot(3, 3, 7)
+    ax.plot(xi_1D, A_cv1, lw=3, color="blue")
+    ax.set_xticks(np.arange(-pi, pi + pi / 2, step=(pi / 2)), ["-π", "-π/2", "0", "π/2", "π"])
     ax.set_xlabel(r"$\phi$")
     ax.set_ylabel(r"$A~[k_{B}T]$")
-    
+
     # plot free energy along psi
-    ax = fig.add_subplot(3, 3, 8) 
-    ax.plot(xi_1D, A_cv2, lw=3, color='red')
-    ax.set_xticks(np.arange(-pi, pi+pi/2, step=(pi/2)), ['-π','-π/2','0','π/2','π'])
+    ax = fig.add_subplot(3, 3, 8)
+    ax.plot(xi_1D, A_cv2, lw=3, color="red")
+    ax.set_xticks(np.arange(-pi, pi + pi / 2, step=(pi / 2)), ["-π", "-π/2", "0", "π/2", "π"])
     ax.set_xlabel(r"$\psi$")
     ax.set_ylabel(r"$A~[k_{B}T]$")
 
