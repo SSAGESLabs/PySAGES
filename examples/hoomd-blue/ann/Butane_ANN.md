@@ -360,15 +360,15 @@ Let's now plot the free energy landscape learned by the ANN sampling method.
 <!-- #endregion -->
 
 ```python id="X69d1R7OpW4P"
-from pysages.approxfun import compute_mesh
 import matplotlib.pyplot as plt
 ```
 
 ```python id="6W7Xf0ilqAcm"
-xi = (compute_mesh(grid) + 1) / 2 * grid.size + grid.lower
+result = pysages.analyze(run_result)
 
-state = result.states[0]
-fes = -state.phi + state.phi.max()
+mesh = result["mesh"]
+A = result["free_energy"]
+A = A.max() - A
 ```
 
 ```python colab={"base_uri": "https://localhost:8080/", "height": 300} id="TBiPAnMwqEIF" outputId="de1e6c26-0dc9-48ef-cecd-6f94bf11c25c"
@@ -377,7 +377,7 @@ fig, ax = plt.subplots()
 ax.set_xlabel(r"Dihedral Angle, $\xi$")
 ax.set_ylabel(r"$A(\xi)$")
 
-ax.plot(xi, fes)
+ax.plot(mesh, A)
 plt.gca()
 ```
 
