@@ -6,7 +6,7 @@ and python scripts that are ready to be run on your machine/cluster with your ow
 If you are starting using PySAGES, we invite you to test and modify them for your needs.
 The Google Colab notebooks can be used with Google's GPUs in case you do not have easy access to one.
 
-If you are new to advanced sampling techniques in general you can try this interactive introduction with PySAGES [[!Intro](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/examples/Advanced_Sampling_Introduction.ipynb).
+If you are new to advanced sampling techniques in general you can try this interactive introduction with PySAGES [![Intro](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/examples/Advanced_Sampling_Introduction.ipynb).
 
 ## HOOMD-blue
 
