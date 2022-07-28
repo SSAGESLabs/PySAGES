@@ -135,7 +135,7 @@ def generate_context(kT=kT, dt=dt, **kwargs):
         snapshot.angles.typeid[15] = 2
         snapshot.angles.typeid[16:21] = 1
         snapshot.angles.typeid[21:24] = 2
-        
+
         # fmt: off
         snapshot.angles.group[:] = [
             [1, 0, 2], [2, 0, 3], [2, 0, 4],  # grouped by carbon atoms
@@ -223,7 +223,7 @@ def generate_context(kT=kT, dt=dt, **kwargs):
         harmonic = hoomd.md.bond.harmonic()
         harmonic.bond_coeff.set("CC", k=2 * 268.0, r0=1.529)
         harmonic.bond_coeff.set("CH", k=2 * 340.0, r0=1.09)
-        
+
         angle = hoomd.md.angle.harmonic()
         angle.angle_coeff.set("CCC", k=2 * 58.35, t0=112.7 * pi / 180)
         angle.angle_coeff.set("CCH", k=2 * 37.5, t0=110.7 * pi / 180)
@@ -251,13 +251,13 @@ def generate_context(kT=kT, dt=dt, **kwargs):
         integrator.randomize_velocities(seed=42)
 
     return context
-  
+
 
 # %%
 def get_args(argv):
     available_args = [
         ("time-steps", "t", int, 5e5, "Number of simulation steps"),
-        #("train-freq", "f", int, 5e3, "Frequency for neural network training"),
+        # ("train-freq", "f", int, 5e3, "Frequency for neural network training"),
     ]
     parser = argparse.ArgumentParser(description="Example script to run ANN")
     for (name, short, T, val, doc) in available_args:
@@ -274,7 +274,7 @@ def main(argv=[]):
     grid = Grid(lower=(-pi,), upper=(pi,), shape=(64,), periodic=True)
     topology = (8, 8)
 
-    method = ANN(cvs, grid, topology, kT) 
+    method = ANN(cvs, grid, topology, kT)
 
     timesteps = args.time_steps
     tic = time.perf_counter()
@@ -293,13 +293,13 @@ def main(argv=[]):
 
     ax.set_xlabel(r"Dihedral Angle, $\xi$")
     ax.set_ylabel(r"$A(\xi)$")
-    
+
     ax.plot(mesh, A)
     plt.gca()
-    fig.savefig('butane-fe.png')
+    fig.savefig("butane-fe.png")
 
     # write free energy to file
-    dih_vs_A = np.stack([mesh[:,0], A[:,0]], axis=1)
+    dih_vs_A = np.stack([mesh[:, 0], A[:, 0]], axis=1)
     np.savetxt("butane-fe.dat", dih_vs_A, header='"dih" "Free energy"')
 
     return result["free_energy"]
