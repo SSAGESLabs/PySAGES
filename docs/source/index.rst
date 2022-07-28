@@ -33,7 +33,7 @@ No compromises in usability and speed for enhanced-sampling methods!
 --------------------------------------------------------------------
 
 PySAGES addresses these challenges by offering a python interface between highly optimized simulation engines and the researcher to implement collective variables and enhanced-sampling methods.
-If you are new to advanced sampling techniques, you can try out this [interactive introduction](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/examples/Advanced_Sampling_Introduction.ipynb). with PySAGES.
+If you are new to advanced sampling techniques, you can try out this `interactive introduction <https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/examples/Advanced_Sampling_Introduction.ipynb>`__. with PySAGES.
 Even better, PySAGES already provides an extensible framework to compute collective variables and to perform enhanced-sampling MD simulations to discover reaction pathways and estimate free energies.
 Most research objectives are achievable by using these implemented collective variables and methods.
 PySAGES currently supports automatically connecting these methods to `HOOMD-blue <https://glotzerlab.engin.umich.edu/hoomd-blue>`__ and
