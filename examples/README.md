@@ -34,8 +34,11 @@ Examples for Methods using OpenMM can be found in the subfolder [openmm](openmm)
 
 ### Script examples
 
-* ABF with Alanine Dipeptide: [ABF](openmm/abf)
+* ABF with Alanine Dipeptide: [ABF](openmm/abf/alanine-dipeptide_openmm.py)
 * Forward flux sampling with Alanine Dipeptide: [FFS](openmm/forward_flux_sampling.py)
+* Metadynamics with Alanine Dipeptide: [Metadynamics](openmm/metad/alanine-dipeptide.py)
+* Spectral ABF with Alanine Dipeptide: [SpectralABF](openmm/spectral_abf/alanine-dipeptide.py)
+* Umbrella integration with Alanine Dipeptide: [Umbrella Integration](openmm/umbrella_integration/integration.py)
 
 ## Installation of the Environment
 
