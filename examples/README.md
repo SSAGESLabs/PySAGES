@@ -14,15 +14,20 @@ Examples for Methods using HOOMD-blue can be found in the subfolder [hoomd-blue]
 
 ### Notebooks
 
- * Harmonic bias restricting a particle in space: [![Harmonic Bias](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/examples/hoomd-blue/Harmonic_Bias.ipynb)
- * Umbella integration of a particle in an external potential: [![Umbrella Integation](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/examples/hoomd-blue/Umbrella_Integration.ipynb)
- * Artificial neural networks sampling of the dihedral angle of Butane: [![ANN](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/examples/hoomd-blue/ann/Butane_ANN.ipynb)
- * Adaptive force-biasing sampling of the dihedral angle of Butane using neural networks: [![FUNN](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/examples/hoomd-blue/Butane_FUNN.ipynb)
+ * Harmonic bias restricting a particle in space: [![Harmonic Bias](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/examples/hoomd-blue/harmonic_bias/Harmonic_Bias.ipynb)
+ * Umbella integration of a particle in an external potential: [![Umbrella Integation](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/examples/hoomd-blue/umbrella_integration/Umbrella_Integration.ipynb)
+ * Artificial neural networks sampling of the dihedral angle of butane: [![ANN](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/examples/hoomd-blue/ann/Butane_ANN.ipynb)
+ * Adaptive force-biasing sampling of the dihedral angle of butane using neural networks: [![FUNN](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/examples/hoomd-blue/funn/Butane_FUNN.ipynb)
+ * Combined force-frequency sampling of the dihedral angle of butane: [![CFF](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/examples/hoomd-blue/cff/Butane_CFF.ipynb)
 
 ### Script examples
 
 * Harmonic bias restricting a particle in space: [harmonic_bias](hoomd-blue/harmonic_bias)
 * Umbella integration of a particle in an external potential: [umbrella_integration](hoomd-blue/umbrella_integration)
+* Artificial neural networks sampling of the dihedral angle of butane: [ann](hoomd-blue/ann/butane_ann.py)
+* Adaptive force-biasing sampling of the dihedral angle of butane using neural networks: [funn](hoomd-blue/funn/butane.py)
+* Combined force-frequency sampling of the dihedral angle of butane: [cff](hoomd-blue/cff/butane.py)
+* Metadynamics sampling of the dihedral angle of butane: [metadynamics](hoomd-blue/metad/butane.py)
 
 ## OpenMM
 
