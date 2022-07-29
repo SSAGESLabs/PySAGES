@@ -78,15 +78,15 @@ cd PySAGES
 pip install -q . &> /dev/null
 ```
 
-<!-- #region id="KBFVcG1FoeMq" -->
-# FUNN-biased simulations
-<!-- #endregion -->
-
 ```bash id="ppTzMmyyobHB"
 
 mkdir /content/funn
 cd /content/funn
 ```
+
+<!-- #region id="KBFVcG1FoeMq" -->
+# FUNN-biased simulations
+<!-- #endregion -->
 
 <!-- #region id="0W2ukJuuojAl" -->
 FUNN gradually learns the free energy gradient from a discrete estimate based on the same algorithm as the ABF method, but employs a neural network to provide a continuous approximation to it.

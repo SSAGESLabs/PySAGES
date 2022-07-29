@@ -78,15 +78,15 @@ cd PySAGES
 pip install -q . &> /dev/null
 ```
 
-<!-- #region id="KBFVcG1FoeMq" -->
-# CFF-biased simulations
-<!-- #endregion -->
-
 ```bash id="ppTzMmyyobHB"
 
 mkdir /content/cff
 cd /content/cff
 ```
+
+<!-- #region id="KBFVcG1FoeMq" -->
+# CFF-biased simulations
+<!-- #endregion -->
 
 <!-- #region id="0W2ukJuuojAl" -->
 CFF gradually learns both the free energy and its gradient from a discrete estimate of the generalized mean forces (based on the same algorithm as the ABF method), and frequency of visits to sites in phase space. It employs a couple of neural networks to provide a continuous approximation to the free energy.

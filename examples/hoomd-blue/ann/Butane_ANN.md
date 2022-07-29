@@ -80,15 +80,15 @@ cd PySAGES
 pip install -q . &> /dev/null
 ```
 
-<!-- #region id="KBFVcG1FoeMq" -->
-# ANN-biased simulations
-<!-- #endregion -->
-
 ```bash id="ppTzMmyyobHB"
 
 mkdir /content/ann
 cd /content/ann
 ```
+
+<!-- #region id="KBFVcG1FoeMq" -->
+# ANN-biased simulations
+<!-- #endregion -->
 
 <!-- #region id="0W2ukJuuojAl" -->
 ANN gradually learns the free energy from a probability density estimate based on the frequency of visits to the grid on collective variable space.
