@@ -293,13 +293,13 @@ def main(argv=[]):
 
     ax.set_xlabel(r"Dihedral Angle, $\xi$")
     ax.set_ylabel(r"$A(\xi)$")
-    
+
     ax.plot(mesh, A)
     plt.gca()
-    fig.savefig('butane-fe.png')
+    fig.savefig("butane-fe.png")
 
     # write free energy to file
-    dih_vs_A = np.stack([mesh[:,0], A[:,0]], axis=1)
+    dih_vs_A = np.stack([mesh[:, 0], A[:, 0]], axis=1)
     np.savetxt("butane-fe.dat", dih_vs_A, header='"dih", "Free energy"')
 
     return result["free_energy"]
