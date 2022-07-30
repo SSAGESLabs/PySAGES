@@ -199,7 +199,7 @@ On the GPU this should run in around half an hour.
 <!-- #endregion -->
 
 ```python id="K951m4BbpUar"
-state = pysages.run(method, generate_simulation, timesteps)
+run_result = pysages.run(method, generate_simulation, timesteps)
 ```
 
 <!-- #region id="PXBKUfK0p9T2" -->

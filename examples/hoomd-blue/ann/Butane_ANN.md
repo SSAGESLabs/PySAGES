@@ -27,7 +27,7 @@ wget -q --load-cookies /tmp/cookies.txt "$BASE_URL&confirm=$(wget -q --save-cook
 rm -rf /tmp/cookies.txt
 ```
 
-```python colab={"base_uri": "https://localhost:8080/"} id="KRPmkpd9n_NG" outputId="2c72bbc3-0731-4d62-98e1-d48f8254adcb"
+```python colab={"base_uri": "https://localhost:8080/"} id="KRPmkpd9n_NG" outputId="b757f2aa-38cc-4726-c4ab-5197810b9d77"
 %env PYSAGES_ENV=/env/pysages
 ```
 
@@ -37,8 +37,10 @@ mkdir -p $PYSAGES_ENV .
 unzip -qquo pysages-env.zip -d $PYSAGES_ENV
 ```
 
-```python id="LlVSU_-FoD4w"
-!update-alternatives --auto libcudnn &> /dev/null
+```bash id="LlVSU_-FoD4w"
+apt-cache policy libcudnn8
+apt install --allow-change-held-packages libcudnn8=8.4.1.50-1+cuda11.6
+update-alternatives --auto libcudnn &> /dev/null
 ```
 
 ```python id="EMAWp8VloIk4"
@@ -62,8 +64,8 @@ First, we install the jaxlib version that matches the CUDA installation of this 
 ```bash id="vK0RZtbroQWe"
 
 pip install -q --upgrade pip
-# Installs the wheel compatible with CUDA 11 and cuDNN 8.0.5.
-pip install -q --upgrade "jax[cuda11_cudnn805]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html &> /dev/null
+# Installs the wheel compatible with CUDA 11 and cuDNN 8.2 or newer.
+pip install -q --upgrade "jax[cuda]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html &> /dev/null
 ```
 
 <!-- #region id="wAtjM-IroYX8" -->
@@ -78,18 +80,18 @@ cd PySAGES
 pip install -q . &> /dev/null
 ```
 
-<!-- #region id="KBFVcG1FoeMq" -->
-# FUNN-biased simulations
-<!-- #endregion -->
-
 ```bash id="ppTzMmyyobHB"
 
-mkdir /content/funn
-cd /content/funn
+mkdir /content/ann
+cd /content/ann
 ```
 
+<!-- #region id="KBFVcG1FoeMq" -->
+# ANN-biased simulations
+<!-- #endregion -->
+
 <!-- #region id="0W2ukJuuojAl" -->
-FUNN gradually learns the free energy gradient from a discrete estimate based on the same algorithm as the ABF method, but employs a neural network to provide a continuous approximation to it.
+ANN gradually learns the free energy from a probability density estimate based on the frequency of visits to the grid on collective variable space.
 
 For this Colab, we are using butane as the example molecule.
 <!-- #endregion -->
@@ -318,7 +320,7 @@ Next, we load PySAGES and the relevant classes and methods for our problem
 ```python id="fpMg-o8WomAA"
 from pysages.grids import Grid
 from pysages.colvars import DihedralAngle
-from pysages.methods import FUNN
+from pysages.methods import ANN
 
 import pysages
 ```
@@ -327,7 +329,8 @@ import pysages
 The next step is to define the collective variable (CV). In this case, we choose the central dihedral angle.
 
 We also define a grid to bin our CV space, the topology (tuple indicating the number of
-nodes of each hidden layer) for our neural network which will model the free energy.
+nodes of each hidden layer) for our neural network which will model the free energy,
+and pass the value of $kT$ for our system specified above.
 
 The appropriate number of bins depends on the complexity of the free energy landscape,
 a good rule of thumb is to choose between 20 to 100 bins along each CV dimension
@@ -339,8 +342,8 @@ found trying different values for short runs of any given system.
 cvs = [DihedralAngle([0, 4, 7, 10])]
 grid = Grid(lower=(-pi,), upper=(pi,), shape=(64,), periodic=True)
 
-topology = (14,)
-method = FUNN(cvs, grid, topology)
+topology = (8, 8)
+method = ANN(cvs, grid, topology, kT)
 ```
 
 <!-- #region id="Fz8BfU34pA_N" -->
@@ -348,65 +351,36 @@ We now simulate $5\times10^5$ time steps.
 Make sure to run with GPU support, otherwise, it can take a very long time.
 <!-- #endregion -->
 
-```python colab={"base_uri": "https://localhost:8080/"} id="K951m4BbpUar" outputId="f3e79872-41da-479a-caec-5bca7a6792e5"
-method.run(generate_context, int(5e5))
+```python colab={"base_uri": "https://localhost:8080/"} id="K951m4BbpUar" outputId="f01ca7e3-69f4-4218-9eb5-cdc022f877b8"
+result = pysages.run(method, generate_context, int(5e5))
 ```
 
 <!-- #region id="PXBKUfK0p9T2" -->
-Since the neural network learns the gradient of the free energy, we need a separate way of integrating it to find the free energy surface. Let's plot first the gradient of the free energy.
+Let's now plot the free energy landscape learned by the ANN sampling method.
 <!-- #endregion -->
 
 ```python id="X69d1R7OpW4P"
-from pysages.approxfun import compute_mesh
-from pysages.ml.utils import pack, unpack
-
 import matplotlib.pyplot as plt
 ```
 
 ```python id="6W7Xf0ilqAcm"
-xi = (compute_mesh(grid) + 1) / 2 * grid.size + grid.lower
+result = pysages.analyze(run_result)
 
-model = method.model
-layout = unpack(model.parameters)[1]
-
-state = method.context[0].sampler.state
-nn = state.nn
-params = pack(nn.params, layout)
-dA = nn.std * model.apply(params, xi.reshape(-1, 1)) + nn.mean
-```
-
-```python colab={"base_uri": "https://localhost:8080/", "height": 300} id="TBiPAnMwqEIF" outputId="3a13a52d-2bd8-4122-db13-18bc6a11c797"
-fig, ax = plt.subplots()
-
-ax.set_xlabel(r"Dihedral Angle, $\xi$")
-ax.set_ylabel(r"$\nabla A(\xi)$")
-
-ax.plot(xi, dA)
-plt.gca()
-```
-
-<!-- #region id="Kf_CMdih90Cd" -->
-Finally, we make use of the `pysages.approxfun` module to build a Fourier series approximation to the free energy
-<!-- #endregion -->
-
-```python id="pTIGVSSqKdbs"
-from pysages.approxfun import SpectralGradientFit, build_evaluator, build_fitter
-
-fourier_model = SpectralGradientFit(grid)
-fourier_fit = build_fitter(fourier_model)
-evaluate = build_evaluator(fourier_model)
-
-fun = fourier_fit(dA)
-A = evaluate(fun, compute_mesh(grid))
+mesh = result["mesh"]
+A = result["free_energy"]
 A = A.max() - A
 ```
 
-```python colab={"base_uri": "https://localhost:8080/", "height": 303} id="7_d_XfVLLkbI" outputId="3bd503ea-fe33-4a57-a28d-1c3a70e63c50"
+```python colab={"base_uri": "https://localhost:8080/", "height": 300} id="TBiPAnMwqEIF" outputId="de1e6c26-0dc9-48ef-cecd-6f94bf11c25c"
 fig, ax = plt.subplots()
 
 ax.set_xlabel(r"Dihedral Angle, $\xi$")
 ax.set_ylabel(r"$A(\xi)$")
 
-ax.plot(xi, A)
+ax.plot(mesh, A)
 plt.gca()
 ```
+
+<!-- #region id="Kf_CMdih90Cd" -->
+You can compare this with the free energy landscape for the different conformations of butane.
+<!-- #endregion -->
