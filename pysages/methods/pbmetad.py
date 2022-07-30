@@ -6,15 +6,13 @@
 Implementation of Parallel Bias Well-tempered Metadynamics with optional support for grids.
 """
 
-from typing import NamedTuple, Optional
-
-from jax import numpy as np, grad, jit, value_and_grad, vmap
+from jax import numpy as np, grad, jit, vmap
 from jax.lax import cond
 
 from pysages.approxfun import compute_mesh
 from pysages.collective_variables import get_periods, wrap
 from pysages.methods.core import Result, GriddedSamplingMethod, generalize
-from pysages.utils import JaxArray, identity
+from pysages.utils import identity
 from pysages.grids import build_indexer
 from pysages.utils import dispatch
 from pysages.methods.metad import MetadynamicsState, PartialMetadynamicsState
@@ -39,7 +37,7 @@ class ParallelBiasMetadynamics(GriddedSamplingMethod):
 
     snapshot_flags = {"positions", "indices"}
 
-    def __init__(self, cvs, height, sigma, stride, ngaussians, T, deltaT, kB, *args, **kwargs):
+    def __init__(self, cvs, height, sigma, stride, ngaussians, T, deltaT, kB, **kwargs):
         """
         Arguments
         ---------
