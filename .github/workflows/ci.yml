@@ -66,6 +66,7 @@ jobs:
           pylint pysages/methods/__init__.py
           pylint pysages/methods/abf.py
           pylint pysages/methods/metad.py
+          pylint pysages/methods/pbmetad.py
           pylint pysages/methods/utils.py
           pylint pysages/methods/harmonic_bias.py
           pylint pysages/methods/umbrella_integration.py
@@ -73,6 +74,7 @@ jobs:
           flake8 pysages/methods/__init__.py
           flake8 pysages/methods/abf.py
           flake8 pysages/methods/metad.py
+          flake8 pysages/methods/pbmetad.py
           flake8 pysages/methods/utils.py
           flake8 pysages/methods/harmonic_bias.py
           flake8 pysages/methods/umbrella_integration.py
