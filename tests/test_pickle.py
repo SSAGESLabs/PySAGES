@@ -61,7 +61,7 @@ METHODS_ARGS = {
         "sigma": 5.0,
         "stride": 7.0,
         "ngaussians": 5,
-        "T":300,
+        "T": 300,
         "deltaT": 0.1,
         "kB": 614.0,
         "grid": pysages.Grid(lower=(-pi), upper=(pi), shape=(32), periodic=True),
