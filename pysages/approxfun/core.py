@@ -114,7 +114,7 @@ def compute_mesh(grid: Grid):
     o = -1 + h / 2
 
     nodes = o + h * np.hstack([np.arange(i).reshape(-1, 1) for i in grid.shape])
-    
+
     return nodes if grid.parallelbias else _compute_mesh(nodes)
 
 

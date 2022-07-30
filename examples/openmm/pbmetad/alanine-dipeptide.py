@@ -110,8 +110,10 @@ def main(argv=[]):
     ngauss = timesteps // stride + 1  # total number of gaussians
 
     # Grid for storing bias potential and its gradient
-    grid = pysages.Grid(lower=(-pi, -pi), upper=(pi, pi), shape=(50, 50), periodic=True, parallelbias=True)
-    
+    grid = pysages.Grid(
+        lower=(-pi, -pi), upper=(pi, pi), shape=(50, 50), periodic=True, parallelbias=True
+    )
+
     grid = grid if args.use_grids else None
 
     # Method
@@ -129,23 +131,23 @@ def main(argv=[]):
     print(f"Completed the simulation in {toc - tic:0.4f} seconds.")
 
     # Analysis: Calculate free energy using the deposited bias potential
-    
+
     # generate CV values on a grid to evaluate bias potential
     plot_1Dgrid = pysages.Grid(lower=(-pi), upper=(pi), shape=(64), periodic=True)
-    
+
     xi_1D = (compute_mesh(plot_1Dgrid) + 1) / 2 * plot_1Dgrid.size + plot_1Dgrid.lower
     xi_1D_2CVs = np.hstack((xi_1D, xi_1D))
-    
+
     # determine bias factor = (T+deltaT)/deltaT)
     alpha = (T.value_in_unit(unit.kelvin) + method.deltaT) / method.deltaT
     kT = kB * T.value_in_unit(unit.kelvin)
-    beta = 1/kT
+    beta = 1 / kT
 
     # extract metapotential function from result
     result = pysages.analyze(run_result)
     centers = result["centers"]
     heights = result["heights"]
-    
+
     pbmetad_potential_cv = result["pbmetad_potential_cv"]
     pbmetad_net_potential = result["pbmetad_net_potential"]
 
@@ -153,42 +155,46 @@ def main(argv=[]):
     A_cv = pbmetad_potential_cv(xi_1D_2CVs) * -alpha / kT
     # set min free energy to zero
     A_cv = A_cv - A_cv.min(axis=0)
-    A_cv1 = A_cv[:,0].reshape(plot_1Dgrid.shape)
-    A_cv2 = A_cv[:,1].reshape(plot_1Dgrid.shape)
-    
+    A_cv1 = A_cv[:, 0].reshape(plot_1Dgrid.shape)
+    A_cv2 = A_cv[:, 1].reshape(plot_1Dgrid.shape)
+
     # plot and save free energy along each CV to a PNG file
-    fig = plt.figure(figsize=(8,8),dpi=120)
-    fig.subplots_adjust(hspace=0.25,wspace=0.25)
-    
-    range_to_time = stride*dt.value_in_unit(unit.femtoseconds)*1e-6
+    fig = plt.figure(figsize=(8, 8), dpi=120)
+    fig.subplots_adjust(hspace=0.25, wspace=0.25)
+
+    range_to_time = stride * dt.value_in_unit(unit.femtoseconds) * 1e-6
 
     # plot centers along phi and psi to monitor sampling
     for i in range(2):
-        ax = fig.add_subplot(3, 2, i+1)
-        color = 'blue' if i == 0 else 'red'
+        ax = fig.add_subplot(3, 2, i + 1)
+        color = "blue" if i == 0 else "red"
         ylabel = r"$\phi$" if i == 0 else r"$\psi$"
-        ax.scatter(np.arange(np.shape(centers)[0])*range_to_time, centers[:,i], s=20, color=color)
+        ax.scatter(
+            np.arange(np.shape(centers)[0]) * range_to_time, centers[:, i], s=20, color=color
+        )
         ax.set_xlabel(r"Time [ns]")
         ax.set_ylabel(ylabel)
-        ax.set_yticks(np.arange(-pi, pi+pi/2, step=(pi/2)), ['-π','-π/2','0','π/2','π'])
-    
+        ax.set_yticks(np.arange(-pi, pi + pi / 2, step=(pi / 2)), ["-π", "-π/2", "0", "π/2", "π"])
+
     # plot height along phi and psi to monitor sampling
     for i in range(2):
-        ax = fig.add_subplot(3, 2, i+3) 
-        color = 'blue' if i == 0 else 'red'
+        ax = fig.add_subplot(3, 2, i + 3)
+        color = "blue" if i == 0 else "red"
         ylabel = r"$W(\phi) ~[k_{B}T]$" if i == 0 else r"$W(\psi) ~[k_{B}T]$"
-        ax.scatter(np.arange(np.shape(heights)[0])*range_to_time, heights[:,i], s=20, color=color)
+        ax.scatter(
+            np.arange(np.shape(heights)[0]) * range_to_time, heights[:, i], s=20, color=color
+        )
         ax.set_xlabel(r"Time [ns]")
         ax.set_ylabel(ylabel)
-    
+
     # plot free energy along phi and psi at the end of simulation
     for i in range(2):
-        ax = fig.add_subplot(3, 2, i+5) 
-        color = 'blue' if i == 0 else 'red'
+        ax = fig.add_subplot(3, 2, i + 5)
+        color = "blue" if i == 0 else "red"
         xlabel = r"$\phi$" if i == 0 else r"$\phi$"
         y = A_cv1 if i == 0 else A_cv2
         ax.plot(xi_1D, y, lw=3, color=color)
-        ax.set_xticks(np.arange(-pi, pi+pi/2, step=(pi/2)), ['-π','-π/2','0','π/2','π'])
+        ax.set_xticks(np.arange(-pi, pi + pi / 2, step=(pi / 2)), ["-π", "-π/2", "0", "π/2", "π"])
         ax.set_xlabel(xlabel)
         ax.set_ylabel(r"$A~[k_{B}T]$")
 
