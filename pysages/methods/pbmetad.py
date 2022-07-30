@@ -25,13 +25,13 @@ class ParallelBiasMetadynamics(GriddedSamplingMethod):
 
     Compared to well-tempered metadynamics, the Gaussian bias deposited along
     each CV have different heights in PBMetaD. In addition, the total bias potential
-    involves the log of sum of exponential of bias potential (see Eq. 8 in the paper)
+    involves the log of sum of exponential of bias potential (see Eq. 8 in the PBMetaD paper)
     compared to just sum of Gaussians in well-tempered metadynamics.
 
-    Because the method requires sampling along each CV separately, only the diagonal center
-    points of the grids are required for storing potential along each CV and to store the
-    net gradient of bias in PBMetaD. For implementing this, the keyword
-    ``parallelbias`` is added to define grids for each CV separately. Currently, only
+    Because the method requires sampling along each CV separately, only the diagonal center 
+    points of the grids are required for storing potential along each CV and to store the 
+    net gradient of bias in PBMetaD. For implementing this, the keyword 
+    ``parallelbias`` is added to define grids for each CV separately. Currently, only 
     same number of bins for each CV is supported, which is the default.
     """
 
@@ -112,9 +112,11 @@ def _parallelbiasmetadynamics(method, snapshot, helpers):
             grid_potential = grid_gradient = None
         else:
             shape = method.grid.shape
-            # NOTE: for now, we assume, number of bins defined by shape along each CV are same.
-            # This need not be the case for PBMetaD as it generates free energy along each
-            # CV separately.
+            # NOTE: for now, we assume, number of grid bins defined by shape along each 
+            # CV are same. This need not be the case for PBMetaD as it generates 
+            # free energy along each CV separately. We can define separate grids for each CV
+            # but that is not efficient.
+            
             # PySAGES will throw an concatenation error if bins or shape of each CV is different.
             # So, we use shape[0] to define the size of grids as all bins are expected to be same.
             grid_potential = np.zeros((shape[0], shape.size), dtype=np.float64)
@@ -160,13 +162,20 @@ def build_gaussian_accumulator(method: ParallelBiasMetadynamics):
     kB_deltaT = kB * deltaT
 
     if grid is None:
-        evaluate_potential_each_cv = jit(lambda pstate: parallelbias_each_cv(*pstate[:4], periods))
+        evaluate_potential_each_cv = jit(lambda pstate: 
+                                         np.sum(
+                                             parallelbias_each_cv(*pstate[:4], periods),
+                                             axis=0)
+                                        )
     else:
         # each index in pstate.grid_idx correpsonds to different CV.
-        # so, we extract it using np.choose
-        evaluate_potential_each_cv = jit(
-            lambda pstate: np.choose(np.array(pstate.grid_idx), pstate.grid_potential, mode="clip")
-        )
+        # so, we extract it using np.choose. mode='clip' is added for jit compilation.
+        evaluate_potential_each_cv = jit(lambda pstate: 
+                                         np.choose(
+                                             np.array(pstate.grid_idx), 
+                                             pstate.grid_potential, 
+                                             mode="clip")
+                                        )
 
     def next_height(pstate):
         V = evaluate_potential_each_cv(pstate)
@@ -190,15 +199,14 @@ def build_gaussian_accumulator(method: ParallelBiasMetadynamics):
         update = jit(lambda V_each_cv, dV, vals, grads: (accum(V_each_cv, vals), accum(dV, grads)))
 
         def update_grids(pstate, height, xi, sigma):
-            # We need bias potential along each CV to update the heights.
-            # Total bias potential is required only for storing gradient of bias.
+            # We need bias potential along each CV to update the heights. 
             current_parallelbias_each_cv = jit(
-                lambda x: parallelbias_each_cv_grids(x, height, xi, sigma, periods)
+                lambda x: parallelbias_each_cv(x, height, xi, sigma, periods)
             )
 
-            # We need bias gradient obtained by grad of total bias potential along each CV.
+            # Total bias potential is required only for calculating and storing gradient of bias.
             current_parallelbias = jit(
-                lambda x: parallelbias_grids(x, height, xi, sigma, beta, periods)
+                lambda x: parallelbias(x, height, xi, sigma, beta, periods, grid)
             )
 
             grid_potential_values = vmap(current_parallelbias_each_cv)(grid_mesh)
@@ -209,7 +217,7 @@ def build_gaussian_accumulator(method: ParallelBiasMetadynamics):
             )
 
         def should_deposit(in_deposition_step, I_xi):
-            in_bounds = ~(np.any(np.array(I_xi) == np.array([int(grid.shape[0]), grid.shape.size])))
+            in_bounds = ~(np.any(np.array(I_xi) == grid.shape))
             return in_deposition_step & in_bounds
 
     def deposit_gaussian(pstate):
@@ -244,7 +252,8 @@ def build_bias_grad_evaluator(method: ParallelBiasMetadynamics):
 
     if grid is None:
         periods = get_periods(method.cvs)
-        evaluate_bias_grad = jit(lambda pstate: grad(parallelbias)(*pstate[:4], beta, periods))
+        evaluate_bias_grad = jit(lambda pstate: grad(parallelbias)(*pstate[:4], beta, 
+                                                                   periods, grid))
     else:
 
         def zero_force(_):
@@ -256,24 +265,10 @@ def build_bias_grad_evaluator(method: ParallelBiasMetadynamics):
             return np.choose(np.array(pstate.grid_idx), pstate.grid_gradient, mode="clip")
 
         def evaluate_bias_grad(pstate):
-            ob = np.any(
-                np.array(pstate.grid_idx) == np.array([int(grid.shape[0]), grid.shape.size])
-            )  # out of bounds
+            ob = np.any(np.array(pstate.grid_idx) == grid.shape)  # out of bounds
             return cond(ob, zero_force, get_force, pstate)
 
     return evaluate_bias_grad
-
-
-# Helper function to evaluate parallel bias potential
-def parallelbias(xi, heights, centers, sigmas, beta, periods):
-    """
-    Evaluate parallel bias potential according to Eq. 8 in
-    [J. Chem. Theory Comput. 11, 5062–5067 (2015)](https://doi.org/10.1021/acs.jctc.5b00846)
-    """
-    bias_each_cv = parallelbias_each_cv(xi, heights, centers, sigmas, periods)
-    exp_sum_gaussian = np.exp(-beta * bias_each_cv)
-
-    return -(1 / beta) * np.log(np.sum(exp_sum_gaussian))
 
 
 # Helper function to evaluate parallel bias potential along each CV
@@ -283,39 +278,27 @@ def parallelbias_each_cv(xi, heights, centers, sigmas, periods):
     """
     delta_xi_each_cv = wrap(xi - centers, periods)
     gaussian_each_cv = heights * np.exp(-((delta_xi_each_cv / sigmas) ** 2) / 2)
-    bias_each_cv = np.sum(gaussian_each_cv, axis=0)
+    bias_each_cv = gaussian_each_cv
 
     return bias_each_cv
 
-
 # Helper function to evaluate parallel bias potential
-def parallelbias_grids(xi, heights, centers, sigmas, beta, periods):
+def parallelbias(xi, heights, centers, sigmas, beta, periods, grid):
     """
     Evaluate parallel bias potential according to Eq. 8 in
     [J. Chem. Theory Comput. 11, 5062–5067 (2015)](https://doi.org/10.1021/acs.jctc.5b00846)
     """
-    bias_each_cv = parallelbias_each_cv_grids(xi, heights, centers, sigmas, periods)
+    bias_each_cv = parallelbias_each_cv(xi, heights, centers, sigmas, periods)
+    bias_each_cv = bias_each_cv if grid else np.sum(bias_each_cv, axis=0)
     exp_sum_gaussian = np.exp(-beta * bias_each_cv)
 
     return -(1 / beta) * np.log(np.sum(exp_sum_gaussian))
 
 
-# Helper function to evaluate parallel bias potential along each CV
-def parallelbias_each_cv_grids(xi, heights, centers, sigmas, periods):
-    """
-    Evaluate parallel bias potential along each CV.
-    """
-    delta_xi_each_cv = wrap(xi - centers, periods)
-    gaussian_each_cv = heights * np.exp(-((delta_xi_each_cv / sigmas) ** 2) / 2)
-    bias_each_cv = gaussian_each_cv
-
-    return bias_each_cv
-
-
 @dispatch
 def analyze(result: Result[ParallelBiasMetadynamics]):
     """
-    Helper for calculating the free energy from the final state of a
+    Helper for calculating the free energy from the final state of a 
     `Parallel Bias Metadynamics` run.
 
     Parameters
@@ -340,37 +323,38 @@ def analyze(result: Result[ParallelBiasMetadynamics]):
             Maps a user-provided array of CV values and step to the corresponding deposited bias
             potential.
 
-            The free energy along each user-provided CV range is similar to well-tempered
-            metadynamics i.e., the free energy is equal to
+            The free energy along each user-provided CV range is similar to well-tempered 
+            metadynamics i.e., the free energy is equal to 
             `(T + deltaT) / deltaT * parallelbias_metapotential(cv)`,
-            where `T` is the simulation temperature and `deltaT` is the user-defined parameter
+            where `T` is the simulation temperature and `deltaT` is the user-defined parameter 
             in parallel bias metadynamics.
 
         pbmetad_net_potential: Callable
             Maps a user-provided array of CV values to the total parallel bias well-tempered
-            potential. Ideally, this can be used for obtaining multi-dimensional free energy
-            landscape using umbrella sampling like reweighting technique can be applied,
+            potential. Ideally, this can be used for obtaining multi-dimensional free energy 
+            landscape using umbrella sampling like reweighting technique can be applied, 
             which is not yet supported.
     """
     method = result.method
     states = result.states
 
     P = get_periods(method.cvs)
+    grid = method.grid
 
     if len(states) == 1:
         heights = states[0].heights
         centers = states[0].centers
         sigmas = states[0].sigmas
 
-        pbmetad_potential_cv = jit(
-            vmap(lambda x: parallelbias_each_cv(x, heights, centers, sigmas, P))
-        )
-        pbmetad_net_potential = jit(
-            vmap(
-                lambda x, beta: parallelbias(x, heights, centers, sigmas, beta, P),
-                in_axes=(0, None),
-            )
-        )
+        pbmetad_potential_cv = jit(vmap(lambda x: 
+                                        np.sum(parallelbias_each_cv(x, heights, 
+                                                                    centers, sigmas, 
+                                                                    P), axis=0))
+                                  )
+        pbmetad_net_potential = jit(vmap(lambda x, beta: 
+                                         parallelbias(x, heights, centers, sigmas, 
+                                                      beta, P, grid), in_axes=(0, None))
+                                   )
 
         return dict(
             centers=centers,
@@ -383,15 +367,14 @@ def analyze(result: Result[ParallelBiasMetadynamics]):
     # (one for each replica)
 
     def build_pbmetapotential_cv(heights, centers, sigmas):
-        return jit(vmap(lambda x: parallelbias_each_cv(x, heights, centers, sigmas, P)))
+        return jit(vmap(lambda x: np.sum(parallelbias_each_cv(x, 
+                                                              heights, centers, 
+                                                              sigmas, P), axis=0) ))
 
     def build_pbmetapotential(heights, centers, sigmas):
-        return jit(
-            vmap(
-                lambda x, beta: parallelbias(x, heights, centers, sigmas, beta, P),
-                in_axes=(0, None),
-            )
-        )
+        return jit(vmap(lambda x, beta: parallelbias(x, heights, centers, sigmas, 
+                                                     beta, P, grid), in_axes=(0, None))
+                  )
 
     heights = []
     centers = []
