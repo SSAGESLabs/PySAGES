@@ -64,7 +64,7 @@ METHODS_ARGS = {
         "T": 300,
         "deltaT": 0.1,
         "kB": 614.0,
-        "grid": pysages.Grid(lower=(-pi), upper=(pi), shape=(32), periodic=True),
+        "grid": pysages.Grid(lower=(-pi), upper=(pi), shape=(32), periodic=True, parallelbias=True),
     },
     "SpectralABF": {
         "cvs": [pysages.colvars.Component([0], 0), pysages.colvars.Component([0], 1)],
