@@ -85,9 +85,9 @@ def generate_simulation(pdb_filename=adp_pdb, T=T, dt=dt):
 # %%
 def get_args(argv):
     available_args = [
-        ("use_grids", "g", bool, 0, "Whether to use grid acceleration"),
+        ("use-grids", "g", bool, 0, "Whether to use grid acceleration"),
         ("log", "l", bool, 0, "Whether to use a callback to log data into a file"),
-        ("time_steps", "t", int, 5e5, "Number of simulation steps"),
+        ("time-steps", "t", int, 5e5, "Number of simulation steps"),
     ]
     parser = argparse.ArgumentParser(description="Example script to run metadynamics")
     for (name, short, T, val, doc) in available_args:
