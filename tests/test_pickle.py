@@ -55,6 +55,17 @@ METHODS_ARGS = {
         "grid": pysages.Grid(lower=(-pi), upper=(pi), shape=(32), periodic=True),
         "kB": 614.0,
     },
+    "ParallelBiasMetadynamics": {
+        "cvs": [pysages.colvars.Component([0], 0)],
+        "height": 1.0,
+        "sigma": 5.0,
+        "stride": 7.0,
+        "ngaussians": 5,
+        "T":300,
+        "deltaT": 0.1,
+        "kB": 614.0,
+        "grid": pysages.Grid(lower=(-pi), upper=(pi), shape=(32), periodic=True),
+    },
     "SpectralABF": {
         "cvs": [pysages.colvars.Component([0], 0), pysages.colvars.Component([0], 1)],
         "grid": pysages.Grid(lower=(1, 1), upper=(5, 5), shape=(32, 32)),
