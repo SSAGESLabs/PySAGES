@@ -53,7 +53,7 @@ class Grid:
         if not (issubclass(type(T), type) and issubclass(T, GridType)):
             raise TypeError("Type parameter must be a subclass of GridType.")
         if len(kwargs) >= 1:
-            if "periodic" not in kwargs or "parallelbias" not in kwargs:
+            if ("periodic" not in kwargs) and ("parallelbias" not in kwargs):
                 raise ValueError("Invalid keyword arguments")
         periodic = kwargs.get("periodic", T is Periodic)
         if type(periodic) is not bool:
