@@ -28,10 +28,10 @@ class ParallelBiasMetadynamics(GriddedSamplingMethod):
     involves the log of sum of exponential of bias potential (see Eq. 8 in the paper)
     compared to just sum of Gaussians in well-tempered metadynamics.
 
-    Because the method requires sampling along each CV separately, only the diagonal center 
-    points of the grids are required for storing potential along each CV and to store the 
-    net gradient of bias in PBMetaD. For implementing this, the keyword 
-    ``parallelbias`` is added to define grids for each CV separately. Currently, only 
+    Because the method requires sampling along each CV separately, only the diagonal center
+    points of the grids are required for storing potential along each CV and to store the
+    net gradient of bias in PBMetaD. For implementing this, the keyword
+    ``parallelbias`` is added to define grids for each CV separately. Currently, only
     same number of bins for each CV is supported, which is the default.
     """
 
@@ -113,7 +113,7 @@ def _parallelbiasmetadynamics(method, snapshot, helpers):
         else:
             shape = method.grid.shape
             # NOTE: for now, we assume, number of bins defined by shape along each CV are same.
-            # This need not be the case for PBMetaD as it generates free energy along each 
+            # This need not be the case for PBMetaD as it generates free energy along each
             # CV separately.
             # PySAGES will throw an concatenation error if bins or shape of each CV is different.
             # So, we use shape[0] to define the size of grids as all bins are expected to be same.
@@ -190,7 +190,7 @@ def build_gaussian_accumulator(method: ParallelBiasMetadynamics):
         update = jit(lambda V_each_cv, dV, vals, grads: (accum(V_each_cv, vals), accum(dV, grads)))
 
         def update_grids(pstate, height, xi, sigma):
-            # We need bias potential along each CV to update the heights. 
+            # We need bias potential along each CV to update the heights.
             # Total bias potential is required only for storing gradient of bias.
             current_parallelbias_each_cv = jit(
                 lambda x: parallelbias_each_cv_grids(x, height, xi, sigma, periods)
@@ -315,7 +315,7 @@ def parallelbias_each_cv_grids(xi, heights, centers, sigmas, periods):
 @dispatch
 def analyze(result: Result[ParallelBiasMetadynamics]):
     """
-    Helper for calculating the free energy from the final state of a 
+    Helper for calculating the free energy from the final state of a
     `Parallel Bias Metadynamics` run.
 
     Parameters
@@ -340,16 +340,16 @@ def analyze(result: Result[ParallelBiasMetadynamics]):
             Maps a user-provided array of CV values and step to the corresponding deposited bias
             potential.
 
-            The free energy along each user-provided CV range is similar to well-tempered 
-            metadynamics i.e., the free energy is equal to 
+            The free energy along each user-provided CV range is similar to well-tempered
+            metadynamics i.e., the free energy is equal to
             `(T + deltaT) / deltaT * parallelbias_metapotential(cv)`,
-            where `T` is the simulation temperature and `deltaT` is the user-defined parameter 
+            where `T` is the simulation temperature and `deltaT` is the user-defined parameter
             in parallel bias metadynamics.
 
         pbmetad_net_potential: Callable
             Maps a user-provided array of CV values to the total parallel bias well-tempered
-            potential. Ideally, this can be used for obtaining multi-dimensional free energy 
-            landscape using umbrella sampling like reweighting technique can be applied, 
+            potential. Ideally, this can be used for obtaining multi-dimensional free energy
+            landscape using umbrella sampling like reweighting technique can be applied,
             which is not yet supported.
     """
     method = result.method
