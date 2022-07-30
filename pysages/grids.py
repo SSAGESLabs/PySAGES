@@ -46,13 +46,15 @@ class Grid:
         self.upper = np.asarray(upper).reshape(n)
         self.shape = shape.reshape(n)
         self.size = self.upper - self.lower
+        self.parallelbias = kwargs.get("parallelbias", False)
 
     def __check_init_invariants__(self, **kwargs):
         T = type_parameter(self)
         if not (issubclass(type(T), type) and issubclass(T, GridType)):
             raise TypeError("Type parameter must be a subclass of GridType.")
-        if len(kwargs) > 1 or (len(kwargs) == 1 and "periodic" not in kwargs):
-            raise ValueError("Invalid keyword argument")
+        if len(kwargs) > 1:
+            if "periodic" not in kwargs or "parallelbias" not in kwargs:
+                raise ValueError("Invalid keyword arguments")
         periodic = kwargs.get("periodic", T is Periodic)
         if type(periodic) is not bool:
             raise TypeError("`periodic` must be a bool.")
@@ -117,7 +119,7 @@ def build_indexer(grid: Grid):
         h = grid.size / grid.shape
         idx = (x.flatten() - grid.lower) // h
         idx = np.where((idx < 0) | (idx > grid.shape), grid.shape, idx)
-        return (*np.flip(np.uint32(idx)),)
+        return np.uint32(idx) if grid.parallelbias else (*np.flip(np.uint32(idx)),)
 
     return jit(get_index)
 
@@ -134,7 +136,7 @@ def build_indexer(grid: Grid[Periodic]):  # noqa: F811 # pylint: disable=C0116,E
         h = grid.size / grid.shape
         idx = (x.flatten() - grid.lower) // h
         idx = idx % grid.shape
-        return (*np.flip(np.uint32(idx)),)
+        return np.uint32(idx) if grid.parallelbias else (*np.flip(np.uint32(idx)),)
 
     return jit(get_index)
 
@@ -152,6 +154,6 @@ def build_indexer(grid: Grid[Chebyshev]):  # noqa: F811 # pylint: disable=C0116,
         x = 2 * (grid.lower - x.flatten()) / grid.size + 1
         idx = (grid.shape * np.arccos(x)) // np.pi
         idx = np.nan_to_num(idx, nan=grid.shape)
-        return (*np.flip(np.uint32(idx)),)
+        return np.uint32(idx) if grid.parallelbias else (*np.flip(np.uint32(idx)),)
 
     return jit(get_index)
