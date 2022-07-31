@@ -24,10 +24,13 @@ anisotropy
 convolving
 Jacobian
 Phys
+Comput
 Rev
 Lett
 equilibration
 Metadynamics
+metadynamics
+Eq
 ParallelBiasMetadynamics
 backend
 backends
