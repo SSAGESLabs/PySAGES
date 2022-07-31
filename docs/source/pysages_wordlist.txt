@@ -28,6 +28,7 @@ Rev
 Lett
 equilibration
 Metadynamics
+ParallelBiasMetadynamics
 backend
 backends
 colab
