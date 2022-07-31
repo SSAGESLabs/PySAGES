@@ -25,12 +25,12 @@ class ParallelBiasMetadynamics(GriddedSamplingMethod):
 
     Compared to well-tempered metadynamics, the Gaussian bias deposited along
     each CV have different heights in PBMetaD. In addition, the total bias potential
-    involves the log of sum of exponential of bias potential (see Eq. 8 in the PBMetaD paper)
+    involves a log of sum of exponential of bias potential (see Eq. 8 in the PBMetaD paper)
     compared to just sum of Gaussians in well-tempered metadynamics.
 
     Because the method requires sampling along each CV separately, only the diagonal center
     points of the grids are required for storing potential along each CV and to store the
-    net gradient of bias in PBMetaD. For implementing this, the keyword
+    net gradient of bias in PBMetaD. For this, the keyword
     ``parallelbias`` is added to define grids for each CV separately. Currently, only
     same number of bins for each CV is supported, which is the default.
     """
@@ -46,7 +46,7 @@ class ParallelBiasMetadynamics(GriddedSamplingMethod):
             Set of user selected collective variables.
 
         height: JaxArray
-            Initial height of the deposited Gaussians along each CV.
+            Initial heights of the deposited Gaussians along each CV.
 
         sigma: JaxArray
             Initial standard deviation of the to-be-deposit Gaussians along each CV.
@@ -115,10 +115,10 @@ def _parallelbiasmetadynamics(method, snapshot, helpers):
             # NOTE: for now, we assume, number of grid bins defined by shape along each
             # CV are same. This need not be the case for PBMetaD as it generates
             # free energy along each CV separately. We can define separate grids for each CV
-            # but that is not efficient.
+            # but that is not supported yet.
 
-            # PySAGES will throw an concatenation error if bins or shape of each CV is different.
-            # So, we use shape[0] to define the size of grids as all bins are expected to be same.
+            # Given bins or shape of each CV is same,
+            # we use shape[0] to define the size of grids.
             grid_potential = np.zeros((shape[0], shape.size), dtype=np.float64)
             grid_gradient = np.zeros((shape[0], shape.size), dtype=np.float64)
 
@@ -190,7 +190,6 @@ def build_gaussian_accumulator(method: ParallelBiasMetadynamics):
         get_grid_index = build_indexer(grid)
         # Reshape so the dimensions are compatible
         accum = jit(lambda total, val: total + val.reshape(total.shape))
-        transform = grad
         update = jit(lambda V_each_cv, dV, vals, grads: (accum(V_each_cv, vals), accum(dV, grads)))
 
         def update_grids(pstate, height, xi, sigma):
@@ -205,7 +204,7 @@ def build_gaussian_accumulator(method: ParallelBiasMetadynamics):
             )
 
             grid_potential_values = vmap(current_parallelbias_each_cv)(grid_mesh)
-            grid_grad_values = vmap(transform(current_parallelbias))(grid_mesh)
+            grid_grad_values = vmap(grad(current_parallelbias))(grid_mesh)
 
             return update(
                 pstate.grid_potential, pstate.grid_gradient, grid_potential_values, grid_grad_values
@@ -317,7 +316,7 @@ def analyze(result: Result[ParallelBiasMetadynamics]):
             Height of the Gaussian bias potential along each CV during the simulation.
 
         pbmetad_potential_cv: Callable
-            Maps a user-provided array of CV values and step to the corresponding deposited bias
+            Maps a user-provided array of CV values to the corresponding deposited bias
             potential.
 
             The free energy along each user-provided CV range is similar to well-tempered
