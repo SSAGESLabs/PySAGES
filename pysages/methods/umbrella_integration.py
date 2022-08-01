@@ -74,7 +74,7 @@ class UmbrellaIntegration(SamplingMethod):
         self.histograms = [HistogramLogger(p, o) for (p, o) in zip(periods, offsets)]
 
     @plum.dispatch
-    def __init__(# noqa: F811 # pylint: disable=C0116,E0102
+    def __init__(  # noqa: F811 # pylint: disable=C0116,E0102
         self,
         cvs: list,
         biasers: list,
