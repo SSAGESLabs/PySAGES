@@ -36,11 +36,11 @@ class UmbrellaIntegration(SamplingMethod):
     """
 
     @plum.dispatch
-    def __init__(self, cvs: [],
-                 ksprings: Union[[], JaxArray, float],
-                 centers: Union[[], JaxArray, float],
-                 hist_periods: Union[[], int],
-                 hist_offsets: Union[[], int]=0, **kwargs):
+    def __init__(self, cvs: list,
+                 ksprings: Union[list, JaxArray, float],
+                 centers: Union[list, JaxArray, float],
+                 hist_periods: Union[list, int],
+                 hist_offsets: Union[list, int]=0, **kwargs):
         """
         Initialization, sets up the HarmonicBias subsamplers.
 
@@ -70,9 +70,9 @@ class UmbrellaIntegration(SamplingMethod):
         self.histograms = [HistogramLogger(p, o) for (p, o) in zip(periods, offsets)]
 
     @plum.dispatch
-    def __init__(self, cvs: list, biasers: [SamplingMethod],
-                 hist_periods: Union[[], int],
-                 hist_offsets: Union[[], int]=0, **kwargs):
+    def __init__(self, biasers: list,
+                 hist_periods: Union[list, int],
+                 hist_offsets: Union[list, int]=0, **kwargs):
         replicas = len(biasers)
         periods = listify(hist_periods, replicas, "hist_periods", int)
         offsets = listify(hist_offsets, replicas, "hist_offsets", int)
