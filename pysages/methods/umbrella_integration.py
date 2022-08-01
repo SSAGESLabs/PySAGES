@@ -74,13 +74,15 @@ class UmbrellaIntegration(SamplingMethod):
         self.histograms = [HistogramLogger(p, o) for (p, o) in zip(periods, offsets)]
 
     @plum.dispatch
-    def __init__(
+    def __init__(# noqa: F811 # pylint: disable=C0116,E0102
         self,
+        cvs: list,
         biasers: list,
         hist_periods: Union[list, int],
         hist_offsets: Union[list, int] = 0,
         **kwargs
     ):
+        super().__init__(cvs, **kwargs)
         replicas = len(biasers)
         periods = listify(hist_periods, replicas, "hist_periods", int)
         offsets = listify(hist_offsets, replicas, "hist_offsets", int)
