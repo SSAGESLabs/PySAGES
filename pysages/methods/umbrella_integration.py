@@ -17,9 +17,11 @@ However, the method is not very accurate and it is preferred that more advanced 
 from copy import deepcopy
 from typing import Callable, Optional, Union
 
+import plum
 from pysages.methods.core import Result, SamplingMethod, _run
 from pysages.methods.harmonic_bias import HarmonicBias
 from pysages.methods.utils import HistogramLogger, listify, SerialExecutor
+from pysages.utils import JaxArray
 from pysages.utils import dispatch
 
 
@@ -33,7 +35,12 @@ class UmbrellaIntegration(SamplingMethod):
     Note that this is not very accurate and usually requires more sophisticated analysis on top.
     """
 
-    def __init__(self, cvs, ksprings, centers, hist_periods, hist_offsets=0, **kwargs):
+    @plum.dispatch
+    def __init__(self, cvs: [],
+                 ksprings: Union[[], JaxArray, float],
+                 centers: Union[[], JaxArray, float],
+                 hist_periods: Union[[], int],
+                 hist_offsets: Union[[], int]=0, **kwargs):
         """
         Initialization, sets up the HarmonicBias subsamplers.
 
@@ -61,6 +68,18 @@ class UmbrellaIntegration(SamplingMethod):
 
         self.submethods = [HarmonicBias(cvs, k, c) for (k, c) in zip(ksprings, centers)]
         self.histograms = [HistogramLogger(p, o) for (p, o) in zip(periods, offsets)]
+
+    @plum.dispatch
+    def __init__(self, cvs: list, biasers: [SamplingMethod],
+                 hist_periods: Union[[], int],
+                 hist_offsets: Union[[], int]=0, **kwargs):
+        replicas = len(biasers)
+        periods = listify(hist_periods, replicas, "hist_periods", int)
+        offsets = listify(hist_offsets, replicas, "hist_offsets", int)
+
+        self.submethods = biasers
+        self.histograms = [HistogramLogger(p, o) for (p, o) in zip(periods, offsets)]
+
 
     # We delegate the sampling work to HarmonicBias
     # (or possibly other methods in the future)
