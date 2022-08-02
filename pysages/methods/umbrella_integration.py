@@ -38,9 +38,9 @@ class UmbrellaIntegration(SamplingMethod):
     @plum.dispatch
     def __init__(
         self,
-        cvs: list,
-        ksprings: Union[list, JaxArray, float],
-        centers: Union[list, JaxArray, float],
+        cvs,
+        ksprings,
+        centers,
         hist_periods: Union[list, int],
         hist_offsets: Union[list, int] = 0,
         **kwargs
