@@ -26,13 +26,14 @@ from pysages.methods.umbrella_integration import UmbrellaIntegration
 from pysages.methods.utils import HistogramLogger, listify, SerialExecutor
 from pysages.utils import dispatch
 
+
 def _test_valid_spacing(replicas, spacing):
     if spacing is None:
         spacing = np.diff(np.linspace(0, 1, replicas))
     spacing = np.asarray(spacing)
     if len(spacing) != replicas - 1:
         RuntimeError("The provided spacing for String is not replicas - 1.")
-    if np.any(spacing <=0):
+    if np.any(spacing <= 0):
         RuntimeError("Provided spacing is not a positive real number monotonic increasing {space}.")
 
     # Normalize
@@ -50,7 +51,6 @@ class ImprovedString(SamplingMethod):
     along the given path via umbrella integration.
     """
 
-
     @plum.dispatch
     def __init__(
         self,
@@ -59,9 +59,9 @@ class ImprovedString(SamplingMethod):
         centers,
         hist_periods: Union[list, int],
         hist_offsets: Union[list, int] = 0,
-        metric: Callable[[Any, Any], float] = lambda x, y: norm(x-y),
+        metric: Callable[[Any, Any], float] = lambda x, y: norm(x - y),
         spacing: Union[list, None] = None,
-        freeze_idx: list[int]=[],
+        freeze_idx: list[int] = [],
         **kwargs
     ):
         """
@@ -109,12 +109,12 @@ class ImprovedString(SamplingMethod):
 
     @plum.dispatch
     def __init__(
-            self,
-            umbrella_sampler: UmbrellaIntegration,
-            metric: Callable[[Any, Any], float] = lambda x, y: norm(x-y),
-            spacing: Union[list, None] = None,
-            freeze_idx: list[int]=[],
-            **kwargs
+        self,
+        umbrella_sampler: UmbrellaIntegration,
+        metric: Callable[[Any, Any], float] = lambda x, y: norm(x - y),
+        spacing: Union[list, None] = None,
+        freeze_idx: list[int] = [],
+        **kwargs
     ):
         """
         Initialization, sets up the UmbrellaSampling with Harmonic bias subsamplers.
@@ -210,18 +210,20 @@ def run(  # pylint: disable=arguments-differ
 
     for step in range(stringsteps):
         context_args["stringstep"] = step
-        umbrella_result = pysages.run(method.umbrella_sampler,
-                                      context_generator,
-                                      timesteps,
-                                      context_args,
-                                      post_run_action,
-                                      executor,
-                                      **kwargs)
+        umbrella_result = pysages.run(
+            method.umbrella_sampler,
+            context_generator,
+            timesteps,
+            context_args,
+            post_run_action,
+            executor,
+            **kwargs
+        )
 
         sampled_xi = [cb.get_mean().reshape(cv_shape) for cb in umbrella_result["callbacks"]]
         sampled_spacing = []
-        for i in range(sampled_xi-1):
-            sampled_spacing.append(method.metric(sampled_xi[i], sampled_xi[i+1]))
+        for i in range(sampled_xi - 1):
+            sampled_spacing.append(method.metric(sampled_xi[i], sampled_xi[i + 1]))
         sampled_spacing = np.asarray(sampled_spacing)
         # Normalize
         sampled_spacing /= np.sum(sampled_spacing)
@@ -242,7 +244,7 @@ def run(  # pylint: disable=arguments-differ
 
             method.umbrella_sampler.submethods[i].center = new_centers[-1]
             s += method.spacing[i]
-        assert abs(s-1) < 1e-5
+        assert abs(s - 1) < 1e-5
 
         method.last_centers = sampled_xi
         string_result = Result(method, umbrella_result["states"], umbrella_result["callbacks"])
