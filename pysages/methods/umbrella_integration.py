@@ -75,12 +75,18 @@ class UmbrellaIntegration(SamplingMethod):
     @plum.dispatch
     def __init__(  # noqa: F811 # pylint: disable=C0116,E0102
         self,
-        cvs: list,
         biasers: list,
         hist_periods: Union[list, int],
         hist_offsets: Union[list, int] = 0,
         **kwargs
     ):
+        cvs = None
+        for bias in biasers:
+            if cvs is None:
+                cvs = bias.cvs
+            else:
+                if bias.cvs != cvs:
+                    raise RuntimeError("Attempted run of UmbrellaSampling with different CVs for the individual biaser.")
         super().__init__(cvs, **kwargs)
         replicas = len(biasers)
         periods = listify(hist_periods, replicas, "hist_periods", int)
