@@ -81,3 +81,4 @@ from .utils import (
 from .restraints import CVRestraints
 from .unbiased import Unbiased
 from .bias import Bias
+from .string import ImprovedString
