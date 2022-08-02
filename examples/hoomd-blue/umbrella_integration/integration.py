@@ -140,7 +140,7 @@ def main(argv):
 
     centers = list(np.linspace(args.start_path, args.end_path, args.replicas))
     biasers = [HarmonicBias(cvs, args.k_spring, c) for c in centers]
-    method = UmbrellaIntegration(cvs, biasers, args.log_period, args.log_delay)
+    method = UmbrellaIntegration(biasers, args.log_period, args.log_delay)
 
     context_args = {"mpi_enabled": args.mpi}
 
