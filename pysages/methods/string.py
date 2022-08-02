@@ -12,12 +12,14 @@ The process converges if the MFEP is found.
 The final free-energy profile is calculated the same way as in UmbrellaIntegration.
 """
 
+import plum
 import numpy as np
 from copy import deepcopy
 from typing import Callable, Optional, Union, Any
 from numpy.linalg import norm
+from scipy.interpolate import interp1d
 
-import plum
+import pysages
 from pysages.methods.core import Result, SamplingMethod, _run
 from pysages.methods.harmonic_bias import HarmonicBias
 from pysages.methods.umbrella_integration import UmbrellaIntegration
@@ -38,6 +40,7 @@ def _test_valid_spacing(replicas, spacing):
 
     return spacing
 
+
 class ImprovedString(SamplingMethod):
     """
     This class combines UmbrellaIntegration of multiple replicas with the path evolution
@@ -46,6 +49,7 @@ class ImprovedString(SamplingMethod):
     By default the class also estimates an approximation of the free energy landscape
     along the given path via umbrella integration.
     """
+
 
     @plum.dispatch
     def __init__(
@@ -57,6 +61,7 @@ class ImprovedString(SamplingMethod):
         hist_offsets: Union[list, int] = 0,
         metric: Callable[[Any, Any], float] = lambda x, y: norm(x-y),
         spacing: Union[list, None] = None,
+        freeze_idx: list[int]=[],
         **kwargs
     ):
         """
@@ -85,6 +90,11 @@ class ImprovedString(SamplingMethod):
             Desired spacing between points on the string. So the length must be replicas -1.
             Note that we internally normalize the spacing [0,1].
             Defaults to equal spacing on the string.
+
+        freeze_idx: list[int] = []
+            Index of string points that are not updated during integration.
+            Defaults to an empty list, leaving the end-points open free to move to the next minimum.
+            If you don't want the end-points updated provide `[0, N-1]`.
         """
 
         super().__init__(cvs, **kwargs)
@@ -94,6 +104,8 @@ class ImprovedString(SamplingMethod):
         )
         self.metric = metric
         self.spacing = _test_valid_spacing(replicas, spacing)
+        self.freeze_idx = freeze_idx
+        self.last_centers = None
 
     @plum.dispatch
     def __init__(
@@ -101,6 +113,7 @@ class ImprovedString(SamplingMethod):
             umbrella_sampler: UmbrellaIntegration,
             metric: Callable[[Any, Any], float] = lambda x, y: norm(x-y),
             spacing: Union[list, None] = None,
+            freeze_idx: list[int]=[],
             **kwargs
     ):
         """
@@ -119,6 +132,11 @@ class ImprovedString(SamplingMethod):
             Desired spacing between points on the string. So the length must be replicas -1.
             Note that we internally normalize the spacing [0,1].
             Defaults to equal spacing on the string.
+
+        freeze_idx: list[int] = []
+            Index of string points that are not updated during integration.
+            Defaults to an empty list, leaving the end-points open free to move to the next minimum.
+            If you don't want the end-points updated provide `[0, N-1]`.
         """
 
         super().__init__(umbrella_sampler.cvs, **kwargs)
@@ -126,7 +144,8 @@ class ImprovedString(SamplingMethod):
         self.umbrella_sampler = umbrella_sampler
         self.metric = metric
         self.spacing = _test_valid_spacing(replicas, spacing)
-
+        self.freeze_idx = freeze_idx
+        self.last_centers = None
 
     # We delegate the sampling work to UmbrellaIntegration
     def build(self):  # pylint: disable=arguments-differ
@@ -165,6 +184,10 @@ def run(  # pylint: disable=arguments-differ
     timesteps: int
         Number of timesteps the simulation is running.
 
+    stringsteps: int
+       Number of steps the string positions are iterated.
+       It is the user responsibility to ensure final convergence.
+
     context_args: Optional[dict] = None
         Arguments to pass down to `context_generator` to setup the simulation context.
 
@@ -181,29 +204,65 @@ def run(  # pylint: disable=arguments-differ
         This method does not accept a user defined callback.
     """
     timesteps = int(timesteps)
+    stringsteps = int(stringsteps)
     context_args = {} if context_args is None else context_args
+    cv_shape = np.asarray(method.cvs).shape
 
-    def submit_work(executor, method, context_args, callback):
-        return executor.submit(
-            _run,
-            method,
-            context_generator,
-            timesteps,
-            context_args,
-            callback,
-            post_run_action,
-            **kwargs
-        )
+    for step in range(stringsteps):
+        context_args["stringstep"] = step
+        umbrella_result = pysages.run(method.umbrella_sampler,
+                                      context_generator,
+                                      timesteps,
+                                      context_args,
+                                      post_run_action,
+                                      executor,
+                                      **kwargs)
 
-    futures = []
-    with executor as ex:
-        for rep, submethod in enumerate(method.submethods):
-            local_context_args = deepcopy(context_args)
-            local_context_args["replica_num"] = rep
-            callback = method.histograms[rep]
-            futures.append(submit_work(ex, submethod, local_context_args, callback))
-    results = [future.result() for future in futures]
-    states = [r.states for r in results]
-    callbacks = [r.callbacks for r in results]
+        sampled_xi = [cb.get_mean().reshape(cv_shape) for cb in umbrella_result["callbacks"]]
+        sampled_spacing = []
+        for i in range(sampled_xi-1):
+            sampled_spacing.append(method.metric(sampled_xi[i], sampled_xi[i+1]))
+        sampled_spacing = np.asarray(sampled_spacing)
+        # Normalize
+        sampled_spacing /= np.sum(sampled_spacing)
 
-    return Result(method, states, callbacks)
+        # Transform into (Nreplica, X) shape for interpolation
+        transformed_xi = sampled_xi.reshape((len(sampled_xi), np.sum(cv_shape)))
+        # Interpolate path with splines
+        interpolator = interp1d(sampled_spacing, transformed_xi, kind="cubic")
+        new_centers = []
+        s = 0
+        for i in range(len(sampled_spacing)):
+            if i not in method.freeze_idx:
+                new_centers.append(interpolator(s).reshape(cv_shape))
+                # Only reset changing centers, for better statistic otherwise.
+                method.umbrella_sampler.histrograms.reset()
+            else:
+                new_centers.append(method.umbrella_sampler.submethods[i].center)
+
+            method.umbrella_sampler.submethods[i].center = new_centers[-1]
+            s += method.spacing[i]
+        assert abs(s-1) < 1e-5
+
+        method.last_centers = sampled_xi
+        string_result = Result(method, umbrella_result["states"], umbrella_result["callbacks"])
+    return string_result
+
+
+@dispatch
+def analyze(result: Result[ImprovedString]):
+
+    umbrella_result = Result(result.method.umbrella_sampler, result.states, result.callbacks)
+    ana = pysages.analyze(umbrella_result)
+    ana["last_path"] = result.method.last_centers
+    path = []
+    point_convergence = []
+    for i in range(len(result.method.last_centers)):
+        a = result.callbacks[i].get_mean()
+        b = result.method.last_centers
+        point_convergence.append(result.method.metric(a, b))
+        path.append(a)
+    ana["point_convergence"] = np.asarray(point_convergence)
+    ana["path"] = np.asarray(path)
+
+    return ana
