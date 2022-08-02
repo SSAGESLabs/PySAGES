@@ -32,7 +32,6 @@ class Bias(SamplingMethod):
         state["center"] = self._center
         return state, kwargs
 
-
     @property
     def center(self):
         """
