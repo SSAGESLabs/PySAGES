@@ -21,7 +21,6 @@ import plum
 from pysages.methods.core import Result, SamplingMethod, _run
 from pysages.methods.harmonic_bias import HarmonicBias
 from pysages.methods.utils import HistogramLogger, listify, SerialExecutor
-from pysages.utils import JaxArray
 from pysages.utils import dispatch
 
 
