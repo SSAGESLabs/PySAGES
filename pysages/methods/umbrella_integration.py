@@ -87,7 +87,8 @@ class UmbrellaIntegration(SamplingMethod):
             else:
                 if bias.cvs != cvs:
                     raise RuntimeError(
-                        "Attempted run of UmbrellaSampling with different CVs for the individual biaser."
+                        "Attempted run of UmbrellaSampling with different CVs"
+                        " for the individual biaser."
                     )
         super().__init__(cvs, **kwargs)
         replicas = len(biasers)
