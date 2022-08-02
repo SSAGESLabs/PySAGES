@@ -62,8 +62,9 @@ class ImprovedString(SamplingMethod):
 
         super().__init__(cvs, **kwargs)
 
-        self.umbrella_sampler = UmbrellaIntegration(cvs, ksprings, centers, hist_periods, hist_offsets)
-
+        self.umbrella_sampler = UmbrellaIntegration(
+            cvs, ksprings, centers, hist_periods, hist_offsets
+        )
 
     # We delegate the sampling work to HarmonicBias
     # (or possibly other methods in the future)
