@@ -86,7 +86,10 @@ class UmbrellaIntegration(SamplingMethod):
                 cvs = bias.cvs
             else:
                 if bias.cvs != cvs:
-                    raise RuntimeError("Attempted run of UmbrellaSampling with different CVs for the individual biaser.")
+                    raise RuntimeError(
+                        "Attempted run of UmbrellaSampling with different CVs"
+                        " for the individual biaser."
+                    )
         super().__init__(cvs, **kwargs)
         replicas = len(biasers)
         periods = listify(hist_periods, replicas, "hist_periods", int)
