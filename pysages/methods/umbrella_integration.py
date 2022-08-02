@@ -21,7 +21,6 @@ import plum
 from pysages.methods.core import Result, SamplingMethod, _run
 from pysages.methods.harmonic_bias import HarmonicBias
 from pysages.methods.utils import HistogramLogger, listify, SerialExecutor
-from pysages.utils import JaxArray
 from pysages.utils import dispatch
 
 
@@ -38,9 +37,9 @@ class UmbrellaIntegration(SamplingMethod):
     @plum.dispatch
     def __init__(
         self,
-        cvs: list,
-        ksprings: Union[list, JaxArray, float],
-        centers: Union[list, JaxArray, float],
+        cvs,
+        ksprings,
+        centers,
         hist_periods: Union[list, int],
         hist_offsets: Union[list, int] = 0,
         **kwargs
