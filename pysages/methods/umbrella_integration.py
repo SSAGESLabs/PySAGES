@@ -112,10 +112,11 @@ def run(  # pylint: disable=arguments-differ
     context_args: Optional[dict] = None,
     post_run_action: Optional[Callable] = None,
     executor=SerialExecutor(),
+    executor_shutdown=True,
     **kwargs
 ):
     """
-    Implementation of the serial execution of umbrella integration with up to linear
+    Implementation of the execution of umbrella integration with up to linear
     order (ignoring second order terms with covariance matrix) as described in
     J. Chem. Phys. 131, 034109 (2009); https://doi.org/10.1063/1.3175798 (equation 13).
     Higher order approximations can be implemented by the user using the provided
@@ -165,15 +166,17 @@ def run(  # pylint: disable=arguments-differ
         )
 
     futures = []
-    with executor as ex:
-        for rep, submethod in enumerate(method.submethods):
-            local_context_args = deepcopy(context_args)
-            local_context_args["replica_num"] = rep
-            callback = method.histograms[rep]
-            futures.append(submit_work(ex, submethod, local_context_args, callback))
+    for rep, submethod in enumerate(method.submethods):
+        local_context_args = deepcopy(context_args)
+        local_context_args["replica_num"] = rep
+        callback = method.histograms[rep]
+        futures.append(submit_work(executor, submethod, local_context_args, callback))
     results = [future.result() for future in futures]
     states = [r.states for r in results]
     callbacks = [r.callbacks for r in results]
+
+    if executor_shutdown:
+        executor.shutdown()
 
     return Result(method, states, callbacks)
 

@@ -38,6 +38,7 @@ kT
 Sobolev
 pysages
 metad
+discretized
 invariants
 xy
 xz

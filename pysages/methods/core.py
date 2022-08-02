@@ -161,7 +161,6 @@ def run(
         or threads in case the multiple simulation are to be run in parallel.
         Defaults to `ReplicasConfiguration(1, SerialExecutor())`,
         which means only one simulation is run.
-
     """
     timesteps = int(timesteps)
     context_args = {} if context_args is None else context_args
