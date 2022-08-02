@@ -59,9 +59,9 @@ class ImprovedString(SamplingMethod):
         centers,
         hist_periods: Union[List, int],
         hist_offsets: Union[List, int] = 0,
-        metric: Callable[[Any, Any], float] = lambda x, y: norm(x - y),
+        metric: Callable = lambda x, y: norm(x - y),
         spacing: Union[List, None] = None,
-        freeze_idx: List[int] = [],
+        freeze_idx: List = [],
         **kwargs
     ):
         """
@@ -82,7 +82,7 @@ class ImprovedString(SamplingMethod):
         hist_offsets: Union[int, List[int]] = 0
             Offset before starting logging into each replica's histogram.
 
-        metric: Callable[[Any, Any], float] = lambda x, y: numpy.norm(x-y)
+        metric: Callable[[JaxArray, JaxArray], float] = lambda x, y: numpy.norm(x-y)
             Metric defining how distance is defined between points on the string.
             Defaults to the L2 norm of the difference between points in CV space.
 
@@ -111,9 +111,9 @@ class ImprovedString(SamplingMethod):
     def __init__(
         self,
         umbrella_sampler: UmbrellaIntegration,
-        metric: Callable[[Any, Any], float] = lambda x, y: norm(x - y),
+        metric: Callable = lambda x, y: norm(x - y),
         spacing: Union[List, None] = None,
-        freeze_idx: List[int] = [],
+        freeze_idx: List = [],
         **kwargs
     ):
         """
@@ -124,7 +124,7 @@ class ImprovedString(SamplingMethod):
         umbrella_sampler: UmbrellaIntegration
             Sub-method that performs the biased simulations along the path in between updates.
 
-        metric: Callable[[Any, Any], float] = lambda x, y: numpy.norm(x-y)
+        metric: Callable[[JaxArray, JaxArray], float] = lambda x, y: numpy.norm(x-y)
             Metric defining how distance is defined between points on the string.
             Defaults to the L2 norm of the difference between points in CV space.
 
