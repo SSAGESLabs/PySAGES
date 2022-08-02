@@ -18,6 +18,7 @@ kwargs
 dihedral
 Anisotropy
 barycenter
+barycenters
 centroid
 anisotropy
 convolving
@@ -28,3 +29,10 @@ Lett
 equilibration
 Metadynamics
 backend
+backends
+colab
+alanine
+dipeptide
+conformational
+kT
+Sobolev

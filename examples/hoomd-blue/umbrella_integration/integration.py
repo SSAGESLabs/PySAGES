@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import sys
 import argparse
+import importlib
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -10,14 +11,19 @@ import hoomd.dlext
 
 import pysages
 from pysages.colvars import Component
-from pysages.methods import UmbrellaIntegration
+from pysages.methods import UmbrellaIntegration, SerialExecutor
 
 
 params = {"A": 0.5, "w": 0.2, "p": 2}
 
 
 def generate_context(**kwargs):
-    hoomd.context.initialize("")
+    if kwargs.get("mpi_enabled"):
+        MPI = importlib.import_module("mpi4py.MPI")
+        init_kwargs = {"mpi_comm": MPI.COMM_SELF}
+    else:
+        init_kwargs = {}
+    hoomd.context.initialize("--single-mpi", **init_kwargs)
     context = hoomd.context.SimulationContext()
 
     with context:
@@ -106,8 +112,25 @@ def get_args(argv):
     parser = argparse.ArgumentParser(description="Example script to run umbrella integration")
     for (name, short, T, val, doc) in available_args:
         parser.add_argument("--" + name, "-" + short, type=T, default=T(val), help=doc)
+    parser.add_argument("--mpi", action="store_true", help="Use MPI executor")
     args = parser.parse_args(argv)
     return args
+
+
+def post_run_action(**kwargs):
+    hoomd.dump.gsd(
+        filename=f"final_{kwargs.get('replica_num')}.gsd",
+        overwrite=True,
+        period=None,
+        group=hoomd.group.all(),
+    )
+
+
+def get_executor(args):
+    if args.mpi:
+        futures = importlib.import_module("mpi4py.futures")
+        return futures.MPIPoolExecutor()
+    return SerialExecutor()
 
 
 def main(argv):
@@ -118,7 +141,16 @@ def main(argv):
     centers = list(np.linspace(args.start_path, args.end_path, args.replicas))
     method = UmbrellaIntegration(cvs, args.k_spring, centers, args.log_period, args.log_delay)
 
-    raw_result = pysages.run(method, generate_context, args.time_steps)
+    context_args = {"mpi_enabled": args.mpi}
+
+    raw_result = pysages.run(
+        method,
+        generate_context,
+        args.time_steps,
+        context_args=context_args,
+        post_run_action=post_run_action,
+        executor=get_executor(args),
+    )
     result = pysages.analyze(raw_result)
 
     plot_energy(result)

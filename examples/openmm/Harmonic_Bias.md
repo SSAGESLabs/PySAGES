@@ -2,14 +2,14 @@
 jupyter:
   jupytext:
     formats: ipynb,md
-    main_language: python
     text_representation:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.13.8
+      jupytext_version: 1.14.0
   kernelspec:
     display_name: Python 3
+    language: python
     name: python3
 ---
 
@@ -57,7 +57,7 @@ First, we install the jaxlib version that matches the CUDA installation of this 
 
 pip install -q --upgrade pip
 # Installs the wheel compatible with CUDA 11 and cuDNN 8.2 or newer.
-pip install -q --upgrade "jax[cuda]" -f https://storage.googleapis.com/jax-releases/jax_releases.html &> /dev/null
+pip install -q --upgrade "jax[cuda]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html &> /dev/null
 ```
 
 <!-- #region id="mx0IRythaTyG" -->

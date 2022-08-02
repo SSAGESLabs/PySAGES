@@ -1,3 +1,6 @@
+# from matplotlib import pyplot as plt
+from jax import grad, numpy as np, vmap
+
 from pysages.grids import Chebyshev, Grid
 from pysages.approxfun import (
     SpectralGradientFit,
@@ -7,9 +10,6 @@ from pysages.approxfun import (
     build_grad_evaluator,
     compute_mesh,
 )
-
-import jax
-import jax.numpy as np
 
 
 # Test functions
@@ -28,12 +28,11 @@ def f(x):
 def test_fourier_approx():
     grid = Grid(lower=(-np.pi,), upper=(np.pi,), shape=(512,), periodic=True)
 
-    x_scaled = compute_mesh(grid)
-    x = np.pi * x_scaled
+    x = np.pi * compute_mesh(grid)
 
     # Periodic function and its gradient
-    y = jax.vmap(f)(x.flatten()).reshape(x.shape)
-    dy = jax.vmap(jax.grad(f))(x.flatten()).reshape(x.shape)
+    y = vmap(f)(x.flatten()).reshape(x.shape)
+    dy = vmap(grad(f))(x.flatten()).reshape(x.shape)
 
     model = SpectralGradientFit(grid)
     fit = build_fitter(model)
@@ -42,17 +41,17 @@ def test_fourier_approx():
 
     fun = fit(dy)
 
-    assert np.all(np.isclose(y, evaluate(fun, x_scaled))).item()
-    assert np.all(np.isclose(dy, get_grad(fun, x_scaled))).item()
+    assert np.all(np.isclose(y, evaluate(fun, x))).item()
+    assert np.all(np.isclose(dy, get_grad(fun, x))).item()
 
     # fig, ax = plt.subplots()
     # ax.plot(x, dy)
-    # ax.plot(x, get_grad(fun, x_scaled))
+    # ax.plot(x, get_grad(fun, x))
     # plt.show()
 
     # fig, ax = plt.subplots()
     # ax.plot(x, y)
-    # ax.plot(x, evaluate(fun, x_scaled))
+    # ax.plot(x, evaluate(fun, x))
     # plt.show()
 
     model = SpectralSobolev1Fit(grid)
@@ -62,19 +61,19 @@ def test_fourier_approx():
 
     sfun = fit(y, dy)
 
-    assert np.all(np.isclose(y, evaluate(sfun, x_scaled))).item()
-    assert np.all(np.isclose(dy, get_grad(sfun, x_scaled))).item()
+    assert np.all(np.isclose(y, evaluate(sfun, x))).item()
+    assert np.all(np.isclose(dy, get_grad(sfun, x))).item()
 
     assert np.linalg.norm(fun.coefficients - sfun.coefficients) < 1e-8
 
     # fig, ax = plt.subplots()
     # ax.plot(x, dy)
-    # ax.plot(x, get_grad(sfun, x_scaled))
+    # ax.plot(x, get_grad(sfun, x))
     # plt.show()
 
     # fig, ax = plt.subplots()
     # ax.plot(x, y)
-    # ax.plot(x, evaluate(sfun, x_scaled))
+    # ax.plot(x, evaluate(sfun, x))
     # plt.show()
 
 
@@ -83,8 +82,8 @@ def test_cheb_approx():
 
     x = compute_mesh(grid)
 
-    y = jax.vmap(g)(x.flatten()).reshape(x.shape)
-    dy = jax.vmap(jax.grad(g))(x.flatten()).reshape(x.shape)
+    y = vmap(g)(x.flatten()).reshape(x.shape)
+    dy = vmap(grad(g))(x.flatten()).reshape(x.shape)
 
     model = SpectralSobolev1Fit(grid)
     fit = build_fitter(model)
@@ -98,10 +97,10 @@ def test_cheb_approx():
 
     # fig, ax = plt.subplots()
     # ax.plot(x, y)
-    # ax.plot(x, y_)
+    # ax.plot(x, evaluate(fun, x))
     # plt.show()
 
     # fig, ax = plt.subplots()
     # ax.plot(x, dy)
-    # ax.plot(x, dy_)
+    # ax.plot(x, get_grad(fun, x))
     # plt.show()
