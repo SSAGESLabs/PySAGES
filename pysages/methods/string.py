@@ -105,7 +105,7 @@ class ImprovedString(SamplingMethod):
         self.metric = metric
         self.spacing = _test_valid_spacing(replicas, spacing)
         self.freeze_idx = freeze_idx
-        self.last_centers = None
+        self.path_history = []
 
     @plum.dispatch
     def __init__(
@@ -145,7 +145,7 @@ class ImprovedString(SamplingMethod):
         self.metric = metric
         self.spacing = _test_valid_spacing(replicas, spacing)
         self.freeze_idx = freeze_idx
-        self.last_centers = None
+        self.path_history = []
 
     # We delegate the sampling work to UmbrellaIntegration
     def build(self):  # pylint: disable=arguments-differ
@@ -209,7 +209,7 @@ def run(  # pylint: disable=arguments-differ
     cv_shape = np.asarray(method.cvs).shape
 
     for step in range(stringsteps):
-        context_args["stringstep"] = step
+        context_args["stringstep"] = len(method.path_history)
         umbrella_result = pysages.run(
             method.umbrella_sampler,
             context_generator,
@@ -246,7 +246,7 @@ def run(  # pylint: disable=arguments-differ
             s += method.spacing[i]
         assert abs(s - 1) < 1e-5
 
-        method.last_centers = sampled_xi
+        method.path_history.append(sampled_xi)
         string_result = Result(method, umbrella_result["states"], umbrella_result["callbacks"])
     return string_result
 
@@ -256,12 +256,12 @@ def analyze(result: Result[ImprovedString]):
 
     umbrella_result = Result(result.method.umbrella_sampler, result.states, result.callbacks)
     ana = pysages.analyze(umbrella_result)
-    ana["last_path"] = result.method.last_centers
+    ana["path_history"] = result.method.path_history
     path = []
     point_convergence = []
     for i in range(len(result.method.last_centers)):
         a = result.callbacks[i].get_mean()
-        b = result.method.last_centers
+        b = result.method.path_history[-1]
         point_convergence.append(result.method.metric(a, b))
         path.append(a)
     ana["point_convergence"] = np.asarray(point_convergence)
