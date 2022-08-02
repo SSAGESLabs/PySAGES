@@ -112,7 +112,7 @@ def run(  # pylint: disable=arguments-differ
     **kwargs
 ):
     """
-    Implementation of the serial execution of umbrella integration with up to linear
+    Implementation of the execution of umbrella integration with up to linear
     order (ignoring second order terms with covariance matrix) as described in
     J. Chem. Phys. 131, 034109 (2009); https://doi.org/10.1063/1.3175798 (equation 13).
     Higher order approximations can be implemented by the user using the provided
