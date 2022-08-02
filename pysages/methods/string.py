@@ -15,7 +15,7 @@ The final free-energy profile is calculated the same way as in UmbrellaIntegrati
 import plum
 import numpy as np
 from copy import deepcopy
-from typing import Callable, Optional, Union, Any
+from typing import Callable, Optional, Union, Any, List
 from numpy.linalg import norm
 from scipy.interpolate import interp1d
 
@@ -57,11 +57,11 @@ class ImprovedString(SamplingMethod):
         cvs,
         ksprings,
         centers,
-        hist_periods: Union[list, int],
-        hist_offsets: Union[list, int] = 0,
+        hist_periods: Union[List, int],
+        hist_offsets: Union[List, int] = 0,
         metric: Callable[[Any, Any], float] = lambda x, y: norm(x - y),
-        spacing: Union[list, None] = None,
-        freeze_idx: list[int] = [],
+        spacing: Union[List, None] = None,
+        freeze_idx: List[int] = [],
         **kwargs
     ):
         """
@@ -70,28 +70,28 @@ class ImprovedString(SamplingMethod):
 
         Arguments
         ---------
-        centers: list[numbers.Real]
+        centers: List[numbers.Real]
             CV inital centers along the path of integration. Its length defines the number replicas.
 
-        ksprings: Union[float, list[float]]
+        ksprings: Union[float, List[float]]
             Spring constants of the harmonic biasing potential for each replica.
 
-        hist_periods: Union[int, list[int]]
+        hist_periods: Union[int, List[int]]
             Indicates the period for logging the CV into the histogram of each replica.
 
-        hist_offsets: Union[int, list[int]] = 0
+        hist_offsets: Union[int, List[int]] = 0
             Offset before starting logging into each replica's histogram.
 
         metric: Callable[[Any, Any], float] = lambda x, y: numpy.norm(x-y)
             Metric defining how distance is defined between points on the string.
             Defaults to the L2 norm of the difference between points in CV space.
 
-        spacing: Union[list, None] = None
+        spacing: Union[List, None] = None
             Desired spacing between points on the string. So the length must be replicas -1.
             Note that we internally normalize the spacing [0,1].
             Defaults to equal spacing on the string.
 
-        freeze_idx: list[int] = []
+        freeze_idx: List[int] = []
             Index of string points that are not updated during integration.
             Defaults to an empty list, leaving the end-points open free to move to the next minimum.
             If you don't want the end-points updated provide `[0, N-1]`.
@@ -112,8 +112,8 @@ class ImprovedString(SamplingMethod):
         self,
         umbrella_sampler: UmbrellaIntegration,
         metric: Callable[[Any, Any], float] = lambda x, y: norm(x - y),
-        spacing: Union[list, None] = None,
-        freeze_idx: list[int] = [],
+        spacing: Union[List, None] = None,
+        freeze_idx: List[int] = [],
         **kwargs
     ):
         """
@@ -128,12 +128,12 @@ class ImprovedString(SamplingMethod):
             Metric defining how distance is defined between points on the string.
             Defaults to the L2 norm of the difference between points in CV space.
 
-        spacing: Union[list, None] = None
+        spacing: Union[List, None] = None
             Desired spacing between points on the string. So the length must be replicas -1.
             Note that we internally normalize the spacing [0,1].
             Defaults to equal spacing on the string.
 
-        freeze_idx: list[int] = []
+        freeze_idx: List[int] = []
             Index of string points that are not updated during integration.
             Defaults to an empty list, leaving the end-points open free to move to the next minimum.
             If you don't want the end-points updated provide `[0, N-1]`.
