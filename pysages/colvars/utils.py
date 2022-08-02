@@ -29,26 +29,25 @@ def wrap(x, P):
 
 def rational_switching_function(r, r_0, d_0=0.0, n=6, m=None):
     """
-    Rational switching function applied to a given variable r. It takes
-    four parameters r_0, d_0, n, and m. 
+    Rational switching function applied to a given variable r.
     
     Parameters
     ----------
-    r: ``float``
+    r: float
         variable to which switching function is applied.
     
-    r_0 : ``float``
+    r_0 : float
         
-    d_0: ``float`` = 0.0
+    d_0: float = 0.0
     
-    n: ``int`` = 6
+    n: int = 6
     
-    m: ``int`` = 2*n
+    m: int = 2*n
 
     Returns
     -------
-    s : ``float``
-        Rational switching function applied to a given float.
+    s : float
+        Rational switching function applied to a given r.
     """
     
     if m == None:
