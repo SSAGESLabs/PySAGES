@@ -19,7 +19,7 @@ from typing import NamedTuple
 
 from jax import numpy as np
 
-from pysages.methods.core import default_getstate, generalize
+from pysages.methods.core import generalize
 from pysages.methods.bias import Bias
 from pysages.utils import JaxArray
 
