@@ -22,6 +22,7 @@ class Bias(SamplingMethod):
     or the ImprovedString method.
     This abstract class defines an interface to interact with the CV center, such that method can rely on it.
     """
+
     __special_args__ = {"center"}
     snapshot_flags = {"positions", "indices"}
 
