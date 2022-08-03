@@ -64,7 +64,7 @@ class HarmonicBias(Bias):
         self.kspring = kspring
 
     def __getstate__(self):
-        state, kwargs = default_getstate(self)
+        state, kwargs = super().__getstate__()
         state["kspring"] = self._kspring
         return state, kwargs
 

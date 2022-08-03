@@ -12,7 +12,7 @@ from pysages.methods.core import SamplingMethod, default_getstate
 
 
 class Bias(SamplingMethod):
-    __special_args__ = {"kspring", "center"}
+    __special_args__ = {"center"}
     snapshot_flags = {"positions", "indices"}
 
     def __init__(self, cvs, center, **kwargs):
