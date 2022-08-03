@@ -61,7 +61,7 @@ class HarmonicBias(Bias):
         """
         super().__init__(cvs, center, **kwargs)
         self.cv_dimension = len(cvs)
-        self._kspring = kspring
+        self.kspring = kspring
 
     def __getstate__(self):
         state, kwargs = default_getstate(self)
