@@ -2,7 +2,6 @@
 jupyter:
   jupytext:
     formats: ipynb,md
-    main_language: python
     text_representation:
       extension: .md
       format_name: markdown
@@ -10,6 +9,7 @@ jupyter:
       jupytext_version: 1.14.0
   kernelspec:
     display_name: Python 3
+    language: python
     name: python3
 ---
 
@@ -85,11 +85,11 @@ cd /content/cff
 ```
 
 <!-- #region id="KBFVcG1FoeMq" -->
-# CFF-biased simulations
+# SpectralABF-biased simulations
 <!-- #endregion -->
 
 <!-- #region id="0W2ukJuuojAl" -->
-CFF gradually learns both the free energy and its gradient from a discrete estimate of the generalized mean forces (based on the same algorithm as the ABF method), and frequency of visits to sites in phase space. It employs a couple of neural networks to provide a continuous approximation to the free energy.
+SpectralABF gradually learns a better approximation to the coefficients of a basis functions expansion of the free energy of a system, from the generalized mean forces in a similar fashion to the ABF sampling method.
 
 For this Colab, we are using butane as the example molecule.
 <!-- #endregion -->
@@ -318,7 +318,7 @@ Next, we load PySAGES and the relevant classes and methods for our problem
 ```python id="fpMg-o8WomAA"
 from pysages.grids import Grid
 from pysages.colvars import DihedralAngle
-from pysages.methods import CFF
+from pysages.methods import SpectralABF
 
 import pysages
 ```
@@ -326,21 +326,15 @@ import pysages
 <!-- #region id="LknkRvo1o4av" -->
 The next step is to define the collective variable (CV). In this case, we choose the central dihedral angle.
 
-We also define a grid to bin our CV space, the topology (tuple indicating the number of
-nodes of each hidden layer) for our neural network which will model the free energy.
-
-The appropriate number of bins depends on the complexity of the free energy landscape,
-a good rule of thumb is to choose between 20 to 100 bins along each CV dimension
-(using higher values for more rugged free energy surfaces), but it can be systematically
-found trying different values for short runs of any given system.
+We define a grid, which will be used to indicate how we want to bin the forces that will be used to approximate the biasing potential and its gradient.
 <!-- #endregion -->
 
 ```python id="B1Z8FWz0o7u_"
 cvs = [DihedralAngle([0, 4, 7, 10])]
 grid = Grid(lower=(-pi,), upper=(pi,), shape=(64,), periodic=True)
+timesteps = int(5e5)
 
-topology = (14,)
-method = CFF(cvs, grid, topology, kT)
+method = SpectralABF(cvs, grid)
 ```
 
 <!-- #region id="Fz8BfU34pA_N" -->
@@ -349,15 +343,17 @@ Make sure to run with GPU support, otherwise, it can take a very long time.
 <!-- #endregion -->
 
 ```python colab={"base_uri": "https://localhost:8080/"} id="K951m4BbpUar" outputId="8005b8a9-2967-4eb9-f9db-e0dc0d523835"
-raw_result = pysages.run(method, generate_context, int(5e5))
+run_result = pysages.run(method, generate_context, timesteps)
 ```
 
 <!-- #region id="26zdu6yAht5Y" -->
+## Analysis
+
 PySAGES provides an `analyze` method that makes it easier to get the free energy of different simulation runs.
 <!-- #endregion -->
 
 ```python id="2NWmahlfhoj8"
-result = pysages.analyze(raw_result)
+result = pysages.analyze(run_result)
 ```
 
 <!-- #region id="PXBKUfK0p9T2" -->
@@ -385,8 +381,4 @@ ax.set_ylabel(r"$A(\xi)$")
 
 ax.plot(mesh, A)
 plt.gca()
-```
-
-```python id="z0ye1g-1sH2g"
-
 ```

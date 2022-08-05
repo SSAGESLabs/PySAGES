@@ -24,10 +24,10 @@ from jax.scipy import linalg
 
 from pysages.approxfun import compute_mesh, scale as _scale
 from pysages.grids import build_indexer
-from pysages.methods.core import NNSamplingMethod, generalize
+from pysages.methods.core import NNSamplingMethod, Result, generalize
 from pysages.methods.restraints import apply_restraints
 from pysages.ml.models import MLP
-from pysages.ml.objectives import L2Regularization
+from pysages.ml.objectives import GradientsSSE, L2Regularization
 from pysages.ml.optimizers import LevenbergMarquardt
 from pysages.ml.training import (
     NNData,
@@ -36,7 +36,7 @@ from pysages.ml.training import (
     convolve,
 )
 from pysages.ml.utils import blackman_kernel, pack, unpack
-from pysages.utils import Bool, Int, JaxArray
+from pysages.utils import Bool, Int, JaxArray, dispatch
 
 
 class FUNNState(NamedTuple):
@@ -65,7 +65,7 @@ class FUNNState(NamedTuple):
     Wp_: JaxArray (CV shape)
         The value of `Wp` for the previous integration step.
 
-    nn: NNDada
+    nn: NNData
         Bundle of the neural network parameters, and output scaling coefficients.
 
     nstep: int
@@ -288,3 +288,105 @@ def build_force_estimator(method: FUNN):
             return cond(ob, restraints_force, _estimate_force, state)
 
     return estimate_force
+
+
+@dispatch
+def analyze(result: Result[FUNN]):
+    """
+    Parameters
+    ----------
+
+    result: Result[FUNN]
+        Result bundle containing the method, final states, and callbacks.
+
+    dict:
+        A dictionary with the following keys:
+
+        histogram: JaxArray
+            A histogram of the visits to each bin in the CV grid.
+
+        mean_force: JaxArray
+            Generalized mean forces at each bin in the CV grid.
+
+        free_energy: JaxArray
+            Free energy at each bin in the CV grid.
+
+        mesh: JaxArray
+            These are the values of the CVs that are used as inputs for training.
+
+        nn: NNData
+            Coefficients of the basis functions expansion approximating the free energy.
+
+        fes_fn: Callable[[JaxArray], JaxArray]
+            Function that allows to interpolate the free energy in the CV domain defined
+            by the grid.
+
+    NOTE:
+    For multiple-replicas runs we return a list (one item per-replica) for each attribute.
+    """
+    method = result.method
+    states = result.states
+
+    grid = method.grid
+    mesh = (compute_mesh(grid) + 1) * grid.size / 2 + grid.lower
+
+    model = MLP(grid.shape.size, 1, method.topology, transform=partial(_scale, grid=grid))
+    optimizer = LevenbergMarquardt(loss=GradientsSSE(), max_iters=2500, reg=L2Regularization(1e-3))
+    fit = build_fitting_function(model, optimizer)
+
+    @vmap
+    def smooth(data):
+        boundary = "wrap" if grid.is_periodic else "edge"
+        kernel = np.float32(blackman_kernel(grid.shape.size, 7))
+        return convolve(data.T, kernel, boundary=boundary).T
+
+    def train(nn, data):
+        axes = tuple(range(data.ndim - 1))
+        std = data.std(axis=axes).max()
+        reference = np.float64(smooth(np.float32(data / std)))
+        params = fit(nn.params, mesh, reference).params
+        return NNData(params, nn.mean, std / reference.std(axis=axes).max())
+
+    def build_fes_fn(state):
+        hist = np.expand_dims(state.hist, state.hist.ndim)
+        F = state.Fsum / np.maximum(hist, 1)
+
+        ps, layout = unpack(model.parameters)
+        nn = train(NNData(ps, 0.0, 1.0), F)
+
+        def fes_fn(x):
+            params = pack(nn.params, layout)
+            A = nn.std * model.apply(params, x) + nn.mean
+            return A.max() - A
+
+        return jit(fes_fn)
+
+    def average_forces(hist, Fsum):
+        hist = np.expand_dims(hist, hist.ndim)
+        return Fsum / np.maximum(hist, 1)
+
+    def first_or_all(seq):
+        return seq[0] if len(seq) == 1 else seq
+
+    hists = []
+    mean_forces = []
+    free_energies = []
+    nns = []
+    fes_fns = []
+
+    for s in states:
+        fes_fn = build_fes_fn(s)
+        hists.append(s.hist)
+        mean_forces.append(average_forces(s.hist, s.Fsum))
+        free_energies.append(fes_fn(mesh))
+        nns.append(s.nn)
+        fes_fns.append(fes_fn)
+
+    return dict(
+        histogram=first_or_all(hists),
+        mean_force=first_or_all(mean_forces),
+        free_energy=first_or_all(free_energies),
+        mesh=mesh,
+        nn=first_or_all(nns),
+        fes_fn=first_or_all(fes_fns),
+    )
