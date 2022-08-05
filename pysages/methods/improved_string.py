@@ -40,10 +40,10 @@ def _test_valid_spacing(replicas, spacing):
     spacing /= np.sum(spacing)
     spacing = np.asarray([0] + list(spacing))
     spacing = np.cumsum(spacing)
-    assert(abs(spacing[0])<1e-6)
-    assert(abs(spacing[-1]-1)<1e-6)
-    spacing[0] = 0.
-    spacing[-1] = 1.
+    assert abs(spacing[0]) < 1e-6
+    assert abs(spacing[-1] - 1) < 1e-6
+    spacing[0] = 0.0
+    spacing[-1] = 1.0
 
     return spacing
 
@@ -226,7 +226,9 @@ def run(  # pylint: disable=arguments-differ
             **kwargs
         )
 
-        sampled_xi = np.asarray([cb.get_means().reshape(cv_shape) for cb in umbrella_result.callbacks])
+        sampled_xi = np.asarray(
+            [cb.get_means().reshape(cv_shape) for cb in umbrella_result.callbacks]
+        )
         sampled_spacing = [0]
         for i in range(len(sampled_xi) - 1):
             sampled_spacing.append(method.metric(sampled_xi[i], sampled_xi[i + 1]))
@@ -234,10 +236,10 @@ def run(  # pylint: disable=arguments-differ
         # Normalize
         sampled_spacing /= np.sum(sampled_spacing)
         sampled_spacing = np.cumsum(sampled_spacing)
-        assert(abs(sampled_spacing[0])<1e-6)
-        assert(abs(sampled_spacing[-1]-1)<1e-6)
-        sampled_spacing[0] = 0.
-        sampled_spacing[-1] = 1.
+        assert abs(sampled_spacing[0]) < 1e-6
+        assert abs(sampled_spacing[-1] - 1) < 1e-6
+        sampled_spacing[0] = 0.0
+        sampled_spacing[-1] = 1.0
         print(sampled_spacing)
 
         # Transform into (Nreplica, X) shape for interpolation

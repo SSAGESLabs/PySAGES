@@ -74,7 +74,7 @@ def post_run_action(**kwargs):
         overwrite=True,
         period=None,
         group=hoomd.group.all(),
-        )
+    )
     hoomd.option.set_notice_level(2)
 
 
