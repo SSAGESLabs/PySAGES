@@ -38,6 +38,12 @@ def _test_valid_spacing(replicas, spacing):
 
     # Normalize
     spacing /= np.sum(spacing)
+    spacing = np.asarray([0] + list(spacing))
+    spacing = np.cumsum(spacing)
+    assert(abs(spacing[0])<1e-6)
+    assert(abs(spacing[-1]-1)<1e-6)
+    spacing[0] = 0.
+    spacing[-1] = 1.
 
     return spacing
 
@@ -220,34 +226,38 @@ def run(  # pylint: disable=arguments-differ
             **kwargs
         )
 
-        sampled_xi = [cb.get_mean().reshape(cv_shape) for cb in umbrella_result["callbacks"]]
-        sampled_spacing = []
-        for i in range(sampled_xi - 1):
+        sampled_xi = np.asarray([cb.get_means().reshape(cv_shape) for cb in umbrella_result.callbacks])
+        sampled_spacing = [0]
+        for i in range(len(sampled_xi) - 1):
             sampled_spacing.append(method.metric(sampled_xi[i], sampled_xi[i + 1]))
         sampled_spacing = np.asarray(sampled_spacing)
         # Normalize
         sampled_spacing /= np.sum(sampled_spacing)
+        sampled_spacing = np.cumsum(sampled_spacing)
+        assert(abs(sampled_spacing[0])<1e-6)
+        assert(abs(sampled_spacing[-1]-1)<1e-6)
+        sampled_spacing[0] = 0.
+        sampled_spacing[-1] = 1.
+        print(sampled_spacing)
 
         # Transform into (Nreplica, X) shape for interpolation
         transformed_xi = sampled_xi.reshape((len(sampled_xi), np.sum(cv_shape)))
         # Interpolate path with splines
-        interpolator = interp1d(sampled_spacing, transformed_xi, kind="cubic")
+
+        interpolator = interp1d(sampled_spacing, transformed_xi, kind="cubic", axis=0)
         new_centers = []
-        s = 0
         for i in range(len(sampled_spacing)):
             if i not in method.freeze_idx:
-                new_centers.append(interpolator(s).reshape(cv_shape))
+                new_centers.append(interpolator(method.spacing[i]).reshape(cv_shape))
                 # Only reset changing centers, for better statistic otherwise.
-                method.umbrella_sampler.histrograms.reset()
+                method.umbrella_sampler.histograms[i].reset()
             else:
                 new_centers.append(method.umbrella_sampler.submethods[i].center)
 
             method.umbrella_sampler.submethods[i].center = new_centers[-1]
-            s += method.spacing[i]
-        assert abs(s - 1) < 1e-5
 
         method.path_history.append(sampled_xi)
-        string_result = Result(method, umbrella_result["states"], umbrella_result["callbacks"])
+        string_result = Result(method, umbrella_result.states, umbrella_result.callbacks)
     return string_result
 
 
@@ -259,9 +269,9 @@ def analyze(result: Result[ImprovedString]):
     ana["path_history"] = result.method.path_history
     path = []
     point_convergence = []
-    for i in range(len(result.method.last_centers)):
-        a = result.callbacks[i].get_mean()
-        b = result.method.path_history[-1]
+    for i in range(len(result.method.path_history[-1])):
+        a = result.callbacks[i].get_means()
+        b = result.method.path_history[-1][i]
         point_convergence.append(result.method.metric(a, b))
         path.append(a)
     ana["point_convergence"] = np.asarray(point_convergence)
