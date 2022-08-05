@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Metadynamics simulation of Alanine Dipeptide in vacuum with OpenMM and PySAGES using
+Metadynamics simulation of Alanine Dipeptide in water with OpenMM and PySAGES using
 Permutation Invariant Vector (PIV) as CVs.
 
 Example command to run the simulation `python3 alanine-dipeptide.py --time-steps 1000`
@@ -41,7 +41,7 @@ kB = kB.value_in_unit(unit.kilojoules_per_mole / unit.kelvin)
 
 T = 298.15 * unit.kelvin
 dt = 2.0 * unit.femtoseconds
-adp_pdb = os.path.join(os.pardir, os.pardir, "inputs", "alanine-dipeptide", "adp-vacuum.pdb")
+adp_pdb = os.path.join(os.pardir, os.pardir, os.pardir, "inputs", "alanine-dipeptide", "adp-vacuum.pdb")
 
 
 # %%
@@ -134,9 +134,8 @@ def gen_atomtype_lists(pdb_filename=adp_pdb, atomtypes=['C', 'N', 'O'], solventn
          
             #atom_indices.append(oxygen_list)
     
-    print("oxygen list")
-
-    print(oxygen_list)
+    #print("oxygen list")
+    #print(oxygen_list)
     
     #print("hydrogen dict")
     #print(hydrogen_dict[23])
@@ -168,7 +167,7 @@ def gen_atompair_list(atom_lists, natom_types, exclude_atomtype_pairindices):
                             
                     position_pairs.append([i, atom_lists[i][i_particle], j, atom_lists[j][j_particle]])
                     
-    return position_pairs
+    return np.array(position_pairs)
 
 
 # %%
