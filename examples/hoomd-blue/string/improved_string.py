@@ -3,6 +3,7 @@ import sys
 import argparse
 import importlib
 import numpy as np
+import matplotlib.pyplot as plt
 
 import hoomd
 import hoomd.md as md
@@ -17,12 +18,12 @@ params = {"A": 0.5, "w": 0.2, "p": 2}
 
 
 def generate_context(**kwargs):
-    if kwargs.get("mpi_enabled"):
+    if kwargs.get("mpi_enabled") and False:
         MPI = importlib.import_module("mpi4py.MPI")
         init_kwargs = {"mpi_comm": MPI.COMM_SELF}
     else:
         init_kwargs = {}
-    hoomd.context.initialize("--single-mpi --mode=cpu", **init_kwargs)
+    hoomd.context.initialize("--single-mpi", **init_kwargs)
     context = hoomd.context.SimulationContext()
 
     with context:
@@ -55,11 +56,13 @@ def get_args(argv):
         ("replicas", "N", int, 25, "Number of replicas along the path"),
         ("time-steps", "t", int, 1e5, "Number of simulation steps for each replica"),
         ("log-period", "l", int, 50, "Frequency of logging the CVs into each histogram"),
-        ("log-delay", "d", int, 0, "Number of timesteps to discard before logging"),
+        ("log-delay", "d", int, 5e3, "Number of timesteps to discard before logging"),
         ("start-path", "s", float, -1.5, "Start point of the path"),
         ("end-path", "e", float, 1.5, "Start point of the path"),
+        ("string-steps", "p", int, 15, "Iteration of the string algorithm"),
+
     ]
-    parser = argparse.ArgumentParser(description="Example script to run umbrella integration")
+    parser = argparse.ArgumentParser(description="Example script to run string method.")
     for (name, short, T, val, doc) in available_args:
         parser.add_argument("--" + name, "-" + short, type=T, default=T(val), help=doc)
     parser.add_argument("--mpi", action="store_true", help="Use MPI executor")
@@ -85,13 +88,32 @@ def get_executor(args):
     return SerialExecutor()
 
 
+def plot_energy(result):
+    fig, ax = plt.subplots()
+
+    ax.set_xlabel("CV")
+    ax.set_ylabel("Free energy $[\\epsilon]$")
+    centers = np.asarray(np.asarray(result["path"])[0])
+    free_energy = np.asarray(result["free_energy"])
+    offset = np.min(free_energy)
+    ax.plot(centers, free_energy - offset, "o", color="teal")
+
+    x = np.linspace(-3, 3, 50)
+    data = external_field(x, **params)
+    offset = np.min(data)
+    ax.plot(x, data - offset, label="test")
+
+    fig.savefig("energy.pdf")
+
+
+
 def main(argv):
     args = get_args(argv)
 
     cvs = [Component([0], 0), Component([0], 1), Component([0], 2)]
 
-    centers = [[c, c, c] for c in np.linspace(args.start_path, args.end_path, args.replicas)]
-    method = ImprovedString(cvs, args.k_spring, centers, args.log_period, args.log_delay)
+    centers = [[c, -1, 1] for c in np.linspace(args.start_path, args.end_path, args.replicas)]
+    method = ImprovedString(cvs, args.k_spring, centers, 1e-2, args.log_period, args.log_delay)
 
     context_args = {"mpi_enabled": args.mpi}
 
@@ -99,14 +121,17 @@ def main(argv):
         method,
         generate_context,
         args.time_steps,
-        4,
+        args.string_steps,
         context_args=context_args,
         post_run_action=post_run_action,
         executor=get_executor(args),
     )
-    print(raw_result)
     result = pysages.analyze(raw_result)
-    print(result)
+    print(np.asarray(result["path_history"]))
+    print(result["path"])
+    print(result["point_convergence"])
+    plot_energy(result)
+
 
 
 if __name__ == "__main__":

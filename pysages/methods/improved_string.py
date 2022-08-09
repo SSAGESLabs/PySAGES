@@ -63,6 +63,7 @@ class ImprovedString(SamplingMethod):
         cvs,
         ksprings,
         centers,
+        alpha,
         hist_periods: Union[List, int],
         hist_offsets: Union[List, int] = 0,
         metric: Callable = lambda x, y: norm(x - y),
@@ -81,6 +82,10 @@ class ImprovedString(SamplingMethod):
 
         ksprings: Union[float, List[float]]
             Spring constants of the harmonic biasing potential for each replica.
+
+        alpha: Union[float, List[float]],
+            Update step size for the spring. New string positions are updated according to
+            :math:`\\xi_{i+1} = \\alpha (\\langle \\xi\\rangle - \\xi_i)/|\\langle \\xi\\rangle - \\xi_i|`.
 
         hist_periods: Union[int, List[int]]
             Indicates the period for logging the CV into the histogram of each replica.
@@ -108,6 +113,7 @@ class ImprovedString(SamplingMethod):
         self.umbrella_sampler = UmbrellaIntegration(
             cvs, ksprings, centers, hist_periods, hist_offsets
         )
+        self.alpha = listify(alpha, np.asarray(self.cvs).size, "alpha", float)
         self.metric = metric
         self.spacing = _test_valid_spacing(replicas, spacing)
         self.freeze_idx = freeze_idx
@@ -117,6 +123,7 @@ class ImprovedString(SamplingMethod):
     def __init__(
         self,
         umbrella_sampler: UmbrellaIntegration,
+        alpha,
         metric: Callable = lambda x, y: norm(x - y),
         spacing: Union[List, None] = None,
         freeze_idx: List = [],
@@ -148,6 +155,7 @@ class ImprovedString(SamplingMethod):
         super().__init__(umbrella_sampler.cvs, **kwargs)
         replicas = len(umbrella_sampler.submethods)
         self.umbrella_sampler = umbrella_sampler
+        self.alpha = listify(alpha, np.asarray(self.cvs).size, "alpha", float)
         self.metric = metric
         self.spacing = _test_valid_spacing(replicas, spacing)
         self.freeze_idx = freeze_idx
@@ -226,29 +234,32 @@ def run(  # pylint: disable=arguments-differ
             **kwargs
         )
 
-        sampled_xi = np.asarray(
-            [cb.get_means().reshape(cv_shape) for cb in umbrella_result.callbacks]
-        )
-        sampled_spacing = [0]
-        for i in range(len(sampled_xi) - 1):
-            sampled_spacing.append(method.metric(sampled_xi[i], sampled_xi[i + 1]))
-        sampled_spacing = np.asarray(sampled_spacing)
+        new_xi = []
+        for i in range(len(umbrella_result.callbacks)):
+            sampled_xi = umbrella_result.callbacks[i].get_means()
+            old_xi = method.umbrella_sampler.submethods[i].center
+            direction = (sampled_xi - old_xi) / method.metric(sampled_xi, old_xi)
+            new_xi.append( np.asarray(old_xi) + np.asarray(method.alpha) * np.asarray(direction))
+        new_xi = np.asarray(new_xi)
+        new_spacing = [0]
+        for i in range(len(new_xi) - 1):
+            new_spacing.append(method.metric(new_xi[i], new_xi[i + 1]))
+        new_spacing = np.asarray(new_spacing)
         # Normalize
-        sampled_spacing /= np.sum(sampled_spacing)
-        sampled_spacing = np.cumsum(sampled_spacing)
-        assert abs(sampled_spacing[0]) < 1e-6
-        assert abs(sampled_spacing[-1] - 1) < 1e-6
-        sampled_spacing[0] = 0.0
-        sampled_spacing[-1] = 1.0
-        print(sampled_spacing)
+        new_spacing /= np.sum(new_spacing)
+        new_spacing = np.cumsum(new_spacing)
+        assert abs(new_spacing[0]) < 1e-6
+        assert abs(new_spacing[-1] - 1) < 1e-6
+        new_spacing[0] = 0.0
+        new_spacing[-1] = 1.0
 
         # Transform into (Nreplica, X) shape for interpolation
-        transformed_xi = sampled_xi.reshape((len(sampled_xi), np.sum(cv_shape)))
+        transformed_xi = new_xi.reshape((len(new_xi), np.sum(cv_shape)))
         # Interpolate path with splines
 
-        interpolator = interp1d(sampled_spacing, transformed_xi, kind="cubic", axis=0)
+        interpolator = interp1d(new_spacing, transformed_xi, kind="cubic", axis=0)
         new_centers = []
-        for i in range(len(sampled_spacing)):
+        for i in range(len(new_spacing)):
             if i not in method.freeze_idx:
                 new_centers.append(interpolator(method.spacing[i]).reshape(cv_shape))
                 # Only reset changing centers, for better statistic otherwise.
@@ -258,7 +269,7 @@ def run(  # pylint: disable=arguments-differ
 
             method.umbrella_sampler.submethods[i].center = new_centers[-1]
 
-        method.path_history.append(sampled_xi)
+        method.path_history.append(new_centers)
         string_result = Result(method, umbrella_result.states, umbrella_result.callbacks)
     return string_result
 
@@ -272,7 +283,7 @@ def analyze(result: Result[ImprovedString]):
     path = []
     point_convergence = []
     for i in range(len(result.method.path_history[-1])):
-        a = result.callbacks[i].get_means()
+        a = result.method.path_history[-2][i]
         b = result.method.path_history[-1][i]
         point_convergence.append(result.method.metric(a, b))
         path.append(a)

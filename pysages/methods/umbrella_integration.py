@@ -165,12 +165,11 @@ def run(  # pylint: disable=arguments-differ
         )
 
     futures = []
-    with executor as ex:
-        for rep, submethod in enumerate(method.submethods):
-            local_context_args = deepcopy(context_args)
-            local_context_args["replica_num"] = rep
-            callback = method.histograms[rep]
-            futures.append(submit_work(ex, submethod, local_context_args, callback))
+    for rep, submethod in enumerate(method.submethods):
+        local_context_args = deepcopy(context_args)
+        local_context_args["replica_num"] = rep
+        callback = method.histograms[rep]
+        futures.append(submit_work(executor, submethod, local_context_args, callback))
     results = [future.result() for future in futures]
     states = [r.states for r in results]
     callbacks = [r.callbacks for r in results]
