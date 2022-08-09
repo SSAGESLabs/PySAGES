@@ -14,6 +14,7 @@ Methods available in PySAGES
    pysages.methods.metad.Metadynamics
    pysages.methods.umbrella_integration.UmbrellaIntegration
    pysages.methods.harmonic_bias.HarmonicBias
+   pysages.methods.improved_string.ImprovedString
 
 Utility classes for Methods
 
@@ -41,6 +42,7 @@ Abstract base classes
    module-pysages-methods-harmonic_bias
    module-pysages-methods-metad
    module-pysages-methods-umbrella
+   module-pysages-methods-string
    module-pysages-methods-utils
    module-pysages-methods-core
 
