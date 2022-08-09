@@ -92,7 +92,7 @@ def plot_energy(result):
 
     ax.set_xlabel("CV")
     ax.set_ylabel("Free energy $[\\epsilon]$")
-    centers = np.asarray(np.asarray(result["path"])[0])
+    centers = np.asarray(np.asarray(result["path"])[:,0])
     free_energy = np.asarray(result["free_energy"])
     offset = np.min(free_energy)
     ax.plot(centers, free_energy - offset, "o", color="teal")
