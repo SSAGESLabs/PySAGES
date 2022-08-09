@@ -60,7 +60,6 @@ def get_args(argv):
         ("start-path", "s", float, -1.5, "Start point of the path"),
         ("end-path", "e", float, 1.5, "Start point of the path"),
         ("string-steps", "p", int, 15, "Iteration of the string algorithm"),
-
     ]
     parser = argparse.ArgumentParser(description="Example script to run string method.")
     for (name, short, T, val, doc) in available_args:
@@ -106,7 +105,6 @@ def plot_energy(result):
     fig.savefig("energy.pdf")
 
 
-
 def main(argv):
     args = get_args(argv)
 
@@ -131,7 +129,6 @@ def main(argv):
     print(result["path"])
     print(result["point_convergence"])
     plot_energy(result)
-
 
 
 if __name__ == "__main__":

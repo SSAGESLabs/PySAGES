@@ -239,7 +239,7 @@ def run(  # pylint: disable=arguments-differ
             sampled_xi = umbrella_result.callbacks[i].get_means()
             old_xi = method.umbrella_sampler.submethods[i].center
             direction = (sampled_xi - old_xi) / method.metric(sampled_xi, old_xi)
-            new_xi.append( np.asarray(old_xi) + np.asarray(method.alpha) * np.asarray(direction))
+            new_xi.append(np.asarray(old_xi) + np.asarray(method.alpha) * np.asarray(direction))
         new_xi = np.asarray(new_xi)
         new_spacing = [0]
         for i in range(len(new_xi) - 1):
