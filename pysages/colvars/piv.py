@@ -76,12 +76,12 @@ class PIV(CollectiveVariable):
     """
     
     def __init__(self, indices, position_pairs, solute_list, solvent_oxygen_list,
-                 hydrogen_dict, switching_params, neighbor_list):
+                 hydrogen_array, switching_params, neighbor_list):
         super().__init__(indices, group_length=None)
         self.position_pairs = position_pairs
         self.solute_list = solute_list
         self.solvent_oxygen_list = solvent_oxygen_list
-        self.hydrogen_dict = hydrogen_dict
+        self.hydrogen_array = hydrogen_array
         self.switching_params = switching_params
         self.neighbor_list = neighbor_list['neighbor_list']
         
@@ -123,64 +123,59 @@ def piv(positions, neighbor_list, params):
     """
     
     all_atom_positions = np.array(positions)
-    
     neighbor_list = neighbor_list.update(all_atom_positions)
-    position_pairs = onp.array(params.position_pairs)
+    position_pairs = params.position_pairs 
     solute_list = params.solute_list
     solvent_oxygen_list = params.solvent_oxygen_list
-    
-    print("position pairs")
-    print(position_pairs)
-    print("solvent_oxygen_list")
-    print(solvent_oxygen_list)
-    print("end solvent_oxygen_list")
-    
-    hydrogen_dict = params.hydrogen_dict
+    hydrogen_array = params.hydrogen_array    
     
     i_pos = all_atom_positions[position_pairs[:,1]]
     j_pos = all_atom_positions[position_pairs[:,3]]
     
     piv_solute_blocks = vmap(get_piv_block, in_axes=(0, 0, None))(i_pos, j_pos, params.switching_params)
-    piv_solute_block_index = vmap(cantor_pair, in_axes=(0,0))(position_pairs[:,0], position_pairs[:,2])
+    piv_solute_block_index = vmap(cantor_pair, in_axes=(0, 0))(position_pairs[:,0], position_pairs[:,2])
     
     idx_solute_sort = np.argsort(piv_solute_block_index)
     piv_solute_blocks = piv_solute_blocks[idx_solute_sort]
 
     if solvent_oxygen_list:
-                
-        nsolute_types = len(solute_list)
-        # for each solute keep oxygen atoms that are their neighbors
-        solvent_i_j = []
         
-        solute_list_indices = list(np.arange(nsolute_types))
+        nlist = neighbor_list.idx
+        atom_ids = np.arange(np.shape(nlist)[0])[:, np.newaxis]
+        atom_ids_nlist = np.hstack((atom_ids, nlist))
+        solute_atom_ids_nlist = atom_ids_nlist[np.array(solute_list).flatten()]
+        oxygen_array = solute_atom_ids_nlist[:,1:]
+        solute_array = solute_atom_ids_nlist[:,0]
+        solute_array = np.repeat(solute_array, np.shape(oxygen_array)[1])
+        solute_array = np.reshape(solute_array, np.shape(oxygen_array))
+        solute_array = solute_array[:, :, np.newaxis]
+        block_ids = np.arange(np.shape(solute_list)[0])
+        block_ids = np.repeat(block_ids, np.shape(oxygen_array)[1])
+        block_ids =  np.reshape(block_ids, np.shape(oxygen_array))
+        block_ids = block_ids[:, :, np.newaxis]
         
         
-        for i in range(nsolute_types):
-            _solvent_i_j = []
-            
-            for i_p in solute_list[i]:
-            
-                for j in neighbor_list.idx[i_p]:
-                
-                    # check if j is the id of oxygen atom
-                    if j in solvent_oxygen_list:
-                        _solvent_i_j.append([i, i_p, j])
-                        _solvent_i_j.append([i, i_p, hydrogen_dict[int(j)][0]])
-                        _solvent_i_j.append([i, i_p, hydrogen_dict[int(j)][1]])
-                            
-            solvent_i_j.append(_solvent_i_j)
-            
-        solvent_i_j = onp.array(solvent_i_j)
-        i_pos = all_atom_positions[solvent_i_j[:,1]]
-        j_pos = all_atom_positions[solvent_i_j[:,2]]
-                
-        piv_solute_solvent_blocks = vmap(get_piv_block, in_axes=(0, 0, None))(i_pos, j_pos, params.switching_params)
-        piv_solute_solvent_block_index = solvent_i_j[:,0]
+        hydrogen_array = hydrogen_array[oxygen_array.flatten()]
+        hydrogen_array = np.array(hydrogen_array, dtype=int)
+        hydrogen_array = np.reshape(hydrogen_array, (*np.shape(oxygen_array)[:2], 2))
         
-        idx_solvent_sort = np.argsort(piv_solute_block_index)
-        piv_solute_solvent_blocks = piv_solute_solvent_blocks[idx_solvent_sort]
 
+        
+        solute_atom_ids_nlist = np.dstack((block_ids, solute_array, 
+                                           oxygen_array, hydrogen_array)).reshape(-1,5)
+
+        
+        i_pos = all_atom_positions[solute_atom_ids_nlist[:,1]]
+        j_pos = all_atom_positions[solute_atom_ids_nlist[:,2]]
+        piv_solute_solvent_blocks = vmap(get_piv_block, in_axes=(0, 0, None))(i_pos, j_pos, params.switching_params)
+        piv_solute_solvent_block_index = solute_atom_ids_nlist[:,0]
+        idx_solvent_sort = np.argsort(piv_solute_solvent_block_index)
+        piv_solute_solvent_blocks = piv_solute_solvent_blocks[idx_solvent_sort]
+        piv_solute_solvent_blocks = piv_solute_solvent_blocks.flatten()
+        
+        
         piv_blocks = np.concatenate( (piv_solute_blocks, piv_solute_solvent_blocks), axis=0)
+                     
 
     else:
         
@@ -189,15 +184,6 @@ def piv(positions, neighbor_list, params):
     return piv_blocks[0]
     
     
-def get_solute_atoms(solute_list, solute_list_index):
-    
-    return solute_list[solute_list_index]
-
-def get_neighbors_solute_atom(neigbor_list_solute, solute_atom_id):
-    
-    return neigbor_list_solute[solute_atom_id]
-    
-
 def get_piv_block(i_pos, j_pos, switching_params):
     
     r_0 = switching_params['r_0']
@@ -211,15 +197,21 @@ def get_piv_block(i_pos, j_pos, switching_params):
     return s_r
     
     
-def cantor_pair(index1, index2):
+def cantor_pair(int1, int2):
     """
     Generates an uniuqe integer using two integers via Cantor pair function.
     This unique integer can be mapped back to the two integers, if needed.
     """
     
-    pi = index1 + index2
+    pi = int1 + int2
     pi = pi * (pi + 1)
     pi *= 0.5
-    pi += index2
+    pi += int2
     
     return np.int32(pi)
+            
+            
+
+
+    
+    

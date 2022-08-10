@@ -26,6 +26,7 @@ from pysages.approxfun import compute_mesh
 import numpy as onp
 from jax import numpy as np
 from jax_md.partition import neighbor_list as nlist, space
+from jax_md.partition import NeighborListFormat
 
 import matplotlib.pyplot as plt
 
@@ -41,14 +42,14 @@ kB = kB.value_in_unit(unit.kilojoules_per_mole / unit.kelvin)
 
 T = 298.15 * unit.kelvin
 dt = 2.0 * unit.femtoseconds
-adp_pdb = os.path.join(os.pardir, os.pardir, os.pardir, "inputs", "alanine-dipeptide", "adp-vacuum.pdb")
+adp_pdb = os.path.join(os.pardir, os.pardir, os.pardir, "inputs", "alanine-dipeptide", "adp-explicit.pdb")
 
 
 # %%
 def generate_simulation(pdb_filename=adp_pdb, T=T, dt=dt):
     pdb = app.PDBFile(pdb_filename)
 
-    ff = app.ForceField("amber99sb.xml") #, "tip3p.xml")
+    ff = app.ForceField("amber99sb.xml", "tip3p.xml")
     cutoff_distance = 1.0 * unit.nanometer
     topology = pdb.topology
 
@@ -84,7 +85,7 @@ def generate_simulation(pdb_filename=adp_pdb, T=T, dt=dt):
 
     return simulation
 
-def gen_neighbor_list(pdb_filename=adp_pdb):
+def gen_neighbor_list(pdb_filename, custom_mask_function):
 
     pdb = app.PDBFile(pdb_filename)
     top = pdb.getTopology()
@@ -94,7 +95,8 @@ def gen_neighbor_list(pdb_filename=adp_pdb):
     box_size = 3
     nl_cutoff = 1
     displacement_fn, shift_fn = space.periodic(box_size)
-    neighbor_list_fn = nlist(displacement_fn, box_size, nl_cutoff, dr_threshold, capacity_multiplier=0.5)
+    neighbor_list_fn = nlist(displacement_fn, box_size, nl_cutoff, dr_threshold, capacity_multiplier=0.5,
+                            custom_mask_function=custom_mask_function, format=NeighborListFormat.Dense)
     neighbors = neighbor_list_fn.allocate(positions)
 
     return neighbors
@@ -106,46 +108,57 @@ def gen_atomtype_lists(pdb_filename=adp_pdb, atomtypes=['C', 'N', 'O'], solventn
     top = pdb.getTopology()
     
     # separate each atom type of interest - solute and solvent oxygen into a list
-    atom_indices = []
+    solute_list = []
     for residue in top.residues():
         if residue.name != solventname:
             for atomtype in atomtypes:
                 for atom in residue.atoms():
                     if atom.name.startswith(atomtype):
-                        atom_indices.append([int(atom.id)])
-              
-    solute_list = atom_indices
+                        solute_list.append([int(atom.id)-1])
+            
           
+    solute_atoms = []
     oxygen_list = []
     hydrogen_dict = {}
+    hydrogen_array = np.ones((pdb.topology.getNumAtoms(), 2))*(-1000)
     for residue in top.residues():
         if residue.name == solventname:
             for atom in residue.atoms():
                 if atom.name.startswith('O'):
-                    oxygen_list.append(int(atom.id))
+                    oxygen_list.append(int(atom.id)-1)
                     hatom_list = []
                     for bond in residue.bonds():
                         if bond.atom1.id == atom.id:
-                            hatom_list.append(int(bond.atom2.id))
+                            hatom_list.append(int(bond.atom2.id)-1)
                         elif bond.atom2.id == atom.id:
-                            hatom_list.append(int(bond.atom1.id))
-                    hydrogen_dict[int(atom.id)] = hatom_list
+                            hatom_list.append(int(bond.atom1.id)-1)
+                    hydrogen_dict[int(atom.id)-1] = hatom_list
+                    hydrogen_array = hydrogen_array.at[int(atom.id)-1].set(np.array(hatom_list))
+                if atom.name.startswith('H'):
+                    solute_atoms.append(int(atom.id)-1)
+        else:
+            for atom in residue.atoms():
+                solute_atoms.append(int(atom.id)-1)
+                
                         
          
             #atom_indices.append(oxygen_list)
     
-    #print("oxygen list")
-    #print(oxygen_list)
+    print("oxygen list")
+    print(oxygen_list)
     
-    #print("hydrogen dict")
-    #print(hydrogen_dict[23])
+    print("hydrogen dict")
+    print(hydrogen_dict[22])
+    
+    print("hydrogen array")
+    print(hydrogen_array)
     
     print("\n")
     
     num_atoms = top.getNumAtoms()
     natom_types = len(atomtypes) + 1
     
-    return atom_indices, solute_list, oxygen_list, hydrogen_dict, num_atoms, natom_types
+    return solute_atoms, solute_list, oxygen_list, hydrogen_array, num_atoms, natom_types
     
 
 def gen_atompair_list(atom_lists, natom_types, exclude_atomtype_pairindices):
@@ -188,23 +201,32 @@ def get_args(argv):
 def main(argv=[]):
     args = get_args(argv)
     
-    atom_indices, solute_list, oxygen_list, hydrogen_dict, num_atoms, natom_types = gen_atomtype_lists()
+    atom_indices, solute_list, oxygen_list, hydrogen_array, num_atoms, natom_types = gen_atomtype_lists()
     exclude_atomtype_pairindices = [ [1, 1], [1, 2] ]
     
-    position_pairs = gen_atompair_list(atom_indices, natom_types, exclude_atomtype_pairindices)
+    position_pairs = gen_atompair_list(solute_list, natom_types, exclude_atomtype_pairindices)
     
     all_atoms = list(onp.arange(num_atoms))
     #atom_indices.append(all_atoms)
     
+    print("solute atoms ")
+    print(np.array(solute_list).flatten())
+    
     print(atom_indices)
+    
+    def filter_solvent_neighbors(idx):
+        mask = np.isin(idx, np.array(atom_indices), invert=True)
+        return np.where(mask, idx, num_atoms)
+        #return idx
 
     cvs = [PIV( all_atoms,
                 position_pairs,
                 solute_list,
                 oxygen_list,
-                hydrogen_dict,
+                hydrogen_array,
                 {'r_0': 0.4, 'd_0': 2.3, 'n': 3, 'm': 6},
-                {'neighbor_list': gen_neighbor_list()})]
+                {'neighbor_list': gen_neighbor_list(adp_pdb,
+                                                    filter_solvent_neighbors)})]
 
     height = 1.2  # kJ/mol
     sigma = [0.35, 0.35]  # radians
