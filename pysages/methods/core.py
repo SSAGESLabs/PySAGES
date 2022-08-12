@@ -38,7 +38,7 @@ class SamplingMethod(ABC):
 
     def __init__(self, cvs, **kwargs):
         self.cvs = cvs
-        self.cv = build(*cvs, grad=kwargs.get("cv_grad", grad))
+        self.cv = build(*cvs, diff=kwargs.get("cv_grad", True))
         self.requires_box_unwrapping = reduce(
             or_, (cv.requires_box_unwrapping for cv in cvs), False
         )

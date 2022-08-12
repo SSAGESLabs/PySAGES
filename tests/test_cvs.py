@@ -26,10 +26,10 @@ SNAPSHOT = Snapshot()
 def test_groups():
     # Verify that we get the same result when using groups
     cv = Distance([0, 1])
-    f = build(cv, grad=None)
+    f = build(cv, diff=False)
     assert len(cv.groups) == 0
     assert np.isclose(f(SNAPSHOT).item(), 0.57957285)
     cv = Distance([[0], [1]])
-    f = build(cv, grad=None)
+    f = build(cv, diff=False)
     assert len(cv.groups) == 2
     assert np.isclose(f(SNAPSHOT).item(), 0.57957285)
