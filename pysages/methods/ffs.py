@@ -18,7 +18,7 @@ from jax import numpy as np
 
 from pysages.backends import ContextWrapper
 from pysages.methods.core import SamplingMethod, generalize
-from pysages.utils import JaxArray, copy, dispatch
+from pysages.utils import JaxArray, dispatch
 
 import sys
 
@@ -149,7 +149,7 @@ def run(
         helpers = method.helpers
         cv = method.cv
 
-        reference_snapshot = copy(sampler.snapshot)
+        reference_snapshot = sampler.take_snapshot()
 
         # We Initially sample from basin A
         # TODO: bundle the arguments into data structures
@@ -276,13 +276,13 @@ def basin_sampling(
         xi = sampler.state.xi.block_until_ready()
 
         if np.all(xi < win_A):
-            snap = copy(sampler.snapshot)
+            snap = sampler.take_snapshot()
             basin_snapshots.append(snap)
             print("Storing basing configuration with cv value:\n")
             print(xi)
         else:
             sampler.restore(reference_snapshot)
-            xi = cv(helpers.query(sampler.snapshot))
+            xi = cv(helpers.query(reference_snapshot))
             print("Restoring basing configuration since system left basin with cv value:\n")
             print(xi)
 
@@ -303,8 +303,9 @@ def initial_flow(Num_window0, timestep, grid, initial_snapshots, run, sampler, h
 
     for i in range(0, Num_window0):
         print(f"Initial stored configuration: {i}\n")
-        sampler.restore(initial_snapshots[i])
-        xi = cv(helpers.query(sampler.snapshot))
+        snap = initial_snapshots[i]
+        sampler.restore(snap)
+        xi = cv(helpers.query(snap))
         print(xi)
 
         has_reached_A = False
@@ -319,7 +320,7 @@ def initial_flow(Num_window0, timestep, grid, initial_snapshots, run, sampler, h
                 has_reached_A = True
 
                 if len(window0_snaps) <= Num_window0:
-                    snap = copy(sampler.snapshot)
+                    snap = sampler.take_snapshot()
                     window0_snaps.append(snap)
 
                 break
@@ -338,8 +339,9 @@ def running_window(grid, step, old_snapshots, run, sampler, helpers, cv):
     has_conf_stored = False
 
     for i in range(0, len(old_snapshots)):
-        sampler.restore(old_snapshots[i])
-        xi = cv(helpers.query(sampler.snapshot))
+        snap = old_snapshots[i]
+        sampler.restore(snap)
+        xi = cv(helpers.query(snap))
         print(f"Stored configuration: {i} of window: {step}\n")
         print(xi)
 
@@ -353,7 +355,7 @@ def running_window(grid, step, old_snapshots, run, sampler, helpers, cv):
             if np.all(xi < win_A):
                 running = False
             elif np.all(xi >= win_value):
-                snap = copy(sampler.snapshot)
+                snap = sampler.take_snapshot()
                 new_snapshots.append(snap)
                 success += 1
                 running = False
