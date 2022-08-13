@@ -40,7 +40,7 @@ class Bias(SamplingMethod):
         self.center = center
 
     def __getstate__(self):
-        state, kwargs = super.__getstate__()
+        state, kwargs = super().__getstate__()
         state["center"] = self._center
         return state, kwargs
 
