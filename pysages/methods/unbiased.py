@@ -57,9 +57,6 @@ class Unbiased(SamplingMethod):
         kwargs["cv_grad"] = None
         super().__init__(cvs, **kwargs)
 
-    def __getstate__(self):
-        return super().__getstate__()
-
     def build(self, snapshot, helpers, *args, **kwargs):
         return _unbias(self, snapshot, helpers)
 
