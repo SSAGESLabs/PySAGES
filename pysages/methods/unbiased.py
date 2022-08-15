@@ -15,7 +15,7 @@ from typing import NamedTuple
 
 from jax import numpy as np
 
-from pysages.methods.core import SamplingMethod, default_getstate, generalize
+from pysages.methods.core import SamplingMethod, generalize
 from pysages.utils import JaxArray
 
 
@@ -56,10 +56,6 @@ class Unbiased(SamplingMethod):
         """
         kwargs["cv_grad"] = None
         super().__init__(cvs, **kwargs)
-
-    def __getstate__(self):
-        state, kwargs = default_getstate(self)
-        return state, kwargs
 
     def build(self, snapshot, helpers, *args, **kwargs):
         return _unbias(self, snapshot, helpers)
