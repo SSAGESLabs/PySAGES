@@ -17,6 +17,7 @@ However, the method is not very accurate and it is preferred that more advanced 
 from copy import deepcopy
 from typing import Callable, Optional, Union
 
+import plum
 from pysages.methods.core import Result, SamplingMethod, _run
 from pysages.methods.harmonic_bias import HarmonicBias
 from pysages.methods.utils import HistogramLogger, listify, SerialExecutor
@@ -33,7 +34,16 @@ class UmbrellaIntegration(SamplingMethod):
     Note that this is not very accurate and usually requires more sophisticated analysis on top.
     """
 
-    def __init__(self, cvs, ksprings, centers, hist_periods, hist_offsets=0, **kwargs):
+    @plum.dispatch
+    def __init__(
+        self,
+        cvs,
+        ksprings,
+        centers,
+        hist_periods: Union[list, int],
+        hist_offsets: Union[list, int] = 0,
+        **kwargs
+    ):
         """
         Initialization, sets up the HarmonicBias subsamplers.
 
@@ -60,6 +70,32 @@ class UmbrellaIntegration(SamplingMethod):
         offsets = listify(hist_offsets, replicas, "hist_offsets", int)
 
         self.submethods = [HarmonicBias(cvs, k, c) for (k, c) in zip(ksprings, centers)]
+        self.histograms = [HistogramLogger(p, o) for (p, o) in zip(periods, offsets)]
+
+    @plum.dispatch
+    def __init__(  # noqa: F811 # pylint: disable=C0116,E0102
+        self,
+        biasers: list,
+        hist_periods: Union[list, int],
+        hist_offsets: Union[list, int] = 0,
+        **kwargs
+    ):
+        cvs = None
+        for bias in biasers:
+            if cvs is None:
+                cvs = bias.cvs
+            else:
+                if bias.cvs != cvs:
+                    raise RuntimeError(
+                        "Attempted run of UmbrellaSampling with different CVs"
+                        " for the individual biaser."
+                    )
+        super().__init__(cvs, **kwargs)
+        replicas = len(biasers)
+        periods = listify(hist_periods, replicas, "hist_periods", int)
+        offsets = listify(hist_offsets, replicas, "hist_offsets", int)
+
+        self.submethods = biasers
         self.histograms = [HistogramLogger(p, o) for (p, o) in zip(periods, offsets)]
 
     # We delegate the sampling work to HarmonicBias

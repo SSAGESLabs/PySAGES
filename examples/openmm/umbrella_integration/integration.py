@@ -78,12 +78,10 @@ def main(argv):
     for pos in center_pos:
         centers.append((pos, pos))
     method = UmbrellaIntegration(cvs, args.k_spring, centers, args.log_period, args.log_delay)
-
     raw_result = pysages.run(
         method,
         generate_simulation,
         args.time_steps,
-        # post_run_action=post_run_action,
         executor=get_executor(args),
     )
     result = pysages.analyze(raw_result)
