@@ -235,7 +235,21 @@ class Acylindricity(CollectiveVariable):
 
     group_length: Optional[int]
         Specify if a fixed group length is expected.
+
+    axis: str
+        Axis combination around which the particles are symmetric.
+        Options are: xy, yz, xz
     """
+
+    valid_axis = ("xy", "yz", "xz")
+
+    def __init__(self, indices, axis="xy", group_length=None):
+        super().__init__(indices, group_length)
+        self.axis = "".join(sorted(axis.lower()))
+        if self.axis not in self.valid_axis:
+            error_msg = f"Acylindrity axis specification {axis}"
+            error_msg += f" not one of the valid options: {self.valid_axis}."
+            raise RuntimeError(error_msg)
 
     @property
     def function(self):
@@ -245,10 +259,16 @@ class Acylindricity(CollectiveVariable):
         Callable
             See `pysages.colvars.shape.acylindricity` for details.
         """
-        return acylindricity
+        if self.axis == "xy":
+            return acylindricity_xy
+        if self.axis == "yz":
+            return acylindricity_yz
+        if self.axis == "xz":
+            return acylindricity_xz
+        raise RuntimeError("Invalid axis defintion {self.axis} cannot associate calculation.")
 
 
-def acylindricity(positions):
+def acylindricity_xy(positions):
     r"""
     Calculate the Acylindricity from a group of atoms.
     It is defined as :math:`\lambda_2 - \lambda_1`,
@@ -268,6 +288,50 @@ def acylindricity(positions):
     """
     lambda1, lambda2, _ = principal_moments(positions)
     return lambda2 - lambda1
+
+
+def acylindricity_yz(positions):
+    r"""
+    Calculate the Acylindricity from a group of atoms.
+    It is defined as :math:`\lambda_3 - \lambda_2`,
+    where :math:`\lambda_i` specifies the principal moments of the group of atoms.
+
+    See `pysages.colvars.shape.principal_moments` for details.
+
+    Parameters
+    ----------
+    positions: DeviceArray
+        Points in space that are equally weighted to calculate the principal moments from.
+
+    Returns
+    -------
+    float
+        Acylindricity
+    """
+    _, lambda2, lambda3 = principal_moments(positions)
+    return lambda3 - lambda2
+
+
+def acylindricity_xz(positions):
+    r"""
+    Calculate the Acylindricity from a group of atoms.
+    It is defined as :math:`\lambda_3 - \lambda_1`,
+    where :math:`\lambda_i` specifies the principal moments of the group of atoms.
+
+    See `pysages.colvars.shape.principal_moments` for details.
+
+    Parameters
+    ----------
+    positions: DeviceArray
+        Points in space that are equally weighted to calculate the principal moments from.
+
+    Returns
+    -------
+    float
+        Acylindricity
+    """
+    lambda1, _, lambda3 = principal_moments(positions)
+    return lambda3 - lambda1
 
 
 class ShapeAnisotropy(CollectiveVariable):

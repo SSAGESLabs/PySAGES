@@ -39,3 +39,6 @@ Sobolev
 pysages
 metad
 invariants
+xy
+xz
+yz
