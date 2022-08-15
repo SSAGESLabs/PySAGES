@@ -48,7 +48,7 @@ class PIV(CollectiveVariable):
     
     Example PIV CV definition:
         cvs = [PIV( all_atoms, position_pairs, solute_list, oxygen_list,
-        hydrogen_dict, [{'r_0': 0.4, 'd_0': 2.3, 'n': 3, 'm': 6}, ...],
+        hydrogen_array, [{'r_0': 0.4, 'd_0': 2.3, 'n': 3, 'm': 6}, ...],
         {'neighbor_list': gen_neighbor_list()})]
     
     Parameters
@@ -58,14 +58,15 @@ class PIV(CollectiveVariable):
     position_pairs: JaxArray
             Array containing indices of solute-solute pairs for the solute-solute
             block of PIV.
-    solute_list: JaxArray
+    solute_array: JaxArray
             Indices of all solute atoms
-    oxygen_list: Array
+    oxygen_array: JaxArray
             Indices of all oxygen atoms
-    hydrogen_dict: dict
+    hydrogen_array: JaxArray
             Dictionary mapping each oxygen in water with their hydrogen atoms.
-    switching_params: dict
-            Dictionary containing switching function parameters.
+    switching_params: list[dict]
+            List of dictionaries containing switching function parameters for each
+            PIV block.
     neighbor_list: Callable
             JAX MD neighbor list function to update the neighbor list.
             
@@ -75,15 +76,18 @@ class PIV(CollectiveVariable):
         Permutation Invariant Vector (PIV)
     """
     
-    def __init__(self, indices, position_pairs, solute_list, solvent_oxygen_list,
-                 hydrogen_array, switching_params, neighbor_list):
+    def __init__(self, indices, position_pairs, solute_array, solvent_oxygen_array,
+                 hydrogen_array, switching_params, update_neighborlist):
         super().__init__(indices, group_length=None)
         self.position_pairs = position_pairs
-        self.solute_list = solute_list
-        self.solvent_oxygen_list = solvent_oxygen_list
+        self.solute_array = solute_array
+        self.solvent_oxygen_array = solvent_oxygen_array
         self.hydrogen_array = hydrogen_array
         self.switching_params = switching_params
-        self.neighbor_list = neighbor_list['neighbor_list']
+        self.update_neighborlist = update_neighborlist['update_neighborlist']
+        
+        self.time = 0
+        print("simulation timestep init, 0")
         
     @property
     def function(self):
@@ -95,11 +99,10 @@ class PIV(CollectiveVariable):
         Function that generates PIV from a simulation snapshot.
         Look at `pysages.colvars.ann.piv` for details.
         """
-        #return lambda *positions, neighbor_list=self.neighbor_list, params=self: piv(positions, neighbor_list, params)
-        return lambda positions: piv(positions, self.neighbor_list, self)
+        return lambda positions: piv(positions, self.update_neighborlist, self.time, self)
         
 
-def piv(positions, neighbor_list, params):
+def piv(positions, update_neighborlist, time, params):
     """
     Implementation of permutation invariant vector as described in
     [Section 4, Handb. Mater. Model. 597-619 (2020)]
@@ -107,14 +110,15 @@ def piv(positions, neighbor_list, params):
 
     Parameters
     ----------
-    positions: Array
+    positions: JaxArray
             Contains positions of all atoms in the system.
-    neighbor_list: JaxArray
-            Points to function to update neighbor list.
+    update_neighborlist: Callable
+            Function to update neighbor list.
     params: Object
         Links to all the helper parameters. This includes
-        indices combination to exclude from PIV calculation, switching function
-        parameters.
+        solute-solute pair indices, solvent oxygen indices,
+        solvent hydrogen indices, and
+        switching function parameters.
 
     Returns
     -------
@@ -123,10 +127,24 @@ def piv(positions, neighbor_list, params):
     """
     
     all_atom_positions = np.array(positions)
-    neighbor_list = neighbor_list.update(all_atom_positions)
+    
+    update_neighborlist = update_neighborlist.update(all_atom_positions)
+    
+    print("neighbor list state:\n")
+    print("time is " + str(time))
+    time += 1
+    print(update_neighborlist.idx)
+    print(update_neighborlist.reference_position)
+    print(update_neighborlist.did_buffer_overflow)
+    print(update_neighborlist.cell_list_capacity)
+    print(update_neighborlist.max_occupancy)
+    print(update_neighborlist.format)
+    print(update_neighborlist.update_fn)
+    print("\n")    
+    
     position_pairs = params.position_pairs 
-    solute_list = params.solute_list
-    solvent_oxygen_list = params.solvent_oxygen_list
+    solute_list = params.solute_array
+    solvent_oxygen_list = params.solvent_oxygen_array
     hydrogen_array = params.hydrogen_array    
     
     i_pos = all_atom_positions[position_pairs[:,1]]
@@ -140,7 +158,7 @@ def piv(positions, neighbor_list, params):
 
     if solvent_oxygen_list:
         
-        nlist = neighbor_list.idx
+        nlist = update_neighborlist.idx
         atom_ids = np.arange(np.shape(nlist)[0])[:, np.newaxis]
         atom_ids_nlist = np.hstack((atom_ids, nlist))
         solute_atom_ids_nlist = atom_ids_nlist[np.array(solute_list).flatten()]
@@ -209,9 +227,3 @@ def cantor_pair(int1, int2):
     pi += int2
     
     return np.int32(pi)
-            
-            
-
-
-    
-    

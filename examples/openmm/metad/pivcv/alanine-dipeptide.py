@@ -225,8 +225,8 @@ def main(argv=[]):
                 oxygen_list,
                 hydrogen_array,
                 {'r_0': 0.4, 'd_0': 2.3, 'n': 3, 'm': 6},
-                {'neighbor_list': gen_neighbor_list(adp_pdb,
-                                                    filter_solvent_neighbors)})]
+                {'update_neighborlist': gen_neighbor_list(adp_pdb,
+                                                    filter_solvent_neighbors)}) ]
 
     height = 1.2  # kJ/mol
     sigma = [0.35, 0.35]  # radians
