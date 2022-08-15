@@ -173,7 +173,7 @@ def principal_moments(positions):
     DeviceArray
         Eigenvalues of the gyration tensor
     """
-    return linalg.eigvals(gyration_tensor(positions))
+    return linalg.eigh(gyration_tensor(positions))[0]
 
 
 class Asphericity(CollectiveVariable):
