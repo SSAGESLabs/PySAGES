@@ -8,7 +8,7 @@ Generic abstract bias method.
 
 from abc import abstractmethod
 from jax import numpy as np
-from pysages.methods.core import SamplingMethod, default_getstate
+from pysages.methods.core import SamplingMethod
 
 
 class Bias(SamplingMethod):
@@ -40,7 +40,7 @@ class Bias(SamplingMethod):
         self.center = center
 
     def __getstate__(self):
-        state, kwargs = default_getstate(self)
+        state, kwargs = super().__getstate__()
         state["center"] = self._center
         return state, kwargs
 

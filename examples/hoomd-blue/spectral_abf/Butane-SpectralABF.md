@@ -2,7 +2,6 @@
 jupyter:
   jupytext:
     formats: ipynb,md
-    main_language: python
     text_representation:
       extension: .md
       format_name: markdown
@@ -10,6 +9,7 @@ jupyter:
       jupytext_version: 1.14.1
   kernelspec:
     display_name: Python 3
+    language: python
     name: python3
 ---
 
@@ -27,7 +27,7 @@ wget -q --load-cookies /tmp/cookies.txt "$BASE_URL&confirm=$(wget -q --save-cook
 rm -rf /tmp/cookies.txt
 ```
 
-```python colab={"base_uri": "https://localhost:8080/"} id="KRPmkpd9n_NG" outputId="2c72bbc3-0731-4d62-98e1-d48f8254adcb"
+```python colab={"base_uri": "https://localhost:8080/"} id="KRPmkpd9n_NG" outputId="acc3a92c-182f-415b-d8dc-b5af076b3d01"
 %env PYSAGES_ENV=/env/pysages
 ```
 
@@ -80,16 +80,16 @@ pip install -q . &> /dev/null
 
 ```bash id="ppTzMmyyobHB"
 
-mkdir /content/funn
-cd /content/funn
+mkdir /content/cff
+cd /content/cff
 ```
 
 <!-- #region id="KBFVcG1FoeMq" -->
-# FUNN-biased simulations
+# SpectralABF-biased simulations
 <!-- #endregion -->
 
 <!-- #region id="0W2ukJuuojAl" -->
-FUNN gradually learns the free energy gradient from a discrete estimate based on the same algorithm as the ABF method, but employs a neural network to provide a continuous approximation to it.
+SpectralABF gradually learns a better approximation to the coefficients of a basis functions expansion of the free energy of a system, from the generalized mean forces in a similar fashion to the ABF sampling method.
 
 For this Colab, we are using butane as the example molecule.
 <!-- #endregion -->
@@ -318,7 +318,7 @@ Next, we load PySAGES and the relevant classes and methods for our problem
 ```python id="fpMg-o8WomAA"
 from pysages.grids import Grid
 from pysages.colvars import DihedralAngle
-from pysages.methods import FUNN
+from pysages.methods import SpectralABF
 
 import pysages
 ```
@@ -326,21 +326,15 @@ import pysages
 <!-- #region id="LknkRvo1o4av" -->
 The next step is to define the collective variable (CV). In this case, we choose the central dihedral angle.
 
-We also define a grid to bin our CV space, the topology (tuple indicating the number of
-nodes of each hidden layer) for our neural network which will model the free energy.
-
-The appropriate number of bins depends on the complexity of the free energy landscape,
-a good rule of thumb is to choose between 20 to 100 bins along each CV dimension
-(using higher values for more rugged free energy surfaces), but it can be systematically
-found trying different values for short runs of any given system.
+We define a grid, which will be used to indicate how we want to bin the forces that will be used to approximate the biasing potential and its gradient.
 <!-- #endregion -->
 
 ```python id="B1Z8FWz0o7u_"
 cvs = [DihedralAngle([0, 4, 7, 10])]
 grid = Grid(lower=(-pi,), upper=(pi,), shape=(64,), periodic=True)
+timesteps = int(5e5)
 
-topology = (14,)
-method = FUNN(cvs, grid, topology)
+method = SpectralABF(cvs, grid)
 ```
 
 <!-- #region id="Fz8BfU34pA_N" -->
@@ -348,65 +342,43 @@ We now simulate $5\times10^5$ time steps.
 Make sure to run with GPU support, otherwise, it can take a very long time.
 <!-- #endregion -->
 
-```python colab={"base_uri": "https://localhost:8080/"} id="K951m4BbpUar" outputId="f3e79872-41da-479a-caec-5bca7a6792e5"
-method.run(generate_context, int(5e5))
+```python colab={"base_uri": "https://localhost:8080/"} id="K951m4BbpUar" outputId="8005b8a9-2967-4eb9-f9db-e0dc0d523835"
+run_result = pysages.run(method, generate_context, timesteps)
+```
+
+<!-- #region id="26zdu6yAht5Y" -->
+## Analysis
+
+PySAGES provides an `analyze` method that makes it easier to get the free energy of different simulation runs.
+<!-- #endregion -->
+
+```python id="2NWmahlfhoj8"
+result = pysages.analyze(run_result)
 ```
 
 <!-- #region id="PXBKUfK0p9T2" -->
-Since the neural network learns the gradient of the free energy, we need a separate way of integrating it to find the free energy surface. Let's plot first the gradient of the free energy.
+Let's plot now the free energy!
 <!-- #endregion -->
 
 ```python id="X69d1R7OpW4P"
-from pysages.approxfun import compute_mesh
-from pysages.ml.utils import pack, unpack
-
 import matplotlib.pyplot as plt
 ```
 
-```python id="6W7Xf0ilqAcm"
-xi = (compute_mesh(grid) + 1) / 2 * grid.size + grid.lower
-
-model = method.model
-layout = unpack(model.parameters)[1]
-
-state = method.context[0].sampler.state
-nn = state.nn
-params = pack(nn.params, layout)
-dA = nn.std * model.apply(params, xi.reshape(-1, 1)) + nn.mean
-```
-
-```python colab={"base_uri": "https://localhost:8080/", "height": 300} id="TBiPAnMwqEIF" outputId="3a13a52d-2bd8-4122-db13-18bc6a11c797"
-fig, ax = plt.subplots()
-
-ax.set_xlabel(r"Dihedral Angle, $\xi$")
-ax.set_ylabel(r"$\nabla A(\xi)$")
-
-ax.plot(xi, dA)
-plt.gca()
-```
-
-<!-- #region id="Kf_CMdih90Cd" -->
-Finally, we make use of the `pysages.approxfun` module to build a Fourier series approximation to the free energy
-<!-- #endregion -->
-
 ```python id="pTIGVSSqKdbs"
-from pysages.approxfun import SpectralGradientFit, build_evaluator, build_fitter
-
-fourier_model = SpectralGradientFit(grid)
-fourier_fit = build_fitter(fourier_model)
-evaluate = build_evaluator(fourier_model)
-
-fun = fourier_fit(dA)
-A = evaluate(fun, compute_mesh(grid))
+mesh = result["mesh"]
+A = result["free_energy"]
+# Alternatively:
+# fes_fn = result["fes_fn"]
+# A = fes_fn(mesh)
 A = A.max() - A
 ```
 
-```python colab={"base_uri": "https://localhost:8080/", "height": 303} id="7_d_XfVLLkbI" outputId="3bd503ea-fe33-4a57-a28d-1c3a70e63c50"
+```python colab={"base_uri": "https://localhost:8080/", "height": 302} id="7_d_XfVLLkbI" outputId="e35db259-31f8-4a3b-b1fa-7e91a8a5c88a"
 fig, ax = plt.subplots()
 
 ax.set_xlabel(r"Dihedral Angle, $\xi$")
 ax.set_ylabel(r"$A(\xi)$")
 
-ax.plot(xi, A)
+ax.plot(mesh, A)
 plt.gca()
 ```
