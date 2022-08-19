@@ -33,6 +33,7 @@ from pysages.backends.snapshot import (
     restore as _restore,
 )
 from pysages.methods import SamplingMethod
+from pysages.utils import copy
 
 
 # TODO: Figure out a way to automatically tie the lifetime of Sampler
@@ -51,15 +52,7 @@ class Sampler(DLExtSampler):
         self._restore = restore
 
         def update(positions, vel_mass, rtags, images, forces, timestep):
-            snapshot = Snapshot(
-                asarray(positions),
-                asarray(vel_mass),
-                asarray(forces),
-                asarray(rtags),
-                asarray(images),
-                self.box,
-                self.dt,
-            )
+            snapshot = self._pack_snapshot(positions, vel_mass, forces, rtags, images)
             self.state = method_update(snapshot, self.state)
             self.bias(snapshot, self.state)
             if self.callback:
@@ -69,18 +62,31 @@ class Sampler(DLExtSampler):
 
     def restore(self, prev_snapshot):
         def restore_callback(positions, vel_mass, rtags, images, forces, n):
-            snapshot = Snapshot(
-                asarray(positions),
-                asarray(vel_mass),
-                asarray(forces),
-                asarray(rtags),
-                asarray(images),
-                self.box,
-                self.dt,
-            )
+            snapshot = self._pack_snapshot(positions, vel_mass, forces, rtags, images)
             self._restore(snapshot, prev_snapshot)
 
-        self.forward_data(restore_callback, default_location(), AccessMode.Overwrite)
+        self.forward_data(restore_callback, default_location(), AccessMode.Overwrite, 0)
+
+    def take_snapshot(self):
+        container = []
+
+        def snapshot_callback(positions, vel_mass, rtags, images, forces, n):
+            snapshot = self._pack_snapshot(positions, vel_mass, forces, rtags, images)
+            container.append(copy(snapshot))
+
+        self.forward_data(snapshot_callback, default_location(), AccessMode.Read, 0)
+        return container[0]
+
+    def _pack_snapshot(self, positions, vel_mass, forces, rtags, images):
+        return Snapshot(
+            asarray(positions),
+            asarray(vel_mass),
+            asarray(forces),
+            asarray(rtags),
+            asarray(images),
+            self.box,
+            self.dt,
+        )
 
 
 if hasattr(AccessLocation, "OnDevice"):
