@@ -6,24 +6,34 @@
 Collective Variables that are calculated from the shape of group of atoms.
 """
 
-import jax.numpy as np
+from jax import jit, numpy as np
 from jax.numpy import linalg
 
 from pysages.colvars.core import CollectiveVariable, AxisCV
+from pysages.colvars.coordinates import barycenter, weighted_barycenter
 
 
 class RadiusOfGyration(CollectiveVariable):
     """
-    Collective Variable that calculates the unweighted radius of gyration as CV.
+    Collective Variable that calculates the unweighted radius of gyration.
 
     Parameters
     ----------
     indices: list[int], list[tuple(int)]
         Must be a list or tuple of atoms (integers or ranges) or groups of atoms.
         A group is specified as a nested list or tuple of atoms.
-    group_length: int, optional
-        Specify if a fixed group length is expected.
+    squared: Optional[bool]
+        Indicates whether to return the squared value.
+    weights: Optional[JaxArray]
+        If providede the weighted radius of gyration will be computed.
     """
+
+    def __init__(self, indices, squared=False, weights=None):
+        if weights is not None and len(indices) != len(weights):
+            raise RuntimeError("Indices and weights must be of the same length")
+        super().__init__(indices)
+        self.squared = squared
+        self.weights = np.asarray(weights)
 
     @property
     def function(self):
@@ -33,12 +43,17 @@ class RadiusOfGyration(CollectiveVariable):
         Callable
             See `pysages.colvars.shape.radius_of_gyration` for details.
         """
-        return radius_of_gyration
+        if self.weights:
+            rog = jit(lambda rs: weighted_radius_of_gyration(rs, self.weights))
+        else:
+            rog = radius_of_gyration
+
+        return jit(rog) if self.squared else jit(lambda rs: np.sqrt(rog(rs)))
 
 
 def radius_of_gyration(positions):
     """
-    Calculate the radius of gyration for a group of atoms.
+    Calculate the radius of gyration (squared) for a group of atoms.
 
     Parameters
     ----------
@@ -48,19 +63,22 @@ def radius_of_gyration(positions):
     Returns
     -------
     DeviceArray
-        Radius of gyration vector
+        Radius of gyration (scalar)
     """
     group_length = positions.shape[0]
     rog = np.zeros((3,))
+    r_c = barycenter(positions)
     # TODO: Replace by `np.sum` and `vmap`  # pylint:disable=fixme
     for r in positions:
+        r -= r_c
         rog += np.dot(r, r)
     return rog / group_length
 
 
 def weighted_radius_of_gyration(positions, weights):
     """
-    Calculate the radius of gyration for a group of atoms weighted by arbitrary weights.
+    Calculate the radius of gyration (squared) for a group of atoms
+    weighted by user provided weights.
 
     Parameters
     ----------
@@ -72,13 +90,14 @@ def weighted_radius_of_gyration(positions, weights):
     Returns
     -------
     DeviceArray
-        Weighted radius of gyration vector
+        Weighted radius of gyration (scalar)
     """
     group_length = positions.shape[0]
     rog = np.zeros((3,))
+    r_c = weighted_barycenter(positions, weights)
     # TODO: Replace by `np.sum` and `vmap` # pylint:disable=fixme
     for i in range(group_length):
-        w, r = weights[i], positions[i]
+        w, r = weights[i], positions[i] - r_c
         rog += w * np.dot(r, r)
     return rog
 
@@ -128,7 +147,9 @@ def gyration_tensor(positions):
     """
     group_length = positions.shape[0]
     gyr = np.zeros((3, 3))
+    r_c = barycenter(positions)
     for r in positions:
+        r -= r_c
         gyr += np.outer(r, r)
     return gyr / group_length
 
@@ -151,8 +172,9 @@ def weighted_gyration_tensor(positions, weights):
     """
     group_length = positions.shape[0]
     gyr = np.zeros((3, 3))
+    r_c = weighted_barycenter(positions, weights)
     for i in range(group_length):
-        w, r = weights[i], positions[i]
+        w, r = weights[i], positions[i] - r_c
         gyr += w * np.outer(r, r)
     return gyr
 
