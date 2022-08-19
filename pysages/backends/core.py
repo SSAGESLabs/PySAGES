@@ -5,11 +5,6 @@
 from importlib import import_module
 from typing import Callable
 
-import jax
-
-# Set default floating point type for arrays in `jax` to `jax.f64`
-jax.config.update("jax_enable_x64", True)
-
 
 class ContextWrapper:
     """
