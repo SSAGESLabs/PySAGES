@@ -2,10 +2,9 @@
 # Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
-from functools import partial
 from typing import Callable, NamedTuple
 
-from jax import default_backend as default_device, jit, numpy as np
+from jax import jit, numpy as np
 
 from pysages.backends.core import ContextWrapper
 from pysages.backends.snapshot import (
@@ -14,7 +13,6 @@ from pysages.backends.snapshot import (
     Snapshot,
     SnapshotMethods,
     build_data_querier,
-    restore as _restore,
 )
 from pysages.methods import SamplingMethod
 from pysages.utils import ToCPU, copy
@@ -36,6 +34,9 @@ class Sampler:
         atoms.set_velocities(velocities)
         atoms.set_cell(list(prev_snapshot.box.H))
         self.snapshot = prev_snapshot
+
+    def take_snapshot(self):
+        return copy(self.snapshot)
 
 
 def take_snapshot(simulation):
