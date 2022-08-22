@@ -27,6 +27,7 @@ from .shape import (
 from .coordinates import (
     Component,
     Distance,
+    Displacement,
 )
 
 from .utils import (
