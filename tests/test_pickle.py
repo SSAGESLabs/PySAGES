@@ -101,6 +101,7 @@ COLVAR_ARGS = {
     "ShapeAnisotropy": {"indices": [0, 1, 2, 3]},
     "Component": {"indices": [0, 1, 2, 3], "axis": 0},
     "Distance": {"indices": [0, 1]},
+    "Displacement": {"indices": [[0], [1]]},
 }
 
 
