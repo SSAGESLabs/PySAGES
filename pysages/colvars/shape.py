@@ -236,20 +236,22 @@ class Acylindricity(CollectiveVariable):
     group_length: Optional[int]
         Specify if a fixed group length is expected.
 
-    axis: str
+    axes: str
         Axis combination around which the particles are symmetric.
         Options are: xy, yz, xz
     """
 
-    valid_axis = ("xy", "yz", "xz")
+    symmetry_axes = {"xy": (1, 2), "yz": (2, 3), "xz": (1, 3)}
 
-    def __init__(self, indices, axis="xy", group_length=None):
-        super().__init__(indices, group_length)
-        self.axis = "".join(sorted(axis.lower()))
-        if self.axis not in self.valid_axis:
-            error_msg = f"Acylindrity axis specification {axis}"
-            error_msg += f" not one of the valid options: {self.valid_axis}."
+    def __init__(self, indices, axes="xy", group_length=None):
+        axes = "".join(sorted(axes.lower()))
+        if axes not in self.symmetry_axes:
+            error_msg = f"Invalid acylindrity axes specification {axes}."
+            error_msg += f" Valid options are: {tuple(self.symmetry_axes.keys())}."
             raise RuntimeError(error_msg)
+
+        super().__init__(indices, group_length)
+        self.axes = axes
 
     @property
     def function(self):
@@ -259,20 +261,15 @@ class Acylindricity(CollectiveVariable):
         Callable
             See `pysages.colvars.shape.acylindricity` for details.
         """
-        if self.axis == "xy":
-            return acylindricity_xy
-        if self.axis == "yz":
-            return acylindricity_yz
-        if self.axis == "xz":
-            return acylindricity_xz
-        raise RuntimeError("Invalid axis defintion {self.axis} cannot associate calculation.")
+        return lambda rs: acylindricity(rs, self.symmetry_axes[self.axes])
 
 
-def acylindricity_xy(positions):
+def acylindricity(positions, axes):
     r"""
     Calculate the Acylindricity from a group of atoms.
-    It is defined as :math:`\lambda_2 - \lambda_1`,
-    where :math:`\lambda_i` specifies the principal moments of the group of atoms.
+    It is defined as :math:`\lambda_k - \lambda_j`,
+    where :math:`\lambda_i` specifies the principal moments of the group of atoms,
+    and `j` and `k` are the axes around which the particles are symmetric.
 
     See `pysages.colvars.shape.principal_moments` for details.
 
@@ -281,57 +278,17 @@ def acylindricity_xy(positions):
     positions: DeviceArray
         Points in space that are equally weighted to calculate the principal moments from.
 
+    axes: Tuple[int, int]
+        Indices of the axes around which the particles are symmetric.
+
     Returns
     -------
     float
         Acylindricity
     """
-    lambda1, lambda2, _ = principal_moments(positions)
+    lambdas = principal_moments(positions)
+    lambda1, lambda2 = [lambdas[i] for i in axes]
     return lambda2 - lambda1
-
-
-def acylindricity_yz(positions):
-    r"""
-    Calculate the Acylindricity from a group of atoms.
-    It is defined as :math:`\lambda_3 - \lambda_2`,
-    where :math:`\lambda_i` specifies the principal moments of the group of atoms.
-
-    See `pysages.colvars.shape.principal_moments` for details.
-
-    Parameters
-    ----------
-    positions: DeviceArray
-        Points in space that are equally weighted to calculate the principal moments from.
-
-    Returns
-    -------
-    float
-        Acylindricity
-    """
-    _, lambda2, lambda3 = principal_moments(positions)
-    return lambda3 - lambda2
-
-
-def acylindricity_xz(positions):
-    r"""
-    Calculate the Acylindricity from a group of atoms.
-    It is defined as :math:`\lambda_3 - \lambda_1`,
-    where :math:`\lambda_i` specifies the principal moments of the group of atoms.
-
-    See `pysages.colvars.shape.principal_moments` for details.
-
-    Parameters
-    ----------
-    positions: DeviceArray
-        Points in space that are equally weighted to calculate the principal moments from.
-
-    Returns
-    -------
-    float
-        Acylindricity
-    """
-    lambda1, _, lambda3 = principal_moments(positions)
-    return lambda3 - lambda1
 
 
 class ShapeAnisotropy(CollectiveVariable):
