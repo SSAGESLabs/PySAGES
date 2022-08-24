@@ -224,6 +224,10 @@ def run(  # pylint: disable=arguments-differ
 
     for step in range(stringsteps):
         context_args["stringstep"] = len(method.path_history)
+        # Reset histograms before new simulation
+        for i in range(len(method.umbrella_sampler.histograms)):
+            if i not in method.freeze_idx:
+                method.umbrella_sampler.histograms[i].reset()
         umbrella_result = pysages.run(
             method.umbrella_sampler,
             context_generator,
@@ -262,8 +266,6 @@ def run(  # pylint: disable=arguments-differ
         for i in range(len(new_spacing)):
             if i not in method.freeze_idx:
                 new_centers.append(interpolator(method.spacing[i]).reshape(cv_shape))
-                # Only reset changing centers, for better statistic otherwise.
-                method.umbrella_sampler.histograms[i].reset()
             else:
                 new_centers.append(method.umbrella_sampler.submethods[i].center)
 

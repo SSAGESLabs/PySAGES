@@ -5,6 +5,8 @@ dist/
 docs/build
 examples/**/*.dat
 examples/**/*.gsd
+examples/**/*.xml
+examples/**/*.pdb
 examples/**/.ipynb_checkpoints/
 pysages/_version.py
 pysages.egg-info/
