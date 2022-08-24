@@ -18,10 +18,13 @@ openmm = try_import("openmm", "simtk.openmm")
 unit = try_import("openmm.unit", "simtk.unit")
 app = try_import("openmm.app", "simtk.openmm.app")
 
-def internal_openmm_prep(pdb_filename="adp-explicit.pdb",
-                         T= 298.15 * unit.kelvin,
-                         dt = 2.0 * unit.femtoseconds,
-                         cutoff_distance = 1.0 * unit.nanometer):
+
+def internal_openmm_prep(
+    pdb_filename="adp-explicit.pdb",
+    T=298.15 * unit.kelvin,
+    dt=2.0 * unit.femtoseconds,
+    cutoff_distance=1.0 * unit.nanometer,
+):
     pdb = app.PDBFile(pdb_filename)
     topology = pdb.topology
     ff = app.ForceField("amber99sb.xml", "tip3p.xml")
@@ -37,6 +40,7 @@ def internal_openmm_prep(pdb_filename="adp-explicit.pdb",
     simulation.context.setPositions(positions)
     return simulation
 
+
 def generate_simulation(**kwargs):
     """
     Generates a simulation context, we pass this function to `pysages.run`.
@@ -47,16 +51,21 @@ def generate_simulation(**kwargs):
     simulation.reporters.append(
         app.StateDataReporter(
             sys.stdout,
-            10*kwargs.get("log_delay", 100),
+            10 * kwargs.get("log_delay", 100),
             step=True,
             remainingTime=True,
-            totalSteps=(kwargs["string_steps"])*kwargs["time_steps"],
+            totalSteps=(kwargs["string_steps"]) * kwargs["time_steps"],
         )
     )
-    simulation.loadState(os.path.abspath(
-        os.path.join("string_conf",f"{kwargs.get('stringstep')}-{kwargs.get('replica_num')}.xml")
-    ))
+    simulation.loadState(
+        os.path.abspath(
+            os.path.join(
+                "string_conf", f"{kwargs.get('stringstep')}-{kwargs.get('replica_num')}.xml"
+            )
+        )
+    )
     return simulation
+
 
 def get_args(argv):
     available_args = [
@@ -75,11 +84,13 @@ def get_args(argv):
     args = parser.parse_args(argv)
     return args
 
+
 def get_executor(args):
     if args.mpi:
         futures = importlib.import_module("mpi4py.futures")
         return futures.MPIPoolExecutor()
     return SerialExecutor()
+
 
 def prep_start(args):
     shutil.rmtree("string_conf", ignore_errors=True)
@@ -88,10 +99,13 @@ def prep_start(args):
     simulation.minimizeEnergy()
 
     for i in range(args.replicas):
-        simulation.saveState(os.path.join("string_conf",f"0-{i}.xml"))
+        simulation.saveState(os.path.join("string_conf", f"0-{i}.xml"))
+
 
 def post_run_action(**kwargs):
-    kwargs.get("context").saveState(os.path.join("string_conf",f"{kwargs.get('stringstep')+1}-{kwargs.get('replica_num')}.xml"))
+    kwargs.get("context").saveState(
+        os.path.join("string_conf", f"{kwargs.get('stringstep')+1}-{kwargs.get('replica_num')}.xml")
+    )
 
 
 def plot_energy(result):
@@ -108,7 +122,7 @@ def plot_energy(result):
 
     ax2.plot(s, result["point_convergence"], color="maroon")
 
-    fig.savefig("energy.pdf", transparent=True, bbox_inches='tight', pad_inches=0)
+    fig.savefig("energy.pdf", transparent=True, bbox_inches="tight", pad_inches=0)
 
 
 def plot_path(result):
@@ -124,15 +138,15 @@ def plot_path(result):
     for i in range(path_history.shape[0]):
         x = path_history[i, :, 0]
         y = path_history[i, :, 1]
-        segments.append(np.column_stack([x,y]))
+        segments.append(np.column_stack([x, y]))
         time.append(i)
     lc = matplotlib.collections.LineCollection(segments)
     lc.set_array(np.asarray(time))
     ax.add_collection(lc)
     axcb = fig.colorbar(lc)
-    axcb.set_label('String Iteration')
+    axcb.set_label("String Iteration")
 
-    fig.savefig("path_hist.pdf", transparent=True, bbox_inches='tight', pad_inches=0)
+    fig.savefig("path_hist.pdf", transparent=True, bbox_inches="tight", pad_inches=0)
     plt.close(fig)
 
 
@@ -145,7 +159,9 @@ def main(argv):
     center_pos = np.linspace(+0.45 * np.pi, -0.45 * np.pi, args.replicas)
     for pos in center_pos:
         centers.append((pos, pos))
-    method = ImprovedString(cvs, args.k_spring, centers, args.alpha, args.log_period, args.log_delay)
+    method = ImprovedString(
+        cvs, args.k_spring, centers, args.alpha, args.log_period, args.log_delay
+    )
     context_args = vars(args)
 
     raw_result = pysages.run(
@@ -160,6 +176,7 @@ def main(argv):
     result = pysages.analyze(raw_result)
     plot_path(result)
     plot_energy(result)
+
 
 if __name__ == "__main__":
     main(sys.argv[1:])
