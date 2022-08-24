@@ -241,6 +241,7 @@ def run(  # noqa: F811 # pylint: disable=C0116,E0102
     timesteps = int(timesteps)
 
     context = context_generator(**context_args)
+    context_args["context"] = context
     wrapped_context = ContextWrapper(context, method, callback)
     with wrapped_context:
         wrapped_context.run(timesteps, **kwargs)
