@@ -69,6 +69,10 @@ def get_executor(args):
     return SerialExecutor()
 
 
+def post_run_action(**kwargs):
+    kwargs.get("context").saveState(f"final_{kwargs.get('replica_num')}.xml")
+
+
 def main(argv):
     args = get_args(argv)
 
@@ -83,6 +87,7 @@ def main(argv):
         generate_simulation,
         args.time_steps,
         executor=get_executor(args),
+        post_run_action=post_run_action,
     )
     result = pysages.analyze(raw_result)
     print(result)
