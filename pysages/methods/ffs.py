@@ -134,6 +134,7 @@ def run(
     context_args = {} if context_args is None else context_args
 
     context = context_generator(**context_args)
+    context_args["context"] = context
     wrapped_context = ContextWrapper(context, method, callback)
 
     with wrapped_context:
