@@ -108,6 +108,7 @@ def save_energy_forces(result):
 def post_run_action(**kwargs):
     kwargs.get("context").saveState("final.xml")
 
+
 # %%
 def main():
     cvs = [DihedralAngle((4, 6, 8, 14)), DihedralAngle((6, 8, 14, 16))]
