@@ -54,7 +54,7 @@ class Unbiased(SamplingMethod):
         cvs: Union[List, Tuple]
             A list or tuple of collective variables, length `N`.
         """
-        kwargs["cv_grad"] = None
+        kwargs["cv_grad"] = False
         super().__init__(cvs, **kwargs)
 
     def build(self, snapshot, helpers, *args, **kwargs):

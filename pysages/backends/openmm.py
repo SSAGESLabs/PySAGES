@@ -21,7 +21,7 @@ from pysages.backends.snapshot import (
     restore_vm as _restore_vm,
 )
 from pysages.methods import SamplingMethod
-from pysages.utils import try_import
+from pysages.utils import copy, try_import
 
 import importlib
 import jax
@@ -49,6 +49,9 @@ class Sampler:
 
     def restore(self, prev_snapshot):
         self._restore(self.snapshot, prev_snapshot)
+
+    def take_snapshot(self):
+        return copy(self.snapshot)
 
 
 def is_on_gpu(view: ContextView):
