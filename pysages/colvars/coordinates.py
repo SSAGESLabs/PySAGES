@@ -9,7 +9,7 @@ Collective Variables that are computed from the Cartesian coordinates.
 from jax import numpy as np
 from jax.numpy import linalg
 
-from pysages.colvars.core import TwoPointCV, AxisCV
+from pysages.colvars.core import TwoPointCV, AxisCV, multicomponent
 
 
 def barycenter(positions):
@@ -108,3 +108,42 @@ def distance(r1, r2):
     """
 
     return linalg.norm(r1 - r2)
+
+
+@multicomponent
+class Displacement(TwoPointCV):
+    """
+    Relative displacement between two points in space.
+
+    Parameters
+    ----------
+    indices: Union[list[int], list[tuple(int)]]
+        Indices of the reference atoms (two groups are required).
+    """
+
+    @property
+    def function(self):
+        if len(self.groups) == 0:
+            return displacement
+        return lambda r1, r2: displacement(barycenter(r1), barycenter(r2))
+
+
+def displacement(r1, r2):
+    """
+    Displacement between two points in space or
+    between the barycenters of two groups of points in space.
+
+    Parameters
+    ----------
+    r1: DeviceArray
+        Array containing the position in space of the first point or group of points.
+    r2: DeviceArray
+        Array containing the position in space of the second point or group of points.
+
+    Returns
+    -------
+    displacement: DeviceArray
+        Displacement between the two points.
+    """
+
+    return r2 - r1

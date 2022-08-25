@@ -55,7 +55,7 @@ class FFS(SamplingMethod):
     snapshot_flags = {"positions", "indices"}
 
     def __init__(self, cvs, **kwargs):
-        kwargs["cv_grad"] = None
+        kwargs["cv_grad"] = False
         super().__init__(cvs, **kwargs)
 
     def build(self, snapshot, helpers):
@@ -134,6 +134,7 @@ def run(
     context_args = {} if context_args is None else context_args
 
     context = context_generator(**context_args)
+    context_args["context"] = context
     wrapped_context = ContextWrapper(context, method, callback)
 
     with wrapped_context:

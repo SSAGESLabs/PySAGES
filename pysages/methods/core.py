@@ -8,7 +8,7 @@ from inspect import getfullargspec
 from operator import or_
 from typing import Callable, Optional, Union
 
-from jax import grad, jit
+from jax import jit
 from plum import parametric
 
 from pysages.backends import ContextWrapper
@@ -38,7 +38,7 @@ class SamplingMethod(ABC):
 
     def __init__(self, cvs, **kwargs):
         self.cvs = cvs
-        self.cv = build(*cvs, grad=kwargs.get("cv_grad", grad))
+        self.cv = build(*cvs, differentiate=kwargs.get("cv_grad", True))
         self.requires_box_unwrapping = reduce(
             or_, (cv.requires_box_unwrapping for cv in cvs), False
         )
@@ -241,6 +241,7 @@ def run(  # noqa: F811 # pylint: disable=C0116,E0102
     timesteps = int(timesteps)
 
     context = context_generator(**context_args)
+    context_args["context"] = context
     wrapped_context = ContextWrapper(context, method, callback)
     with wrapped_context:
         wrapped_context.run(timesteps, **kwargs)
