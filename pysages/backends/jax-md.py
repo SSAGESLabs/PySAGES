@@ -69,16 +69,16 @@ def build_helpers(context, sampling_method):
     return helpers
 
 
-def build_runner(context, sampler, callback):
+def build_runner(context, sampler, callback, **kwargs):
     box = context.box
     dt = context.dt
 
-    def run(timesteps):
+    def run(timesteps, **kwargs):
         for i in range(timesteps):
             context_state = sampler.context_state
             sampler.snapshot = take_snapshot(context_state, box, dt)
             sampler.state = sampler.update(sampler.snapshot, sampler.state)
-            sampler.context_state = context.step_fn(context_state, sampler.state.bias)
+            sampler.context_state = context.step_fn(context_state, bias=sampler.state.bias)
             if callback:
                 callback(sampler.snapshot, sampler.state, i)
 
@@ -99,5 +99,5 @@ def bind(
     method_bundle = sampling_method.build(snapshot, helpers)
     sampler = Sampler(method_bundle, context_state)
     wrapped_context.view = View((lambda: None))
-    wrapped_context.run = build_runner(context, sampler, callback)
+    wrapped_context.run = build_runner(context, sampler, callback, **kwargs)
     return sampler
