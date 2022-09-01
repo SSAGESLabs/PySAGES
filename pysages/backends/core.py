@@ -33,6 +33,8 @@ class ContextWrapper:
             self._backend_name = "openmm"
         elif module_name.startswith("ase.md"):
             self._backend_name = "ase"
+        elif module_name.startswith("lammps"):
+            self._backend_name = "lammps"            
 
         if self._backend_name is not None:
             self._backend = import_module("." + self._backend_name, package="pysages.backends")
@@ -75,4 +77,4 @@ class ContextWrapper:
 
 
 def supported_backends():
-    return ("ase", "hoomd", "openmm")
+    return ("ase", "hoomd", "lammps", "openmm")
