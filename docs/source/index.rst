@@ -94,6 +94,7 @@ HOOMD-blue, and OpenMM can be built and installed:
    :caption: Contents:
 
    trouble-shooting
+   mpi
    package-pysages
 
 Indices and tables
