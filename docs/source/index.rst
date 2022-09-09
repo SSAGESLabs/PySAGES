@@ -93,6 +93,7 @@ HOOMD-blue, and OpenMM can be built and installed:
    :maxdepth: 2
    :caption: Contents:
 
+   trouble-shooting
    package-pysages
 
 Indices and tables

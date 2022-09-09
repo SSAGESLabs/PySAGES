@@ -42,3 +42,5 @@ invariants
 xy
 xz
 yz
+hoomd
+SimulationContext
