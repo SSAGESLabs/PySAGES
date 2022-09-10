@@ -107,11 +107,11 @@ def is_on_gpu(context):
 def take_snapshot(wrapped_context, location=default_location()):
     context = wrapped_context.context
     sysview = wrapped_context.view
-    positions = asarray(positions_types(sysview, location, AccessMode.Read))
-    vel_mass = asarray(velocities_masses(sysview, location, AccessMode.Read))
-    forces = asarray(net_forces(sysview, location, AccessMode.ReadWrite))
-    ids = asarray(rtags(sysview, location, AccessMode.Read))
-    imgs = asarray(images(sysview, location, AccessMode.Read))
+    positions = copy(asarray(positions_types(sysview, location, AccessMode.Read)))
+    vel_mass = copy(asarray(velocities_masses(sysview, location, AccessMode.Read)))
+    forces = copy(asarray(net_forces(sysview, location, AccessMode.ReadWrite)))
+    ids = copy(asarray(rtags(sysview, location, AccessMode.Read)))
+    imgs = copy(asarray(images(sysview, location, AccessMode.Read)))
 
     box = sysview.particle_data().getGlobalBox()
     L = box.getL()
@@ -197,20 +197,20 @@ def bind(
     wrapped_context: ContextWrapper, sampling_method: SamplingMethod, callback: Callable, **kwargs
 ):
     context = wrapped_context.context
+    sysview = SystemView(context.system_definition)
+    wrapped_context.view = sysview
+    wrapped_context.run = hoomd.run
     helpers, restore, bias = build_helpers(context, sampling_method)
 
-    with SystemView(context.system_definition) as sysview:
-        wrapped_context.view = sysview
-        wrapped_context.run = hoomd.run
-
+    with sysview:
         snapshot = take_snapshot(wrapped_context)
-        method_bundle = sampling_method.build(snapshot, helpers)
-        sync_and_bias = partial(bias, sync_backend=sysview.synchronize)
 
-        sampler = Sampler(sysview, method_bundle, sync_and_bias, callback, restore)
-        context.integrator.cpp_integrator.setHalfStepHook(sampler)
+    method_bundle = sampling_method.build(snapshot, helpers)
+    sync_and_bias = partial(bias, sync_backend=sysview.synchronize)
+    sampler = Sampler(sysview, method_bundle, sync_and_bias, callback, restore)
+    context.integrator.cpp_integrator.setHalfStepHook(sampler)
 
-        CONTEXTS_SAMPLERS[context] = sampler
+    CONTEXTS_SAMPLERS[context] = sampler
 
     return sampler
 
