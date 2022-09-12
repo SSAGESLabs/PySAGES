@@ -2,6 +2,7 @@
 import os
 import sys
 import shutil
+import pickle
 import argparse
 import importlib
 import numpy as np
@@ -136,8 +137,8 @@ def plot_path(result):
     time = []
     segments = []
     for i in range(path_history.shape[0]):
-        x = path_history[i, :, 0]
-        y = path_history[i, :, 1]
+        x = path_history[i, :, 1]
+        y = path_history[i, :, 0]
         segments.append(np.column_stack([x, y]))
         time.append(i)
     lc = matplotlib.collections.LineCollection(segments)
@@ -177,6 +178,8 @@ def main(argv):
     plot_path(result)
     plot_energy(result)
 
+    with open("result.pkl", "wb") as file_handle:
+        pickle.dump(result, file_handle)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
