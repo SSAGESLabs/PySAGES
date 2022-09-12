@@ -181,5 +181,6 @@ def main(argv):
     with open("result.pkl", "wb") as file_handle:
         pickle.dump(result, file_handle)
 
+
 if __name__ == "__main__":
     main(sys.argv[1:])
