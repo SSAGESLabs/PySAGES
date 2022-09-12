@@ -14,7 +14,9 @@ In the application code, this is accomplished by passing the `MPIPoolExecutor` t
 
 For this to work it is important to launch this application correctly i.e. launching with `mpi4py.futures` explicitly.::
 
-  python -m mpi4py.futures script.py
+  mpiexec -np 8 --map-by slot:pe=4 python -m mpi4py.futures script.py
+
+Note that the `mpi4py.futures.MPIPoolExecutor` uses rank 0 for coordinating the pool execution. So in the example above only 7 replica can be executed at the same time.
 
 For HOOMD-blue simulations, note that this might interfere with their in-built MPI implementation for domain decompositions. So we have to make sure to pass the right MPI communicator to HOOMD-blue. So as it the context is initialized this has to be ensured. For example for MPI support build HOOMD-blue without domain decomposition.::
 
