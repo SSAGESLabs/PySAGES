@@ -3,7 +3,7 @@
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 """
-Spline String method aka Improved String method.
+Spline String method (aka Improved String method).
 
 The improved string methods finds the local minimum free-energy path (MFEP) trough a given landscape.
 It uses umbrella integration to advance the discretized replicas in the CV space.
