@@ -33,6 +33,3 @@ We hope these are helpful, but if you do not find a solution to your problem, co
 	 context = hoomd.context.SimulationContext()
 	 with context:
 	   ...
-
-* My HOOMD-blue 2.x simulation crashes with a segfault after the simulation is finished.
-    * This is a known issue and we are trying to resolve it. For now, we hope that this does not interrupt your workflow.
