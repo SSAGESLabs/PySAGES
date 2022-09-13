@@ -236,8 +236,7 @@ def run(  # pylint: disable=arguments-differ
             context_args,
             post_run_action,
             executor,
-            executor_shutdown=False
-            **kwargs
+            executor_shutdown=False**kwargs,
         )
 
         new_xi = []
