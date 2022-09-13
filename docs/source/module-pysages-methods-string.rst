@@ -1,5 +1,5 @@
-Improved String Method
-----------------------
+Spline String Method
+--------------------
 
 .. rubric:: Overview
 
