@@ -306,11 +306,11 @@ jobs:
       - name: Load and run test
         run: |
           docker load --input /tmp/pysages.tar
-          docker run -v /tmp:/tmp -t pysages bash -c "cd PySAGES/examples/hoomd-blue/string && python3 ./gen_gsd.py && python3 improved_string.py --replicas=5 --time-steps=1000 --log-delay=0 --string-steps=2 && mkdir /tmp/plots && mv *.pdf /tmp/plots/"
+          docker run -v /tmp:/tmp -t pysages bash -c "cd PySAGES/examples/hoomd-blue/string && python3 ./gen_gsd.py && python3 spline_string.py --replicas=5 --time-steps=1000 --log-delay=0 --string-steps=2 && mkdir /tmp/plots && mv *.pdf /tmp/plots/"
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: improved-string-plots
+          name: spline-string-plots
           path: /tmp/plots
           retention-days: 1
 

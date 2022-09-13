@@ -272,8 +272,8 @@ def run(  # pylint: disable=arguments-differ
         method.path_history.append(new_centers)
         string_result = Result(method, umbrella_result.states, umbrella_result.callbacks)
 
-        if executor_shutdown:
-            executor.shutdown()
+    if executor_shutdown:
+        executor.shutdown()
 
     return string_result
 
