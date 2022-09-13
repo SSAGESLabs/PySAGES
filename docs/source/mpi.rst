@@ -1,7 +1,7 @@
 Multiple GPU simulations via MPI
 ================================
 
-PySAGES supports simulations with multiple GPUs for sampling methods that run multiple replicas of one simulation i.e. `pysages.methods.UmbrellaIntegration` and `pysages.methods.ImprovedString`.
+PySAGES supports simulations with multiple GPUs for sampling methods that run multiple replicas of one simulation i.e. `pysages.methods.UmbrellaIntegration` and `pysages.methods.SplineString`.
 We utilize `mpi4py` to coordinate communication between GPUs as multiple `MPI` ranks.
 In particular, we are using the `mpi4py.futures.MPIPoolExecutor` for this purpose.
 In the application code, this is accomplished by passing the `MPIPoolExecutor` to the PySAGES run function.::
