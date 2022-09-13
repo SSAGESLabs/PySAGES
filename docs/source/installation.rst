@@ -1,7 +1,7 @@
 Installation
 ============
 
-The dependencies for a PySAGES installation depend on your desired simulation backend engine.
+The dependencies for a PySAGES installation can change based on your desired simulation backend engine.
 Depending on your system setup, it may be necessary to reinstall the simulation backend, especially if you do not have write permission for your current installation.
 On top of the current installation, it is required that you install a plugin that connects PySAGES with the simulation engine:
 
