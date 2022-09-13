@@ -31,6 +31,7 @@ class SerialExecutor(Executor):
         future.set_result(fn(*args, **kwargs))
         return future
 
+
 class ReplicasConfiguration:
     """
     Stores the information necessary to execute multiple simulation runs,
