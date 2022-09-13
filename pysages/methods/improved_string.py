@@ -12,6 +12,7 @@ The process converges if the MFEP is found.
 The final free-energy profile is calculated the same way as in UmbrellaIntegration.
 """
 
+import copy
 import plum
 import numpy as np
 from copy import deepcopy
@@ -227,6 +228,8 @@ def run(  # pylint: disable=arguments-differ
         for i in range(len(method.umbrella_sampler.histograms)):
             if i not in method.freeze_idx:
                 method.umbrella_sampler.histograms[i].reset()
+        umbrella_kwargs = copy.deepcopy(kwargs)
+        umbrella_kwargs["executor_shutdown"] = False
         umbrella_result = pysages.run(
             method.umbrella_sampler,
             context_generator,
@@ -234,7 +237,7 @@ def run(  # pylint: disable=arguments-differ
             context_args,
             post_run_action,
             executor,
-            **kwargs
+            **umbrella_kwargs
         )
 
         new_xi = []
@@ -272,6 +275,10 @@ def run(  # pylint: disable=arguments-differ
 
         method.path_history.append(new_centers)
         string_result = Result(method, umbrella_result.states, umbrella_result.callbacks)
+
+        if kwargs.get("executor_shutdown", True):
+            executor.shutdown()
+
     return string_result
 
 

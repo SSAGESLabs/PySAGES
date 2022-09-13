@@ -174,6 +174,9 @@ def run(  # pylint: disable=arguments-differ
     states = [r.states for r in results]
     callbacks = [r.callbacks for r in results]
 
+    if kwargs.get("executor_shutdown", True):
+        executor.shutdown()
+
     return Result(method, states, callbacks)
 
 

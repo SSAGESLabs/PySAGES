@@ -31,6 +31,11 @@ class SerialExecutor(Executor):
         future.set_result(fn(*args, **kwargs))
         return future
 
+    def shutdown(self):
+        """
+        Implement shutdown interface, a SerialExecutor does not need explicit shutting down.
+        """
+        pass
 
 class ReplicasConfiguration:
     """
