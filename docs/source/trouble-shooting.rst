@@ -22,11 +22,11 @@ We hope these are helpful, but if you do not find a solution to your problem, co
 * My HOOMD-blue 2.X simulation crashes with segfault at the beginning of the simulations.
     * Re-initializing the simulation context in the :code:`generate_context` ends with a segfault.::
 
-	context = hoomd.context.SimulationContext()
-	with context:
-	  hoomd.context.initialize()
-	  ...
-	  
+        context = hoomd.context.SimulationContext()
+        with context:
+          hoomd.context.initialize()
+          ...
+  	  
       Should be replaced by::
 	
 	 hoomd.context.initialize()
