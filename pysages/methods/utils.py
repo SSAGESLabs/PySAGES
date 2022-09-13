@@ -37,6 +37,7 @@ class SerialExecutor(Executor):
         """
         pass
 
+
 class ReplicasConfiguration:
     """
     Stores the information necessary to execute multiple simulation runs,
