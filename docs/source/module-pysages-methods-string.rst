@@ -5,10 +5,10 @@ Improved String Method
 
 .. autosummary::
 
-   pysages.methods.improved_string.ImprovedString
+   pysages.methods.spline_string.SplineString
 
 .. rubric:: Details
 
-.. automodule:: pysages.methods.improved_string
-    :synopsis: Python classes to run the improved string method.
+.. automodule:: pysages.methods.spline_string
+    :synopsis: Python classes to run the spline (improved) string method.
     :members:
