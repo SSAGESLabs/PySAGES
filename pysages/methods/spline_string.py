@@ -10,7 +10,7 @@ It uses umbrella integration to advance the discretized replicas in the CV space
 A spline interpolation helps to (equally) space the CV points along the string.
 The process converges if the MFEP is found.
 The final free-energy profile is calculated the same way as in UmbrellaIntegration.
-We aim to implement this: `Weinan, E., et. al. J. Chem. Phys. 126.16 (2007): 164103 <https://www.researchgate.net/profile/Eric-Vanden-Eijnden/publication/6351826_Simplified_and_Improved_String_Method_for_Computing_the_Minimum_Energy_Paths_in_Barrier_Crossing_Events/links/5523eeab0cf2c815e073df2f/Simplified-and-Improved-String-Method-for-Computing-the-Minimum-Energy-Paths-in-Barrier-Crossing-Events.pdf>`_.
+We aim to implement this: `Weinan, E., et. al. J. Chem. Phys. 126.16 (2007): 164103 <https://doi.org/10.1063/1.2720838>`_.
 """
 
 import copy
