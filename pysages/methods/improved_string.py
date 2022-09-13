@@ -176,6 +176,7 @@ def run(  # pylint: disable=arguments-differ
     context_args: Optional[dict] = None,
     post_run_action: Optional[Callable] = None,
     executor=SerialExecutor(),
+    executor_shutdown=True,
     **kwargs
 ):
     """
@@ -228,8 +229,6 @@ def run(  # pylint: disable=arguments-differ
         for i in range(len(method.umbrella_sampler.histograms)):
             if i not in method.freeze_idx:
                 method.umbrella_sampler.histograms[i].reset()
-        umbrella_kwargs = copy.deepcopy(kwargs)
-        umbrella_kwargs["executor_shutdown"] = False
         umbrella_result = pysages.run(
             method.umbrella_sampler,
             context_generator,
@@ -237,7 +236,8 @@ def run(  # pylint: disable=arguments-differ
             context_args,
             post_run_action,
             executor,
-            **umbrella_kwargs
+            executor_shutdown=False
+            **kwargs
         )
 
         new_xi = []
@@ -276,7 +276,7 @@ def run(  # pylint: disable=arguments-differ
         method.path_history.append(new_centers)
         string_result = Result(method, umbrella_result.states, umbrella_result.callbacks)
 
-        if kwargs.get("executor_shutdown", True):
+        if executor_shutdown:
             executor.shutdown()
 
     return string_result

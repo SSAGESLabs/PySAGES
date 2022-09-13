@@ -112,6 +112,7 @@ def run(  # pylint: disable=arguments-differ
     context_args: Optional[dict] = None,
     post_run_action: Optional[Callable] = None,
     executor=SerialExecutor(),
+    executor_shutdown=True,
     **kwargs
 ):
     """
@@ -174,7 +175,7 @@ def run(  # pylint: disable=arguments-differ
     states = [r.states for r in results]
     callbacks = [r.callbacks for r in results]
 
-    if kwargs.get("executor_shutdown", True):
+    if executor_shutdown:
         executor.shutdown()
 
     return Result(method, states, callbacks)
