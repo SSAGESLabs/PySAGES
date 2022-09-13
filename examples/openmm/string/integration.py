@@ -10,7 +10,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 from pysages.colvars import DihedralAngle
-from pysages.methods import ImprovedString, SerialExecutor
+from pysages.methods import SplineString, SerialExecutor
 from pysages.utils import try_import
 
 import pysages
@@ -78,7 +78,7 @@ def get_args(argv):
         ("string-steps", "s", int, 25, "Number of string iterations before finishing."),
         ("alpha", "a", float, 1e-1, "Update step size of the string update."),
     ]
-    parser = argparse.ArgumentParser(description="Example script to run the improved string method")
+    parser = argparse.ArgumentParser(description="Example script to run the spline (improved) string method")
     for (name, short, T, val, doc) in available_args:
         parser.add_argument("--" + name, "-" + short, type=T, default=T(val), help=doc)
     parser.add_argument("--mpi", action="store_true", help="Use MPI executor")
@@ -160,7 +160,7 @@ def main(argv):
     center_pos = np.linspace(+0.45 * np.pi, -0.45 * np.pi, args.replicas)
     for pos in center_pos:
         centers.append((pos, pos))
-    method = ImprovedString(
+    method = SplineString(
         cvs, args.k_spring, centers, args.alpha, args.log_period, args.log_delay
     )
     context_args = vars(args)

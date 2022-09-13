@@ -11,7 +11,7 @@ import hoomd.dlext
 
 import pysages
 from pysages.colvars import Component
-from pysages.methods import ImprovedString, SerialExecutor
+from pysages.methods import SplineString, SerialExecutor
 
 
 params = {"A": 0.5, "w": 0.2, "p": 2}
@@ -111,7 +111,7 @@ def main(argv):
     cvs = [Component([0], 0), Component([0], 1), Component([0], 2)]
 
     centers = [[c, -1, 1] for c in np.linspace(args.start_path, args.end_path, args.replicas)]
-    method = ImprovedString(cvs, args.k_spring, centers, 1e-2, args.log_period, args.log_delay)
+    method = SplineString(cvs, args.k_spring, centers, 1e-2, args.log_period, args.log_delay)
 
     context_args = {"mpi_enabled": args.mpi}
 

@@ -3,13 +3,14 @@
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 """
-Improved String method.
+Spline String method aka Improved String method.
 
 The improved string methods finds the local minimum free-energy path (MFEP) trough a given landscape.
 It uses umbrella integration to advance the discretized replicas in the CV space.
 A spline interpolation helps to (equally) space the CV points along the string.
 The process converges if the MFEP is found.
 The final free-energy profile is calculated the same way as in UmbrellaIntegration.
+We aim to implement this: `Weinan, E., et. al. J. Chem. Phys. 126.16 (2007): 164103 <https://www.researchgate.net/profile/Eric-Vanden-Eijnden/publication/6351826_Simplified_and_Improved_String_Method_for_Computing_the_Minimum_Energy_Paths_in_Barrier_Crossing_Events/links/5523eeab0cf2c815e073df2f/Simplified-and-Improved-String-Method-for-Computing-the-Minimum-Energy-Paths-in-Barrier-Crossing-Events.pdf>`_.
 """
 
 import copy
@@ -49,10 +50,10 @@ def _test_valid_spacing(replicas, spacing):
     return spacing
 
 
-class ImprovedString(SamplingMethod):
+class SplineString(SamplingMethod):
     """
     This class combines UmbrellaIntegration of multiple replicas with the path evolution
-    of the improved string method. It also collects histograms of the collective variables
+    of the spline (improved) string method. It also collects histograms of the collective variables
     throughout the simulations for subsequent analysis.
     By default the class also estimates an approximation of the free energy landscape
     along the given path via umbrella integration.
@@ -169,7 +170,7 @@ class ImprovedString(SamplingMethod):
 
 @dispatch
 def run(  # pylint: disable=arguments-differ
-    method: ImprovedString,
+    method: SplineString,
     context_generator: Callable,
     timesteps: Union[int, float],
     stringsteps: Union[int, float],
@@ -180,11 +181,7 @@ def run(  # pylint: disable=arguments-differ
     **kwargs
 ):
     """
-    Implementation of the improved string method.
-    The order (ignoring second order terms with covariance matrix) as described in
-    J. Chem. Phys. 131, 034109 (2009); https://doi.org/10.1063/1.3175798 (equation 13).
-    Higher order approximations can be implemented by the user using the provided
-    covariance matrix.
+    Implementation of the spline interpolated (improved) string method.
 
     Arguments
     ---------
@@ -214,7 +211,6 @@ def run(  # pylint: disable=arguments-differ
         Actions are executed inside the generated context.
         Example uses for this include writing a final configuration file.
         This function gets `context_args` unpacked just like `context_generator`.
-
     * Note:
         This method does not accept a user defined callback.
     """
@@ -283,7 +279,7 @@ def run(  # pylint: disable=arguments-differ
 
 
 @dispatch
-def analyze(result: Result[ImprovedString]):
+def analyze(result: Result[SplineString]):
 
     umbrella_result = Result(result.method.umbrella_sampler, result.states, result.callbacks)
     ana = pysages.analyze(umbrella_result)
