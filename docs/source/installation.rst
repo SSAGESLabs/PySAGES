@@ -17,12 +17,13 @@ To utilize full GPU with PySAGES CUDA support of HOOMD-blue, HOOMD-dlext and JAX
 
 Once the installation requirements are satisfied, PySAGES can be installed with `pip`.::
 
-  
+   pip install git+https://github.com/SSAGESLabs/PySAGES.git
+
+or
+
    git clone https://github.com/SSAGESLabs/PySAGES.git
    cd PySAGES
    pip install .
-
-
 For the latest version of PySAGES, it is possible to deploy simulations with a `docker container <https://hub.docker.com/r/ssages/pysages>`__.
 At the moment we cannot guarantee a stable docker image for PySAGES.
 
