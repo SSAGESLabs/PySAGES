@@ -1,4 +1,3 @@
-
 # PySAGES
 
 [![Documentation Status](https://readthedocs.org/projects/pysages/badge/?version=latest)](https://pysages.readthedocs.io/en/latest/?badge=latest)
