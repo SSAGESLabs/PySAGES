@@ -1,19 +1,18 @@
-PySAGES Team
-------------
+## PySAGES Team
 
 ### Core developers
 
- - [Pablo Zubieta](https://github.com/pabloferz)
- - [Ludwig Schneider](https://github.com/InnocentBug)
+- [Pablo Zubieta](https://github.com/pabloferz)
+- [Ludwig Schneider](https://github.com/InnocentBug)
 
 ### Backends
 
- - Pablo Zubieta
- - Ludwig Schneider
+- Pablo Zubieta
+- Ludwig Schneider
 
 ### Collective Variables
 
- - Pablo Zubieta
+- Pablo Zubieta
 
 ### Methods
 
@@ -21,20 +20,20 @@ Many of the methods implemented in this library were ported from the original
 [SSAGES](https://github.com/SSAGESproject/SSAGES) project, please refer to it for more
 details. Specific contributions to this repository are listed below
 
- - Pablo Zubieta
- - Ludwig Schneider
- - [Gustavo Pérez-Lemus](https://github.com/gustavor101)
- - [Siva Dassety](https://github.com/sivadasetty)
+- Pablo Zubieta
+- Ludwig Schneider
+- [Gustavo Pérez-Lemus](https://github.com/gustavor101)
+- [Siva Dassety](https://github.com/sivadasetty)
 
 ### Machine Learning submodule (`ml`)
 
- - Pablo Zubieta
+- Pablo Zubieta
 
 ### Documentation
 
- - Pablo Zubieta
- - Ludwig Schneider
- - [Riccardo Alessandri](https://github.com/ricalessandri)
+- Pablo Zubieta
+- Ludwig Schneider
+- [Riccardo Alessandri](https://github.com/ricalessandri)
 
 ### Other
 

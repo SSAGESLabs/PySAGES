@@ -4,7 +4,8 @@
 
 from typing import Callable, NamedTuple, Optional, Tuple, Union
 
-from jax import jit, numpy as np
+from jax import jit
+from jax import numpy as np
 from jaxlib.xla_extension import DeviceArray as JaxArray
 
 from pysages.utils import copy, dispatch, identity

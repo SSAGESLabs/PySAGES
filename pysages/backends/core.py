@@ -2,14 +2,12 @@
 # Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
+import warnings
 from importlib import import_module
 from typing import Callable
 
-from jax import numpy as np
-
 import jax
-import warnings
-
+from jax import numpy as np
 
 # Set default floating point type for arrays in `jax` to `jax.f64`
 jax.config.update("jax_enable_x64", True)

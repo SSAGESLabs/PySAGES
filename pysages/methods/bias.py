@@ -7,7 +7,9 @@ Generic abstract bias method.
 """
 
 from abc import abstractmethod
+
 from jax import numpy as np
+
 from pysages.methods.core import SamplingMethod
 
 

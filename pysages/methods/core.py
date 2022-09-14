@@ -12,12 +12,11 @@ from jax import jit
 from plum import parametric
 
 from pysages.backends import ContextWrapper
-from pysages.grids import Grid, build_grid, get_info
 from pysages.colvars.core import build
+from pysages.grids import Grid, build_grid, get_info
 from pysages.methods.restraints import canonicalize
-from pysages.utils import dispatch, identity
 from pysages.methods.utils import ReplicasConfiguration, methods_dispatch
-
+from pysages.utils import dispatch, identity
 
 #  Base Classes
 #  ============

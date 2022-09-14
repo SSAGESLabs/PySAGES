@@ -12,7 +12,8 @@ conformation change.
 
 from jax import numpy as np
 from jax.numpy import linalg
-from pysages.colvars.core import ThreePointCV, FourPointCV
+
+from pysages.colvars.core import FourPointCV, ThreePointCV
 
 
 class Angle(ThreePointCV):

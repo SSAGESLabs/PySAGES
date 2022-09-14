@@ -1,18 +1,17 @@
 #!/usr/bin/env python3
-import sys
 import argparse
 import importlib
-import numpy as np
-import matplotlib.pyplot as plt
+import sys
 
 import hoomd
-import hoomd.md as md
 import hoomd.dlext
+import hoomd.md as md
+import matplotlib.pyplot as plt
+import numpy as np
 
 import pysages
 from pysages.colvars import Component
-from pysages.methods import HarmonicBias, UmbrellaIntegration, SerialExecutor
-
+from pysages.methods import HarmonicBias, SerialExecutor, UmbrellaIntegration
 
 params = {"A": 0.5, "w": 0.2, "p": 2}
 

@@ -5,7 +5,7 @@ jupyter:
     text_representation:
       extension: .md
       format_name: markdown
-      format_version: '1.3'
+      format_version: "1.3"
       jupytext_version: 1.14.1
   kernelspec:
     display_name: Python 3
@@ -14,10 +14,12 @@ jupyter:
 ---
 
 <!-- #region id="T-Qkg9C9n7Cc" -->
+
 # Setting up the environment
 
 First, we are setting up our environment. We use an already compiled and packaged installation of HOOMD-blue and the DLExt plugin.
 We copy it from Google Drive and install PySAGES for it.
+
 <!-- #endregion -->
 
 ```bash id="3eTbKklCnyd_"
@@ -53,10 +55,12 @@ os.environ["LD_LIBRARY_PATH"] = "/usr/lib/x86_64-linux-gnu:" + os.environ["LD_LI
 ```
 
 <!-- #region id="we_mTkFioS6R" -->
+
 ## PySAGES
 
 The next step is to install PySAGES.
 First, we install the jaxlib version that matches the CUDA installation of this Colab setup. See the JAX documentation [here](https://github.com/google/jax) for more details.
+
 <!-- #endregion -->
 
 ```bash id="vK0RZtbroQWe"
@@ -67,7 +71,9 @@ pip install -q --upgrade "jax[cuda11_cudnn805]" -f https://storage.googleapis.co
 ```
 
 <!-- #region id="wAtjM-IroYX8" -->
+
 Now we can finally install PySAGES. We clone the newest version from [here](https://github.com/SSAGESLabs/PySAGES) and build the remaining pure python dependencies and PySAGES itself.
+
 <!-- #endregion -->
 
 ```bash id="B-HB9CzioV5j"
@@ -85,13 +91,17 @@ cd /content/cff
 ```
 
 <!-- #region id="KBFVcG1FoeMq" -->
+
 # SpectralABF-biased simulations
+
 <!-- #endregion -->
 
 <!-- #region id="0W2ukJuuojAl" -->
+
 SpectralABF gradually learns a better approximation to the coefficients of a basis functions expansion of the free energy of a system, from the generalized mean forces in a similar fashion to the ABF sampling method.
 
 For this Colab, we are using butane as the example molecule.
+
 <!-- #endregion -->
 
 ```python id="BBvC7Spoog82"
@@ -312,7 +322,9 @@ def generate_context(kT = kT, dt = dt, mode = mode):
 ```
 
 <!-- #region id="3UrzENm_oo6U" -->
+
 Next, we load PySAGES and the relevant classes and methods for our problem
+
 <!-- #endregion -->
 
 ```python id="fpMg-o8WomAA"
@@ -324,9 +336,11 @@ import pysages
 ```
 
 <!-- #region id="LknkRvo1o4av" -->
+
 The next step is to define the collective variable (CV). In this case, we choose the central dihedral angle.
 
 We define a grid, which will be used to indicate how we want to bin the forces that will be used to approximate the biasing potential and its gradient.
+
 <!-- #endregion -->
 
 ```python id="B1Z8FWz0o7u_"
@@ -338,8 +352,10 @@ method = SpectralABF(cvs, grid)
 ```
 
 <!-- #region id="Fz8BfU34pA_N" -->
+
 We now simulate $5\times10^5$ time steps.
 Make sure to run with GPU support, otherwise, it can take a very long time.
+
 <!-- #endregion -->
 
 ```python colab={"base_uri": "https://localhost:8080/"} id="K951m4BbpUar" outputId="8005b8a9-2967-4eb9-f9db-e0dc0d523835"
@@ -347,9 +363,11 @@ run_result = pysages.run(method, generate_context, timesteps)
 ```
 
 <!-- #region id="26zdu6yAht5Y" -->
+
 ## Analysis
 
 PySAGES provides an `analyze` method that makes it easier to get the free energy of different simulation runs.
+
 <!-- #endregion -->
 
 ```python id="2NWmahlfhoj8"
@@ -357,7 +375,9 @@ result = pysages.analyze(run_result)
 ```
 
 <!-- #region id="PXBKUfK0p9T2" -->
+
 Let's plot now the free energy!
+
 <!-- #endregion -->
 
 ```python id="X69d1R7OpW4P"

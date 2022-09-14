@@ -1,9 +1,11 @@
-import pickle
-import pysages
-import pysages.methods
-import pysages.colvars
 import inspect
+import pickle
+
 import numpy as np
+
+import pysages
+import pysages.colvars
+import pysages.methods
 
 pi = np.pi
 

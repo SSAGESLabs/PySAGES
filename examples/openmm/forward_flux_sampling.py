@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 
 
+import argparse
+
+import numpy
+
+import pysages
+
 # %%
 from pysages.colvars import DihedralAngle
 from pysages.methods import FFS
 from pysages.utils import try_import
-
-import argparse
-import numpy
-import pysages
 
 openmm = try_import("openmm", "simtk.openmm")
 unit = try_import("openmm.unit", "simtk.unit")

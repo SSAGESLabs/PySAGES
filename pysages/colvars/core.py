@@ -11,11 +11,11 @@ from abc import ABC, abstractmethod
 from inspect import signature
 from typing import Callable, Sequence, Tuple, Union
 
-from jax import grad, jacrev, jit, numpy as np
 import numpy
+from jax import grad, jacrev, jit
+from jax import numpy as np
 
 from pysages.utils import JaxArray, dispatch
-
 
 UInt32 = np.uint32
 Index = Union[numpy.intp, numpy.int_, numpy.intc, int]

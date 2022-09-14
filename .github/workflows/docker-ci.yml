@@ -5,14 +5,14 @@ on:
     branches:
       - main
     paths-ignore:
-      - 'README.md'
-      - 'docs/*'
+      - "README.md"
+      - "docs/*"
   pull_request:
     branches:
       - main
     paths-ignore:
-      - 'README.md'
-      - 'docs/*'
+      - "README.md"
+      - "docs/*"
 
   workflow_dispatch:
 
@@ -291,7 +291,7 @@ jobs:
           name: umbrella-integration-plots
           path: /tmp/plots
           retention-days: 1
-          
+
   improved-string-hoomd:
     runs-on: ubuntu-latest
     needs: build

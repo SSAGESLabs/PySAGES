@@ -17,21 +17,19 @@ as biasing force for the simulation.
 from functools import partial
 from typing import NamedTuple
 
-from jax import grad, jit, numpy as np, vmap
+from jax import grad, jit
+from jax import numpy as np
+from jax import vmap
 from jax.lax import cond
 
-from pysages.approxfun import compute_mesh, scale as _scale
+from pysages.approxfun import compute_mesh
+from pysages.approxfun import scale as _scale
 from pysages.grids import build_indexer
 from pysages.methods.core import NNSamplingMethod, Result, generalize
 from pysages.ml.models import MLP
 from pysages.ml.objectives import L2Regularization
 from pysages.ml.optimizers import LevenbergMarquardt
-from pysages.ml.training import (
-    NNData,
-    build_fitting_function,
-    normalize,
-    convolve,
-)
+from pysages.ml.training import NNData, build_fitting_function, convolve, normalize
 from pysages.ml.utils import blackman_kernel, pack, unpack
 from pysages.utils import Int, JaxArray, dispatch
 

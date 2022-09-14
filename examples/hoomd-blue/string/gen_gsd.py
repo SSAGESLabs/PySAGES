@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 
 import sys
-import numpy as np
+
 import gsd
 import gsd.hoomd
+import numpy as np
 
 
 class System:

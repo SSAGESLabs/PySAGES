@@ -4,7 +4,8 @@
 
 from typing import Callable, NamedTuple
 
-from jax import jit, numpy as np
+from jax import jit
+from jax import numpy as np
 
 from pysages.backends.core import ContextWrapper
 from pysages.backends.snapshot import (

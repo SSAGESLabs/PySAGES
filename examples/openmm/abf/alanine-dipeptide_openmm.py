@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 
 
+import matplotlib.pyplot as plt
+import numpy
+
+import pysages
+
 # %%
 from pysages.colvars import DihedralAngle
 from pysages.methods import ABF
 from pysages.utils import try_import
-import matplotlib.pyplot as plt
-import numpy
-import pysages
 
 openmm = try_import("openmm", "simtk.openmm")
 unit = try_import("openmm.unit", "simtk.unit")

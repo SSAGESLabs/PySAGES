@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
 
-import numpy as np
-import matplotlib.pyplot as plt
 import hoomd
-import hoomd.md
 import hoomd.dlext
+import hoomd.md
+import matplotlib.pyplot as plt
+import numpy as np
 
 import pysages
-
 from pysages.colvars import Component
-from pysages.methods import Unbiased, HistogramLogger
+from pysages.methods import HistogramLogger, Unbiased
 
 
 def generate_context(**kwargs):

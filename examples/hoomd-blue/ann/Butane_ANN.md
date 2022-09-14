@@ -6,7 +6,7 @@ jupyter:
     text_representation:
       extension: .md
       format_name: markdown
-      format_version: '1.3'
+      format_version: "1.3"
       jupytext_version: 1.14.1
   kernelspec:
     display_name: Python 3
@@ -14,10 +14,12 @@ jupyter:
 ---
 
 <!-- #region id="T-Qkg9C9n7Cc" -->
+
 # Setting up the environment
 
 First, we are setting up our environment. We use an already compiled and packaged installation of HOOMD-blue and the DLExt plugin.
 We copy it from Google Drive and install PySAGES for it.
+
 <!-- #endregion -->
 
 ```bash id="3eTbKklCnyd_"
@@ -55,10 +57,12 @@ os.environ["LD_LIBRARY_PATH"] = "/usr/lib/x86_64-linux-gnu:" + os.environ["LD_LI
 ```
 
 <!-- #region id="we_mTkFioS6R" -->
+
 ## PySAGES
 
 The next step is to install PySAGES.
 First, we install the jaxlib version that matches the CUDA installation of this Colab setup. See the JAX documentation [here](https://github.com/google/jax) for more details.
+
 <!-- #endregion -->
 
 ```bash id="vK0RZtbroQWe"
@@ -69,7 +73,9 @@ pip install -q --upgrade "jax[cuda]" -f https://storage.googleapis.com/jax-relea
 ```
 
 <!-- #region id="wAtjM-IroYX8" -->
+
 Now we can finally install PySAGES. We clone the newest version from [here](https://github.com/SSAGESLabs/PySAGES) and build the remaining pure python dependencies and PySAGES itself.
+
 <!-- #endregion -->
 
 ```bash id="B-HB9CzioV5j"
@@ -87,13 +93,17 @@ cd /content/ann
 ```
 
 <!-- #region id="KBFVcG1FoeMq" -->
+
 # ANN-biased simulations
+
 <!-- #endregion -->
 
 <!-- #region id="0W2ukJuuojAl" -->
+
 ANN gradually learns the free energy from a probability density estimate based on the frequency of visits to the grid on collective variable space.
 
 For this Colab, we are using butane as the example molecule.
+
 <!-- #endregion -->
 
 ```python id="BBvC7Spoog82"
@@ -314,7 +324,9 @@ def generate_context(kT = kT, dt = dt, mode = mode):
 ```
 
 <!-- #region id="3UrzENm_oo6U" -->
+
 Next, we load PySAGES and the relevant classes and methods for our problem
+
 <!-- #endregion -->
 
 ```python id="fpMg-o8WomAA"
@@ -326,6 +338,7 @@ import pysages
 ```
 
 <!-- #region id="LknkRvo1o4av" -->
+
 The next step is to define the collective variable (CV). In this case, we choose the central dihedral angle.
 
 We also define a grid to bin our CV space, the topology (tuple indicating the number of
@@ -336,6 +349,7 @@ The appropriate number of bins depends on the complexity of the free energy land
 a good rule of thumb is to choose between 20 to 100 bins along each CV dimension
 (using higher values for more rugged free energy surfaces), but it can be systematically
 found trying different values for short runs of any given system.
+
 <!-- #endregion -->
 
 ```python id="B1Z8FWz0o7u_"
@@ -347,8 +361,10 @@ method = ANN(cvs, grid, topology, kT)
 ```
 
 <!-- #region id="Fz8BfU34pA_N" -->
+
 We now simulate $5\times10^5$ time steps.
 Make sure to run with GPU support, otherwise, it can take a very long time.
+
 <!-- #endregion -->
 
 ```python colab={"base_uri": "https://localhost:8080/"} id="K951m4BbpUar" outputId="f01ca7e3-69f4-4218-9eb5-cdc022f877b8"
@@ -356,7 +372,9 @@ run_result = pysages.run(method, generate_context, int(5e5))
 ```
 
 <!-- #region id="PXBKUfK0p9T2" -->
+
 Let's now plot the free energy landscape learned by the ANN sampling method.
+
 <!-- #endregion -->
 
 ```python id="X69d1R7OpW4P"
@@ -382,5 +400,7 @@ plt.gca()
 ```
 
 <!-- #region id="Kf_CMdih90Cd" -->
+
 You can compare this with the free energy landscape for the different conformations of butane.
+
 <!-- #endregion -->

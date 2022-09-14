@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
-import os
-import sys
-import shutil
-import pickle
 import argparse
 import importlib
-import numpy as np
+import os
+import pickle
+import shutil
+import sys
+
 import matplotlib
 import matplotlib.pyplot as plt
-
-from pysages.colvars import DihedralAngle
-from pysages.methods import SplineString, SerialExecutor
-from pysages.utils import try_import
+import numpy as np
 
 import pysages
+from pysages.colvars import DihedralAngle
+from pysages.methods import SerialExecutor, SplineString
+from pysages.utils import try_import
 
 openmm = try_import("openmm", "simtk.openmm")
 unit = try_import("openmm.unit", "simtk.unit")

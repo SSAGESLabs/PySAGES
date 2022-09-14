@@ -9,15 +9,16 @@ both with optional support for grids.
 
 from typing import NamedTuple, Optional
 
-from jax import numpy as np, grad, jit, value_and_grad, vmap
+from jax import grad, jit
+from jax import numpy as np
+from jax import value_and_grad, vmap
 from jax.lax import cond
 
 from pysages.approxfun import compute_mesh
 from pysages.colvars import get_periods, wrap
-from pysages.methods.core import Result, GriddedSamplingMethod, generalize
-from pysages.utils import JaxArray, gaussian, identity
 from pysages.grids import build_indexer
-from pysages.utils import dispatch
+from pysages.methods.core import GriddedSamplingMethod, Result, generalize
+from pysages.utils import JaxArray, dispatch, gaussian, identity
 
 
 class MetadynamicsState(NamedTuple):

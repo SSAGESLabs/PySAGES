@@ -6,7 +6,6 @@ from pysages.colvars import Distance
 from pysages.colvars.core import build
 from pysages.utils import JaxArray
 
-
 POSITIONS = np.array(
     [
         [0.0929926, 0.966452, 0.424666],

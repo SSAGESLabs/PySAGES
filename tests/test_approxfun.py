@@ -1,15 +1,17 @@
 # from matplotlib import pyplot as plt
-from jax import grad, numpy as np, vmap
+from jax import grad
+from jax import numpy as np
+from jax import vmap
 
-from pysages.grids import Chebyshev, Grid
 from pysages.approxfun import (
     SpectralGradientFit,
     SpectralSobolev1Fit,
-    build_fitter,
     build_evaluator,
+    build_fitter,
     build_grad_evaluator,
     compute_mesh,
 )
+from pysages.grids import Chebyshev, Grid
 
 
 # Test functions

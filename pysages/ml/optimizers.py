@@ -6,27 +6,26 @@ from dataclasses import dataclass
 from functools import partial
 from typing import Any, Callable, NamedTuple, Tuple, Union
 
+import jax
 from jax import numpy as np
 from jax.lax import cond
 from jax.numpy.linalg import pinv
 from jax.scipy.linalg import solve
 
 from pysages.ml.objectives import (
-    Loss,
-    L2Regularization,
-    Regularizer,
     SSE,
-    build_error_function,
+    L2Regularization,
+    Loss,
+    Regularizer,
     build_damped_hessian,
+    build_error_function,
     build_jac_err_prod,
-    build_split_cost_function,
     build_objective_function,
+    build_split_cost_function,
     sum_squares,
 )
 from pysages.ml.utils import dispatch, pack, unpack
 from pysages.utils import Bool, Float, Int, JaxArray, try_import
-
-import jax
 
 jopt = try_import("jax.example_libraries.optimizers", "jax.experimental.optimizers")
 

@@ -12,16 +12,17 @@ The final free-energy profile is calculated the same way as in UmbrellaIntegrati
 We aim to implement this: `Weinan, E., et. al. J. Chem. Phys. 126.16 (2007): 164103 <https://doi.org/10.1063/1.2720838>`_.
 """
 
-import plum
+from typing import Callable, List, Optional, Union
+
 import numpy as np
-from typing import Callable, Optional, Union, List
+import plum
 from numpy.linalg import norm
 from scipy.interpolate import interp1d
 
 import pysages
 from pysages.methods.core import Result, SamplingMethod
 from pysages.methods.umbrella_integration import UmbrellaIntegration
-from pysages.methods.utils import listify, SerialExecutor
+from pysages.methods.utils import SerialExecutor, listify
 from pysages.utils import dispatch
 
 

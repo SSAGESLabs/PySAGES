@@ -19,11 +19,11 @@ planned (for instance, for all engines already supported by the original SSAGES)
 You first need to install one of the following plugins depending on your molecular
 dynamics engine:
 
- - For HOOMD-blue visit [HOOMD DLPack Plugin](https://github.com/SSAGESLabs/hoomd-dlext).
- - For OpenMM go to [OpenMM DLPack Plugin](https://github.com/SSAGESLabs/openmm-dlext).
+- For HOOMD-blue visit [HOOMD DLPack Plugin](https://github.com/SSAGESLabs/hoomd-dlext).
+- For OpenMM go to [OpenMM DLPack Plugin](https://github.com/SSAGESLabs/openmm-dlext).
 
 PySAGES also depends on [JAX](https://github.com/google/jax/), follow their installation
-guide to set it up. *NOTE:* make sure you have jaxlib installed before using PySAGES.
+guide to set it up. _NOTE:_ make sure you have jaxlib installed before using PySAGES.
 Depending on your local setup, you will have to install the jaxlib CPU version or the CUDA compatible flavor.
 
 To test GPU support HOOMD-blue, HOOMD-dlext and JAX need to be built or installed with
