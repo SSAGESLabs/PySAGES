@@ -1,10 +1,14 @@
 version: 0.1
+actions:
+  enabled:
+    - trunk-fmt-pre-commit
+    - trunk-check-pre-push
 cli:
   version: 0.17.0-beta
 plugins:
   sources:
     - id: trunk
-      ref: v0.0.3
+      ref: v0.0.4
       uri: https://github.com/trunk-io/plugins
 lint:
   enabled:
