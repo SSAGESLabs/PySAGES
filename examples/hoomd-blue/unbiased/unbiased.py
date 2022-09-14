@@ -3,7 +3,6 @@
 import hoomd
 import hoomd.dlext
 import hoomd.md
-import matplotlib.pyplot as plt
 import numpy as np
 
 import pysages

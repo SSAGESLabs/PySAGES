@@ -118,9 +118,9 @@ cd /content/advanced_sampling
 
 Many systems have rugged free-energy landscapes, where different basins are divided by energy barriers.
 
-### Examples:
+## Examples
 
-#### Collective molecular transitions
+### Collective molecular transitions
 
 - Protein folding
 - Protein-ligand binding
@@ -139,7 +139,7 @@ Smirnova, Yuliya G., et al. "Solvent-exposed tails as prestalk transition states
 
 <!-- #region id="hz7pwhbZXzZp" -->
 
-#### Phase transitions
+### Phase transitions
 
 - Liquid-vapor transition
 - Crystallization
@@ -154,7 +154,7 @@ Wikipedia: https://en.wikipedia.org/wiki/Ising_model
 
 <!-- #region id="0iCFnwF6aJ3P" -->
 
-### Collective Variables
+## Collective Variables
 
 Also known as order parameters in other contexts.
 
@@ -906,7 +906,7 @@ Solution: use a cubic spline-interpolation
 $\Rightarrow$ perpendicular component $\Delta V^\perp$!
 $\Rightarrow$ smooth path $\xi_0^s(t)$ with $\xi_0^s(t) = \xi(t_i)$.
 
-#### Improved string method
+### Improved string method
 
 Using the perpendicular component directly does not lead to good convergences.
 Instead, we can use the improved string method.

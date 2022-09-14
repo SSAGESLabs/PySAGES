@@ -23,7 +23,7 @@ adp_pdb = "../../inputs/alanine-dipeptide/adp-explicit.pdb"
 T = 298.15 * unit.kelvin
 dt = 2.0 * unit.femtoseconds
 
-# %%
+
 def generate_simulation(pdb_filename=adp_pdb, T=T, dt=dt):
     pdb = app.PDBFile(pdb_filename)
 

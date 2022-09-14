@@ -8,12 +8,11 @@ Unbiased simulation method method.
 This method does not alter the original simulation.
 It allows unbiased simulations with the PySAGES framework.
 
-A common use case is to record collective variables in unbiased simulations via the Histogram logger.
+A common use case is to record collective variables in unbiased
+simulations via the Histogram logger.
 """
 
 from typing import NamedTuple
-
-from jax import numpy as np
 
 from pysages.methods.core import SamplingMethod, generalize
 from pysages.utils import JaxArray
@@ -63,7 +62,6 @@ class Unbiased(SamplingMethod):
 
 def _unbias(method, snapshot, helpers):
     cv = method.cv
-    natoms = np.size(snapshot.positions, 0)
 
     def initialize():
         xi = cv(helpers.query(snapshot))

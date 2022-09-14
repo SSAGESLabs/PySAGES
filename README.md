@@ -41,3 +41,22 @@ Sampling methods in your MD simulations. See the [documentation](https://pysages
 We provide ready-to-go examples for common methods.
 Checkout out the [examples](examples/) subfolder to look at different script and notebook examples.
 These include pre-set simulations and a tutorial on how to install PySAGES along with the supported MD engines.
+
+## Development
+
+We believe that good software engineering and collaboration.
+As an open-source software we welcome all contributions.
+To help collaboration we use [trunk](https://trunk.io) as a development tool free for open-source software.
+This includes version-checked linters that can be checked automatically.
+As such, we ship a launcher for trunk with this repo `./trunk`, no installation required.
+For details about how to use `./trunk fmt` to format existing code into this style and `./trunk check` to verify a consistent code style, check out the documentation [page](https://docs.trunk.io/docs).
+
+### Trunk githooks
+
+For the development of this repo, we highly recommend to activate trunk's interaction with the githooks.
+The ensures, that any code commited and pushed fulfills the coding standard. (Otherwise a CI test will fail on the repo side on the PR.)
+This feature requires to be activated by the user on each machine.
+
+```shell
+./trunk git-hooks install
+```

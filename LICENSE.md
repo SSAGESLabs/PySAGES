@@ -1,3 +1,5 @@
+# License
+
 PySAGES as a whole is licensed under the GPL-3.0 or later. But do note that only some of
 the code under the `methods` is covered by GPL, as it is based on the original SSAGES
 implementation. The rest of the code is licensed under the MIT License.

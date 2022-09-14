@@ -16,13 +16,15 @@ from pysages.methods.core import SamplingMethod
 class Bias(SamplingMethod):
     """
     Abstract biasing class.
-    In this context a biasing methond ensures that a system is biased around a fixed `center` in CV space.
+    In this context a biasing methond ensures that a system is biased
+    around a fixed `center` in CV space.
     How this biasing is achieved is up to the individual implementation.
     A common biasing form is implemented via the `HarmonicBias` class.
 
     Biasing is commonly used in other advanced sampling methods, such as UmbrellaIntegration
     or the ImprovedString method.
-    This abstract class defines an interface to interact with the CV center, such that method can rely on it.
+    This abstract class defines an interface to interact with the CV center,
+    such that method can rely on it.
     """
 
     __special_args__ = {"center"}

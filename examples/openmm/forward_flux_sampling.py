@@ -31,7 +31,6 @@ def generate_simulation(pdb_filename=adp_pdb, T=T, dt=dt):
     pdb = app.PDBFile(pdb_filename)
 
     ff = app.ForceField("amber99sb.xml", "tip3p.xml")
-    kT = (kB * T).value_in_unit(unit.kilojoules_per_mole)
     cutoff_distance = 1.0 * unit.nanometer
     topology = pdb.topology
 

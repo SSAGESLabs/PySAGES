@@ -128,7 +128,8 @@ def main(argv=[]):
     plot_grid = pysages.Grid(lower=(-pi, -pi), upper=(pi, pi), shape=(64, 64), periodic=True)
     xi = (compute_mesh(plot_grid) + 1) / 2 * plot_grid.size + plot_grid.lower
 
-    # determine bias factor depending on method (for standard = 1 and for well-tempered = (T+deltaT)/deltaT)
+    # determine bias factor depending on method (for standard = 1
+    # and for well-tempered = (T+deltaT)/deltaT)
     alpha = (
         1
         if method.deltaT is None

@@ -212,7 +212,6 @@ def _ffs(method, snapshot, helpers):
     Tuple `(snapshot, initialize, update)` as described above.
     """
     cv = method.cv
-    dt = snapshot.dt
     natoms = np.size(snapshot.positions, 0)
 
     # initialize method

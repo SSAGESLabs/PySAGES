@@ -8,7 +8,7 @@ from jax import jit
 from jax import numpy as np
 from jaxlib.xla_extension import DeviceArray as JaxArray
 
-from pysages.utils import copy, dispatch, identity
+from pysages.utils import copy, dispatch
 
 
 class Box(

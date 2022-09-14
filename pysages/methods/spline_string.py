@@ -4,12 +4,14 @@
 
 """
 Spline String method (aka Improved String method).
-The improved string methods finds the local minimum free-energy path (MFEP) trough a given landscape.
+The improved string methods finds the local minimum free-energy path (MFEP)
+trough a given landscape.
 It uses umbrella integration to advance the discretized replicas in the CV space.
 A spline interpolation helps to (equally) space the CV points along the string.
 The process converges if the MFEP is found.
 The final free-energy profile is calculated the same way as in UmbrellaIntegration.
-We aim to implement this: `Weinan, E., et. al. J. Chem. Phys. 126.16 (2007): 164103 <https://doi.org/10.1063/1.2720838>`_.
+We aim to implement this:
+`Weinan, E., et. al. J. Chem. Phys. 126.16 (2007): 164103 <https://doi.org/10.1063/1.2720838>`_.
 """
 
 from typing import Callable, List, Optional, Union
@@ -84,7 +86,7 @@ class SplineString(SamplingMethod):
 
         alpha: Union[float, List[float]],
             Update step size for the spring. New string positions are updated according to
-            :math:`\\xi_{i+1} = \\alpha (\\langle \\xi\\rangle - \\xi_i)/|\\langle \\xi\\rangle - \\xi_i|`.
+            :math:`\\xi_{i+1} = \\alpha (\\langle \\xi\\rangle - \\xi_i)/|\\langle \\xi\\rangle - \\xi_i|`.  # noqa=E501
 
         hist_periods: Union[int, List[int]]
             Indicates the period for logging the CV into the histogram of each replica.

@@ -13,6 +13,8 @@ jupyter:
     name: python3
 ---
 
+<!-- trunk-ignore-all(markdownlint/MD001) -->
+<!-- trunk-ignore-all(markdownlint/MD024) -->
 <!-- #region id="p49wJ0IjLAVD" -->
 
 # Installation of the environment
@@ -28,7 +30,7 @@ This is special to the underlying (older) Ubuntu system of this Colab (18.04) an
 
 <!-- #region id="Bj0t7S1rcPoT" -->
 
-##### Update CMake
+# Update CMake
 
 <!-- #endregion -->
 
@@ -81,7 +83,7 @@ We also make use of disabling components of the HOOMD-blue installation to save 
 
 <!-- #region id="yreB95grry8d" -->
 
-##### Build and install HOOMD-blue
+# Build and install HOOMD-blue
 
 <!-- #endregion -->
 

@@ -11,7 +11,7 @@ If you are new to advanced sampling techniques in general you can try this inter
 
 Examples for Methods using HOOMD-blue can be found in the subfolder [hoomd-blue](hoomd-blue)
 
-### Notebooks
+### HOOMD-blue notebooks
 
 - Harmonic bias restricting a particle in space: [![Harmonic Bias](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/examples/hoomd-blue/harmonic_bias/Harmonic_Bias.ipynb)
 - Umbella integration of a particle in an external potential: [![Umbrella Integation](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/examples/hoomd-blue/umbrella_integration/Umbrella_Integration.ipynb)
@@ -19,7 +19,7 @@ Examples for Methods using HOOMD-blue can be found in the subfolder [hoomd-blue]
 - Adaptive force-biasing sampling of the dihedral angle of butane using neural networks: [![FUNN](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/examples/hoomd-blue/funn/Butane_FUNN.ipynb)
 - Combined force-frequency sampling of the dihedral angle of butane: [![CFF](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/examples/hoomd-blue/cff/Butane_CFF.ipynb)
 
-### Script examples
+### HOOMD-blue script examples
 
 - Harmonic bias restricting a particle in space: [harmonic_bias](hoomd-blue/harmonic_bias)
 - Umbella integration of a particle in an external potential: [umbrella_integration](hoomd-blue/umbrella_integration)
@@ -32,11 +32,11 @@ Examples for Methods using HOOMD-blue can be found in the subfolder [hoomd-blue]
 
 Examples for Methods using OpenMM can be found in the subfolder [openmm](openmm)
 
-### Notebooks
+### OpenMM notebooks
 
 - Harmonic bias for the dihedral angle of Alanine Dipeptide: [![Harmonic Bias](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/examples/openmm/Harmonic_Bias.ipynb)
 
-### Script examples
+### OpenMM script examples
 
 - ABF with Alanine Dipeptide: [ABF](openmm/abf/alanine-dipeptide_openmm.py)
 - Forward flux sampling with Alanine Dipeptide: [FFS](openmm/forward_flux_sampling.py)
