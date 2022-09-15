@@ -63,14 +63,14 @@ class ContextWrapper:
         """
         Trampoline 'with statements' to the wrapped context when the backend supports it.
         """
-        if self.get_backend_name() == "hoomd":
+        if hasattr(self.context, "__enter__"):
             return self.context.__enter__()
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
         """
         Trampoline 'with statements' to the wrapped context when the backend supports it.
         """
-        if self.get_backend_name() == "hoomd":
+        if hasattr(self.context, "__exit__"):
             return self.context.__exit__(exc_type, exc_value, exc_traceback)
 
 
