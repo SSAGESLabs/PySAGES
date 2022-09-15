@@ -8,6 +8,7 @@ from typing import Callable
 from warnings import warn
 
 import hoomd
+from hoomd import md
 from hoomd.dlext import (
     AccessLocation,
     AccessMode,
@@ -40,15 +41,57 @@ from pysages.utils import copy
 CONTEXTS_SAMPLERS = {}
 
 
-class Sampler(DLExtSampler):
+if getattr(hoomd, "__version__", "").startswith("2."):
+    SamplerBase = DLExtSampler
+
+    def is_on_gpu(context):
+        return context.on_gpu()
+
+    def get_integrator(context):
+        return context.integrator
+
+    def get_run_method(context):
+        return hoomd.run
+
+    def get_system(context):
+        return context.system
+
+    def set_half_step_hook(context, half_step_hook):
+        context.integrator.cpp_integrator.setHalfStepHook(half_step_hook)
+
+    def remove_half_step_hook(context):
+        context.integrator.cpp_integrator.removeHalfStepHook()
+
+else:
+
+    class SamplerBase(DLExtSampler, md.HalfStepHook):
+        def __init__(self, sysview, update, location, mode):
+            md.HalfStepHook.__init__(self)
+            DLExtSampler.__init__(self, sysview, update, location, mode)
+
+    def is_on_gpu(context):
+        return not isinstance(context.device, hoomd.device.CPU)
+
+    def get_integrator(context):
+        return context.operations.integrator
+
+    def get_run_method(context):
+        context.run(0)  # ensure that the context is properly initialized
+        return context.run
+
+    def get_system(context):
+        return context._cpp_sys
+
+    def set_half_step_hook(context, half_step_hook):
+        context.operations.integrator.half_step_hook = half_step_hook
+
+    def remove_half_step_hook(context):
+        context.operations.integrator.half_step_hook = None
+
+
+class Sampler(SamplerBase):
     def __init__(self, sysview, method_bundle, bias, callback: Callable, restore):
         initial_snapshot, initialize, method_update = method_bundle
-        self.state = initialize()
-        self.callback = callback
-        self.bias = bias
-        self.box = initial_snapshot.box
-        self.dt = initial_snapshot.dt
-        self._restore = restore
 
         def update(positions, vel_mass, rtags, images, forces, timestep):
             snapshot = self._pack_snapshot(positions, vel_mass, forces, rtags, images)
@@ -58,6 +101,12 @@ class Sampler(DLExtSampler):
                 self.callback(snapshot, self.state, timestep)
 
         super().__init__(sysview, update, default_location(), AccessMode.Read)
+        self.state = initialize()
+        self.callback = callback
+        self.bias = bias
+        self.box = initial_snapshot.box
+        self.dt = initial_snapshot.dt
+        self._restore = restore
 
     def restore(self, prev_snapshot):
         def restore_callback(positions, vel_mass, rtags, images, forces, n):
@@ -99,10 +148,6 @@ else:
         return AccessLocation.OnHost
 
 
-def is_on_gpu(context):
-    return context.on_gpu()
-
-
 def take_snapshot(wrapped_context, location=default_location()):
     context = wrapped_context.context
     sysview = wrapped_context.view
@@ -112,7 +157,7 @@ def take_snapshot(wrapped_context, location=default_location()):
     ids = copy(asarray(rtags(sysview, location, AccessMode.Read)))
     imgs = copy(asarray(images(sysview, location, AccessMode.Read)))
 
-    box = sysview.particle_data().getGlobalBox()
+    box = sysview.particle_data.getGlobalBox()
     L = box.getL()
     xy = box.getTiltFactorXY()
     xz = box.getTiltFactorXZ()
@@ -120,7 +165,7 @@ def take_snapshot(wrapped_context, location=default_location()):
     lo = box.getLo()
     H = ((L.x, xy * L.y, xz * L.z), (0.0, L.y, yz * L.z), (0.0, 0.0, L.z))
     origin = (lo.x, lo.y, lo.z)
-    dt = context.integrator.dt
+    dt = get_integrator(context).dt
 
     return Snapshot(positions, vel_mass, forces, ids, imgs, Box(H, origin), dt)
 
@@ -196,9 +241,9 @@ def bind(
     wrapped_context: ContextWrapper, sampling_method: SamplingMethod, callback: Callable, **kwargs
 ):
     context = wrapped_context.context
-    sysview = SystemView(context.system_definition)
+    sysview = SystemView(get_system(context))
     wrapped_context.view = sysview
-    wrapped_context.run = hoomd.run
+    wrapped_context.run = get_run_method(context)
     helpers, restore, bias = build_helpers(context, sampling_method)
 
     with sysview:
@@ -207,7 +252,7 @@ def bind(
     method_bundle = sampling_method.build(snapshot, helpers)
     sync_and_bias = partial(bias, sync_backend=sysview.synchronize)
     sampler = Sampler(sysview, method_bundle, sync_and_bias, callback, restore)
-    context.integrator.cpp_integrator.setHalfStepHook(sampler)
+    set_half_step_hook(context, sampler)
 
     CONTEXTS_SAMPLERS[context] = sampler
 
@@ -220,7 +265,7 @@ def detach(context):
     `Sampler` object.
     """
     if context in CONTEXTS_SAMPLERS:
-        context.integrator.cpp_integrator.removeHalfStepHook()
+        remove_half_step_hook(context)
         del CONTEXTS_SAMPLERS[context]
     else:
         warn("This context has no sampler bound to it.")
