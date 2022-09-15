@@ -24,3 +24,18 @@ lint:
     - shellcheck@0.8.0
     - shfmt@3.5.0
     - taplo@release-taplo-cli-0.7.0
+  ignore:
+    - linters: [prettier]
+      paths:
+        - examples/Advanced_Sampling_Introduction.md
+        - examples/Install_PySAGES_Environment.md
+        - examples/openmm/Harmonic_Bias.md
+        - examples/hoomd-blue/ann/Butane_ANN.md
+        - examples/hoomd-blue/harmonic_bias/Harmonic_Bias.md
+        - examples/openmm/metad/Metadynamics-ADP.md
+        - examples/hoomd-blue/cff/Butane_CFF.md
+        - examples/hoomd-blue/spectral_abf/Butane-SpectralABF.md
+        - examples/openmm/spectral_abf/ADP_SpectralABF.md
+        - examples/hoomd-blue/funn/Butane_FUNN.md
+        - examples/hoomd-blue/umbrella_integration/Umbrella_Integration.md
+        - examples/openmm/metad/nacl/Metadynamics_NaCl.md
