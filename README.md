@@ -53,9 +53,9 @@ For details about how to use `./trunk fmt` to format existing code into this sty
 
 ### Trunk githooks
 
-For the development of this repo, we highly recommend to activate trunk's interaction with the githooks.
-The ensures, that any code commited and pushed fulfills the coding standard. (Otherwise a CI test will fail on the repo side on the PR.)
-This feature requires to be activated by the user on each machine.
+For the development of this repo, we highly recommend to activate trunk's interaction with githooks.
+The ensures, that any code committed and pushed fulfills the coding standards. (Otherwise a CI test will fail on the repo side PRs.)
+This feature requires to be activated by developers on each machine.
 
 ```shell
 ./trunk git-hooks install
