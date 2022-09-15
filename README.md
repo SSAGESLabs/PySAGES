@@ -44,12 +44,12 @@ These include pre-set simulations and a tutorial on how to install PySAGES along
 
 ## Development
 
-We believe that good software engineering and collaboration.
+We believe in good software engineering and collaboration.
 As an open-source software we welcome all contributions.
-To help collaboration we use [trunk](https://trunk.io) as a development tool free for open-source software.
-This includes version-checked linters that can be checked automatically.
-As such, we ship a launcher for trunk with this repo `./trunk`, no installation required.
-For details about how to use `./trunk fmt` to format existing code into this style and `./trunk check` to verify a consistent code style, check out the documentation [page](https://docs.trunk.io/docs).
+To ease collaboration we use [trunk](https://trunk.io) as a development tool free for open-source software.
+This includes version-checked linters that can be run automatically.
+We ship a launcher for trunk with this repo `./trunk`, no installation required.
+For details about how to use `./trunk fmt` to format existing code into this style and `./trunk check` to verify a consistent code style, check out the trunk documentation [page](https://docs.trunk.io/docs).
 
 ### Trunk githooks
 
