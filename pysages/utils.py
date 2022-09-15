@@ -6,14 +6,11 @@ from copy import deepcopy
 from importlib import import_module
 from typing import Union
 
+import jaxlib.xla_extension as xe
 import numpy
-
 from jax import numpy as np
 from jax.tree_util import register_pytree_node
 from plum import Dispatcher
-
-import jaxlib.xla_extension as xe
-
 
 # PySAGES main dispatcher
 dispatch = Dispatcher()

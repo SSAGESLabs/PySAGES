@@ -14,10 +14,12 @@ jupyter:
 ---
 
 <!-- #region id="T-Qkg9C9n7Cc" -->
+
 # Setting up the environment
 
 First, we set up our environment. We use an already compiled and packaged installation of OpenMM and the DLExt plugin.
 We copy it from Google Drive and install PySAGES for it.
+
 <!-- #endregion -->
 
 ```bash id="3eTbKklCnyd_"
@@ -53,10 +55,12 @@ os.environ["LD_LIBRARY_PATH"] = "/usr/lib/x86_64-linux-gnu:" + os.environ["LD_LI
 ```
 
 <!-- #region id="we_mTkFioS6R" -->
+
 ## PySAGES
 
 The next step is to install PySAGES.
 First, we install the jaxlib version that matches the CUDA installation of this Colab setup. See the JAX documentation [here](https://github.com/google/jax) for more details.
+
 <!-- #endregion -->
 
 ```bash id="vK0RZtbroQWe"
@@ -67,7 +71,9 @@ pip install -q --upgrade "jax[cuda11_cudnn805]" -f https://storage.googleapis.co
 ```
 
 <!-- #region id="wAtjM-IroYX8" -->
+
 Now we can finally install PySAGES. We clone the newest version from [here](https://github.com/SSAGESLabs/PySAGES) and build the remaining pure python dependencies and PySAGES itself.
+
 <!-- #endregion -->
 
 ```bash id="B-HB9CzioV5j"
@@ -79,14 +85,18 @@ pip install -q . &> /dev/null
 ```
 
 <!-- #region id="KBFVcG1FoeMq" -->
+
 # Metadynamics-biased simulations
+
 <!-- #endregion -->
 
 <!-- #region id="0W2ukJuuojAl" -->
+
 Metadynamics gradually builds a biasing potential from a sum of gaussians that are deposited one at a time every certain number of (user defined) time steps.
 There are two flavors of the algorithm, _Standard Metadynamics_ in which the heights of the gaussians is time independent, and _Well-tempered Metadynamics_ for which the heights of the deposited gaussians decreases depending on how frequently are visited the explored regions of collective variable space.
 
 For this Colab, we are estimating the free energy along the distance between Na and Cl in water as example system.
+
 <!-- #endregion -->
 
 ```bash id="fre3-LYso1hh"
@@ -95,7 +105,7 @@ For this Colab, we are estimating the free energy along the distance between Na 
 PDB_URL="https://raw.githubusercontent.com/sivadasetty/PySAGES/nacl-example/examples/inputs/nacl/nacl-explicit.pdb"
 wget -q $PDB_URL
 
-# Download force field file 
+# Download force field file
 ff_URL="https://raw.githubusercontent.com/openmm/openmmforcefields/main/amber/ffxml/tip3p_standard.xml"
 wget -q $ff_URL
 ```
@@ -157,7 +167,9 @@ def generate_simulation(pdb_filename=nacl_pdb, T=T, dt=dt):
 ```
 
 <!-- #region id="3UrzENm_oo6U" -->
+
 Next, we load PySAGES and the relevant classes and methods for our problem
+
 <!-- #endregion -->
 
 ```python id="fpMg-o8WomAA"
@@ -169,6 +181,7 @@ import pysages
 ```
 
 <!-- #region id="LknkRvo1o4av" -->
+
 The next step is to define the collective variable (CV). In this case, we choose the distance between Na and Cl.
 
 For this example we will use the well-tempered version without grids. But these options can be configured.
@@ -178,11 +191,12 @@ We set the initial height, standard deviation and deposition frequency `stride` 
 We also define a grid, which can be used as optional parameter to accelerate Metadynamics by approximating the biasing potential and its gradient by the closest value at the centers of the grid cells.
 
 _Note:_ when setting $\Delta T$ we need to also provide a value for $k_B$ that matches the internal units used by the backend.
+
 <!-- #endregion -->
 
 ```python id="B1Z8FWz0o7u_"
 # IDs of Na and Cl using PDB entry (subtract 1 as we use zero-based indexing)
-cvs = [Distance([1524, 1525])] 
+cvs = [Distance([1524, 1525])]
 
 well_tempered = True  # False for standard metadynamics
 use_grids = False
@@ -205,9 +219,11 @@ method = Metadynamics(cvs, height, sigma, stride, ngauss, deltaT=deltaT, kB=kB, 
 ```
 
 <!-- #region id="Fz8BfU34pA_N" -->
+
 We now simulate the number of time steps set above.
 Make sure to run with GPU support, otherwise, it can take a very long time.
 On the GPU this should run in around half an hour.
+
 <!-- #endregion -->
 
 ```python id="K951m4BbpUar"
@@ -215,9 +231,11 @@ run_result = pysages.run(method, generate_simulation, timesteps)
 ```
 
 <!-- #region id="PXBKUfK0p9T2" -->
+
 ## Analysis
 
 Let's plot the negative of the sum of gaussians accumulated. This will get close to the free energy surface for long enough simulations (larger than what is practical to run on Colab, but we should get close enough for illustration purposes here).
+
 <!-- #endregion -->
 
 ```python id="X69d1R7OpW4P"
@@ -226,7 +244,9 @@ from pysages.approxfun import compute_mesh
 ```
 
 <!-- #region id="6mrlIOfoszBJ" -->
+
 We are now going to gather the information for the heights, standard deviations and centers of the accumulated gaussians and build a function to evaluate their sum at any point of the collective variable space.
+
 <!-- #endregion -->
 
 ```python id="zJqvpbw8szxR"
@@ -235,7 +255,9 @@ metapotential = fe_result['metapotential']
 ```
 
 <!-- #region id="VfTQ5yeyxt8e" -->
+
 Next we use the biasing potential to estimate the free energy surface. For well-tempered metadynamics this is equal to the sum of accumulated gaussians scaled by the factor $-(T + \Delta T)\, / \,\Delta T$.
+
 <!-- #endregion -->
 
 ```python id="6W7Xf0ilqAcm"
@@ -253,7 +275,9 @@ A = A.reshape(plot_grid.shape)
 ```
 
 <!-- #region id="Kf_CMdih90Cd" -->
+
 And plot it.
+
 <!-- #endregion -->
 
 ```python colab={"base_uri": "https://localhost:8080/", "height": 466} id="3s9LL9apBMVb" outputId="6384612f-d75a-4541-b988-c4660ab2e570"
@@ -270,7 +294,9 @@ plt.show()
 ```
 
 <!-- #region id="a-LGmeZ_3_m-" -->
+
 Lastly, we plot the height of the gaussians as a function of time and observe that their height decreases at an exponential rate as expected for well-tempered metadynamics.
+
 <!-- #endregion -->
 
 ```python colab={"base_uri": "https://localhost:8080/", "height": 457} id="SI_fhUW9CGlP" outputId="82a23a39-2cd9-46ab-df80-fe6ac9a7cbf6"

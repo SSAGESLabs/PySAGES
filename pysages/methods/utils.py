@@ -9,6 +9,7 @@ This includes callback functor objects (callable classes).
 """
 
 from concurrent.futures import Executor, Future
+
 from jax import numpy as np
 from plum import Dispatcher
 

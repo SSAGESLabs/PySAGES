@@ -9,7 +9,7 @@ Collective Variables that are computed from the Cartesian coordinates.
 from jax import numpy as np
 from jax.numpy import linalg
 
-from pysages.colvars.core import TwoPointCV, AxisCV, multicomponent
+from pysages.colvars.core import AxisCV, TwoPointCV, multicomponent
 
 
 def barycenter(positions):

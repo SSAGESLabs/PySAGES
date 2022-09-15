@@ -16,7 +16,8 @@ provided by the basis functions expansion.
 
 from typing import NamedTuple, Tuple
 
-from jax import jit, numpy as np
+from jax import jit
+from jax import numpy as np
 from jax.lax import cond
 from jax.scipy.linalg import solve
 

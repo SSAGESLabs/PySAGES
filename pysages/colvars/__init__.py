@@ -11,26 +11,13 @@ PySAGES tries to support a variety common collective variables, but it is easy t
 PySAGES with your own.
 """
 
-from .angles import (
-    Angle,
-    DihedralAngle,
-)
-
+from .angles import Angle, DihedralAngle
+from .coordinates import Component, Displacement, Distance
 from .shape import (
-    RadiusOfGyration,
-    PrincipalMoment,
-    Asphericity,
     Acylindricity,
+    Asphericity,
+    PrincipalMoment,
+    RadiusOfGyration,
     ShapeAnisotropy,
 )
-
-from .coordinates import (
-    Component,
-    Distance,
-    Displacement,
-)
-
-from .utils import (
-    get_periods,
-    wrap,
-)
+from .utils import get_periods, wrap

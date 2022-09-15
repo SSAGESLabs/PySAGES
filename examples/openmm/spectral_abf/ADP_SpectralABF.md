@@ -14,10 +14,12 @@ jupyter:
 ---
 
 <!-- #region id="T-Qkg9C9n7Cc" -->
+
 # Setting up the environment
 
 First, we set up our environment. We use an already compiled and packaged installation of OpenMM and the DLExt plugin.
 We copy it from Google Drive and install PySAGES for it.
+
 <!-- #endregion -->
 
 ```bash id="3eTbKklCnyd_"
@@ -53,10 +55,12 @@ os.environ["LD_LIBRARY_PATH"] = "/usr/lib/x86_64-linux-gnu:" + os.environ["LD_LI
 ```
 
 <!-- #region id="we_mTkFioS6R" -->
+
 ## PySAGES
 
 The next step is to install PySAGES.
 First, we install the jaxlib version that matches the CUDA installation of this Colab setup. See the JAX documentation [here](https://github.com/google/jax) for more details.
+
 <!-- #endregion -->
 
 ```bash id="vK0RZtbroQWe"
@@ -67,7 +71,9 @@ pip install -q --upgrade "jax[cuda11_cudnn805]" -f https://storage.googleapis.co
 ```
 
 <!-- #region id="wAtjM-IroYX8" -->
+
 Now we can finally install PySAGES. We clone the newest version from [here](https://github.com/SSAGESLabs/PySAGES) and build the remaining pure python dependencies and PySAGES itself.
+
 <!-- #endregion -->
 
 ```bash id="B-HB9CzioV5j"
@@ -79,13 +85,17 @@ pip install -q . &> /dev/null
 ```
 
 <!-- #region id="KBFVcG1FoeMq" -->
+
 # SpectralABF-biased simulations
+
 <!-- #endregion -->
 
 <!-- #region id="0W2ukJuuojAl" -->
+
 SpectralABF gradually learns a better approximation to the coefficients of a basis functions expansion of the free energy of a system, from the generalized mean forces in a similar fashion to the ABF sampling method.
 
 For this Colab, we are using alanine peptide in vacuum as example system.
+
 <!-- #endregion -->
 
 ```bash id="fre3-LYso1hh"
@@ -145,7 +155,9 @@ def generate_simulation(pdb_filename=adp_pdb, T=T, dt=dt):
 ```
 
 <!-- #region id="3UrzENm_oo6U" -->
+
 Next, we load PySAGES and the relevant classes and methods for our problem
+
 <!-- #endregion -->
 
 ```python id="fpMg-o8WomAA"
@@ -157,9 +169,11 @@ import pysages
 ```
 
 <!-- #region id="LknkRvo1o4av" -->
+
 The next step is to define the collective variable (CV). In this case, we choose the so called $\phi$ and $\psi$ dihedral angles of alanine dipeptide.
 
 We define a grid, which will be used to indicate how we want to bin the forces that will be used to approximate the biasing potential and its gradient.
+
 <!-- #endregion -->
 
 ```python id="B1Z8FWz0o7u_"
@@ -171,8 +185,10 @@ method = SpectralABF(cvs, grid)
 ```
 
 <!-- #region id="Fz8BfU34pA_N" -->
+
 We now simulate the number of time steps set above.
 Make sure to run with GPU support, otherwise, it can take a very long time.
+
 <!-- #endregion -->
 
 ```python id="K951m4BbpUar"
@@ -180,9 +196,11 @@ run_result = pysages.run(method, generate_simulation, timesteps)
 ```
 
 <!-- #region id="PXBKUfK0p9T2" -->
+
 ## Analysis
 
 Let's plot the free energy!
+
 <!-- #endregion -->
 
 ```python id="X69d1R7OpW4P"

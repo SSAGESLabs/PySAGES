@@ -14,14 +14,13 @@ Additional optional dependencies:
 import argparse
 import sys
 import time
-
-import numpy
-import pysages
-
 from importlib import import_module
 
+import numpy
+
+import pysages
 from pysages.colvars import Displacement
-from pysages.methods import Metadynamics, MetaDLogger
+from pysages.methods import MetaDLogger, Metadynamics
 from pysages.utils import try_import
 
 openmm = try_import("openmm", "simtk.openmm")

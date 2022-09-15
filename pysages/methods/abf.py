@@ -20,11 +20,14 @@ second order backward finite difference in the simulation time step.
 from functools import partial
 from typing import NamedTuple
 
-from jax import jit, numpy as np, vmap
+from jax import jit
+from jax import numpy as np
+from jax import vmap
 from jax.lax import cond
 from jax.scipy import linalg
 
-from pysages.approxfun.core import compute_mesh, scale as _scale
+from pysages.approxfun.core import compute_mesh
+from pysages.approxfun.core import scale as _scale
 from pysages.grids import build_indexer
 from pysages.methods.core import GriddedSamplingMethod, Result, generalize
 from pysages.methods.restraints import apply_restraints

@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 
 
+import ase.units as units
+
 # %%
 import numpy as np
-
-import ase.units as units
 from ase import Atoms
+from ase.calculators.tip3p import TIP3P, angleHOH, rOH
 from ase.constraints import FixBondLengths
-from ase.calculators.tip3p import TIP3P, rOH, angleHOH
-from ase.md import Langevin
 from ase.io.trajectory import Trajectory
+from ase.md import Langevin
 
 import pysages
-from pysages.grids import Grid
 from pysages.colvars import Distance
+from pysages.grids import Grid
 from pysages.methods import ABF
 
 

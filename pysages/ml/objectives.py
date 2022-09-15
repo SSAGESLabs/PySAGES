@@ -4,7 +4,10 @@
 
 from typing import NamedTuple, Union
 
+import jax.numpy as np
+import numpy as onp
 from jax import grad, value_and_grad, vmap
+
 from pysages.ml.utils import (
     dispatch,
     number_of_weights,
@@ -14,9 +17,6 @@ from pysages.ml.utils import (
     unpack,
 )
 from pysages.utils import Float
-
-import jax.numpy as np
-import numpy as onp
 
 
 # Losses

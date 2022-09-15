@@ -1,15 +1,18 @@
 from functools import partial
 
-from jax import numpy as np, grad, jit, vmap
-from pysages.approxfun import compute_mesh, scale as _scale
+import matplotlib.pyplot as plt
+from jax import grad, jit
+from jax import numpy as np
+from jax import vmap
+
+from pysages.approxfun import compute_mesh
+from pysages.approxfun import scale as _scale
 from pysages.grids import Chebyshev, Grid
 from pysages.ml.models import MLP, Siren
 from pysages.ml.objectives import L2Regularization, Sobolev1SSE
 from pysages.ml.optimizers import LevenbergMarquardt
 from pysages.ml.training import build_fitting_function
 from pysages.ml.utils import pack, unpack
-
-import matplotlib.pyplot as plt
 
 
 # Test functions

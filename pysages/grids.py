@@ -4,7 +4,8 @@
 
 from dataclasses import dataclass
 
-from jax import jit, numpy as np
+from jax import jit
+from jax import numpy as np
 from plum import Union, parametric, type_parameter
 
 from pysages.utils import JaxArray, dispatch

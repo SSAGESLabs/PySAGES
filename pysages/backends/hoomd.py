@@ -3,26 +3,26 @@
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 import importlib
-import hoomd
-
 from functools import partial
 from typing import Callable
 from warnings import warn
 
-from jax import jit, numpy as np
-from jax.dlpack import from_dlpack as asarray
+import hoomd
 from hoomd import md
 from hoomd.dlext import (
     AccessLocation,
     AccessMode,
+    DLExtSampler,
     SystemView,
     images,
     net_forces,
     positions_types,
     rtags,
     velocities_masses,
-    DLExtSampler,
 )
+from jax import jit
+from jax import numpy as np
+from jax.dlpack import from_dlpack as asarray
 
 from pysages.backends.core import ContextWrapper
 from pysages.backends.snapshot import (
@@ -31,11 +31,10 @@ from pysages.backends.snapshot import (
     Snapshot,
     SnapshotMethods,
     build_data_querier,
-    restore as _restore,
 )
+from pysages.backends.snapshot import restore as _restore
 from pysages.methods import SamplingMethod
 from pysages.utils import copy
-
 
 # TODO: Figure out a way to automatically tie the lifetime of Sampler
 # objects to the contexts they bind to

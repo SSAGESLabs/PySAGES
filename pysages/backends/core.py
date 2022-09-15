@@ -5,11 +5,7 @@
 from importlib import import_module
 from typing import Callable
 
-from jax import numpy as np
-
 import jax
-import warnings
-
 
 # Set default floating point type for arrays in `jax` to `jax.f64`
 jax.config.update("jax_enable_x64", True)
