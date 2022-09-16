@@ -46,3 +46,4 @@ yz
 hoomd
 SimulationContext
 decompositions
+conda
