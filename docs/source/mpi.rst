@@ -26,8 +26,8 @@ For HOOMD-blue simulations, note that this might interfere with their in-built M
 
 .. _mpi4py-version:
 
-Caution
--------
+Important
+---------
 
 Please ensure that your `mpi4py` module is compiled against the same MPI library that your MPI launcher i.e. `mpiexec` uses.
 In a cluster environment, these two can easily differ if for example `mpi4py` is installed via conda.
