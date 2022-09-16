@@ -17,95 +17,12 @@ import time
 from importlib import import_module
 
 import numpy
+from nacl import *
 
 import pysages
 from pysages.colvars import Displacement
 from pysages.methods import MetaDLogger, Metadynamics
 from pysages.utils import try_import
-
-openmm = try_import("openmm", "simtk.openmm")
-unit = try_import("openmm.unit", "simtk.unit")
-app = try_import("openmm.app", "simtk.openmm.app")
-
-
-# %%
-pi = numpy.pi
-kB = unit.BOLTZMANN_CONSTANT_kB * unit.AVOGADRO_CONSTANT_NA
-kB = kB.value_in_unit(unit.kilojoules_per_mole / unit.kelvin)
-
-T = 298.15 * unit.kelvin
-dt = 2.0 * unit.femtoseconds
-adp_pdb = "nacl-explicit.pdb"
-
-
-# %%
-def force_field_path():
-    try:
-        import_module("openmmforcefields")
-        return "amber/tip3p_standard.xml"
-    except ModuleNotFoundError:
-        request = import_module("urllib.request")
-        ff_url = (
-            "https://raw.githubusercontent.com/openmm/openmmforcefields/main/"
-            "amber/ffxml/tip3p_standard.xml"
-        )
-        ff_file, _ = request.urlretrieve(ff_url)
-        return ff_file
-
-
-# %%
-def generate_simulation(pdb_filename=adp_pdb, T=T, dt=dt):
-    pdb = app.PDBFile(pdb_filename)
-
-    ff = app.ForceField(force_field_path())
-    cutoff_distance = 1.0 * unit.nanometer
-    topology = pdb.topology
-
-    system = ff.createSystem(
-        topology, constraints=app.HBonds, nonbondedMethod=app.PME, nonbondedCutoff=cutoff_distance
-    )
-
-    # Set dispersion correction use.
-    forces = {}
-    for i in range(system.getNumForces()):
-        force = system.getForce(i)
-        forces[force.__class__.__name__] = force
-
-    forces["NonbondedForce"].setUseDispersionCorrection(True)
-    forces["NonbondedForce"].setEwaldErrorTolerance(1.0e-5)
-
-    positions = pdb.getPositions(asNumpy=True)
-
-    integrator = openmm.LangevinIntegrator(T, 1 / unit.picosecond, dt)
-
-    integrator.setRandomNumberSeed(42)
-
-    # platform = openmm.Platform.getPlatformByName(platform)
-    # simulation = app.Simulation(topology, system, integrator, platform)
-    simulation = app.Simulation(topology, system, integrator)
-    simulation.context.setPositions(positions)
-    simulation.minimizeEnergy()
-
-    simulation.reporters.append(app.PDBReporter("output.pdb", 1000))
-    simulation.reporters.append(
-        app.StateDataReporter("log.dat", 1000, step=True, potentialEnergy=True, temperature=True)
-    )
-
-    return simulation
-
-
-# %%
-def get_args(argv):
-    available_args = [
-        ("well-tempered", "w", bool, 0, "Whether to use well-tempered metadynamics"),
-        ("use-grids", "g", bool, 0, "Whether to use grid acceleration"),
-        ("log", "l", bool, 0, "Whether to use a callback to log data into a file"),
-        ("time-steps", "t", int, 5e5, "Number of simulation steps"),
-    ]
-    parser = argparse.ArgumentParser(description="Example script to run metadynamics")
-    for (name, short, T, val, doc) in available_args:
-        parser.add_argument("--" + name, "-" + short, type=T, default=T(val), help=doc)
-    return parser.parse_args(argv)
 
 
 # %%
