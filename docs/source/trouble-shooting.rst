@@ -18,7 +18,7 @@ We hope these are helpful, but if you do not find a solution to your problem, co
 * A PySAGES function cannot be launched and it errors with explaining that a function cannot be dispatched.
     * We are using `plum <https://github.com/wesselb/plum>`_ to dispatch functions with different arguments. Similar to C++ function overloading this happens by comparing the types (and number) of arguments to implemented functions. So make sure that your arguments are of the correct type. A common source of error is passing a numpy array, where a list is expected, or a float where an integer is expected. Plum does not try to cast your arguments into the correct types automatically.
 
-     
+
 * My HOOMD-blue 2.X simulation crashes with segfault at the beginning of the simulations.
     * Re-initializing the simulation context in the :code:`generate_context` ends with a segfault.::
 
@@ -26,10 +26,16 @@ We hope these are helpful, but if you do not find a solution to your problem, co
         with context:
           hoomd.context.initialize()
           ...
-  	  
+
       Should be replaced by::
-	
+
 	 hoomd.context.initialize()
 	 context = hoomd.context.SimulationContext()
 	 with context:
 	   ...
+
+* My MPI simulation executes the ranks/replicas on the same GPU, even as one GPU per rank is available.
+  * This failure can be related to a mismatch between the MPI version that launches the application and the MPI version your `mpi4py` module was built against. Checkout out note about this :ref:`here <mpi4py-version>`.
+
+* For my MPI simulations, every rank executes all tasks instead of splitting up the simulation load between ranks as desired.
+  * Similar to the note before, this can be caused by a mismatch of MPI implementation, check :ref:`here <mpi4py-version>` for more details.
