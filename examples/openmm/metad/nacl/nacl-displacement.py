@@ -11,18 +11,14 @@ Additional optional dependencies:
 """
 
 # %%
-import argparse
 import sys
 import time
-from importlib import import_module
 
-import numpy
-from nacl import *
+from nacl import generate_simulation, get_args, kB
 
 import pysages
 from pysages.colvars import Displacement
 from pysages.methods import MetaDLogger, Metadynamics
-from pysages.utils import try_import
 
 
 # %%
