@@ -80,8 +80,6 @@ def generate_simulation(pdb_filename=adp_pdb, T=T, dt=dt):
 
     integrator.setRandomNumberSeed(42)
 
-    # platform = openmm.Platform.getPlatformByName(platform)
-    # simulation = app.Simulation(topology, system, integrator, platform)
     simulation = app.Simulation(topology, system, integrator)
     simulation.context.setPositions(positions)
     simulation.minimizeEnergy()
