@@ -34,4 +34,4 @@ In a cluster environment, these two can easily differ if for example `mpi4py` is
 Conda might ship the build `mpi4py` module with MPICH implementation of MPI, but your host cluster system might use OpenMPI for MPI communication.
 This usually leads to "silent" complications. Instead of failing the application is executed as multiple independent ranks, each executing the entire workload.
 This is inefficient and easily leads to failure.
-We experienced that installation of `mpi4py` is more robust if installed via `pip` instead of `conda`.
+We have found that installing `mpi4py` is more robust if done via `pip` instead of `conda`.
