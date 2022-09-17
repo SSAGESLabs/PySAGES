@@ -102,11 +102,10 @@ For this Colab, we are estimating the free energy along the distance between Na 
 ```bash id="fre3-LYso1hh"
 
 # Download pdb file with the initial configuration of our system
-PDB_URL="https://raw.githubusercontent.com/sivadasetty/PySAGES/nacl-example/examples/inputs/nacl/nacl-explicit.pdb"
-wget -q $PDB_URL
+cp PySAGES/examples/inputs/nacl/nacl-explicit.pdb .
 
 # Download force field file
-ff_URL="https://raw.githubusercontent.com/openmm/openmmforcefields/main/amber/ffxml/tip3p_standard.xml"
+ff_URL="https://raw.githubusercontent.com/openmm/openmmforcefields/main/openmmforcefields/ffxml/amber/tip3p_standard.xml"
 wget -q $ff_URL
 ```
 
