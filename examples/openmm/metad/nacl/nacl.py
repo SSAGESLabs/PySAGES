@@ -47,13 +47,14 @@ def force_field_path():
         return "amber/tip3p_standard.xml"
     except ModuleNotFoundError:
         request = import_module("urllib.request")
-        opener = request.FancyURLopener({})
-        opener.version = "Mozilla/5.0"
         ff_url = (
             "https://raw.githubusercontent.com/openmm/openmmforcefields"
             "/main/openmmforcefields/ffxml/amber/tip3p_standard.xml"
         )
-        ff_file, _ = opener.retrieve(ff_url)
+        ff_file = "/tmp/tip3p_standard.xml"
+        with request.urlopen(ff_url) as response:
+            with open(ff_file, "w") as ff:
+                ff.write(response.read().decode())
         return ff_file
 
 
