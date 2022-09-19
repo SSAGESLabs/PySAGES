@@ -52,7 +52,7 @@ jobs:
       - name: Load and run test
         run: |
           SCRIPT="cd PySAGES/examples/openmm &&"
-          SCRIPT="${SCRIPT} python3 forward-flux-sampling.py "
+          SCRIPT="${SCRIPT} python3 forward_flux_sampling.py "
           SCRIPT="${SCRIPT} --cv-start=80 --cv-distance=2 --window-number=2 --sampling-steps=50 --replicas=5"
           docker load --input /tmp/pysages.tar
           docker run -t pysages bash -c "${SCRIPT}"
