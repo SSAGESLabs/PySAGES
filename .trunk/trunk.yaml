@@ -39,3 +39,27 @@ lint:
         - examples/hoomd-blue/funn/Butane_FUNN.md
         - examples/hoomd-blue/umbrella_integration/Umbrella_Integration.md
         - examples/openmm/metad/nacl/Metadynamics_NaCl.md
+merge:
+  required_statuses:
+    - trunk
+    - test (ubuntu-20.04, 3.7)
+    - test (ubuntu-20.04, 3.9)
+    - test (macos-latest, 3.7)
+    - test (macos-latest, 3.9)
+    - doc-test
+    - forward-flux-sampling
+    - abf-alanine-dipeptide-openmm
+    - spectral-abf-alanine-dipeptide-openmm
+    - abf-tip3p-water-ase
+    - metad-alanine-dipeptide-openmm
+    - alanine-dipeptide-openmm-mpi
+    - alanine-dipeptide-string
+    - openmm-nacl-metad-displacement
+    - metad-hoomd
+    - funn-butane-hoomd
+    - cff-butane-hoomd
+    - harmonic-bias-hoomd
+    - unbiased-hoomd
+    - umbrella-integration-hoomd
+    - improved-string-hoomd
+    - umbrella-integration-hoomd-mpi

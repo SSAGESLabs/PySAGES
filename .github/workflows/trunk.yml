@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - trunk-merge/**
   pull_request:
     branches:
       - main

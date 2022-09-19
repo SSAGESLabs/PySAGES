@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - trunk-merge/**
     paths-ignore:
       - "README.md"
       - "docs/*"
