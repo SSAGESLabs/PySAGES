@@ -40,22 +40,22 @@ jobs:
 
   forward-flux-sampling:
     runs-on: ubuntu-latest
-    container:
-      image: ssages/pysages-openmm
-      options: --user root --privileged
+    needs: build
     steps:
-      - uses: actions/checkout@v3
-      - name: Install pysages and dependecies
-        env:
-          JAX_PIP_URL: https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
-        run: |
-          pip install --upgrade "jax[cuda]" -f "${{ env.JAX_PIP_URL }}"
-          pip install .
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      - name: Download artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: pysages
+          path: /tmp
       - name: Load and run test
         run: |
-          cd examples/openmm
-          python3 forward_flux_sampling.py \
-            --cv-start=80 --cv-distance=2 --window-number=2 --sampling-steps=50 --replicas=5
+          SCRIPT="cd PySAGES/examples/openmm &&"
+          SCRIPT="${SCRIPT} python3 forward-flux-sampling.py "
+          SCRIPT="${SCRIPT} --cv-start=80 --cv-distance=2 --window-number=2 --sampling-steps=50 --replicas=5"
+          docker load --input /tmp/pysages.tar
+          docker run -t pysages bash -c "${SCRIPT}"
 
   abf-alanine-dipeptide-openmm:
     runs-on: ubuntu-latest
