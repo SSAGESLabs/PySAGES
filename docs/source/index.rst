@@ -11,6 +11,7 @@ PySAGES: Python Suite for Advanced General Ensemble Simulations
 
     |Github Actions CI|
     |Github Actions CI Docker|
+    |Github Actions Trunk|
     |Documentation Status|
 
     .. |Documentation Status| image:: https://readthedocs.org/projects/pysages/badge/?version=latest
@@ -19,6 +20,8 @@ PySAGES: Python Suite for Advanced General Ensemble Simulations
         :target: https://github.com/SSAGESLabs/PySAGES/actions/workflows/ci.yml
     .. |GitHub Actions CI Docker| image:: https://github.com/SSAGESLabs/PySAGES/actions/workflows/docker-ci.yml/badge.svg?branch=main
         :target: https://github.com/SSAGESLabs/PySAGES/actions/workflows/docker-ci.yml
+    .. |GitHub Actions Trunk| image:: https://github.com/SSAGESLabs/PySAGES/actions/workflows/trunk.yml/badge.svg?branch=main
+        :target: https://github.com/SSAGESLabs/PySAGES/actions/workflows/trunk.yml
 
 
 Molecular dynamics (MD) simulations are powerful tools to investigate the static and dynamic properties of a given system.
