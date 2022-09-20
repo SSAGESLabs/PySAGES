@@ -36,7 +36,7 @@ Examples for Methods using OpenMM can be found in the subfolder [openmm](openmm)
 
 - Harmonic bias for the dihedral angle of Alanine Dipeptide: [![Harmonic Bias](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/examples/openmm/Harmonic_Bias.ipynb)
 - Metadynamics sampling with Alanine Dipeptide: [![Metadynamics](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/examples/openmm/metad/Metadynamics-ADP.ipynb)
-- Metadynamics sampling with NaCL [![MetadynamicsNaCl](https://colab.research.google.com/assets/colab-badge.svg)]((https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/examples/openmm/metad/nacl/Metadynamics_NaCl.ipynb)
+- Metadynamics sampling with NaCL [![MetadynamicsNaCl](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/examples/openmm/metad/nacl/Metadynamics_NaCl.ipynb)
 - Spectral ABF sampling with Alanine Dipeptide: [![SpectralABF](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/examples/openmm/spectral_abf/ADP_SpectralABF.ipynb)
 
 ### OpenMM script examples
