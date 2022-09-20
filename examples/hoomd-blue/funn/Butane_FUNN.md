@@ -365,32 +365,23 @@ Make sure to run with GPU support, otherwise, it can take a very long time.
 <!-- #endregion -->
 
 ```python colab={"base_uri": "https://localhost:8080/"} id="K951m4BbpUar" outputId="f3e79872-41da-479a-caec-5bca7a6792e5"
-method.run(generate_context, int(5e5))
+run_result = pysages.run(method, generate_context, int(5e5))
 ```
 
 <!-- #region id="PXBKUfK0p9T2" -->
 
-Since the neural network learns the gradient of the free energy, we need a separate way of integrating it to find the free energy surface. Let's plot first the gradient of the free energy.
-
+Let's now plot the free energy landscape learned by the FUNN sampling method.
 <!-- #endregion -->
 
 ```python id="X69d1R7OpW4P"
-from pysages.approxfun import compute_mesh
-from pysages.ml.utils import pack, unpack
-
 import matplotlib.pyplot as plt
 ```
 
 ```python id="6W7Xf0ilqAcm"
-xi = (compute_mesh(grid) + 1) / 2 * grid.size + grid.lower
+result = pysages.analyze(run_result)
 
-model = method.model
-layout = unpack(model.parameters)[1]
-
-state = method.context[0].sampler.state
-nn = state.nn
-params = pack(nn.params, layout)
-dA = nn.std * model.apply(params, xi.reshape(-1, 1)) + nn.mean
+mesh = result["mesh"]
+A = result["free_energy"]
 ```
 
 ```python colab={"base_uri": "https://localhost:8080/", "height": 300} id="TBiPAnMwqEIF" outputId="3a13a52d-2bd8-4122-db13-18bc6a11c797"
@@ -399,34 +390,7 @@ fig, ax = plt.subplots()
 ax.set_xlabel(r"Dihedral Angle, $\xi$")
 ax.set_ylabel(r"$\nabla A(\xi)$")
 
-ax.plot(xi, dA)
+ax.plot(mesh, A)
 plt.gca()
 ```
 
-<!-- #region id="Kf_CMdih90Cd" -->
-
-Finally, we make use of the `pysages.approxfun` module to build a Fourier series approximation to the free energy
-
-<!-- #endregion -->
-
-```python id="pTIGVSSqKdbs"
-from pysages.approxfun import SpectralGradientFit, build_evaluator, build_fitter
-
-fourier_model = SpectralGradientFit(grid)
-fourier_fit = build_fitter(fourier_model)
-evaluate = build_evaluator(fourier_model)
-
-fun = fourier_fit(dA)
-A = evaluate(fun, compute_mesh(grid))
-A = A.max() - A
-```
-
-```python colab={"base_uri": "https://localhost:8080/", "height": 303} id="7_d_XfVLLkbI" outputId="3bd503ea-fe33-4a57-a28d-1c3a70e63c50"
-fig, ax = plt.subplots()
-
-ax.set_xlabel(r"Dihedral Angle, $\xi$")
-ax.set_ylabel(r"$A(\xi)$")
-
-ax.plot(xi, A)
-plt.gca()
-```
