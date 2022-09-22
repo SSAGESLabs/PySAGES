@@ -3,6 +3,7 @@
 [![Documentation Status](https://readthedocs.org/projects/pysages/badge/?version=latest)](https://pysages.readthedocs.io/en/latest/?badge=latest)
 [![GitHub Actions](https://github.com/SSAGESLabs/PySAGES/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/SSAGESLabs/PySAGES/actions/workflows/ci.yml)
 [![GitHub Actions](https://github.com/SSAGESLabs/PySAGES/actions/workflows/docker-ci.yml/badge.svg?branch=main)](https://github.com/SSAGESLabs/PySAGES/actions/workflows/docker-ci.yml)
+[![GitHub Actions](https://github.com/SSAGESLabs/PySAGES/actions/workflows/trunk.yml/badge.svg?branch=main)](https://github.com/SSAGESLabs/PySAGES/actions/workflows/trunk.yml)
 
 PySAGES (Python Suite for Advanced General Ensemble Simulations) is a Python
 implementation of [SSAGES](https://ssagesproject.github.io) with support for GPUs.
