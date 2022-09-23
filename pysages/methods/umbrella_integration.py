@@ -17,6 +17,7 @@ However, the method is not very accurate and it is preferred that more advanced 
 from copy import deepcopy
 from typing import Callable, Optional, Union
 
+import numpy
 import plum
 
 from pysages.methods.core import Result, SamplingMethod, _run
@@ -213,10 +214,10 @@ def analyze(result: Result[UmbrellaIntegration]):
             free_energy.append(integrate(free_energy, mean_forces, centers, i))
 
     return dict(
-        ksprings=ksprings,
-        centers=centers,
-        histograms=result.callbacks,
-        histogram_means=hist_means,
-        mean_forces=mean_forces,
-        free_energy=free_energy,
+        ksprings=numpy.asarray(ksprings),
+        centers=numpy.asarray(centers),
+        histograms=numpy.asarray(result.callbacks.data),
+        histogram_means=numpy.asarray(hist_means),
+        mean_forces=numpy.asarray(mean_forces),
+        free_energy=numpy.asarray(free_energy),
     )

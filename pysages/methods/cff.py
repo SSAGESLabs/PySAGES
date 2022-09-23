@@ -15,6 +15,7 @@ two neural networks to approximate the free energy and its derivatives.
 from functools import partial
 from typing import NamedTuple, Tuple
 
+import numpy
 from jax import jit
 from jax import numpy as np
 from jax import vmap
@@ -413,11 +414,11 @@ def analyze(result: Result[CFF]):
         fes_fns.append(build_fes_fn(s.nn))
 
     return dict(
-        histogram=histograms,
-        mean_force=mean_forces,
-        free_energy=free_energies,
-        mesh=mesh,
-        nn=nns,
-        fnn=fnns,
-        fes_fn=fes_fns,
+        histogram=numpy.asarray(histograms),
+        mean_force=numpy.asarray(mean_forces),
+        free_energy=numpy.asarray(free_energies),
+        mesh=numpy.asarray(mesh),
+        nn=numpy.asarray(nns),
+        fnn=numpy.asarray(fnns),
+        fes_fn=numpy.asarray(fes_fns),
     )

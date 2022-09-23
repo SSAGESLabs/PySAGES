@@ -16,6 +16,7 @@ provided by the basis functions expansion.
 
 from typing import NamedTuple, Tuple
 
+import numpy
 from jax import jit
 from jax import numpy as np
 from jax.lax import cond
@@ -325,10 +326,10 @@ def analyze(result: Result[SpectralABF]):
         fes_fns.append(fes_fn)
 
     return dict(
-        histogram=first_or_all(hists),
-        mean_force=first_or_all(mean_forces),
-        free_energy=first_or_all(free_energies),
-        mesh=mesh,
-        fun=first_or_all(funs),
-        fes_fn=first_or_all(fes_fns),
+        histogram=numpy.asarray(first_or_all(hists)),
+        mean_force=numpy.asarray(first_or_all(mean_forces)),
+        free_energy=numpy.asarray(first_or_all(free_energies)),
+        mesh=numpy.asarray(mesh),
+        fun=numpy.asarray(first_or_all(funs)),
+        fes_fn=numpy.asarray(first_or_all(fes_fns)),
     )

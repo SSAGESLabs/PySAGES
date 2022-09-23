@@ -17,6 +17,7 @@ as biasing force for the simulation.
 from functools import partial
 from typing import NamedTuple
 
+import numpy
 from jax import grad, jit
 from jax import numpy as np
 from jax import vmap
@@ -304,9 +305,9 @@ def analyze(result: Result[ANN]):
         fes_fns.append(build_fes_fn(s.nn))
 
     return dict(
-        histogram=first_or_all(histograms),
-        free_energy=first_or_all(free_energies),
-        mesh=mesh,
-        nn=first_or_all(nns),
-        fes_fn=first_or_all(fes_fns),
+        histogram=numpy.asarray(first_or_all(histograms)),
+        free_energy=numpy.asarray(first_or_all(free_energies)),
+        mesh=numpy.asarray(mesh),
+        nn=numpy.asarray(first_or_all(nns)),
+        fes_fn=numpy.asarray(first_or_all(fes_fns)),
     )

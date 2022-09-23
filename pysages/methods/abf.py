@@ -20,6 +20,7 @@ second order backward finite difference in the simulation time step.
 from functools import partial
 from typing import NamedTuple
 
+import numpy
 from jax import jit
 from jax import numpy as np
 from jax import vmap
@@ -338,9 +339,9 @@ def analyze(result: Result[ABF], **kwargs):
     fes_fn = build_fes_fn(state)
 
     return dict(
-        histogram=state.hist,
-        mean_force=average_forces(state),
-        free_energy=fes_fn(inputs).reshape(grid.shape),
-        mesh=inputs,
-        fes_fn=fes_fn,
+        histogram=numpy.asarray(state.hist),
+        mean_force=numpy.asarray(average_forces(state)),
+        free_energy=numpy.asarray(fes_fn(inputs).reshape(grid.shape)),
+        mesh=numpy.asarray(inputs),
+        fes_fn=numpy.asarray(fes_fn),
     )

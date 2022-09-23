@@ -283,7 +283,7 @@ def analyze(result: Result[SplineString]):
 
     umbrella_result = Result(result.method.umbrella_sampler, result.states, result.callbacks)
     ana = pysages.analyze(umbrella_result)
-    ana["path_history"] = result.method.path_history
+    ana["path_history"] = np.asarray(result.method.path_history)
     path = []
     point_convergence = []
     for i in range(len(result.method.path_history[-1])):

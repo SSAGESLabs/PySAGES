@@ -9,6 +9,7 @@ both with optional support for grids.
 
 from typing import NamedTuple, Optional
 
+import numpy
 from jax import grad, jit
 from jax import numpy as np
 from jax import value_and_grad, vmap
@@ -365,4 +366,4 @@ def analyze(result: Result[Metadynamics]):
         heights.append(s.heights)
         metapotentials.append(build_metapotential(s.heights, s.centers, s.sigmas))
 
-    return dict(heights=heights, metapotential=metapotentials)
+    return dict(heights=numpy.asarray(heights), metapotential=numpy.asarray(metapotentials))
