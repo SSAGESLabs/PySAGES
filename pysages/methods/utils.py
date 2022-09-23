@@ -8,6 +8,7 @@ Collection of helpful classes for methods.
 This includes callback functor objects (callable classes).
 """
 
+import copy
 from concurrent.futures import Executor, Future
 
 import numpy
@@ -77,7 +78,7 @@ class HistogramLogger:
         self.period = period
         self.counter = 0
         self.offset = offset
-        self.data = []
+        self.data = None
 
     def __call__(self, snapshot, state, timestep):
         """
@@ -85,7 +86,10 @@ class HistogramLogger:
         """
         self.counter += 1
         if self.counter > self.offset and self.counter % self.period == 0:
-            self.data = np.concatenate((self.data, state.xi[0]))
+            if self.data is None:
+                self.data = copy.copy(state.xi[0]).reshape((1,) + state.xi[0].shape)
+            else:
+                self.data = np.concatenate((self.data, state.xi[0]))
 
     def get_histograms(self, **kwargs):
         """
