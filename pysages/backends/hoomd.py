@@ -229,10 +229,13 @@ def build_helpers(context, sampling_method):
         forces[:, :3] += biases
         sync_forces()
 
+    def dimensionality():
+        return 3  # all HOOMD-blue simulations boxes are 3-dimensional
+
     snapshot_methods = build_snapshot_methods(sampling_method)
     flags = sampling_method.snapshot_flags
     restore = partial(_restore, view)
-    helpers = HelperMethods(build_data_querier(snapshot_methods, flags))
+    helpers = HelperMethods(build_data_querier(snapshot_methods, flags), dimensionality)
 
     return helpers, restore, bias
 

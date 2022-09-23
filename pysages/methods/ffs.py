@@ -23,8 +23,8 @@ from pysages.utils import JaxArray, dispatch
 
 
 class FFSState(NamedTuple):
-    bias: JaxArray
     xi: JaxArray
+    bias: Optional[JaxArray]
 
     def __repr__(self):
         return repr("PySAGES " + type(self).__name__)
@@ -212,18 +212,15 @@ def _ffs(method, snapshot, helpers):
     Tuple `(snapshot, initialize, update)` as described above.
     """
     cv = method.cv
-    natoms = np.size(snapshot.positions, 0)
 
     # initialize method
     def initialize():
-        bias = np.zeros((natoms, 3))
         xi = cv(helpers.query(snapshot))
-        return FFSState(bias, xi)
+        return FFSState(xi, None)
 
     def update(state, data):
         xi = cv(data)
-        bias = state.bias
-        return FFSState(bias, xi)
+        return FFSState(xi, None)
 
     return snapshot, initialize, generalize(update, helpers)
 

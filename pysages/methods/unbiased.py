@@ -12,7 +12,7 @@ A common use case is to record collective variables in unbiased
 simulations via the Histogram logger.
 """
 
-from typing import NamedTuple
+from typing import NamedTuple, Optional
 
 from pysages.methods.core import SamplingMethod, generalize
 from pysages.utils import JaxArray
@@ -25,12 +25,12 @@ class UnbiasedState(NamedTuple):
     xi: JaxArray
         Collective variable value of the last simulation step.
 
-    bias: JaxArray
-        Array with zero biasing force in the simulation.
+    bias: Optional[JaxArray]
+        Either None or an array with all entries equal to zero.
     """
 
     xi: JaxArray
-    bias: JaxArray
+    bias: Optional[JaxArray]
 
     def __repr__(self):
         return repr("PySAGES" + type(self).__name__)

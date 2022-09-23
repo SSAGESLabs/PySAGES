@@ -28,14 +28,15 @@ class HarmonicBiasState(NamedTuple):
     """
     Description of a state biased by a harmonic potential for a CV.
 
-    bias: JaxArray
-        Array with harmonic biasing forces for each particle in the simulation.
     xi: JaxArray
         Collective variable value of the last simulation step.
-    """
 
     bias: JaxArray
+        Array with harmonic biasing forces for each particle in the simulation.
+    """
+
     xi: JaxArray
+    bias: JaxArray
 
     def __repr__(self):
         return repr("PySAGES" + type(self).__name__)
@@ -118,8 +119,9 @@ def _harmonic_bias(method, snapshot, helpers):
     natoms = np.size(snapshot.positions, 0)
 
     def initialize():
-        bias = np.zeros((natoms, 3))
-        return HarmonicBiasState(bias, None)
+        xi, _ = cv(helpers.query(snapshot))
+        bias = np.zeros((natoms, helpers.dimensionality()))
+        return HarmonicBiasState(xi, bias)
 
     def update(state, data):
         xi, Jxi = cv(data)
@@ -127,6 +129,6 @@ def _harmonic_bias(method, snapshot, helpers):
         bias = -Jxi.T @ forces.flatten()
         bias = bias.reshape(state.bias.shape)
 
-        return HarmonicBiasState(bias, xi)
+        return HarmonicBiasState(xi, bias)
 
     return snapshot, initialize, generalize(update, helpers)
