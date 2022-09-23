@@ -9,7 +9,6 @@ both with optional support for grids.
 
 from typing import NamedTuple, Optional
 
-import numpy
 from jax import grad, jit
 from jax import numpy as np
 from jax import value_and_grad, vmap
@@ -19,6 +18,7 @@ from pysages.approxfun import compute_mesh
 from pysages.colvars import get_periods, wrap
 from pysages.grids import build_indexer
 from pysages.methods.core import GriddedSamplingMethod, Result, generalize
+from pysages.methods.utils import numpyfy_dictionary
 from pysages.utils import JaxArray, dispatch, gaussian, identity
 
 
@@ -366,4 +366,5 @@ def analyze(result: Result[Metadynamics]):
         heights.append(s.heights)
         metapotentials.append(build_metapotential(s.heights, s.centers, s.sigmas))
 
-    return dict(heights=numpy.asarray(heights), metapotential=numpy.asarray(metapotentials))
+    ana_result = dict(heights=heights, metapotential=metapotentials)
+    return numpyfy_dictionary(ana_result)

@@ -18,7 +18,6 @@ appropriate method.
 from functools import partial
 from typing import NamedTuple, Tuple
 
-import numpy
 from jax import jit
 from jax import numpy as np
 from jax import vmap
@@ -30,6 +29,7 @@ from pysages.approxfun import scale as _scale
 from pysages.grids import build_indexer
 from pysages.methods.core import NNSamplingMethod, Result, generalize
 from pysages.methods.restraints import apply_restraints
+from pysages.methods.utils import numpyfy_dictionary
 from pysages.ml.models import MLP
 from pysages.ml.objectives import GradientsSSE, L2Regularization
 from pysages.ml.optimizers import LevenbergMarquardt
@@ -381,11 +381,12 @@ def analyze(result: Result[FUNN]):
         nns.append(s.nn)
         fes_fns.append(fes_fn)
 
-    return dict(
-        histogram=numpy.asarray(first_or_all(hists)),
-        mean_force=numpy.asarray(first_or_all(mean_forces)),
-        free_energy=numpy.asarray(first_or_all(free_energies)),
-        mesh=numpy.asarray(mesh),
-        nn=numpy.asarray(first_or_all(nns)),
-        fes_fn=numpy.asarray(first_or_all(fes_fns)),
+    ana_result = dict(
+        histogram=first_or_all(hists),
+        mean_force=first_or_all(mean_forces),
+        free_energy=first_or_all(free_energies),
+        mesh=mesh,
+        nn=first_or_all(nns),
+        fes_fn=first_or_all(fes_fns),
     )
+    return numpyfy_dictionary(ana_result)

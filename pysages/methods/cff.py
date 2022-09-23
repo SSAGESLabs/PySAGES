@@ -15,7 +15,6 @@ two neural networks to approximate the free energy and its derivatives.
 from functools import partial
 from typing import NamedTuple, Tuple
 
-import numpy
 from jax import jit
 from jax import numpy as np
 from jax import vmap
@@ -27,6 +26,7 @@ from pysages.approxfun import scale as _scale
 from pysages.grids import build_indexer
 from pysages.methods.core import NNSamplingMethod, Result, generalize
 from pysages.methods.restraints import apply_restraints
+from pysages.methods.utils import numpyfy_dictionary
 from pysages.ml.models import MLP
 from pysages.ml.objectives import L2Regularization, Sobolev1SSE
 from pysages.ml.optimizers import LevenbergMarquardt
@@ -413,12 +413,13 @@ def analyze(result: Result[CFF]):
         fnns.append(s.fnn)
         fes_fns.append(build_fes_fn(s.nn))
 
-    return dict(
-        histogram=numpy.asarray(histograms),
-        mean_force=numpy.asarray(mean_forces),
-        free_energy=numpy.asarray(free_energies),
-        mesh=numpy.asarray(mesh),
-        nn=numpy.asarray(nns),
-        fnn=numpy.asarray(fnns),
-        fes_fn=numpy.asarray(fes_fns),
+    ana_result = dict(
+        histogram=histograms,
+        mean_force=mean_forces,
+        free_energy=free_energies,
+        mesh=mesh,
+        nn=nns,
+        fnn=fnns,
+        fes_fn=fes_fns,
     )
+    return numpyfy_dictionary(ana_result)

@@ -17,7 +17,6 @@ as biasing force for the simulation.
 from functools import partial
 from typing import NamedTuple
 
-import numpy
 from jax import grad, jit
 from jax import numpy as np
 from jax import vmap
@@ -27,6 +26,7 @@ from pysages.approxfun import compute_mesh
 from pysages.approxfun import scale as _scale
 from pysages.grids import build_indexer
 from pysages.methods.core import NNSamplingMethod, Result, generalize
+from pysages.methods.utils import numpyfy_dictionary
 from pysages.ml.models import MLP
 from pysages.ml.objectives import L2Regularization
 from pysages.ml.optimizers import LevenbergMarquardt
@@ -304,10 +304,11 @@ def analyze(result: Result[ANN]):
         nns.append(s.nn)
         fes_fns.append(build_fes_fn(s.nn))
 
-    return dict(
-        histogram=numpy.asarray(first_or_all(histograms)),
-        free_energy=numpy.asarray(first_or_all(free_energies)),
-        mesh=numpy.asarray(mesh),
-        nn=numpy.asarray(first_or_all(nns)),
-        fes_fn=numpy.asarray(first_or_all(fes_fns)),
+    ana_result = dict(
+        histogram=first_or_all(histograms),
+        free_energy=first_or_all(free_energies),
+        mesh=mesh,
+        nn=first_or_all(nns),
+        fes_fn=first_or_all(fes_fns),
     )
+    return numpyfy_dictionary(ana_result)

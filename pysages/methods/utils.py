@@ -10,6 +10,7 @@ This includes callback functor objects (callable classes).
 
 from concurrent.futures import Executor, Future
 
+import numpy
 from jax import numpy as np
 from plum import Dispatcher
 
@@ -174,3 +175,31 @@ def listify(arg, replicas, name, dtype):
         return arg
 
     return [dtype(arg) for i in range(replicas)]
+
+
+def numpyfy_dictionary(dictionary: dict):
+    """
+    Iterate all keys of the dictionary and convert every possible value into a numpy array.
+
+    Strings and numpy arrays, that would result in dtype=object are not converted.
+
+    Parameters
+    ----------
+
+    dictionary: dict
+        Input dictionary, which keys are attempted to be converted to numpy arrays.
+
+    Returns
+    -------
+
+    dict: The same dictionary, but keys are preferrably numpy arrays.
+    """
+
+    new_dict = {}
+    for key in dictionary:
+        new_dict[key] = dictionary[key]
+        if isinstance(dictionary[key], str):
+            numpy_array = numpy.asarray(dictionary[key])
+            if numpy_array.dtype != numpy.dtype("O"):
+                new_dict[key] = numpy_array
+    return new_dict

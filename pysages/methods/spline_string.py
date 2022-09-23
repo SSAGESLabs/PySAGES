@@ -24,7 +24,7 @@ from scipy.interpolate import interp1d
 import pysages
 from pysages.methods.core import Result, SamplingMethod
 from pysages.methods.umbrella_integration import UmbrellaIntegration
-from pysages.methods.utils import SerialExecutor, listify
+from pysages.methods.utils import SerialExecutor, listify, numpyfy_dictionary
 from pysages.utils import dispatch
 
 
@@ -283,7 +283,7 @@ def analyze(result: Result[SplineString]):
 
     umbrella_result = Result(result.method.umbrella_sampler, result.states, result.callbacks)
     ana = pysages.analyze(umbrella_result)
-    ana["path_history"] = np.asarray(result.method.path_history)
+    ana["path_history"] = result.method.path_history
     path = []
     point_convergence = []
     for i in range(len(result.method.path_history[-1])):
@@ -291,7 +291,7 @@ def analyze(result: Result[SplineString]):
         b = result.method.path_history[-1][i]
         point_convergence.append(result.method.metric(a, b))
         path.append(a)
-    ana["point_convergence"] = np.asarray(point_convergence)
-    ana["path"] = np.asarray(path)
+    ana["point_convergence"] = point_convergence
+    ana["path"] = path
 
-    return ana
+    return numpyfy_dictionary(ana)
