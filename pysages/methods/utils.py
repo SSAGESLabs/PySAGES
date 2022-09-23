@@ -181,7 +181,7 @@ def numpyfy_dictionary(dictionary: dict):
     """
     Iterate all keys of the dictionary and convert every possible value into a numpy array.
 
-    Strings and numpy arrays, that would result in dtype=object are not converted.
+    Strings and numpy arrays, that would result in `dtype == object` are not converted.
 
     Parameters
     ----------
@@ -192,7 +192,7 @@ def numpyfy_dictionary(dictionary: dict):
     Returns
     -------
 
-    dict: The same dictionary, but keys are preferrably numpy arrays.
+    dict: The same dictionary, but keys are preferably numpy arrays.
     """
 
     new_dict = {}
