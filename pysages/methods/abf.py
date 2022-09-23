@@ -31,7 +31,7 @@ from pysages.approxfun.core import scale as _scale
 from pysages.grids import build_indexer
 from pysages.methods.core import GriddedSamplingMethod, Result, generalize
 from pysages.methods.restraints import apply_restraints
-from pysages.methods.utils import numpyfy_dictionay
+from pysages.methods.utils import numpyfy_dictionary
 from pysages.ml.models import MLP
 from pysages.ml.objectives import GradientsSSE, L2Regularization
 from pysages.ml.optimizers import LevenbergMarquardt
@@ -345,4 +345,4 @@ def analyze(result: Result[ABF], **kwargs):
         mesh=inputs,
         fes_fn=fes_fn,
     )
-    return numpyfy_dictionay(ana_result)
+    return numpyfy_dictionary(ana_result)
