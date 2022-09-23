@@ -89,7 +89,9 @@ class HistogramLogger:
             if self.data is None:
                 self.data = copy.copy(state.xi[0]).reshape((1,) + state.xi[0].shape)
             else:
-                self.data = np.concatenate((self.data, state.xi[0]))
+                self.data = np.concatenate(
+                    (self.data, state.xi[0]).reshape((1,) + state.xi[0].shape)
+                )
 
     def get_histograms(self, **kwargs):
         """
