@@ -85,7 +85,7 @@ class HistogramLogger:
         """
         self.counter += 1
         if self.counter > self.offset and self.counter % self.period == 0:
-            self.data.append(state.xi[0])
+            self.data = np.concatenate((self.data, state.xi[0]))
 
     def get_histograms(self, **kwargs):
         """
@@ -117,6 +117,9 @@ class HistogramLogger:
         """
         self.counter = 0
         self.data = []
+
+    def numpyfy(self):
+        self.data = numpy.asarray(self.data)
 
 
 # NOTE: for OpenMM; issue #16 on openmm-dlext should be resolved for this to work properly.
@@ -177,9 +180,11 @@ def listify(arg, replicas, name, dtype):
     return [dtype(arg) for i in range(replicas)]
 
 
-def numpyfy_dictionary(dictionary: dict):
+def numpyfy_dictionary(dictionary: dict, numpy_only: bool = False):
     """
     Iterate all keys of the dictionary and convert every possible value into a numpy array.
+    We recommend to pickle final analyzed results are numpyfying
+    with `numpy_only=True` to avoid pickling issues.
 
     Strings and numpy arrays, that would result in `dtype == object` are not converted.
 
@@ -188,7 +193,8 @@ def numpyfy_dictionary(dictionary: dict):
 
     dictionary: dict
         Input dictionary, which keys are attempted to be converted to numpy arrays.
-
+    numpy_only: bool
+        If true, any not simple numpy array object is excluded from the results.
     Returns
     -------
 
@@ -197,7 +203,8 @@ def numpyfy_dictionary(dictionary: dict):
 
     new_dict = {}
     for key in dictionary:
-        new_dict[key] = dictionary[key]
+        if not numpy_only:
+            new_dict[key] = dictionary[key]
         if isinstance(dictionary[key], str):
             numpy_array = numpy.asarray(dictionary[key])
             if numpy_array.dtype != numpy.dtype("O"):

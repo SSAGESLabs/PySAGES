@@ -217,10 +217,13 @@ def analyze(result: Result[UmbrellaIntegration]):
         if i > 0:
             free_energy.append(integrate(free_energy, mean_forces, centers, i))
 
+    for callback in result.callbacks:
+        callback.numpyfy()
+
     ana_result = dict(
         ksprings=ksprings,
         centers=centers,
-        histograms_data=result.callbacks.data,
+        histograms_data=result.callbacks,
         histogram_means=hist_means,
         mean_forces=mean_forces,
         free_energy=free_energy,
