@@ -386,7 +386,6 @@ result = pysages.analyze(run_result)
 
 mesh = result["mesh"]
 A = result["free_energy"]
-A = A.max() - A
 ```
 
 ```python colab={"base_uri": "https://localhost:8080/", "height": 300} id="TBiPAnMwqEIF" outputId="de1e6c26-0dc9-48ef-cecd-6f94bf11c25c"
