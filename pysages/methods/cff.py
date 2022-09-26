@@ -377,26 +377,15 @@ def analyze(result: Result[CFF]):
         return Fsum / np.maximum(hist, 1)
 
     def build_fes_fn(nn):
-        params = pack(nn.params, layout)
-        return jit(lambda x: nn.std * model.apply(params, x))
+        def fes_fn(x):
+            params = pack(nn.params, layout)
+            A = nn.std * model.apply(params, x) + nn.mean
+            return A.max() - A
 
-    if len(states) == 1:
-        hist = states[0].hist
-        mean_force = average_forces(hist, states[0].Fsum)
-        fes_fn = build_fes_fn(states[0].nn)
+        return jit(fes_fn)
 
-        return dict(
-            histogram=hist,
-            mean_force=mean_force,
-            free_energy=states[0].fe,
-            mesh=mesh,
-            nn=states[0].nn,
-            fnn=states[0].fnn,
-            fes_fn=fes_fn,
-        )
-
-    # For multiple-replicas runs we return a list heights and functions
-    # (one for each replica)
+    def first_or_all(seq):
+        return seq[0] if len(seq) == 1 else seq
 
     histograms = []
     mean_forces = []
@@ -408,18 +397,18 @@ def analyze(result: Result[CFF]):
     for s in states:
         histograms.append(s.hist)
         mean_forces.append(average_forces(s.hist, s.Fsum))
-        free_energies.append(s.fe)
+        free_energies.append(s.fe.max() - s.fe)
         nns.append(s.nn)
         fnns.append(s.fnn)
         fes_fns.append(build_fes_fn(s.nn))
 
     ana_result = dict(
-        histogram=histograms,
-        mean_force=mean_forces,
-        free_energy=free_energies,
+        histogram=first_or_all(histograms),
+        mean_force=first_or_all(mean_forces),
+        free_energy=first_or_all(free_energies),
         mesh=mesh,
-        nn=nns,
-        fnn=fnns,
-        fes_fn=fes_fns,
+        nn=first_or_all(nns),
+        fnn=first_or_all(fnns),
+        fes_fn=first_or_all(fes_fns),
     )
     return numpyfy_vals(ana_result)
