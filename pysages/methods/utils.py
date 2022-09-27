@@ -121,7 +121,7 @@ class HistogramLogger:
         Reset internal state.
         """
         self.counter = 0
-        self.data = []
+        self.data = None
 
     def numpyfy(self):
         self.data = numpy.asarray(self.data)

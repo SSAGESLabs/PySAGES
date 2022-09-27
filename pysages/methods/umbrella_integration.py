@@ -223,7 +223,7 @@ def analyze(result: Result[UmbrellaIntegration]):
     ana_result = dict(
         ksprings=ksprings,
         centers=centers,
-        histograms_data=result.callbacks,
+        histograms=result.callbacks,
         histogram_means=hist_means,
         mean_forces=mean_forces,
         free_energy=free_energy,
