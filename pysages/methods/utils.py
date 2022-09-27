@@ -86,12 +86,11 @@ class HistogramLogger:
         """
         self.counter += 1
         if self.counter > self.offset and self.counter % self.period == 0:
+            xi = state.xi[0]
             if self.data is None:
-                self.data = copy.copy(state.xi[0].reshape((1,) + state.xi[0].shape))
+                self.data = copy.copy(xi)
             else:
-                self.data = np.concatenate(
-                    (self.data, state.xi[0].reshape((1,) + state.xi[0].shape))
-                )
+                self.data = np.vstack((self.data, xi))
 
     def get_histograms(self, **kwargs):
         """
