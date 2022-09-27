@@ -80,9 +80,12 @@ def build_snapshot_methods(context, sampling_method):
 
 
 def build_helpers(context, sampling_method):
+    def dimensionality():
+        return 3  # are all ASE simulations boxes 3-dimensional?
+
     snapshot_methods = build_snapshot_methods(context, sampling_method)
     flags = sampling_method.snapshot_flags
-    helpers = HelperMethods(build_data_querier(snapshot_methods, flags))
+    helpers = HelperMethods(build_data_querier(snapshot_methods, flags), dimensionality)
 
     return helpers
 

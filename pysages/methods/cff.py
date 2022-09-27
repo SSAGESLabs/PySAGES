@@ -190,7 +190,7 @@ def _cff(method: CFF, snapshot, helpers):
         gshape = grid.shape if dims > 1 else (*grid.shape, 1)
 
         xi, _ = cv(helpers.query(snapshot))
-        bias = np.zeros((natoms, 3))
+        bias = np.zeros((natoms, helpers.dimensionality()))
         hist = np.zeros(gshape, dtype=np.uint32)
         histp = np.zeros(gshape, dtype=np.uint32)
         prob = np.zeros(gshape)

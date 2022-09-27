@@ -28,11 +28,11 @@ class MetadynamicsState(NamedTuple):
     Parameters
     ----------
 
-    bias: JaxArray
-        Array of Metadynamics bias forces for each particle in the simulation.
-
     xi: JaxArray
         Collective variable value in the last simulation step.
+
+    bias: JaxArray
+        Array of Metadynamics bias forces for each particle in the simulation.
 
     heights: JaxArray
         Height values for all accumulated Gaussians (zeros for not yet added Gaussians).
@@ -56,8 +56,8 @@ class MetadynamicsState(NamedTuple):
         Counts the number of times `method.update` has been called.
     """
 
-    bias: JaxArray
     xi: JaxArray
+    bias: JaxArray
     heights: JaxArray
     centers: JaxArray
     sigmas: JaxArray
@@ -160,8 +160,8 @@ def _metadynamics(method, snapshot, helpers):
     evaluate_bias_grad = build_bias_grad_evaluator(method)
 
     def initialize():
-        bias = np.zeros((natoms, 3), dtype=np.float64)
         xi, _ = cv(helpers.query(snapshot))
+        bias = np.zeros((natoms, helpers.dimensionality()))
 
         # NOTE: for restart; use hills file to initialize corresponding arrays.
         heights = np.zeros(ngaussians, dtype=np.float64)
@@ -177,7 +177,7 @@ def _metadynamics(method, snapshot, helpers):
             grid_gradient = np.zeros((*shape, shape.size), dtype=np.float64)
 
         return MetadynamicsState(
-            bias, xi, heights, centers, sigmas, grid_potential, grid_gradient, 0, 0
+            xi, bias, heights, centers, sigmas, grid_potential, grid_gradient, 0, 0
         )
 
     def update(state, data):
@@ -196,7 +196,7 @@ def _metadynamics(method, snapshot, helpers):
         bias = -Jxi.T @ generalized_force.flatten()
         bias = bias.reshape(state.bias.shape)
 
-        return MetadynamicsState(bias, *partial_state[:-1], nstep + 1)
+        return MetadynamicsState(xi, bias, *partial_state[1:-1], nstep + 1)
 
     return snapshot, initialize, generalize(update, helpers, jit_compile=True)
 

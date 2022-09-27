@@ -49,7 +49,7 @@ class ABFState(NamedTuple):
     xi: JaxArray (CV shape)
         Last collective variable recorded in the simulation.
 
-    bias: JaxArray (Nparticles, 3)
+    bias: JaxArray (Nparticles, d)
         Array with biasing forces for each particle.
 
     hist: JaxArray (grid.shape)
@@ -176,7 +176,7 @@ def _abf(method, snapshot, helpers):
             Initialized State
         """
         xi, _ = cv(helpers.query(snapshot))
-        bias = np.zeros((natoms, 3))
+        bias = np.zeros((natoms, helpers.dimensionality()))
         hist = np.zeros(grid.shape, dtype=np.uint32)
         Fsum = np.zeros((*grid.shape, dims))
         force = np.zeros(dims)
