@@ -15,8 +15,6 @@ import numpy
 from jax import numpy as np
 from plum import Dispatcher
 
-from pysages.utils import JaxArray
-
 # We use this to dispatch on the different `run` implementations
 # for `SamplingMethod`s.
 methods_dispatch = Dispatcher()
