@@ -187,29 +187,13 @@ def listify(arg, replicas, name, dtype):
     return [dtype(arg) for i in range(replicas)]
 
 
-def isarray(val):
-    if (
-        isinstance(val, (list, tuple))
-        and len(val) > 0
-        and isinstance(val[0], (JaxArray, numpy.ndarray))
-    ):
-        shape = val[0].shape
-        for element in val:
-            if not isinstance(val, (JaxArray, numpy.ndarray)):
-                return False
-            if shape != element.shape:
-                return False
-        return True
-    return isinstance(val, (JaxArray, numpy.ndarray))
-
-
-def numpyfy_vals(dictionary: dict, arrays_only: bool = False):
+def numpyfy_vals(dictionary: dict, numpy_only: bool = False):
     """
     Iterate all keys of the dictionary and convert every possible value into a numpy array.
     We recommend to pickle final analyzed results are numpyfying
     with `numpy_only=True` to avoid pickling issues.
 
-    JaxArrays, numpy arrays, and lists of numpy arrays are converted to numpy arrays
+    Strings and numpy arrays, that would result in `dtype == object` are not converted.
 
     Parameters
     ----------
@@ -223,8 +207,13 @@ def numpyfy_vals(dictionary: dict, arrays_only: bool = False):
 
     dict: The same dictionary, but keys are preferably numpy arrays.
     """
-    new_dict = copy.copy(dictionary) if arrays_only else {}
-    for key, val in dictionary.items():
-        if isarray(val):
-            new_dict[key] = numpy.asarray(val)
+
+    new_dict = {}
+    for key in dictionary:
+        if not numpy_only:
+            new_dict[key] = dictionary[key]
+        if isinstance(dictionary[key], str):
+            numpy_array = numpy.asarray(dictionary[key])
+            if numpy_array.dtype != numpy.dtype("O"):
+                new_dict[key] = numpy_array
     return new_dict
