@@ -188,6 +188,18 @@ def listify(arg, replicas, name, dtype):
 
 
 def isarray(val):
+    if (
+        isinstance(val, (list, tuple))
+        and len(val) > 0
+        and isinstance(val[0], (JaxArray, numpy.ndarray))
+    ):
+        shape = val[0].shape
+        for element in val:
+            if not isinstance(val, (JaxArray, numpy.ndarray)):
+                return False
+            if shape != element.shape:
+                return False
+        return True
     return isinstance(val, (JaxArray, numpy.ndarray))
 
 
@@ -197,7 +209,7 @@ def numpyfy_vals(dictionary: dict, arrays_only: bool = False):
     We recommend to pickle final analyzed results are numpyfying
     with `numpy_only=True` to avoid pickling issues.
 
-    JaxArrays and numpy arrays are converted to numpy arrays
+    JaxArrays, numpy arrays, and lists of numpy arrays are converted to numpy arrays
 
     Parameters
     ----------
