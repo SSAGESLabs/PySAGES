@@ -215,3 +215,4 @@ def numpyfy_vals(dictionary: dict, arrays_only: bool = False):
     for key, val in dictionary.items():
         if isarray(val):
             new_dict[key] = numpy.asarray(val)
+    return new_dict
