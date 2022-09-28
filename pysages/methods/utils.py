@@ -15,6 +15,8 @@ import numpy
 from jax import numpy as np
 from plum import Dispatcher
 
+from pysages.utils import JaxArray
+
 # We use this to dispatch on the different `run` implementations
 # for `SamplingMethod`s.
 methods_dispatch = Dispatcher()
@@ -185,13 +187,17 @@ def listify(arg, replicas, name, dtype):
     return [dtype(arg) for i in range(replicas)]
 
 
-def numpyfy_dictionary(dictionary: dict, numpy_only: bool = False):
+def isarray(val):
+    return isinstance(val, (JaxArray, numpy.ndarray))
+
+
+def numpyfy_vals(dictionary: dict, arrays_only: bool = False):
     """
     Iterate all keys of the dictionary and convert every possible value into a numpy array.
     We recommend to pickle final analyzed results are numpyfying
     with `numpy_only=True` to avoid pickling issues.
 
-    Strings and numpy arrays, that would result in `dtype == object` are not converted.
+    JaxArrays and numpy arrays are converted to numpy arrays
 
     Parameters
     ----------
@@ -205,13 +211,7 @@ def numpyfy_dictionary(dictionary: dict, numpy_only: bool = False):
 
     dict: The same dictionary, but keys are preferably numpy arrays.
     """
-
-    new_dict = {}
-    for key in dictionary:
-        if not numpy_only:
-            new_dict[key] = dictionary[key]
-        if isinstance(dictionary[key], str):
-            numpy_array = numpy.asarray(dictionary[key])
-            if numpy_array.dtype != numpy.dtype("O"):
-                new_dict[key] = numpy_array
-    return new_dict
+    new_dict = copy.copy(dictionary) if arrays_only else {}
+    for key, val in dictionary.items():
+        if isarray(val):
+            new_dict[key] = numpy.asarray(val)

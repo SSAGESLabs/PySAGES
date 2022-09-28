@@ -18,7 +18,7 @@ from pysages.approxfun import compute_mesh
 from pysages.colvars import get_periods, wrap
 from pysages.grids import build_indexer
 from pysages.methods.core import GriddedSamplingMethod, Result, generalize
-from pysages.methods.utils import numpyfy_dictionary
+from pysages.methods.utils import numpyfy_vals
 from pysages.utils import JaxArray, dispatch, gaussian, identity
 
 
@@ -367,4 +367,4 @@ def analyze(result: Result[Metadynamics]):
         metapotentials.append(build_metapotential(s.heights, s.centers, s.sigmas))
 
     ana_result = dict(heights=heights, metapotential=metapotentials)
-    return numpyfy_dictionary(ana_result)
+    return numpyfy_vals(ana_result)

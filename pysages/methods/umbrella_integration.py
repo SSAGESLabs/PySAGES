@@ -21,12 +21,7 @@ import plum
 
 from pysages.methods.core import Result, SamplingMethod, _run
 from pysages.methods.harmonic_bias import HarmonicBias
-from pysages.methods.utils import (
-    HistogramLogger,
-    SerialExecutor,
-    listify,
-    numpyfy_dictionary,
-)
+from pysages.methods.utils import HistogramLogger, SerialExecutor, listify, numpyfy_vals
 from pysages.utils import dispatch
 
 
@@ -228,4 +223,4 @@ def analyze(result: Result[UmbrellaIntegration]):
         mean_forces=mean_forces,
         free_energy=free_energy,
     )
-    return numpyfy_dictionary(ana_result)
+    return numpyfy_vals(ana_result)
