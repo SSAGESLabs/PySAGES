@@ -319,7 +319,7 @@ def build_force_estimator(method: CFF):
         return fnn.std * fmodel.apply(fparams, f32(x)).flatten() + fnn.mean
 
     def _estimate_force(state):
-        return cond(state.pred, average_force, predict_force, state)
+        return cond(state.pred, predict_force, average_force, state)
 
     if method.restraints is None:
         estimate_force = _estimate_force
