@@ -31,6 +31,7 @@ from pysages.approxfun.core import scale as _scale
 from pysages.grids import build_indexer
 from pysages.methods.core import GriddedSamplingMethod, Result, generalize
 from pysages.methods.restraints import apply_restraints
+from pysages.methods.utils import numpyfy_vals
 from pysages.ml.models import MLP
 from pysages.ml.objectives import GradientsSSE, L2Regularization
 from pysages.ml.optimizers import LevenbergMarquardt
@@ -337,10 +338,11 @@ def analyze(result: Result[ABF], **kwargs):
 
     fes_fn = build_fes_fn(state)
 
-    return dict(
+    ana_result = dict(
         histogram=state.hist,
         mean_force=average_forces(state),
         free_energy=fes_fn(inputs).reshape(grid.shape),
         mesh=inputs,
         fes_fn=fes_fn,
     )
+    return numpyfy_vals(ana_result)

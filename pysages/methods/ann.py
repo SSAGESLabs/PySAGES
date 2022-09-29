@@ -26,6 +26,7 @@ from pysages.approxfun import compute_mesh
 from pysages.approxfun import scale as _scale
 from pysages.grids import build_indexer
 from pysages.methods.core import NNSamplingMethod, Result, generalize
+from pysages.methods.utils import numpyfy_vals
 from pysages.ml.models import MLP
 from pysages.ml.objectives import L2Regularization
 from pysages.ml.optimizers import LevenbergMarquardt
@@ -303,10 +304,11 @@ def analyze(result: Result[ANN]):
         nns.append(s.nn)
         fes_fns.append(build_fes_fn(s.nn))
 
-    return dict(
+    ana_result = dict(
         histogram=first_or_all(histograms),
         free_energy=first_or_all(free_energies),
         mesh=mesh,
         nn=first_or_all(nns),
         fes_fn=first_or_all(fes_fns),
     )
+    return numpyfy_vals(ana_result)

@@ -32,6 +32,7 @@ from pysages.approxfun import (
 from pysages.grids import Chebyshev, Grid, build_indexer, convert
 from pysages.methods.core import GriddedSamplingMethod, Result, generalize
 from pysages.methods.restraints import apply_restraints
+from pysages.methods.utils import numpyfy_vals
 from pysages.utils import Bool, Int, JaxArray, dispatch
 
 
@@ -324,7 +325,7 @@ def analyze(result: Result[SpectralABF]):
         funs.append(s.fun)
         fes_fns.append(fes_fn)
 
-    return dict(
+    ana_result = dict(
         histogram=first_or_all(hists),
         mean_force=first_or_all(mean_forces),
         free_energy=first_or_all(free_energies),
@@ -332,3 +333,4 @@ def analyze(result: Result[SpectralABF]):
         fun=first_or_all(funs),
         fes_fn=first_or_all(fes_fns),
     )
+    return numpyfy_vals(ana_result)

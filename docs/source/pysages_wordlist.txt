@@ -47,3 +47,4 @@ hoomd
 SimulationContext
 decompositions
 conda
+numpyfying
