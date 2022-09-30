@@ -287,8 +287,12 @@ def analyze(result: Result[ANN]):
     _, layout = unpack(model.parameters)
 
     def build_fes_fn(nn):
-        params = pack(nn.params, layout)
-        return jit(lambda x: nn.std * model.apply(params, x))
+        def fes_fn(x):
+            params = pack(nn.params, layout)
+            A = nn.std * model.apply(params, x) + nn.mean
+            return A.max() - A
+
+        return jit(fes_fn)
 
     def first_or_all(seq):
         return seq[0] if len(seq) == 1 else seq
@@ -300,7 +304,7 @@ def analyze(result: Result[ANN]):
 
     for s in states:
         histograms.append(s.hist)
-        free_energies.append(s.phi - s.phi.min())
+        free_energies.append(s.phi.max() - s.phi)
         nns.append(s.nn)
         fes_fns.append(build_fes_fn(s.nn))
 
