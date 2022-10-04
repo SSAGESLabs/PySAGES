@@ -129,6 +129,9 @@ class CFF(NNSamplingMethod):
         Defines the architecture of the neural network
         (number of nodes of each hidden layer).
 
+    kT: float
+        Value of `kT` in the same units as the backend internal energy units.
+
     N: Optional[int] = 500
         Threshold parameter before accounting for the full average of the
         binned generalized mean force.
