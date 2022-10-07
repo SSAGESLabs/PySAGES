@@ -97,7 +97,19 @@ def wrap_step_fn(simulation, sampler, callback):
     and the user provided callback.
     """
     number_of_steps = simulation.get_number_of_steps
-    simulation._step = simulation.step
+
+    if hasattr(simulation, "forcecalculator"):
+        simulation.__step = simulation.step
+        simulation._forcecalculator = simulation.forcecalculator
+        simulation.forcecalculator = lambda sim: sim.forces_and_bias
+
+        def _step(simulation, forces):
+            simulation.forces_and_bias = forces
+            simulation.__step()
+
+        simulation._step = _step
+    else:
+        simulation._step = simulation.step
 
     def wrapped_step():
         sampler.snapshot = take_snapshot(simulation)
