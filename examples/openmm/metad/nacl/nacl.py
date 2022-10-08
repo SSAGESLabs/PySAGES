@@ -132,7 +132,7 @@ def main(argv=[]):
     grid = grid if args.use_grids else None
 
     # Method
-    method = Metadynamics(cvs, height, sigma, stride, ngauss, deltaT=deltaT, kB=kB, grid=None)
+    method = Metadynamics(cvs, height, sigma, stride, ngauss, deltaT=deltaT, kB=kB, grid=grid)
 
     # Logging
     hills_file = "hills.dat"
