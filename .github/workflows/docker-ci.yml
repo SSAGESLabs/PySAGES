@@ -177,7 +177,7 @@ jobs:
       - name: Load and run test
         run: |
           SCRIPT="cd PySAGES/examples/openmm/metad/nacl &&"
-          SCRIPT="${SCRIPT} python3 nacl-displacement.py --use-grids=0 --time-steps=500"
+          SCRIPT="${SCRIPT} python3 nacl-displacement.py --time-steps=500"
           docker load --input /tmp/pysages.tar
           docker run -v/tmp:/tmp -t pysages bash -c "${SCRIPT}"
 
