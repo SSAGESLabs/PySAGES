@@ -1,9 +1,28 @@
-# PySAGES
-
-[![Documentation Status](https://readthedocs.org/projects/pysages/badge/?version=latest)](https://pysages.readthedocs.io/en/latest/?badge=latest)
-[![GitHub Actions](https://github.com/SSAGESLabs/PySAGES/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/SSAGESLabs/PySAGES/actions/workflows/ci.yml)
-[![GitHub Actions](https://github.com/SSAGESLabs/PySAGES/actions/workflows/docker-ci.yml/badge.svg?branch=main)](https://github.com/SSAGESLabs/PySAGES/actions/workflows/docker-ci.yml)
-[![GitHub Actions](https://github.com/SSAGESLabs/PySAGES/actions/workflows/trunk.yml/badge.svg?branch=main)](https://github.com/SSAGESLabs/PySAGES/actions/workflows/trunk.yml)
+<h1 align="center">
+  <div>
+    <a href="https://github.com/SSAGESLabs/PySAGES" target="_blank">
+      <img src="docs/assets/pysages-bottom.svg" alt="PySAGES" height="200">
+    </a>
+  </div>
+  <br>
+  <p align="center">
+    <a href="https://pysages.readthedocs.io" target="_blank">
+      <img src="https://img.shields.io/badge/docs-latest-blue.svg" alt="Documentation">
+    </a>
+    &nbsp;
+    <a href="https://github.com/SSAGESLabs/PySAGES/actions/workflows/ci.yml" target="_blank">
+      <img src="https://github.com/SSAGESLabs/PySAGES/actions/workflows/ci.yml/badge.svg?branch=main" alt="GitHub Actions">
+    </a>
+    &nbsp;
+    <a href="https://github.com/SSAGESLabs/PySAGES/actions/workflows/docker-ci.yml" target="_blank">
+      <img src="https://github.com/SSAGESLabs/PySAGES/actions/workflows/docker-ci.yml/badge.svg?branch=main" alt="GitHub Actions">
+    </a>
+    &nbsp;
+    <a href="https://github.com/SSAGESLabs/PySAGES/actions/workflows/trunk.yml" target="_blank">
+      <img src="https://github.com/SSAGESLabs/PySAGES/actions/workflows/trunk.yml/badge.svg?branch=main" alt="Trunk">
+    </a>
+  </p>
+</h1>
 
 PySAGES (Python Suite for Advanced General Ensemble Simulations) is a Python
 implementation of [SSAGES](https://ssagesproject.github.io) with support for GPUs.
