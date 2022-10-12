@@ -235,7 +235,7 @@ def build_gaussian_accumulator(method: Metadynamics):
         update_grids = jit(lambda *args: (None, None))
         should_deposit = jit(lambda pred, _: pred)
     else:
-        grid_mesh = compute_mesh(grid) * (grid.size / 2)
+        grid_mesh = (compute_mesh(grid) + 1) * (grid.size / 2) + grid.lower
         get_grid_index = build_indexer(grid)
         # Reshape so the dimensions are compatible
         accum = jit(lambda total, val: total + val.reshape(total.shape))
