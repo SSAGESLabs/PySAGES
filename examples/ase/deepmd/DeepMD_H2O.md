@@ -255,13 +255,14 @@ def wrap_system(atoms: Atoms):
 
 
 def generate_simulation(T=T,kT=kT):
-    dimer = read('h2o.xyz')
-    dimer = wrap_system(dimer)
+    h20 = read('h2o.xyz')
+    h20 = wrap_system(h20)
     calc = DP(model='graph.pb')
-    dimer.set_calculator(calc)
-    MaxwellBoltzmannDistribution(dimer, temperature_K=T)
-    dyn = Langevin(dimer, dt, temperature_K=T, friction=0.02)  # 0.5 fs time step.
-    def _printenergy(a=dimer):
+    h20.set_calculator(calc)
+    MaxwellBoltzmannDistribution(h20, temperature_K=T)
+    dyn = Langevin(h20, dt, temperature_K=T, friction=0.02)  # 0.5 fs time step.
+
+    def _printenergy(a=h20):
         """Function to print the potential, kinetic and total energy"""
         epot = a.get_potential_energy() / len(a)
         ekin = a.get_kinetic_energy() / len(a)
@@ -270,9 +271,11 @@ def generate_simulation(T=T,kT=kT):
                 'Etot = %.3feV' % (epot, ekin, ekin / (1.5 * units.kB), epot + ekin), file=f)
 
     dyn.attach(_printenergy, interval=1000)
-#in case of storing ase trajectory
-#    traj = Trajectory('moldyn3.traj', 'w', dimer)
-#    dyn.attach(traj.write, interval=10)
+
+    # In case of storing ASE trajectory...
+    # traj = Trajectory('moldyn3.traj', 'w', h20)
+    # dyn.attach(traj.write, interval=10)
+
     return dyn
 ```
 
@@ -283,7 +286,7 @@ We define some helper functions for ploting and saving the data
 <!-- #endregion -->
 
 ```python id="67488aXwQXba"
-def plot_energy(result, save=True):
+def plot_energy(result):
     fig, ax = plt.subplots()
 
     ax.set_xlabel("CV")
@@ -293,10 +296,7 @@ def plot_energy(result, save=True):
     x = np.asarray(result["mesh"])
     ax.plot(x, free_energy, color="teal")
 
-    if save:
-        fig.savefig("energy.png")
-
-    return plt.show()
+    fig.savefig("energy.png")
 
 
 # %%
