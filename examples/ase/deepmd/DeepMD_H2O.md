@@ -79,11 +79,22 @@ pip install -q . &> /dev/null
 
 <!-- #region id="Uh2y2RXDDZub" -->
 
-Fisrt we define a Calculator for ASE based on DeePMD
+Fisrt we define a Calculator for ASE based on DeePMD and retrieve the atoms information as well as a pre-trained DeePMD model.
 
 <!-- #endregion -->
 
-```python id="aIP9vx8yDdr1" colab={"base_uri": "https://localhost:8080/"} outputId="73749f75-dbfd-4cec-db98-9e4eb9c11dcc"
+```bash id="i0GdwrUWsKIx"
+
+cd /content
+
+PB="https://github.com/SSAGESLabs/PySAGES/raw/miccom-ws/examples/ase/deepmd/graph.pb"
+XYZ="https://github.com/SSAGESLabs/PySAGES/raw/miccom-ws/examples/ase/deepmd/h2o.xyz"
+
+wget -q $PB
+wget -q $XYZ
+```
+
+```python id="aIP9vx8yDdr1"
 from pathlib import Path
 from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
@@ -272,7 +283,7 @@ We define some helper functions for ploting and saving the data
 <!-- #endregion -->
 
 ```python id="67488aXwQXba"
-def plot_energy(result, save=False):
+def plot_energy(result, save=True):
     fig, ax = plt.subplots()
 
     ax.set_xlabel("CV")
@@ -353,8 +364,8 @@ And run our simulation
 
 <!-- #endregion -->
 
-```python colab={"base_uri": "https://localhost:8080/", "height": 392} id="aOXCppWkQnJI" outputId="d2044ccd-fc13-4a44-93d8-79b239fce9b4"
-state = pysages.run(method, generate_simulation, 500000)
+```python colab={"base_uri": "https://localhost:8080/", "height": 649} id="aOXCppWkQnJI" outputId="45eed335-298c-4e5f-9e60-2b1455ceb2ea"
+state = pysages.run(method, generate_simulation, 50000)
 # Analyze function inside PySAGES
 result = pysages.analyze(state, topology=(14, 4))
 plot_forces(result)
@@ -368,6 +379,10 @@ Let's see how the free energy surface looks like.
 
 <!-- #endregion -->
 
-```python id="jBiATDSaSqUw"
+```python id="jBiATDSaSqUw" colab={"base_uri": "https://localhost:8080/", "height": 279} outputId="04ba3f9c-1687-46b6-ac4f-0837060028d2"
 plot_energy(result)
+```
+
+```python id="3gP4hYgaxuCH"
+
 ```
