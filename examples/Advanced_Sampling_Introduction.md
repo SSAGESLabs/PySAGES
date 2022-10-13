@@ -7,7 +7,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.14.1
+      jupytext_version: 1.13.8
   kernelspec:
     display_name: Python 3
     name: python3
@@ -17,13 +17,13 @@ jupyter:
 
 # Introduction to Advanced Sampling
 
-Ludwig Schneider and Juan de Pablo
+Pablo Zubieta
 
-Pritzker School of Molecular Engineering
+MICCoM Workshop & Hands-on Tutorials 2022
 
-The University of Chicago
+Argonne National Laboratory
 
-Berlin, July 28th, 2022
+October 13-14, 2022
 
 <!-- #endregion -->
 
