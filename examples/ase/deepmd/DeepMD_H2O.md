@@ -33,12 +33,12 @@ condacolab.install()
 !rm /usr/local/conda-meta/pinned
 ```
 
-```python id="JMO5fiRTxAWB" colab={"base_uri": "https://localhost:8080/"} outputId="ad8965ae-c399-49a4-ebdc-c0eb9b8dc4c2"
-!mamba install deepmd-kit=*=*gpu libdeepmd=*=*gpu lammps horovod -c https://conda.deepmodeling.com -c defaults
+```python id="JMO5fiRTxAWB"
+!mamba install -q deepmd-kit=*=*gpu libdeepmd=*=*gpu lammps horovod -c https://conda.deepmodeling.com -c defaults
 ```
 
-```python colab={"base_uri": "https://localhost:8080/"} id="fFkPqXkzlt91" outputId="b7958d20-1c3e-4557-b92e-3b82a0bcfd3d"
-!mamba install ase
+```python id="fFkPqXkzlt91"
+!mamba install -q ase
 ```
 
 <!-- #region id="lf2KeHt5_eFv" -->
@@ -351,7 +351,7 @@ And finally, we define our collective variable and sampling method.
 cvs = [
     Angle([1, 0, 2]),
 ]
-grid = pysages.Grid(lower=(1.,), upper=(pi,), shape=(32,), periodic=False)
+grid = pysages.Grid(lower=(1.25,), upper=(2.5,), shape=(32,), periodic=False)
 topology = (14, 4)
 
 # Adaptive Biasing Force Method for free energy calculations
