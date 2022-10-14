@@ -162,15 +162,15 @@ class PhaseAngle(CollectiveVariable):
 
 
 def phase_angle(rs):
-    """
+    r"""
     calculate phase angle (first phase angle if N>5) based on Cremer-Pople method.
     :math:`r0 = 1/N \sum_i^N \vec{r}_i`
     :math:`\vec{R1} = \sum_i^N (\vec{r}_i -r_c) \sin(2\pi (i-1)/N)`
     :math:`\vec{R2} = \sum_i^N (\vec{r}_i -r_c) \cos(2\pi (i-1)/N)`
-    :math:`\hat{n} = \vec{R1}\times\vec{R2}/(|\vec{R1}\times\vec{R2}|)`
-    :math:`z_i = (\vec_{r}_i-r_c)\cdot \hat{n}`
-    :math:`a = \sqrt(2/N)\sum_i^N z_i \cos(2\pi 2(i-1)/N)`
-    :math:`b = -\sqrt(2/N)\sum_i^N z_i \sin(2\pi 2(i-1)/N)`
+    :math:`\hat{n} = \vec{R1} \times \vec{R2}/ (|\vec{R1}\times\vec{R2}|)`
+    :math:`z_i = (\vec_{r}_i-r_c) \cdot \hat{n}`
+    :math:`a =  \sqrt(2/N) \sum_i^N z_i \cos(2\pi 2(i-1)/N)`
+    :math:`b = -\sqrt(2/N) \sum_i^N z_i \sin(2\pi 2(i-1)/N)`
     :math:`P=\atan2(b/a)`
 
     Parameters
@@ -189,7 +189,8 @@ def phase_angle(rs):
     theta = 2j * np.pi * np.arange(N) / N
     fourier_coeff = np.exp(theta)
     R1 = np.dot(rc.T, np.imag(fourier_coeff))
-    # Notice the imag part is sin. The order of R1/R2 matters because otherwise the n would be inverted.
+    # Notice the imag part corresponds to sin. The order of R1/R2 matters
+    # because otherwise the n would be inverted.
     R2 = np.dot(rc.T, np.real(fourier_coeff))
     n = np.cross(R1, R2)
     n /= linalg.norm(n)
