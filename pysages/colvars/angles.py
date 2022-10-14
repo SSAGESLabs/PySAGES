@@ -13,7 +13,8 @@ conformation change.
 from jax import numpy as np
 from jax.numpy import linalg
 
-from pysages.colvars.core import FourPointCV, ThreePointCV
+from pysages.colvars.coordinates import barycenter
+from pysages.colvars.core import CollectiveVariable, FourPointCV, ThreePointCV
 
 
 class Angle(ThreePointCV):
@@ -121,3 +122,79 @@ def dihedral_angle(p1, p2, p3, p4):
     r = np.cross(p2 - p1, q)
     s = np.cross(q, p4 - p3)
     return np.arctan2(np.dot(np.cross(r, s), q), np.dot(r, s) * linalg.norm(q))
+
+
+class PhaseAngle(CollectiveVariable):
+    """
+    Computes the phase angle of a monocyclic ring by the Cremer-Pople method.
+    Mathematical definitions can be found in
+    [D. Cremer and J. A. Poper]
+    (https://pubs.acs.org/doi/10.1021/ja00839a011)
+    Equation 4-14
+    Notice that for ring with more than 5 members, there are (N-1)/2-1 phase angles, and
+    this class only calculate the first one (m=2 in Eq 12 and Eq 12, or see
+    pysages.colvars.angles.phase_angle for math).
+    Additional details and implementation can be found in
+    [MDAnalysis.analysis.nuclinfo.phase_cp]
+    (https://docs.mdanalysis.org/1.0.1/documentation_pages/analysis/nuclinfo.html),
+    where it specifically calculates the phase angle for ribose, a 5-membered ring.
+    (Also, notice that in this implementation of MDAnalysis, a 90 degree is added to the resulted
+    phase angle by CP method, because it's convention to add 90 degree to convert to
+    Altona-Sundaralingam definition.)
+
+    Usage
+    -------
+    cvs = [PhaseAngle(indices)]
+
+    Notice that the phase angle is dependent on the order of the indices. For example,
+    the convention for sugar pucker of ribose in RNA/DNA is: O4', C1', C2', C3', C4'.
+    """
+
+    @property
+    def function(self):
+        """
+        Returns
+        -------
+        Function that calculates the dihedral angle value from a simulation snapshot.
+        Look at `pysages.colvars.angles.phase_angle` for details.
+        """
+        return phase_angle
+
+
+def phase_angle(rs):
+    """
+    calculate phase angle (first phase angle if N>5) based on Cremer-Pople method.
+    :math:`r0 = 1/N \sum_i^N \vec{r}_i`
+    :math:`\vec{R1} = \sum_i^N (\vec{r}_i -r_c) \sin(2\pi (i-1)/N)`
+    :math:`\vec{R2} = \sum_i^N (\vec{r}_i -r_c) \cos(2\pi (i-1)/N)`
+    :math:`\hat{n} = \vec{R1}\times\vec{R2}/(|\vec{R1}\times\vec{R2}|)`
+    :math:`z_i = (\vec_{r}_i-r_c)\cdot \hat{n}`
+    :math:`a = \sqrt(2/N)\sum_i^N z_i \cos(2\pi 2(i-1)/N)`
+    :math:`b = -\sqrt(2/N)\sum_i^N z_i \sin(2\pi 2(i-1)/N)`
+    :math:`P=\atan2(b/a)`
+
+    Parameters
+    ------------
+    rs: DeviceArray
+        :math: `\vec{r}_i` array of 3D vector in space
+
+    Returns
+    ------------
+    float
+        :math:`P` in range -pi to pi.
+    """
+    N = len(rs)
+    r0 = barycenter(rs)
+    rc = rs - r0
+    theta = 2j * np.pi * np.arange(N) / N
+    fourier_coeff = np.exp(theta)
+    R1 = np.dot(rc.T, np.imag(fourier_coeff))
+    # Notice the imag part is sin. The order of R1/R2 matters because otherwise the n would be inverted.
+    R2 = np.dot(rc.T, np.real(fourier_coeff))
+    n = np.cross(R1, R2)
+    n /= linalg.norm(n)
+    z = np.dot(rc, n)
+    fourier_coeff2 = np.exp(2 * theta)
+    a = np.sqrt(2 / N) * np.sum(z * np.real(fourier_coeff2))
+    b = -np.sqrt(2 / N) * np.sum(z * np.imag(fourier_coeff2))
+    return np.arctan2(b, a)
