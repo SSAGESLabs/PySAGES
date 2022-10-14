@@ -132,7 +132,7 @@ class PhaseAngle(CollectiveVariable):
     (https://pubs.acs.org/doi/10.1021/ja00839a011)
     Equation 4-14
     Notice that for ring with more than 5 members, there are (N-1)/2-1 phase angles, and
-    this class only calculate the first one (m=2 in Eq 12 and Eq 12, or see
+    this class only calculate the first one (m=2 in Eq 12 and Eq 13, or see
     pysages.colvars.angles.phase_angle for math).
     Additional details and implementation can be found in
     [MDAnalysis.analysis.nuclinfo.phase_cp]
