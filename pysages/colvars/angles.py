@@ -128,16 +128,16 @@ class PhaseAngle(CollectiveVariable):
     """
     Computes the phase angle of a monocyclic ring by the Cremer-Pople method.
     Mathematical definitions can be found in
-    [D. Cremer and J. A. Poper]
+    [D. Cremer and J. A. Pople, JACS, 1974]
     (https://pubs.acs.org/doi/10.1021/ja00839a011)
     Equation 4-14
     Notice that for ring with more than 5 members, there are (N-1)/2-1 phase angles, and
-    this class only calculate the first one (m=2 in Eq 12 and Eq 13, or see
-    pysages.colvars.angles.phase_angle for math).
+    this class only calculate the first one (m=2 in Equation 12 and Equation 13, or see
+    `pysages.colvars.angles.phase_angle` for math).
     Additional details and implementation can be found in
     [MDAnalysis.analysis.nuclinfo.phase_cp]
     (https://docs.mdanalysis.org/1.0.1/documentation_pages/analysis/nuclinfo.html),
-    where it specifically calculates the phase angle for ribose, a 5-membered ring.
+    where it specifically calculates the phase angle for ribose, a five-membered ring.
     (Also, notice that in this implementation of MDAnalysis, a 90 degree is added to the resulted
     phase angle by CP method, because it's convention to add 90 degree to convert to
     Altona-Sundaralingam definition.)

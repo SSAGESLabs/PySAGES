@@ -48,3 +48,9 @@ SimulationContext
 decompositions
 conda
 numpyfying
+monocyclic
+Cremer
+five-membered
+Altona
+Sundaralingam
+ribose
