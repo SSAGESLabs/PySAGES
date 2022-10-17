@@ -50,7 +50,7 @@ conda
 numpyfying
 monocyclic
 Cremer
-five-membered
+membered
 Altona
 Sundaralingam
 ribose
