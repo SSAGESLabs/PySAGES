@@ -134,7 +134,7 @@ class PhaseAngle(CollectiveVariable):
     Notice that for rings with more than 5 atoms, there are (N-1)/2-1 phase angles, and
     this class only calculates the first one (m=2 in Equation 12 and Equation 13, or see
     `pysages.colvars.angles.phase_angle` for math).
-    Also, the phase angle obtained from Cremer-Pople method can be convert to
+    Also, the phase angle obtained via the Cremer-Pople method can be converted to the
     Altona-Sundaralingam definition by adding pi/2 to the result and then
     convert to 0 to 360 range.
 
