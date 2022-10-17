@@ -131,7 +131,7 @@ class PhaseAngle(CollectiveVariable):
     [D. Cremer and J. A. Pople, JACS, 1974]
     (https://pubs.acs.org/doi/10.1021/ja00839a011)
     Equation 4-14
-    Notice that for ring with more than 5 members, there are (N-1)/2-1 phase angles, and
+    Notice that for rings with more than 5 atoms, there are (N-1)/2-1 phase angles, and
     this class only calculate the first one (m=2 in Equation 12 and Equation 13, or see
     `pysages.colvars.angles.phase_angle` for math).
     Additional details and implementation can be found in
