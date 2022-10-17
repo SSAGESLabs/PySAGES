@@ -50,6 +50,7 @@ conda
 numpyfying
 monocyclic
 Cremer
+Pople
 membered
 Altona
 Sundaralingam

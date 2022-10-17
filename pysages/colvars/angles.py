@@ -134,17 +134,13 @@ class PhaseAngle(CollectiveVariable):
     Notice that for rings with more than 5 atoms, there are (N-1)/2-1 phase angles, and
     this class only calculates the first one (m=2 in Equation 12 and Equation 13, or see
     `pysages.colvars.angles.phase_angle` for math).
-    Additional details and implementation can be found in
-    [MDAnalysis.analysis.nuclinfo.phase_cp]
-    (https://docs.mdanalysis.org/1.0.1/documentation_pages/analysis/nuclinfo.html),
-    where it specifically calculates the phase angle for ribose, a five-membered ring.
-    (Also, notice that in this implementation of MDAnalysis, a 90 degree angle is added to the resulting
-    phase angle by CP method, because it is convention to add 90 degrees to convert to the
-    Altona-Sundaralingam definition.)
+    Also, the phase angle obtained from Cremer-Pople method can be convert to
+    Altona-Sundaralingam definition by adding pi/2 to the result and then
+    convert to 0 to 360 range.
 
     Usage
     -------
-    cvs = [PhaseAngle(indices)]
+    cvs = [PhaseAngle([index1, index2, ...])]
 
     Notice that the phase angle is dependent on the order of the indices. For example,
     the convention for sugar pucker of ribose in RNA/DNA is: O4', C1', C2', C3', C4'.
