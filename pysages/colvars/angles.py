@@ -166,7 +166,7 @@ def phase_angle(rs):
     :math:`z_i = (\vec_{r}_i-r_c) \cdot \hat{n}`
     :math:`a =  \sqrt(2/N) \sum_i^N z_i \cos(2\pi 2(i-1)/N)`
     :math:`b = -\sqrt(2/N) \sum_i^N z_i \sin(2\pi 2(i-1)/N)`
-    :math:`P=\atan2(b/a)`
+    :math:`P = \atan(b / a)`
 
     Parameters
     ------------
