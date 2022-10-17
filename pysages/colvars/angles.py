@@ -139,7 +139,7 @@ class PhaseAngle(CollectiveVariable):
     (https://docs.mdanalysis.org/1.0.1/documentation_pages/analysis/nuclinfo.html),
     where it specifically calculates the phase angle for ribose, a five-membered ring.
     (Also, notice that in this implementation of MDAnalysis, a 90 degree angle is added to the resulting
-    phase angle by CP method, because it's convention to add 90 degree to convert to
+    phase angle by CP method, because it is convention to add 90 degrees to convert to the
     Altona-Sundaralingam definition.)
 
     Usage
