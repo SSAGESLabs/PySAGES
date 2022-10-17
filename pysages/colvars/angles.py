@@ -128,15 +128,14 @@ class PhaseAngle(CollectiveVariable):
     """
     Computes the phase angle of a monocyclic ring by the Cremer-Pople method.
     Mathematical definitions can be found in
-    [D. Cremer and J. A. Pople, JACS, 1974]
-    (https://pubs.acs.org/doi/10.1021/ja00839a011)
-    Equation 4-14
-    Notice that for rings with more than 5 atoms, there are (N-1)/2-1 phase angles, and
-    this class only calculates the first one (m=2 in Equation 12 and Equation 13, or see
-    `pysages.colvars.angles.phase_angle` for math).
-    Also, the phase angle obtained via the Cremer-Pople method can be converted to the
-    Altona-Sundaralingam definition by adding pi/2 to the result and then
-    convert to 0 to 360 range.
+    [D. Cremer and J. A. Pople, JACS, 1974](https://pubs.acs.org/doi/10.1021/ja00839a011)
+    Equations 4-14.
+    Notice that for rings with more than 5 atoms, there are `(N - 1) / 2 - 1`
+    phase angles, and this class only calculates the first one (`m = 2` in
+    Equations 12 and 13, or see `pysages.colvars.angles.phase_angle` for math).
+    Also, the phase angle obtained via the Cremer-Pople method can be converted
+    to the Altona-Sundaralingam order parameter by adding `pi / 2` to the result
+    and then converting to degrees.
 
     Usage
     -------
