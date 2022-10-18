@@ -130,8 +130,9 @@ class PhaseAngle(CollectiveVariable):
     Mathematical definitions can be found in
     [D. Cremer and J. A. Pople, JACS, 1974](https://pubs.acs.org/doi/10.1021/ja00839a011)
     Equations 4-14.
-    Notice that for rings with more than 5 atoms, there are `(N - 1) / 2 - 1`
-    phase angles, and this class only calculates the first one (`m = 2` in
+    Notice that for rings with N atoms, there are `int( ( N - 1 )  / 2 - 1 )` phase angles.
+    So if the ring contains more than six atoms, there are more than one phase angle.
+    This class (for now) only calculates the first one (`m = 2` in
     Equations 12 and 13, or see `pysages.colvars.angles.phase_angle` for math).
     Also, the phase angle obtained via the Cremer-Pople method can be converted
     to the Altona-Sundaralingam order parameter by adding `pi / 2` to the result
@@ -199,6 +200,16 @@ def phase_angle(rs):
 class AmplitudeRing(CollectiveVariable):
     """
     Computes the amplitude of a monocyclic ring by the Cremer-Pople method.
+    Mathematical definitions can be found in
+    [D. Cremer and J. A. Pople, JACS, 1974](https://pubs.acs.org/doi/10.1021/ja00839a011)
+    Equations 4-14.
+    Notice that for rings with N atoms, there are `int (N / 2 - 1) ` amplitudes.
+    So if the ring contains more than five atoms, there are more than one amplitude.
+    This class (for now) only calculates the first one (`m = 2` in
+    Equations 12 and 13, or see `pysages.colvars.angles.phase_angle` for math).
+    Also, the amplitude obtained via the Cremer-Pople method can be converted
+    to the Altona-Sundaralingam order parameter by multiplying `102.5` to the result.
+    (if the coordinate is in angstrom, this would transform to degree).
     """
 
     @property
@@ -207,7 +218,7 @@ class AmplitudeRing(CollectiveVariable):
         Returns
         -------
         Function that calculates the dihedral angle value from a simulation snapshot.
-        Look at `pysages.colvars.angles.phase_angle` for details.
+        Look at `pysages.colvars.angles.amplitude_ring` for details.
         """
         return amplitude_ring
 
@@ -232,7 +243,7 @@ def amplitude_ring(rs):
     Returns
     ------------
     float
-        :math:`q` in unit angstrom
+        :math:`q`, the same unit as the coordinates
     """
     N = len(rs)
     r0 = barycenter(rs)
