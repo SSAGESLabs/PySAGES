@@ -194,3 +194,59 @@ def phase_angle(rs):
     a = np.sqrt(2 / N) * np.sum(z * np.real(fourier_coeff2))
     b = -np.sqrt(2 / N) * np.sum(z * np.imag(fourier_coeff2))
     return np.arctan2(b, a)
+
+
+class AmplitudeRing(CollectiveVariable):
+    """
+    Computes the amplitude of a monocyclic ring by the Cremer-Pople method.
+    """
+
+    @property
+    def function(self):
+        """
+        Returns
+        -------
+        Function that calculates the dihedral angle value from a simulation snapshot.
+        Look at `pysages.colvars.angles.phase_angle` for details.
+        """
+        return amplitude_ring
+
+
+def amplitude_ring(rs):
+    r"""
+    calculate amplitude (first amplitude if N>5) based on Cremer-Pople method.
+    :math:`r0 = 1/N \sum_i^N \vec{r}_i`
+    :math:`\vec{R1} = \sum_i^N (\vec{r}_i -r_c) \sin(2\pi (i-1)/N)`
+    :math:`\vec{R2} = \sum_i^N (\vec{r}_i -r_c) \cos(2\pi (i-1)/N)`
+    :math:`\hat{n} = \vec{R1} \times \vec{R2}/ (|\vec{R1}\times\vec{R2}|)`
+    :math:`z_i = (\vec_{r}_i-r_c) \cdot \hat{n}`
+    :math:`a =  \sqrt(2/N) \sum_i^N z_i \cos(2\pi 2(i-1)/N)`
+    :math:`b = -\sqrt(2/N) \sum_i^N z_i \sin(2\pi 2(i-1)/N)`
+    :math:`q=\sqrt (b^2 + a^2)`
+
+    Parameters
+    ------------
+    rs: DeviceArray
+        :math: `\vec{r}_i` array of 3D vector in space
+
+    Returns
+    ------------
+    float
+        :math:`q` in unit angstrom
+    """
+    N = len(rs)
+    r0 = barycenter(rs)
+    rc = rs - r0
+    theta = 2j * np.pi * np.arange(N) / N
+    fourier_coeff = np.exp(theta)
+    R1 = np.dot(rc.T, np.imag(fourier_coeff))
+    # Notice the imag part corresponds to sin. The order of R1/R2 matters
+    # because otherwise the n would be inverted.
+    R2 = np.dot(rc.T, np.real(fourier_coeff))
+    n = np.cross(R1, R2)
+    n /= linalg.norm(n)
+    z = np.dot(rc, n)
+    fourier_coeff2 = np.exp(2 * theta)
+    a = np.sqrt(2 / N) * np.sum(z * np.real(fourier_coeff2))
+    b = -np.sqrt(2 / N) * np.sum(z * np.imag(fourier_coeff2))
+    return np.sqrt(a**2 + b**2)
