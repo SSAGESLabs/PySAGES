@@ -15,21 +15,24 @@ two neural networks to approximate the free energy and its derivatives.
 from functools import partial
 from typing import NamedTuple, Tuple
 
-from jax import jit, numpy as np, vmap
+from jax import jit
+from jax import numpy as np
+from jax import vmap
 from jax.lax import cond
 from jax.scipy import linalg
 
-from pysages.approxfun import compute_mesh, scale as _scale
+from pysages.approxfun import compute_mesh
+from pysages.approxfun import scale as _scale
 from pysages.grids import build_indexer
 from pysages.methods.core import NNSamplingMethod, Result, generalize
 from pysages.methods.restraints import apply_restraints
+from pysages.methods.utils import numpyfy_vals
 from pysages.ml.models import MLP
-from pysages.ml.objectives import Sobolev1SSE, L2Regularization
+from pysages.ml.objectives import L2Regularization, Sobolev1SSE
 from pysages.ml.optimizers import LevenbergMarquardt
 from pysages.ml.training import NNData, build_fitting_function, convolve, normalize
 from pysages.ml.utils import blackman_kernel, pack, unpack
 from pysages.utils import Bool, Int, JaxArray, dispatch
-
 
 # Aliases
 f32 = np.float32
@@ -126,6 +129,9 @@ class CFF(NNSamplingMethod):
         Defines the architecture of the neural network
         (number of nodes of each hidden layer).
 
+    kT: float
+        Value of `kT` in the same units as the backend internal energy units.
+
     N: Optional[int] = 500
         Threshold parameter before accounting for the full average of the
         binned generalized mean force.
@@ -188,7 +194,7 @@ def _cff(method: CFF, snapshot, helpers):
         gshape = grid.shape if dims > 1 else (*grid.shape, 1)
 
         xi, _ = cv(helpers.query(snapshot))
-        bias = np.zeros((natoms, 3))
+        bias = np.zeros((natoms, helpers.dimensionality()))
         hist = np.zeros(gshape, dtype=np.uint32)
         histp = np.zeros(gshape, dtype=np.uint32)
         prob = np.zeros(gshape)
@@ -316,7 +322,7 @@ def build_force_estimator(method: CFF):
         return fnn.std * fmodel.apply(fparams, f32(x)).flatten() + fnn.mean
 
     def _estimate_force(state):
-        return cond(state.pred, average_force, predict_force, state)
+        return cond(state.pred, predict_force, average_force, state)
 
     if method.restraints is None:
         estimate_force = _estimate_force
@@ -374,26 +380,15 @@ def analyze(result: Result[CFF]):
         return Fsum / np.maximum(hist, 1)
 
     def build_fes_fn(nn):
-        params = pack(nn.params, layout)
-        return jit(lambda x: nn.std * model.apply(params, x))
+        def fes_fn(x):
+            params = pack(nn.params, layout)
+            A = nn.std * model.apply(params, x) + nn.mean
+            return A.max() - A
 
-    if len(states) == 1:
-        hist = states[0].hist
-        mean_force = average_forces(hist, states[0].Fsum)
-        fes_fn = build_fes_fn(states[0].nn)
+        return jit(fes_fn)
 
-        return dict(
-            histogram=hist,
-            mean_force=mean_force,
-            free_energy=states[0].fe,
-            mesh=mesh,
-            nn=states[0].nn,
-            fnn=states[0].fnn,
-            fes_fn=fes_fn,
-        )
-
-    # For multiple-replicas runs we return a list heights and functions
-    # (one for each replica)
+    def first_or_all(seq):
+        return seq[0] if len(seq) == 1 else seq
 
     histograms = []
     mean_forces = []
@@ -405,17 +400,18 @@ def analyze(result: Result[CFF]):
     for s in states:
         histograms.append(s.hist)
         mean_forces.append(average_forces(s.hist, s.Fsum))
-        free_energies.append(s.fe)
+        free_energies.append(s.fe.max() - s.fe)
         nns.append(s.nn)
         fnns.append(s.fnn)
         fes_fns.append(build_fes_fn(s.nn))
 
-    return dict(
-        histogram=histograms,
-        mean_force=mean_forces,
-        free_energy=free_energies,
+    ana_result = dict(
+        histogram=first_or_all(histograms),
+        mean_force=first_or_all(mean_forces),
+        free_energy=first_or_all(free_energies),
         mesh=mesh,
-        nn=nns,
-        fnn=fnns,
-        fes_fn=fes_fns,
+        nn=first_or_all(nns),
+        fnn=first_or_all(fnns),
+        fes_fn=first_or_all(fes_fns),
     )
+    return numpyfy_vals(ana_result)

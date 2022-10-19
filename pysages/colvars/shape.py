@@ -9,7 +9,7 @@ Collective Variables that are calculated from the shape of group of atoms.
 import jax.numpy as np
 from jax.numpy import linalg
 
-from pysages.colvars.core import CollectiveVariable, AxisCV
+from pysages.colvars.core import AxisCV, CollectiveVariable
 
 
 class RadiusOfGyration(CollectiveVariable):

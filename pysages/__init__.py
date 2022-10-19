@@ -10,6 +10,8 @@ PySAGES: Python Suite for Advanced General Ensemble Simulations
 
 import os
 
+import jax
+
 
 def _set_cuda_visible_devices():
     """
@@ -39,49 +41,44 @@ def _set_cuda_visible_devices():
         os.environ["CUDA_VISIBLE_DEVICES"] = passed_visible_devices[gpu_num_id]
 
 
+def _config_jax():
+    # Check for user set memory environment for XLA/JAX
+    if not (
+        "XLA_PYTHON_CLIENT_PREALLOCATE" in os.environ
+        or "XLA_PYTHON_CLIENT_MEM_FRACTION" in os.environ
+        or "XLA_PYTHON_CLIENT_ALLOCATOR" in os.environ
+    ):
+        # If not set be user, disable preallocate to enable multiple/growing
+        # simulation memory footprints
+        os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
+
+    # Set default floating point type for arrays in `jax` to `jax.f64`
+    jax.config.update("jax_enable_x64", True)
+
+
 _set_cuda_visible_devices()
-del _set_cuda_visible_devices
-
-# Check for user set memory environment for XLA/JAX
-if not (
-    "XLA_PYTHON_CLIENT_PREALLOCATE" in os.environ
-    or "XLA_PYTHON_CLIENT_MEM_FRACTION" in os.environ
-    or "XLA_PYTHON_CLIENT_ALLOCATOR" in os.environ
-):
-    # If not set be user, disable preallocate to enable multiple/growing
-    # simulation memory footprints
-    os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
+_config_jax()
 
 
-from ._version import (  # noqa: E402, F401
-    version as __version__,
-    version_tuple,
-)
-
-from .backends import (  # noqa: E402, F401
-    ContextWrapper,
-    supported_backends,
-)
-
-from .grids import (  # noqa: E402, F401
-    Chebyshev,
-    Grid,
-)
-
+from . import backends, colvars, methods  # noqa: E402, F401
+from ._version import version as __version__  # noqa: E402, F401
+from ._version import version_tuple as __version_tuple__  # noqa: E402, F401
+from .backends import supported_backends  # noqa: E402, F401
+from .grids import Chebyshev, Grid  # noqa: E402, F401
 from .methods import (  # noqa: E402, F401
     CVRestraints,
     ReplicasConfiguration,
     SerialExecutor,
 )
-
-from .utils import (  # noqa: E402, F401
-    dispatch,
-)
-
-from . import (  # noqa: E402, F401
-    colvars,
-    methods,
-)
+from .utils import dispatch  # noqa: E402, F401
 
 run = dispatch._functions["run"]
 analyze = dispatch._functions["analyze"]
+
+
+# Reduce namespace noise
+del jax
+del os
+del _config_jax
+del _set_cuda_visible_devices
+del _version

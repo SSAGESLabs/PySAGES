@@ -4,7 +4,8 @@
 
 from typing import Callable, NamedTuple
 
-from jax import jit, numpy as np
+from jax import jit
+from jax import numpy as np
 
 from pysages.backends.core import ContextWrapper
 from pysages.backends.snapshot import (
@@ -79,9 +80,12 @@ def build_snapshot_methods(context, sampling_method):
 
 
 def build_helpers(context, sampling_method):
+    def dimensionality():
+        return 3  # are all ASE simulations boxes 3-dimensional?
+
     snapshot_methods = build_snapshot_methods(context, sampling_method)
     flags = sampling_method.snapshot_flags
-    helpers = HelperMethods(build_data_querier(snapshot_methods, flags))
+    helpers = HelperMethods(build_data_querier(snapshot_methods, flags), dimensionality)
 
     return helpers
 

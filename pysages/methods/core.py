@@ -12,12 +12,11 @@ from jax import jit
 from plum import parametric
 
 from pysages.backends import ContextWrapper
-from pysages.grids import Grid, build_grid, get_info
 from pysages.colvars.core import build
+from pysages.grids import Grid, build_grid, get_info
 from pysages.methods.restraints import canonicalize
-from pysages.utils import dispatch, identity
 from pysages.methods.utils import ReplicasConfiguration, methods_dispatch
-
+from pysages.utils import dispatch, identity
 
 #  Base Classes
 #  ============
@@ -161,7 +160,6 @@ def run(
         or threads in case the multiple simulation are to be run in parallel.
         Defaults to `ReplicasConfiguration(1, SerialExecutor())`,
         which means only one simulation is run.
-
     """
     timesteps = int(timesteps)
     context_args = {} if context_args is None else context_args

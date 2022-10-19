@@ -14,16 +14,15 @@ Additional optional dependencies:
 import argparse
 import sys
 import time
-
-import numpy
-import pysages
-import matplotlib.pyplot as plt
-
 from importlib import import_module
 
+import matplotlib.pyplot as plt
+import numpy
+
+import pysages
 from pysages.approxfun import compute_mesh
 from pysages.colvars import Distance
-from pysages.methods import Metadynamics, MetaDLogger
+from pysages.methods import MetaDLogger, Metadynamics
 from pysages.utils import try_import
 
 openmm = try_import("openmm", "simtk.openmm")
@@ -49,10 +48,13 @@ def force_field_path():
     except ModuleNotFoundError:
         request = import_module("urllib.request")
         ff_url = (
-            "https://raw.githubusercontent.com/openmm/openmmforcefields/main/"
-            "amber/ffxml/tip3p_standard.xml"
+            "https://raw.githubusercontent.com/openmm/openmmforcefields"
+            "/main/openmmforcefields/ffxml/amber/tip3p_standard.xml"
         )
-        ff_file, _ = request.urlretrieve(ff_url)
+        ff_file = "/tmp/tip3p_standard.xml"
+        with request.urlopen(ff_url) as response:
+            with open(ff_file, "w") as ff:
+                ff.write(response.read().decode())
         return ff_file
 
 
@@ -83,8 +85,6 @@ def generate_simulation(pdb_filename=adp_pdb, T=T, dt=dt):
 
     integrator.setRandomNumberSeed(42)
 
-    # platform = openmm.Platform.getPlatformByName(platform)
-    # simulation = app.Simulation(topology, system, integrator, platform)
     simulation = app.Simulation(topology, system, integrator)
     simulation.context.setPositions(positions)
     simulation.minimizeEnergy()
@@ -132,7 +132,7 @@ def main(argv=[]):
     grid = grid if args.use_grids else None
 
     # Method
-    method = Metadynamics(cvs, height, sigma, stride, ngauss, deltaT=deltaT, kB=kB, grid=None)
+    method = Metadynamics(cvs, height, sigma, stride, ngauss, deltaT=deltaT, kB=kB, grid=grid)
 
     # Logging
     hills_file = "hills.dat"

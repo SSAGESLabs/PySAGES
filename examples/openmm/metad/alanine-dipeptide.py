@@ -14,15 +14,14 @@ import os
 import sys
 import time
 
-import numpy
-import pysages
-
-from pysages.colvars import DihedralAngle
-from pysages.methods import Metadynamics, MetaDLogger
-from pysages.utils import try_import
-from pysages.approxfun import compute_mesh
-
 import matplotlib.pyplot as plt
+import numpy
+
+import pysages
+from pysages.approxfun import compute_mesh
+from pysages.colvars import DihedralAngle
+from pysages.methods import MetaDLogger, Metadynamics
+from pysages.utils import try_import
 
 openmm = try_import("openmm", "simtk.openmm")
 unit = try_import("openmm.unit", "simtk.unit")
@@ -129,7 +128,8 @@ def main(argv=[]):
     plot_grid = pysages.Grid(lower=(-pi, -pi), upper=(pi, pi), shape=(64, 64), periodic=True)
     xi = (compute_mesh(plot_grid) + 1) / 2 * plot_grid.size + plot_grid.lower
 
-    # determine bias factor depending on method (for standard = 1 and for well-tempered = (T+deltaT)/deltaT)
+    # determine bias factor depending on method (for standard = 1
+    # and for well-tempered = (T+deltaT)/deltaT)
     alpha = (
         1
         if method.deltaT is None

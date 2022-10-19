@@ -8,12 +8,11 @@ Unbiased simulation method method.
 This method does not alter the original simulation.
 It allows unbiased simulations with the PySAGES framework.
 
-A common use case is to record collective variables in unbiased simulations via the Histogram logger.
+A common use case is to record collective variables in unbiased
+simulations via the Histogram logger.
 """
 
-from typing import NamedTuple
-
-from jax import numpy as np
+from typing import NamedTuple, Optional
 
 from pysages.methods.core import SamplingMethod, generalize
 from pysages.utils import JaxArray
@@ -26,12 +25,12 @@ class UnbiasedState(NamedTuple):
     xi: JaxArray
         Collective variable value of the last simulation step.
 
-    bias: JaxArray
-        Array with zero biasing force in the simulation.
+    bias: Optional[JaxArray]
+        Either None or an array with all entries equal to zero.
     """
 
     xi: JaxArray
-    bias: JaxArray
+    bias: Optional[JaxArray]
 
     def __repr__(self):
         return repr("PySAGES" + type(self).__name__)
@@ -63,7 +62,6 @@ class Unbiased(SamplingMethod):
 
 def _unbias(method, snapshot, helpers):
     cv = method.cv
-    natoms = np.size(snapshot.positions, 0)
 
     def initialize():
         xi = cv(helpers.query(snapshot))

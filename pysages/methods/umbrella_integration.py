@@ -18,9 +18,10 @@ from copy import deepcopy
 from typing import Callable, Optional, Union
 
 import plum
+
 from pysages.methods.core import Result, SamplingMethod, _run
 from pysages.methods.harmonic_bias import HarmonicBias
-from pysages.methods.utils import HistogramLogger, listify, SerialExecutor
+from pysages.methods.utils import HistogramLogger, SerialExecutor, listify, numpyfy_vals
 from pysages.utils import dispatch
 
 
@@ -112,10 +113,11 @@ def run(  # pylint: disable=arguments-differ
     context_args: Optional[dict] = None,
     post_run_action: Optional[Callable] = None,
     executor=SerialExecutor(),
+    executor_shutdown=True,
     **kwargs
 ):
     """
-    Implementation of the serial execution of umbrella integration with up to linear
+    Implementation of the execution of umbrella integration with up to linear
     order (ignoring second order terms with covariance matrix) as described in
     J. Chem. Phys. 131, 034109 (2009); https://doi.org/10.1063/1.3175798 (equation 13).
     Higher order approximations can be implemented by the user using the provided
@@ -165,15 +167,17 @@ def run(  # pylint: disable=arguments-differ
         )
 
     futures = []
-    with executor as ex:
-        for rep, submethod in enumerate(method.submethods):
-            local_context_args = deepcopy(context_args)
-            local_context_args["replica_num"] = rep
-            callback = method.histograms[rep]
-            futures.append(submit_work(ex, submethod, local_context_args, callback))
+    for rep, submethod in enumerate(method.submethods):
+        local_context_args = deepcopy(context_args)
+        local_context_args["replica_num"] = rep
+        callback = method.histograms[rep]
+        futures.append(submit_work(executor, submethod, local_context_args, callback))
     results = [future.result() for future in futures]
     states = [r.states for r in results]
     callbacks = [r.callbacks for r in results]
+
+    if executor_shutdown:
+        executor.shutdown()
 
     return Result(method, states, callbacks)
 
@@ -208,7 +212,10 @@ def analyze(result: Result[UmbrellaIntegration]):
         if i > 0:
             free_energy.append(integrate(free_energy, mean_forces, centers, i))
 
-    return dict(
+    for callback in result.callbacks:
+        callback.numpyfy()
+
+    ana_result = dict(
         ksprings=ksprings,
         centers=centers,
         histograms=result.callbacks,
@@ -216,3 +223,4 @@ def analyze(result: Result[UmbrellaIntegration]):
         mean_forces=mean_forces,
         free_energy=free_energy,
     )
+    return numpyfy_vals(ana_result)

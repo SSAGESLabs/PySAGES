@@ -20,14 +20,18 @@ second order backward finite difference in the simulation time step.
 from functools import partial
 from typing import NamedTuple
 
-from jax import jit, numpy as np, vmap
+from jax import jit
+from jax import numpy as np
+from jax import vmap
 from jax.lax import cond
 from jax.scipy import linalg
 
-from pysages.approxfun.core import compute_mesh, scale as _scale
+from pysages.approxfun.core import compute_mesh
+from pysages.approxfun.core import scale as _scale
 from pysages.grids import build_indexer
 from pysages.methods.core import GriddedSamplingMethod, Result, generalize
 from pysages.methods.restraints import apply_restraints
+from pysages.methods.utils import numpyfy_vals
 from pysages.ml.models import MLP
 from pysages.ml.objectives import GradientsSSE, L2Regularization
 from pysages.ml.optimizers import LevenbergMarquardt
@@ -46,7 +50,7 @@ class ABFState(NamedTuple):
     xi: JaxArray (CV shape)
         Last collective variable recorded in the simulation.
 
-    bias: JaxArray (Nparticles, 3)
+    bias: JaxArray (Nparticles, d)
         Array with biasing forces for each particle.
 
     hist: JaxArray (grid.shape)
@@ -173,7 +177,7 @@ def _abf(method, snapshot, helpers):
             Initialized State
         """
         xi, _ = cv(helpers.query(snapshot))
-        bias = np.zeros((natoms, 3))
+        bias = np.zeros((natoms, helpers.dimensionality()))
         hist = np.zeros(grid.shape, dtype=np.uint32)
         Fsum = np.zeros((*grid.shape, dims))
         force = np.zeros(dims)
@@ -334,10 +338,11 @@ def analyze(result: Result[ABF], **kwargs):
 
     fes_fn = build_fes_fn(state)
 
-    return dict(
+    ana_result = dict(
         histogram=state.hist,
         mean_force=average_forces(state),
         free_energy=fes_fn(inputs).reshape(grid.shape),
         mesh=inputs,
         fes_fn=fes_fn,
     )
+    return numpyfy_vals(ana_result)

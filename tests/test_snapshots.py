@@ -1,9 +1,8 @@
-from pysages.backends.snapshot import Box, Snapshot
-from pysages.utils import ToCPU, copy
-
 import jax.numpy as np
 import numpy
-import pytest
+
+from pysages.backends.snapshot import Box, Snapshot
+from pysages.utils import ToCPU, copy
 
 
 def test_copying():

@@ -14,10 +14,12 @@ jupyter:
 ---
 
 <!-- #region id="T-Qkg9C9n7Cc" -->
+
 # Setting up the environment
 
 First, we are setting up our environment. We use an already compiled and packaged installation of HOOMD-blue and the DLExt plugin.
 We copy it from Google Drive and install PySAGES for it.
+
 <!-- #endregion -->
 
 ```bash id="3eTbKklCnyd_"
@@ -53,10 +55,12 @@ os.environ["LD_LIBRARY_PATH"] = "/usr/lib/x86_64-linux-gnu:" + os.environ["LD_LI
 ```
 
 <!-- #region id="we_mTkFioS6R" -->
+
 ## PySAGES
 
 The next step is to install PySAGES.
 First, we install the jaxlib version that matches the CUDA installation of this Colab setup. See the JAX documentation [here](https://github.com/google/jax) for more details.
+
 <!-- #endregion -->
 
 ```bash id="vK0RZtbroQWe"
@@ -67,7 +71,9 @@ pip install -q --upgrade "jax[cuda11_cudnn805]" -f https://storage.googleapis.co
 ```
 
 <!-- #region id="wAtjM-IroYX8" -->
+
 Now we can finally install PySAGES. We clone the newest version from [here](https://github.com/SSAGESLabs/PySAGES) and build the remaining pure python dependencies and PySAGES itself.
+
 <!-- #endregion -->
 
 ```bash id="B-HB9CzioV5j"
@@ -85,13 +91,17 @@ cd /content/funn
 ```
 
 <!-- #region id="KBFVcG1FoeMq" -->
+
 # FUNN-biased simulations
+
 <!-- #endregion -->
 
 <!-- #region id="0W2ukJuuojAl" -->
+
 FUNN gradually learns the free energy gradient from a discrete estimate based on the same algorithm as the ABF method, but employs a neural network to provide a continuous approximation to it.
 
 For this Colab, we are using butane as the example molecule.
+
 <!-- #endregion -->
 
 ```python id="BBvC7Spoog82"
@@ -312,7 +322,9 @@ def generate_context(kT = kT, dt = dt, mode = mode):
 ```
 
 <!-- #region id="3UrzENm_oo6U" -->
+
 Next, we load PySAGES and the relevant classes and methods for our problem
+
 <!-- #endregion -->
 
 ```python id="fpMg-o8WomAA"
@@ -324,6 +336,7 @@ import pysages
 ```
 
 <!-- #region id="LknkRvo1o4av" -->
+
 The next step is to define the collective variable (CV). In this case, we choose the central dihedral angle.
 
 We also define a grid to bin our CV space, the topology (tuple indicating the number of
@@ -333,6 +346,7 @@ The appropriate number of bins depends on the complexity of the free energy land
 a good rule of thumb is to choose between 20 to 100 bins along each CV dimension
 (using higher values for more rugged free energy surfaces), but it can be systematically
 found trying different values for short runs of any given system.
+
 <!-- #endregion -->
 
 ```python id="B1Z8FWz0o7u_"
@@ -344,35 +358,30 @@ method = FUNN(cvs, grid, topology)
 ```
 
 <!-- #region id="Fz8BfU34pA_N" -->
+
 We now simulate $5\times10^5$ time steps.
 Make sure to run with GPU support, otherwise, it can take a very long time.
+
 <!-- #endregion -->
 
 ```python colab={"base_uri": "https://localhost:8080/"} id="K951m4BbpUar" outputId="f3e79872-41da-479a-caec-5bca7a6792e5"
-method.run(generate_context, int(5e5))
+run_result = pysages.run(method, generate_context, int(5e5))
 ```
 
 <!-- #region id="PXBKUfK0p9T2" -->
-Since the neural network learns the gradient of the free energy, we need a separate way of integrating it to find the free energy surface. Let's plot first the gradient of the free energy.
+
+Let's now plot the free energy landscape learned by the FUNN sampling method.
 <!-- #endregion -->
 
 ```python id="X69d1R7OpW4P"
-from pysages.approxfun import compute_mesh
-from pysages.ml.utils import pack, unpack
-
 import matplotlib.pyplot as plt
 ```
 
 ```python id="6W7Xf0ilqAcm"
-xi = (compute_mesh(grid) + 1) / 2 * grid.size + grid.lower
+result = pysages.analyze(run_result)
 
-model = method.model
-layout = unpack(model.parameters)[1]
-
-state = method.context[0].sampler.state
-nn = state.nn
-params = pack(nn.params, layout)
-dA = nn.std * model.apply(params, xi.reshape(-1, 1)) + nn.mean
+mesh = result["mesh"]
+A = result["free_energy"]
 ```
 
 ```python colab={"base_uri": "https://localhost:8080/", "height": 300} id="TBiPAnMwqEIF" outputId="3a13a52d-2bd8-4122-db13-18bc6a11c797"
@@ -381,32 +390,7 @@ fig, ax = plt.subplots()
 ax.set_xlabel(r"Dihedral Angle, $\xi$")
 ax.set_ylabel(r"$\nabla A(\xi)$")
 
-ax.plot(xi, dA)
+ax.plot(mesh, A)
 plt.gca()
 ```
 
-<!-- #region id="Kf_CMdih90Cd" -->
-Finally, we make use of the `pysages.approxfun` module to build a Fourier series approximation to the free energy
-<!-- #endregion -->
-
-```python id="pTIGVSSqKdbs"
-from pysages.approxfun import SpectralGradientFit, build_evaluator, build_fitter
-
-fourier_model = SpectralGradientFit(grid)
-fourier_fit = build_fitter(fourier_model)
-evaluate = build_evaluator(fourier_model)
-
-fun = fourier_fit(dA)
-A = evaluate(fun, compute_mesh(grid))
-A = A.max() - A
-```
-
-```python colab={"base_uri": "https://localhost:8080/", "height": 303} id="7_d_XfVLLkbI" outputId="3bd503ea-fe33-4a57-a28d-1c3a70e63c50"
-fig, ax = plt.subplots()
-
-ax.set_xlabel(r"Dihedral Angle, $\xi$")
-ax.set_ylabel(r"$A(\xi)$")
-
-ax.plot(xi, A)
-plt.gca()
-```

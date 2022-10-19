@@ -9,18 +9,16 @@ CFF simulation of a butane molecule in HOOMD-blue and PySAGES.
 import argparse
 import sys
 import time
+from math import pi, sqrt
 
-import numpy as np
 import hoomd
 import hoomd.md
+import numpy as np
+
 import pysages
-
-from math import sqrt, pi
-
 from pysages import Grid
 from pysages.colvars import DihedralAngle
 from pysages.methods import CFF
-
 
 # %%
 kT = 0.596161

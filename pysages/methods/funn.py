@@ -18,23 +18,22 @@ appropriate method.
 from functools import partial
 from typing import NamedTuple, Tuple
 
-from jax import jit, numpy as np, vmap
+from jax import jit
+from jax import numpy as np
+from jax import vmap
 from jax.lax import cond
 from jax.scipy import linalg
 
-from pysages.approxfun import compute_mesh, scale as _scale
+from pysages.approxfun import compute_mesh
+from pysages.approxfun import scale as _scale
 from pysages.grids import build_indexer
 from pysages.methods.core import NNSamplingMethod, Result, generalize
 from pysages.methods.restraints import apply_restraints
+from pysages.methods.utils import numpyfy_vals
 from pysages.ml.models import MLP
 from pysages.ml.objectives import GradientsSSE, L2Regularization
 from pysages.ml.optimizers import LevenbergMarquardt
-from pysages.ml.training import (
-    NNData,
-    build_fitting_function,
-    normalize,
-    convolve,
-)
+from pysages.ml.training import NNData, build_fitting_function, convolve, normalize
 from pysages.ml.utils import blackman_kernel, pack, unpack
 from pysages.utils import Bool, Int, JaxArray, dispatch
 
@@ -168,7 +167,7 @@ def _funn(method, snapshot, helpers):
 
     def initialize():
         xi, _ = cv(helpers.query(snapshot))
-        bias = np.zeros((natoms, 3))
+        bias = np.zeros((natoms, helpers.dimensionality()))
         hist = np.zeros(grid.shape, dtype=np.uint32)
         Fsum = np.zeros((*grid.shape, dims))
         F = np.zeros(dims)
@@ -382,7 +381,7 @@ def analyze(result: Result[FUNN]):
         nns.append(s.nn)
         fes_fns.append(fes_fn)
 
-    return dict(
+    ana_result = dict(
         histogram=first_or_all(hists),
         mean_force=first_or_all(mean_forces),
         free_energy=first_or_all(free_energies),
@@ -390,3 +389,4 @@ def analyze(result: Result[FUNN]):
         nn=first_or_all(nns),
         fes_fn=first_or_all(fes_fns),
     )
+    return numpyfy_vals(ana_result)

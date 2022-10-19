@@ -2,13 +2,13 @@
 # Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
+import ctypes
+
+import numba
+import numpy
 from jaxlib.xla_extension import DeviceArray
 from numpy.ctypeslib import as_ctypes_type
 from plum import dispatch
-
-import ctypes
-import numba
-import numpy
 
 
 @dispatch

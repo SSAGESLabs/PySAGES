@@ -3,16 +3,60 @@
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 from importlib import import_module
-from typing import Callable
+from typing import Any, Callable, NamedTuple, Optional
 
-from jax import numpy as np
+from pysages.utils import Float, JaxArray
 
-import jax
-import warnings
+JaxMDState = Any
 
 
-# Set default floating point type for arrays in `jax` to `jax.f64`
-jax.config.update("jax_enable_x64", True)
+class JaxMDContextState(NamedTuple):
+    """
+    Provides an interface for the data structure returned by `JaxMDContext.init_fn` and
+    expected as the single argument of `JaxMDContext.step_fn`.
+
+    Arguments
+    ---------
+    state: JaxMDState
+        Holds the particle information and corresponds to the internal state of
+        `jax_md.simulate` methods.
+
+    extras: Optional[dict]
+        Additional arguments required by `JaxMDContext.step_fn`, these might include for
+        instance, the neighbor list or the time step.
+    """
+
+    state: JaxMDState
+    extras: Optional[dict]
+
+
+class JaxMDContext(NamedTuple):
+    """
+    Provides an interface for the data structure expects from `generate_context` for
+    `jax_md`-backed simulations.
+
+    Arguments
+    ---------
+    init_fn: Callable[..., JaxMDContextState]
+        Initilizes the `jax_md` state. Generally, this will be the `init_fn` of any
+        of the simulation routines in `jax_md` (or wrappers around these).
+
+    step_fn: Callable[..., JaxMDContextState]
+        Takes a state and advances a `jax_md` simulation by one step. Generally, this
+        will be the `apply_fn` of any of the simulation routines in `jax_md` (or wrappers
+        around these).
+
+    box: JaxArray
+        Affine transformation from a unit hypercube to the simulation box.
+
+    dt: Float
+        Step size of the simulation.
+    """
+
+    init_fn: Callable[..., JaxMDContextState]
+    step_fn: Callable[..., JaxMDContextState]
+    box: JaxArray
+    dt: Float
 
 
 class ContextWrapper:
@@ -27,12 +71,14 @@ class ContextWrapper:
         """
         self._backend_name = None
         module_name = type(context).__module__
-        if module_name.startswith("hoomd"):
+        if module_name.startswith("ase.md"):
+            self._backend_name = "ase"
+        elif module_name.startswith("hoomd"):
             self._backend_name = "hoomd"
+        elif isinstance(context, JaxMDContext):
+            self._backend_name = "jax-md"
         elif module_name.startswith("simtk.openmm") or module_name.startswith("openmm"):
             self._backend_name = "openmm"
-        elif module_name.startswith("ase.md"):
-            self._backend_name = "ase"
         elif module_name.startswith("lammps"):
             self._backend_name = "lammps"            
 
@@ -65,16 +111,16 @@ class ContextWrapper:
         """
         Trampoline 'with statements' to the wrapped context when the backend supports it.
         """
-        if self.get_backend_name() == "hoomd":
+        if hasattr(self.context, "__enter__"):
             return self.context.__enter__()
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
         """
         Trampoline 'with statements' to the wrapped context when the backend supports it.
         """
-        if self.get_backend_name() == "hoomd":
+        if hasattr(self.context, "__exit__"):
             return self.context.__exit__(exc_type, exc_value, exc_traceback)
 
 
 def supported_backends():
-    return ("ase", "hoomd", "lammps", "openmm")
+    return ("ase", "hoomd", "jax-md", "lammps", "openmm")

@@ -4,21 +4,16 @@
 
 from typing import Callable, NamedTuple, Optional, Tuple, Union
 
-from jax import jit, numpy as np
+from jax import jit
+from jax import numpy as np
 from jaxlib.xla_extension import DeviceArray as JaxArray
 
-from pysages.utils import copy, dispatch, identity
+from pysages.utils import copy, dispatch
+
+AbstractBox = NamedTuple("AbstractBox", [("H", JaxArray), ("origin", JaxArray)])
 
 
-class Box(
-    NamedTuple(
-        "Box",
-        [
-            ("H", JaxArray),
-            ("origin", JaxArray),
-        ],
-    )
-):
+class Box(AbstractBox):
     """
     Simulation box information (origin and transform matrix).
     """
@@ -57,6 +52,7 @@ class SnapshotMethods(NamedTuple):
 
 class HelperMethods(NamedTuple):
     query: Callable
+    dimensionality: Callable[[], int]
 
 
 @dispatch(precedence=1)

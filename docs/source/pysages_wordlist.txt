@@ -38,7 +38,13 @@ kT
 Sobolev
 pysages
 metad
+discretized
 invariants
 xy
 xz
 yz
+hoomd
+SimulationContext
+decompositions
+conda
+numpyfying

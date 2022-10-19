@@ -1,9 +1,11 @@
-import pickle
-import pysages
-import pysages.methods
-import pysages.colvars
 import inspect
+import pickle
+
 import numpy as np
+
+import pysages
+import pysages.colvars
+import pysages.methods
 
 pi = np.pi
 
@@ -71,6 +73,12 @@ METHODS_ARGS = {
     "SerialExecutor": {},
     "CVRestraints": {"lower": (-pi, -pi), "upper": (pi, pi), "kl": (0.0, 1.0), "ku": (1.0, 0.0)},
     "Bias": {"cvs": [pysages.colvars.Component([0], 0)], "center": 0.7},
+    "SplineString": {
+        "cvs": [pysages.colvars.Component([0], 0)],
+        "ksprings": 15.0,
+        "centers": [0.0, 0.7],
+        "hist_periods": 10,
+    },
 }
 
 

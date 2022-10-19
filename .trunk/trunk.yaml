@@ -1,0 +1,72 @@
+version: 0.1
+runtimes:
+  enabled:
+    - go@1.18.3
+    - node@16.14.2
+    - python@3.10.3
+actions:
+  enabled:
+    - trunk-cache-prune
+    - trunk-upgrade-available
+    - trunk-fmt-pre-commit
+    - trunk-check-pre-push
+cli:
+  version: 0.18.0-beta
+plugins:
+  sources:
+    - id: trunk
+      ref: v0.0.4
+      uri: https://github.com/trunk-io/plugins
+lint:
+  enabled:
+    - actionlint@1.6.17
+    - black@22.8.0
+    - flake8@5.0.4
+    - git-diff-check@SYSTEM
+    - gitleaks@8.12.0
+    - hadolint@2.10.0
+    - isort@5.10.1
+    - markdownlint@0.32.2
+    - prettier@2.7.1
+    - shellcheck@0.8.0
+    - shfmt@3.5.0
+    - taplo@release-taplo-cli-0.7.0
+  ignore:
+    - linters: [prettier]
+      paths:
+        - examples/Advanced_Sampling_Introduction.md
+        - examples/Install_PySAGES_Environment.md
+        - examples/openmm/Harmonic_Bias.md
+        - examples/hoomd-blue/ann/Butane_ANN.md
+        - examples/hoomd-blue/harmonic_bias/Harmonic_Bias.md
+        - examples/openmm/metad/Metadynamics-ADP.md
+        - examples/hoomd-blue/cff/Butane_CFF.md
+        - examples/hoomd-blue/spectral_abf/Butane-SpectralABF.md
+        - examples/openmm/spectral_abf/ADP_SpectralABF.md
+        - examples/hoomd-blue/funn/Butane_FUNN.md
+        - examples/hoomd-blue/umbrella_integration/Umbrella_Integration.md
+        - examples/openmm/metad/nacl/Metadynamics_NaCl.md
+merge:
+  required_statuses:
+    - trunk
+    - test (ubuntu-20.04, 3.7)
+    - test (ubuntu-20.04, 3.9)
+    - test (macos-latest, 3.7)
+    - test (macos-latest, 3.9)
+    - doc-test
+    - forward-flux-sampling
+    - abf-alanine-dipeptide-openmm
+    - spectral-abf-alanine-dipeptide-openmm
+    - abf-tip3p-water-ase
+    - metad-alanine-dipeptide-openmm
+    - alanine-dipeptide-openmm-mpi
+    - alanine-dipeptide-string
+    - openmm-nacl-metad-displacement
+    - metad-hoomd
+    - funn-butane-hoomd
+    - cff-butane-hoomd
+    - harmonic-bias-hoomd
+    - unbiased-hoomd
+    - umbrella-integration-hoomd
+    - improved-string-hoomd
+    - umbrella-integration-hoomd-mpi

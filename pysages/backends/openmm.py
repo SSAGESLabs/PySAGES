@@ -2,10 +2,14 @@
 # Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
+import importlib
 from functools import partial
 from typing import Callable
 
-from jax import jit, numpy as np
+import jax
+import openmm_dlext as dlext
+from jax import jit
+from jax import numpy as np
 from jax.dlpack import from_dlpack as asarray
 from jax.lax import cond
 from openmm_dlext import ContextView, DeviceType, Force
@@ -17,15 +21,11 @@ from pysages.backends.snapshot import (
     Snapshot,
     SnapshotMethods,
     build_data_querier,
-    restore as _restore,
-    restore_vm as _restore_vm,
 )
+from pysages.backends.snapshot import restore as _restore
+from pysages.backends.snapshot import restore_vm as _restore_vm
 from pysages.methods import SamplingMethod
 from pysages.utils import copy, try_import
-
-import importlib
-import jax
-import openmm_dlext as dlext
 
 openmm = try_import("openmm", "simtk.openmm")
 unit = try_import("openmm.unit", "simtk.unit")
@@ -171,10 +171,13 @@ def build_helpers(context, sampling_method):
         forces += biases
         sync_forces()
 
+    def dimensionality():
+        return 3  # all OpenMM simulations boxes are 3-dimensional
+
     snapshot_methods = build_snapshot_methods(context, sampling_method)
     flags = sampling_method.snapshot_flags
     restore = partial(_restore, view, restore_vm=restore_vm)
-    helpers = HelperMethods(build_data_querier(snapshot_methods, flags))
+    helpers = HelperMethods(build_data_querier(snapshot_methods, flags), dimensionality)
 
     return helpers, restore, bias
 

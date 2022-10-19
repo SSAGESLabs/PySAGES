@@ -8,9 +8,11 @@ from functools import partial
 from itertools import product
 from typing import NamedTuple
 
-from jax import jit, numpy as np, vmap
+from jax import jit
+from jax import numpy as np
+from jax import vmap
 
-from pysages.grids import Grid, Chebyshev
+from pysages.grids import Chebyshev, Grid
 from pysages.utils import Float, JaxArray, dispatch
 
 
