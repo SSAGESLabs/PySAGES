@@ -144,10 +144,10 @@ class RingPuckeringCoordinates(CollectiveVariable):
     Equations 12 and 13, or see `pysages.colvars.angles.ring_puckering_coordinates` for math).
     Also, the phase angle obtained via the Cremer-Pople method can be converted
     to the Altona-Sundaralingam order parameter by adding `pi / 2` to the result
-    and then converting from radian to degrees.
+    and then converting from radians to degrees.
     Similarly, the amplitude obtained via the Cremer-Pople method can be converted
     to the Altona-Sundaralingam order parameter by multiplying the result by `1025`.
-    (assume the unit is nm for the amplitude, and this will convert from nm to degree).
+    (assume the unit is nanometer for the amplitude, and this will convert from nanometer to degree)
 
     Usage
     -------
@@ -183,7 +183,7 @@ def ring_puckering_coordinates(rs):
     Returns
     ------------
     DeviceArray: [q: float, phi: float]
-        :math:`q` in nm (if the default length unit for the MD engine is nm)
+        :math:`q` in nanometer (if the default length unit for the MD engine is nanometer)
         :math:`phi` in radians, range -pi to pi.
     """
     N = len(rs)
@@ -221,7 +221,7 @@ class RingPhaseAngle(CollectiveVariable):
         -------
         Function that calculates the dihedral angle value from a simulation snapshot.
         Look at `pysages.colvars.angles.ring_puckering_coordinates`
-        and `pysages.colvars.angles.ring_phase_angle`for details.
+        and `pysages.colvars.angles.ring_phase_angle` for details.
         """
         return ring_phase_angle
 
