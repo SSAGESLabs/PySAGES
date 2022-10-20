@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 
-import os
-from math import ceil
-
 import numpy as np
 import openmm as mm
 import openmm.app as app
