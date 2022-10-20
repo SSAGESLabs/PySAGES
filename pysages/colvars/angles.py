@@ -220,7 +220,8 @@ class RingPhaseAngle(CollectiveVariable):
         Returns
         -------
         Function that calculates the dihedral angle value from a simulation snapshot.
-        Look at `pysages.colvars.angles.ring_puckering_coordinates` and `pysages.colvars.angles.ring_phase_angle`for details.
+        Look at `pysages.colvars.angles.ring_puckering_coordinates`
+        and `pysages.colvars.angles.ring_phase_angle`for details.
         """
         return ring_phase_angle
 
