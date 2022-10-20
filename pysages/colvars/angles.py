@@ -131,7 +131,7 @@ class PhaseAngle(CollectiveVariable):
     [D. Cremer and J. A. Pople, JACS, 1974](https://pubs.acs.org/doi/10.1021/ja00839a011)
     Equations 4-14.
     Notice that for rings with N atoms, there are `int( ( N - 1 )  / 2 - 1 )` phase angles.
-    So if the ring contains more than six atoms, there are more than one phase angle.
+    So if the ring contains more than six atoms, there is more than one phase angle.
     This class (for now) only calculates the first one (`m = 2` in
     Equations 12 and 13, or see `pysages.colvars.angles.phase_angle` for math).
     Also, the phase angle obtained via the Cremer-Pople method can be converted
@@ -204,11 +204,11 @@ class AmplitudeRing(CollectiveVariable):
     [D. Cremer and J. A. Pople, JACS, 1974](https://pubs.acs.org/doi/10.1021/ja00839a011)
     Equations 4-14.
     Notice that for rings with N atoms, there are `int (N / 2 - 1) ` amplitudes.
-    So if the ring contains more than five atoms, there are more than one amplitude.
+    So if the ring contains more than five atoms, there is more than one amplitude.
     This class (for now) only calculates the first one (`m = 2` in
     Equations 12 and 13, or see `pysages.colvars.angles.phase_angle` for math).
     Also, the amplitude obtained via the Cremer-Pople method can be converted
-    to the Altona-Sundaralingam order parameter by multiplying `102.5` to the result.
+    to the Altona-Sundaralingam order parameter by multiplying the result by `102.5`
     (if the coordinate is in angstrom, this would transform to degree).
     """
 
