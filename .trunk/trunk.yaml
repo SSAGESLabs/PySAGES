@@ -47,6 +47,21 @@ lint:
         - examples/hoomd-blue/funn/Butane_FUNN.md
         - examples/hoomd-blue/umbrella_integration/Umbrella_Integration.md
         - examples/openmm/metad/nacl/Metadynamics_NaCl.md
+    - linters: [black]
+      paths:
+        - examples/Advanced_Sampling_Introduction.ipynb
+        - examples/Install_PySAGES_Environment.ipynb
+        - examples/openmm/Harmonic_Bias.ipynb
+        - examples/hoomd-blue/ann/Butane_ANN.ipynb
+        - examples/hoomd-blue/harmonic_bias/Harmonic_Bias.ipynb
+        - examples/openmm/metad/Metadynamics-ADP.ipynb
+        - examples/hoomd-blue/cff/Butane_CFF.ipynb
+        - examples/hoomd-blue/spectral_abf/Butane-SpectralABF.ipynb
+        - examples/openmm/spectral_abf/ADP_SpectralABF.ipynb
+        - examples/hoomd-blue/funn/Butane_FUNN.ipynb
+        - examples/hoomd-blue/umbrella_integration/Umbrella_Integration.ipynb
+        - examples/openmm/metad/nacl/Metadynamics_NaCl.ipynb
+
 merge:
   required_statuses:
     - trunk
