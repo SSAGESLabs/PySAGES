@@ -146,7 +146,8 @@ class RingPuckeringCoordinates(CollectiveVariable):
     to the Altona-Sundaralingam order parameter by adding `pi / 2` to the result
     and then converting from radians to degrees.
     Similarly, the amplitude obtained via the Cremer-Pople method can be converted
-    to the Altona-Sundaralingam order parameter (in degrees) by multiplying the result by `1025` degree/nm.
+    to the Altona-Sundaralingam order parameter (in degrees) by multiplying the result
+    by `1025` degree/nm.
 
     Usage
     -------
