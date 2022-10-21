@@ -12,7 +12,7 @@ from pysages.methods import HistogramLogger, Unbiased
 step_size = 1 * unit.femtosecond
 nsteps = 100
 
-pdb = app.PDBFile("guanosine.fixed.pdb")
+pdb = app.PDBFile("../../inputs/guanosine.fixed.pdb")
 sugar_indices = {}
 for i, atom in enumerate(pdb.topology.atoms()):
     if atom.name in ["O4'", "C4'", "C3'", "C2'", "C1'"]:
