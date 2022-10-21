@@ -156,9 +156,10 @@ jobs:
           path: /tmp
       - name: Load and run test
         run: |
+          docker load --input /tmp/pysages.tar
           SCRIPT="cd PySAGES/examples/openmm/cv_pucker &&"
           SCRIPT="${SCRIPT} python unbiased.py" 
-          docker run -t pysages bash -c "${SCRIPT}"
+          docker run -t pysages bash -c "cd PySAGES/examples/openmm/cv_pucker && python3 ./unbiased.py"
 
   alanine-dipeptide-string:
     runs-on: ubuntu-latest
