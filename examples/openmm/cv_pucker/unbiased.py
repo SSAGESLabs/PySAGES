@@ -11,15 +11,12 @@ from pysages.methods import HistogramLogger, Unbiased
 
 step_size = 1 * unit.femtosecond
 nsteps = 100
-print("nsteps = {}".format(nsteps))
 
 pdb = app.PDBFile("guanosine.fixed.pdb")
 sugar_indices = {}
 for i, atom in enumerate(pdb.topology.atoms()):
     if atom.name in ["O4'", "C4'", "C3'", "C2'", "C1'"]:
         sugar_indices[atom.name] = atom.index
-
-print(f"dictionary of sugar indices: {sugar_indices}")
 
 
 def generate_simulation():
@@ -48,10 +45,17 @@ def generate_simulation():
     return simulation
 
 
-cvs = [RingPuckeringCoordinates([sugar_indices[nm] for nm in ["O4'", "C1'", "C2'", "C3'", "C4'"]])]
-# notice that the order of the indices do matter for the calculation of phase angle
-method = Unbiased(cvs)
-callback = HistogramLogger(1)
+def main():
+    cvs = [
+        RingPuckeringCoordinates([sugar_indices[nm] for nm in ["O4'", "C1'", "C2'", "C3'", "C4'"]])
+    ]
+    # notice that the order of the indices do matter for the calculation of phase angle
+    method = Unbiased(cvs)
+    callback = HistogramLogger(1)
 
-raw_result = pysages.run(method, generate_simulation, nsteps, callback)
-np.savetxt("phase_angle.txt", raw_result.callbacks[0].data)
+    raw_result = pysages.run(method, generate_simulation, nsteps, callback)
+    np.savetxt("phase_angle.txt", raw_result.callbacks[0].data)
+
+
+if __name__ == "__main__":
+    main()
