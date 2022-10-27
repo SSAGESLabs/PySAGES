@@ -12,6 +12,7 @@ PySAGES with your own.
 
 from .angles import Angle, DihedralAngle
 from .coordinates import Component, Displacement, Distance
+from .patterns import GeM
 from .shape import (
     Acylindricity,
     Asphericity,
