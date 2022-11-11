@@ -6,12 +6,13 @@ runtimes:
     - python@3.10.3
 actions:
   enabled:
+    - trunk-announce
     - trunk-cache-prune
     - trunk-upgrade-available
     - trunk-fmt-pre-commit
     - trunk-check-pre-push
 cli:
-  version: 1.0.0
+  version: 1.1.0
 plugins:
   sources:
     - id: trunk
@@ -19,19 +20,19 @@ plugins:
       uri: https://github.com/trunk-io/plugins
 lint:
   enabled:
-    - svgo@2.8.0
-    - actionlint@1.6.21
+    - svgo@3.0.1
+    - actionlint@1.6.22
     - black@22.10.0
     - flake8@5.0.4
     - git-diff-check@SYSTEM
     - gitleaks@8.15.0
-    - hadolint@2.10.0
+    - hadolint@2.12.0
     - isort@5.10.1
     - markdownlint@0.32.2
     - prettier@2.7.1
     - shellcheck@0.8.0
     - shfmt@3.5.0
-    - taplo@release-taplo-cli-0.7.0
+    - taplo@0.7.0
   ignore:
     - linters: [prettier]
       paths:
