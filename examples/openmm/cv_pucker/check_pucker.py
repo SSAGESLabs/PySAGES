@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from math import atan2, cos, pi, sin, sqrt
+from math import cos, pi, sin, sqrt
 
 import numpy as np
 
