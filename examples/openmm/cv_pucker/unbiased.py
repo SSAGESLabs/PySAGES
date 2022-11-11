@@ -7,6 +7,7 @@ from openmm import unit
 
 import pysages
 from pysages.colvars.angles import RingPuckeringCoordinates
+from pysages.colvars.coordinates import Component
 from pysages.methods import HistogramLogger, Unbiased
 
 step_size = 1 * unit.femtosecond
@@ -47,14 +48,21 @@ def generate_simulation():
 
 def main():
     cvs = [
-        RingPuckeringCoordinates([sugar_indices[nm] for nm in ["O4'", "C1'", "C2'", "C3'", "C4'"]])
+        RingPuckeringCoordinates([sugar_indices[nm] for nm in ["O4'", "C1'", "C2'", "C3'", "C4'"]]),
     ]
     # notice that the order of the indices do matter for the calculation of phase angle
+
+    for nm in ["O4'", "C1'", "C2'", "C3'", "C4'"]:
+        for i in range(3):
+            cvs += [Component([sugar_indices[nm]], axis=i)]
+            # record the position of each atom in the sugar for  testing purpose
+
     method = Unbiased(cvs)
     callback = HistogramLogger(1)
 
     raw_result = pysages.run(method, generate_simulation, nsteps, callback)
-    np.savetxt("phase_angle.txt", raw_result.callbacks[0].data)
+    np.savetxt("phase_angle.txt", raw_result.callbacks[0].data[:, :2])
+    np.savetxt("sugar_coords.txt", raw_result.callbacks[0].data[:, 2:])
 
 
 if __name__ == "__main__":
