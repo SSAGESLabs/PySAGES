@@ -376,8 +376,8 @@ def analyze(result: Result[CFF]):
     _, layout = unpack(model.parameters)
 
     def average_forces(hist, Fsum):
-        hist = np.expand_dims(hist, hist.ndim)
-        return Fsum / np.maximum(hist, 1)
+        shape = (*Fsum.shape[:-1], 1)
+        return Fsum / np.maximum(hist.reshape(shape), 1)
 
     def build_fes_fn(nn):
         def fes_fn(x):
