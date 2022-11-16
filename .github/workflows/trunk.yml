@@ -10,6 +10,7 @@ on:
       - main
   # Allows you (and trunk) to run this workflow
   workflow_dispatch:
+  workflow_call:
 
 jobs:
   trunk:

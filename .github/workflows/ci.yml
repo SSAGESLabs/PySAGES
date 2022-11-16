@@ -12,6 +12,7 @@ on:
       - main
     paths-ignore:
       - "README.md"
+  workflow_call:
 
 jobs:
   test:
