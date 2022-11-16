@@ -361,8 +361,8 @@ def analyze(result: Result[FUNN]):
         return jit(fes_fn)
 
     def average_forces(hist, Fsum):
-        hist = np.expand_dims(hist, hist.ndim)
-        return Fsum / np.maximum(hist, 1)
+        shape = (*Fsum.shape[:-1], 1)
+        return Fsum / np.maximum(hist.reshape(shape), 1)
 
     def first_or_all(seq):
         return seq[0] if len(seq) == 1 else seq
