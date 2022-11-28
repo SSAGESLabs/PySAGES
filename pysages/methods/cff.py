@@ -12,6 +12,7 @@ estimates. It can be seen as a generalization of ANN and FUNN sampling methods t
 two neural networks to approximate the free energy and its derivatives.
 """
 
+import numbers
 from functools import partial
 from typing import NamedTuple, Tuple
 
@@ -153,7 +154,11 @@ class CFF(NNSamplingMethod):
     snapshot_flags = {"positions", "indices", "momenta"}
 
     def __init__(self, cvs, grid, topology, kT, **kwargs):
+        # kT must be unitless but consistent with the internal unit system of the backend
+        assert isinstance(kT, numbers.Real)
+
         super().__init__(cvs, grid, topology, **kwargs)
+
         self.kT = kT
         self.N = np.asarray(self.kwargs.get("N", 500))
         self.train_freq = self.kwargs.get("train_freq", 5000)
@@ -202,7 +207,7 @@ def _cff(method: CFF, snapshot, helpers):
         force = np.zeros(dims)
         Wp = np.zeros(dims)
         Wp_ = np.zeros(dims)
-        nn = NNData(ps, np.zeros(dims), np.array(1.0))
+        nn = NNData(ps, np.array(0.0), np.array(1.0))
         fnn = NNData(fps, np.zeros(dims), np.array(1.0))
 
         return CFFState(xi, bias, hist, histp, prob, fe, Fsum, force, Wp, Wp_, nn, fnn, 1)
