@@ -9,7 +9,6 @@ import jax
 from jax import numpy as np
 from jax.lax import cond
 from jax.numpy.linalg import pinv
-from jax.scipy.linalg import solve
 
 from pysages.ml.objectives import (
     SSE,
@@ -24,7 +23,7 @@ from pysages.ml.objectives import (
     sum_squares,
 )
 from pysages.ml.utils import dispatch, pack, unpack
-from pysages.utils import Bool, Float, Int, JaxArray, try_import
+from pysages.utils import Bool, Float, Int, JaxArray, solve_pos_def, try_import
 
 jopt = try_import("jax.example_libraries.optimizers", "jax.experimental.optimizers")
 
@@ -209,7 +208,7 @@ def build(optimizer: LevenbergMarquardt, model):
         H = damped_hessian(J, mu)
         Je = jac_err_prod(J, e_, p_)
         #
-        dp = solve(H, Je, sym_pos=True)
+        dp = solve_pos_def(H, Je)
         p = p_ - dp
         e = error(p, x, y)
         C = cost(e, p)
@@ -263,7 +262,7 @@ def build(optimizer: LevenbergMarquardtBR, model):
         Je = J.T @ e_ + alpha_ * p_
         idx = np.diag_indices_from(H)
         #
-        dp = solve(H.at[idx].add(alpha_ + mu), Je, sym_pos=True)
+        dp = solve_pos_def(H.at[idx].add(alpha_ + mu), Je)
         p = p_ - dp
         e = error(p, x, y)
         C = (sum_squares(e) + alpha * sum_squares(p)) / 2

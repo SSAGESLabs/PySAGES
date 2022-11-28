@@ -24,7 +24,6 @@ from jax import jit
 from jax import numpy as np
 from jax import vmap
 from jax.lax import cond
-from jax.scipy import linalg
 
 from pysages.approxfun.core import compute_mesh
 from pysages.approxfun.core import scale as _scale
@@ -37,7 +36,7 @@ from pysages.ml.objectives import GradientsSSE, L2Regularization
 from pysages.ml.optimizers import LevenbergMarquardt
 from pysages.ml.training import NNData, build_fitting_function, convolve
 from pysages.ml.utils import blackman_kernel, pack, unpack
-from pysages.utils import JaxArray, dispatch
+from pysages.utils import JaxArray, dispatch, solve_pos_def
 
 
 class ABFState(NamedTuple):
@@ -210,7 +209,7 @@ def _abf(method, snapshot, helpers):
         # (both seem to have the same performance).
         # Another option to benchmark against is
         # Wp = linalg.tensorsolve(Jxi @ Jxi.T, Jxi @ p)
-        Wp = linalg.solve(Jxi @ Jxi.T, Jxi @ p, sym_pos="sym")
+        Wp = solve_pos_def(Jxi @ Jxi.T, Jxi @ p)
         # Second order backward finite difference
         dWp_dt = (1.5 * Wp - 2.0 * state.Wp + 0.5 * state.Wp_) / dt
 

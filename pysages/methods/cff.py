@@ -19,7 +19,6 @@ from jax import jit
 from jax import numpy as np
 from jax import vmap
 from jax.lax import cond
-from jax.scipy import linalg
 
 from pysages.approxfun import compute_mesh
 from pysages.approxfun import scale as _scale
@@ -32,7 +31,7 @@ from pysages.ml.objectives import L2Regularization, Sobolev1SSE
 from pysages.ml.optimizers import LevenbergMarquardt
 from pysages.ml.training import NNData, build_fitting_function, convolve, normalize
 from pysages.ml.utils import blackman_kernel, pack, unpack
-from pysages.utils import Bool, Int, JaxArray, dispatch
+from pysages.utils import Bool, Int, JaxArray, dispatch, solve_pos_def
 
 # Aliases
 f32 = np.float32
@@ -218,7 +217,7 @@ def _cff(method: CFF, snapshot, helpers):
         xi, Jxi = cv(data)
         #
         p = data.momenta
-        Wp = linalg.solve(Jxi @ Jxi.T, Jxi @ p, sym_pos="sym")
+        Wp = solve_pos_def(Jxi @ Jxi.T, Jxi @ p)
         dWp_dt = (1.5 * Wp - 2.0 * state.Wp + 0.5 * state.Wp_) / dt
         #
         I_xi = get_grid_index(xi)
