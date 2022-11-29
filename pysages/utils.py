@@ -6,9 +6,11 @@ from copy import deepcopy
 from importlib import import_module
 from typing import Union
 
+import jaxlib
 import jaxlib.xla_extension as xe
 import numpy
 from jax import numpy as np
+from jax.scipy import linalg
 from jax.tree_util import register_pytree_node
 from plum import Dispatcher
 
@@ -81,8 +83,26 @@ def gaussian(a, sigma, x):
     return a * np.exp(-row_sum((x / sigma) ** 2) / 2)
 
 
+# Compatibility utils
+
+
 def try_import(new_name, old_name):
     try:
         return import_module(new_name)
     except ModuleNotFoundError:
         return import_module(old_name)
+
+
+def _version_as_tuple(ver_str):
+    return tuple(int(i) for i in ver_str.split(".") if i.isdigit())
+
+
+if _version_as_tuple(jaxlib.__version__) < (0, 3, 15):
+
+    def solve_pos_def(a, b):
+        return linalg.solve(a, b, sym_pos="sym")
+
+else:
+
+    def solve_pos_def(a, b):
+        return linalg.solve(a, b, assume_a="pos")
