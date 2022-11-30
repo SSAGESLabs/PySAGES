@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 from functools import reduce
 from inspect import getfullargspec
 from operator import or_
+from sys import modules as sys_modules
 from typing import Callable, Optional, Union
 
 from jax import jit
@@ -95,11 +96,18 @@ class NNSamplingMethod(GriddedSamplingMethod):
 @parametric
 class Result:
     @classmethod
-    def __infer_type_parameter__(self, method, *args):
+    def __infer_type_parameter__(cls, method, *_):
         return type(method)
 
     @dispatch
     def __init__(self, method: SamplingMethod, states, callbacks=None):
+        T = type(self)
+        if hasattr(T, "_type_parameter"):
+            # NOTE: This is a hack to ensure parametric Result types are serializable.
+            S = T._type_parameter
+            T.__qualname__ = T.__name__ = f"Result[{S.__name__}]"
+            setattr(sys_modules[T.__module__], T.__name__, T)
+
         self.method = method
         self.states = states
         self.callbacks = callbacks
@@ -122,7 +130,7 @@ def run(
     context_args: Optional[dict] = None,
     post_run_action: Optional[Callable] = None,
     config: ReplicasConfiguration = ReplicasConfiguration(),
-    **kwargs
+    **kwargs,
 ):
     """
     Base implementation for running a single simulation with the specified `SamplingMethod`.
@@ -173,7 +181,7 @@ def run(
             context_args,
             callback,
             post_run_action,
-            **kwargs
+            **kwargs,
         )
 
     with config.executor as ex:
@@ -200,7 +208,7 @@ def run(  # noqa: F811 # pylint: disable=C0116,E0102
     context_args: Optional[dict] = None,
     callback: Optional[Callable] = None,
     post_run_action: Optional[Callable] = None,
-    **kwargs
+    **kwargs,
 ):
     """
     Base implementation for running a single simulation with the specified `SamplingMethod`.
