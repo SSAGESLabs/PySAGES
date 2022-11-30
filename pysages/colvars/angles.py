@@ -105,7 +105,7 @@ def dihedral_angle(p1, p2, p3, p4):
 
     :math:`\vec{s} = \vec{q} \times (\vec{p}_4  - \vec{p}_3)`
 
-    :math:`\theta = \arctan((\vec{r} \times \vec{s}) \cdot \vec{q}, |\vec{q}| \vec{r} \cdot \vec{s})`
+    :math:`\theta=\arctan((\vec{r} \times \vec{s}) \cdot \vec{q}, |\vec{q}| \vec{r} \cdot \vec{s})`
 
     Parameters
     ----------
