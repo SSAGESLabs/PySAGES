@@ -54,7 +54,7 @@ def angle(p1, p2, p3):
 
     :math:`\vec{r} = \vec{p}_3 - \vec{p}_2`
 
-    :math:`\theta = \atan2(|\vec{q} \times \vec{r}|, \vec{q} \cdot \vec{r})`
+    :math:`\theta = \arctan(|\vec{q} \times \vec{r}|, \vec{q} \cdot \vec{r})`
 
     Parameters
     ----------
@@ -105,7 +105,7 @@ def dihedral_angle(p1, p2, p3, p4):
 
     :math:`\vec{s} = \vec{q} \times (\vec{p}_4  - \vec{p}_3)`
 
-    :math:`\theta = \atan2((\vec{r} \times \vec{s}) \cdot \vec{q}, |\vec{q}| \vec{r} \cdot \vec{s})`
+    :math:`\theta=\arctan((\vec{r} \times \vec{s}) \cdot \vec{q}, |\vec{q}| \vec{r} \cdot \vec{s})`
 
     Parameters
     ----------
@@ -137,7 +137,7 @@ class RingPuckeringCoordinates(CollectiveVariable):
     [D. Cremer and J. A. Pople, JACS, 1974](https://pubs.acs.org/doi/10.1021/ja00839a011)
     Equations 4-14.
     Notice that for rings with N atoms, there are
-    `int( ( N - 1 )  / 2 - 1 )` phase angles and `int (N / 2 - 1) ` amplitudes.
+    `int( ( N - 1 )  / 2 - 1 )` phase angles and `int (N / 2 - 1)` amplitudes.
     So if the ring contains more than six atoms, there is more than one phase angle;
     similarly, if the ring contains more than five atoms, there is more than one amplitude.
     This class (for now) only calculates the first amplitude and the phase angle (`m = 2` in
@@ -148,11 +148,6 @@ class RingPuckeringCoordinates(CollectiveVariable):
     Similarly, the amplitude obtained via the Cremer-Pople method can be converted
     to the Altona-Sundaralingam order parameter (in degrees) by multiplying the result
     by `1025` degree/nanometer.
-
-    Usage
-    -------
-    cvs = [PhaseAngle([index1, index2, ...])]
-
     Notice that the phase angle is dependent on the order of the indices. For example,
     the convention for sugar pucker of ribose in RNA/DNA is: O4', C1', C2', C3', C4'.
     """
@@ -165,26 +160,35 @@ class RingPuckeringCoordinates(CollectiveVariable):
 def ring_puckering_coordinates(rs):
     r"""
     calculate phase angle (first phase angle if N>5) based on Cremer-Pople method.
-    :math:`r0 = 1/N \sum_i^N \vec{r}_i`
-    :math:`\vec{R1} = \sum_i^N (\vec{r}_i -r_c) \sin(2\pi (i-1)/N)`
-    :math:`\vec{R2} = \sum_i^N (\vec{r}_i -r_c) \cos(2\pi (i-1)/N)`
-    :math:`\hat{n} = \vec{R1} \times \vec{R2}/ (|\vec{R1}\times\vec{R2}|)`
-    :math:`z_i = (\vec_{r}_i-r_c) \cdot \hat{n}`
-    :math:`a =  \sqrt(2/N) \sum_i^N z_i \cos(2\pi 2(i-1)/N)`
-    :math:`b = -\sqrt(2/N) \sum_i^N z_i \sin(2\pi 2(i-1)/N)`
-    :math:`q = \sqrt(a^2 + b^2)`
-    :math:`phi = \atan(b / a)`
+
+    :math:`r_0 = \frac{1}{N} \sum\limits_i^N \vec{r}_i`
+
+    :math:`\vec{R}_1 = \sum\limits_i^N (\vec{r}_i -r_c) \sin\Big(\frac{2\pi (i-1)}{N}\Big)`
+
+    :math:`\vec{R}_2 = \sum\limits_i^N (\vec{r}_i -r_c) \cos\Big(\frac{2\pi (i-1)}{N}\Big)`
+
+    :math:`\hat{n} = \frac{\vec{R}_1 \times \vec{R}_2}{ |\vec{R}_1\times\vec{R}_2|}`
+
+    :math:`z_i = (\vec{r}_i-r_c) \cdot \hat{n}`
+
+    :math:`a =  \sqrt{\frac{2}{N}} \sum\limits_i^N z_i \cos(2\pi \frac{2(i-1)}{N})`
+
+    :math:`b = -\sqrt{\frac{2}{N}} \sum\limits_i^N z_i \sin(2\pi \frac{2(i-1)}{N})`
+
+    :math:`q = \sqrt{a^2 + b^2}`
+
+    :math:`\phi = \arctan(b / a)`
 
     Parameters
     ------------
     rs: DeviceArray
-        :math: `\vec{r}_i` array of 3D vector in space
+        :math:`\vec{r}_i` array of 3D vector in space
 
     Returns
     ------------
     DeviceArray: [q: float, phi: float]
         :math:`q` in nanometer (if the default length unit for the MD engine is nanometer)
-        :math:`phi` in radians, range -pi to pi.
+        :math:`\phi` in radians, range -pi to pi.
     """
     N = len(rs)
     r0 = barycenter(rs)
@@ -231,12 +235,12 @@ def ring_phase_angle(rs):
     Parameters
     ------------
     rs: DeviceArray
-        :math: `\vec{r}_i` array of 3D vector in space
+       :math:`\vec{r}_i` array of 3D vector in space
 
     Returns
     ------------
     float
-        :math:`P` in range -pi to pi.
+       :math:`\phi` in range -pi to pi.
     """
     _, phi = ring_puckering_coordinates(rs)
     return phi
@@ -267,7 +271,7 @@ def ring_amplitude(rs):
     Parameters
     ------------
     rs: DeviceArray
-        :math: `\vec{r}_i` array of 3D vector in space
+        :math:`\vec{r}_i` array of 3D vector in space
 
     Returns
     ------------
