@@ -18,7 +18,7 @@ from plum import Dispatcher
 dispatch = Dispatcher()
 
 
-JaxArray = xe.Array
+JaxArray = xe.DeviceArray
 Bool = Union[JaxArray, bool]
 Float = Union[JaxArray, float]
 Int = Union[JaxArray, int]
