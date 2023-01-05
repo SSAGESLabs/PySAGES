@@ -201,6 +201,41 @@ def run(
     return Result(method, states, callbacks, snapshots)
 
 
+@dispatch
+def run(  # noqa: F811 # pylint: disable=C0116,E0102
+    sampling_context: SamplingContext,
+    timesteps: Union[int, float],
+    **kwargs,
+):
+    """
+    Alternative interface for running a simulation from a `SamplingContext`.
+
+    Parameters
+    ----------
+
+    sampling_context: SamplingContext
+        Instance of the simulation context of one of the supported backends
+        wrapped as a `SamplingContext`.
+
+    timesteps: int
+        Number of time steps the simulation is running.
+
+    kwargs: dict
+        These gets passed to the backend `run` function.
+
+    NOTE: This interface supports only single replica runs.
+    """
+    timesteps = int(timesteps)
+    method = sampling_context.method
+    sampler = sampling_context.sampler
+    callback = None if sampler.callback is None else [sampler.callback]
+
+    with sampling_context:
+        sampling_context.run(timesteps, **kwargs)
+
+    return Result(method, [sampler.state], callback, [sampler.take_snapshot()])
+
+
 def _run(method, *args, **kwargs):
     run = methods_dispatch._functions["run"]
     return run(method, *args, **kwargs)
