@@ -42,12 +42,12 @@ def radius_of_gyration(positions):
 
     Parameters
     ----------
-    positions: DeviceArray
+    positions: jax.Array
         Array of particle positions used to calculate the radius of gyration.
 
     Returns
     -------
-    DeviceArray
+    jax.Array
         Radius of gyration vector
     """
     group_length = positions.shape[0]
@@ -64,14 +64,14 @@ def weighted_radius_of_gyration(positions, weights):
 
     Parameters
     ----------
-    positions: DeviceArray
+    positions: jax.Array
         Array of particle positions used to calculate the radius of gyration.
-    weights: DeviceArray
+    weights: jax.Array
         Array of weights for the positions.
 
     Returns
     -------
-    DeviceArray
+    jax.Array
         Weighted radius of gyration vector
     """
     group_length = positions.shape[0]
@@ -118,12 +118,12 @@ def gyration_tensor(positions):
 
     Parameters
     ----------
-    positions: DeviceArray
+    positions: jax.Array
         Points in space that are equally weighted to calculate the gyration tensor.
 
     Returns
     -------
-    DeviceArray
+    jax.Array
         Gyration tensor
     """
     group_length = positions.shape[0]
@@ -139,14 +139,14 @@ def weighted_gyration_tensor(positions, weights):
 
     Parameters
     ----------
-    positions: DeviceArray
+    positions: jax.Array
         Points in space that are weighted by `weight` to calculate the gyration tensor.
-    weights: DeviceArray
+    weights: jax.Array
         Weights for the points in space e.g. particle masses
 
     Returns
     -------
-    DeviceArray
+    jax.Array
         Gyration tensor
     """
     group_length = positions.shape[0]
@@ -165,12 +165,12 @@ def principal_moments(positions):
 
     Parameters
     ----------
-    positions: DeviceArray
+    positions: jax.Array
         Points in space that are equally weighted to calculate the gyration tensor.
 
     Returns
     -------
-    DeviceArray
+    jax.Array
         Eigenvalues of the gyration tensor
     """
     return linalg.eigvalsh(gyration_tensor(positions))
@@ -211,7 +211,7 @@ def asphericity(positions):
 
     Parameters
     ----------
-    positions: DeviceArray
+    positions: jax.Array
         Points in space that are equally weighted to calculate the principal moments.
 
     Returns
@@ -275,7 +275,7 @@ def acylindricity(positions, axes):
 
     Parameters
     ----------
-    positions: DeviceArray
+    positions: jax.Array
         Points in space that are equally weighted to calculate the principal moments from.
 
     axes: Tuple[int, int]
@@ -331,7 +331,7 @@ def shape_anisotropy(positions):
 
     Parameters
     ----------
-    positions: DeviceArray
+    positions: jax.Array
         Points in space that are equally weighted to calculate the principal moments from.
 
     Returns

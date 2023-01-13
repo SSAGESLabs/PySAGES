@@ -27,8 +27,7 @@ def test_copying():
     old_box_H_ptr = old.box.H.unsafe_buffer_pointer()
     new_box_H_ptr = new.box.H.unsafe_buffer_pointer()
 
-    # When copying to CPU we get a `numpy.ndarray` instead of a
-    # `jaxlib.xla_extension.DeviceArray`
+    # When copying to CPU we get a `numpy.ndarray` instead of a `jax.Array`
     new_cpu = copy(old, ToCPU())
 
     assert np.all(old.positions == new.positions).item()
