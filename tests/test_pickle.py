@@ -1,5 +1,6 @@
 import inspect
 import pickle
+import tempfile
 
 import numpy as np
 
@@ -128,3 +129,19 @@ def test_pickle_colvars():
             except Exception as error:
                 print(key)
                 raise error
+
+
+def test_pickle_results():
+    with open("tests/test_abf_result.pickle", "rb") as f:
+        test_result = pickle.load(f)
+
+    with tempfile.NamedTemporaryFile() as tmp_pickle:
+        pickle.dump(test_result, tmp_pickle)
+        tmp_pickle.flush()
+
+        tmp_result = pickle.load(open(tmp_pickle.name, "rb"))
+
+        assert np.all(test_result.states[0].xi == tmp_result.states[0].xi).item()
+        assert np.all(test_result.states[0].bias == tmp_result.states[0].bias).item()
+        assert np.all(test_result.states[0].hist == tmp_result.states[0].hist).item()
+        assert np.all(test_result.states[0].Fsum == tmp_result.states[0].Fsum).item()
