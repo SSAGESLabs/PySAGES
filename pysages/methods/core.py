@@ -2,7 +2,7 @@
 # Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
-from abc import ABC, abstractmethod
+from abc import ABCMeta, abstractmethod
 from functools import reduce
 from inspect import getfullargspec
 from operator import or_
@@ -23,7 +23,38 @@ from pysages.utils import dispatch, identity
 #  ============
 
 
-class SamplingMethod(ABC):
+@parametric
+class Result:
+    @classmethod
+    def __infer_type_parameter__(cls, method, *_):
+        return type(method)
+
+    def __init__(self, method, states, callbacks=None):
+        self.method = method
+        self.states = states
+        self.callbacks = callbacks
+
+
+class ReplicaResult(Result):
+    pass
+
+
+class SamplingMethodMeta(ABCMeta):
+    """
+    Metaclass for enhanced sampling methods.
+
+    It helps making parametric Result types serializable.
+    """
+
+    def __new__(cls, name, bases, namespace):
+        S = super().__new__(cls, name, bases, namespace)
+        T = Result[S]
+        T.__qualname__ = T.__name__ = f"Result[{S.__name__}]"
+        setattr(sys_modules[T.__module__], T.__name__, T)
+        return S
+
+
+class SamplingMethod(metaclass=SamplingMethodMeta):
     """
     Abstract base class for all sampling methods.
 
@@ -91,30 +122,6 @@ class NNSamplingMethod(GriddedSamplingMethod):
     @abstractmethod
     def build(self, snapshot, helpers, *args, **kwargs):
         pass
-
-
-@parametric
-class Result:
-    @classmethod
-    def __infer_type_parameter__(cls, method, *_):
-        return type(method)
-
-    @dispatch
-    def __init__(self, method: SamplingMethod, states, callbacks=None):
-        T = type(self)
-        if hasattr(T, "_type_parameter"):
-            # NOTE: This is a hack to ensure parametric Result types are serializable.
-            S = T._type_parameter
-            T.__qualname__ = T.__name__ = f"Result[{S.__name__}]"
-            setattr(sys_modules[T.__module__], T.__name__, T)
-
-        self.method = method
-        self.states = states
-        self.callbacks = callbacks
-
-
-class ReplicaResult(Result):
-    pass
 
 
 #  Main functions

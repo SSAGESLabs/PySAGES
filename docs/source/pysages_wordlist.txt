@@ -64,3 +64,5 @@ functor
 Tuple
 workflow
 covariance
+Metaclass
+serializable
