@@ -58,11 +58,11 @@ def angle(p1, p2, p3):
 
     Parameters
     ----------
-    p1: DeviceArray
+    p1: jax.Array
        :math:`\vec{p}_1` 3D vector in space
-    p2: DeviceArray
+    p2: jax.Array
        :math:`\vec{p}_2` 3D vector in space
-    p3: DeviceArray
+    p3: jax.Array
        :math:`\vec{p}_3` 3D vector in space
 
     Returns
@@ -109,13 +109,13 @@ def dihedral_angle(p1, p2, p3, p4):
 
     Parameters
     ----------
-    p1: DeviceArray
+    p1: jax.Array
        :math:`\vec{p}_1` 3D vector in space
-    p2: DeviceArray
+    p2: jax.Array
        :math:`\vec{p}_2` 3D vector in space
-    p3: DeviceArray
+    p3: jax.Array
        :math:`\vec{p}_3` 3D vector in space
-    p4: DeviceArray
+    p4: jax.Array
        :math:`\vec{p}_4` 3D vector in space
 
     Returns
@@ -181,12 +181,12 @@ def ring_puckering_coordinates(rs):
 
     Parameters
     ------------
-    rs: DeviceArray
+    rs: jax.Array
         :math:`\vec{r}_i` array of 3D vector in space
 
     Returns
     ------------
-    DeviceArray: [q: float, phi: float]
+    jax.Array: [q: float, phi: float]
         :math:`q` in nanometer (if the default length unit for the MD engine is nanometer)
         :math:`\phi` in radians, range -pi to pi.
     """
@@ -234,7 +234,7 @@ def ring_phase_angle(rs):
     r"""
     Parameters
     ------------
-    rs: DeviceArray
+    rs: jax.Array
        :math:`\vec{r}_i` array of 3D vector in space
 
     Returns
@@ -270,7 +270,7 @@ def ring_amplitude(rs):
     r"""
     Parameters
     ------------
-    rs: DeviceArray
+    rs: jax.Array
         :math:`\vec{r}_i` array of 3D vector in space
 
     Returns

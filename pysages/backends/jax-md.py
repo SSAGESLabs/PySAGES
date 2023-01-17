@@ -17,7 +17,7 @@ from pysages.backends.snapshot import (
     build_data_querier,
 )
 from pysages.methods import SamplingMethod
-from pysages.utils import copy
+from pysages.utils import check_device_array, copy
 
 
 class Sampler:
@@ -44,6 +44,9 @@ def take_snapshot(state, box, dt):
     masses = state.mass.reshape(-1, 1)
     vel_mass = (velocities, masses)
     origin = tuple(0.0 for _ in range(dims))
+
+    check_device_array(positions)  # currently, we only support `DeviceArray`s
+
     return Snapshot(positions, vel_mass, forces, ids, None, Box(box, origin), dt)
 
 
