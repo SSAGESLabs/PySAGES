@@ -262,7 +262,7 @@ def calculate_lom(all_positions: np.array, neighborlist, simulation_box, params)
     else:
         update_neighborlist = neighborlist.update(all_positions)
 
-    """'Step1: Move the reference and
+    """Step1: Move the reference and
     local patterns so that their centers coincide with the origin"""
 
     reference_positions = params.reference_positions.at[:].set(
