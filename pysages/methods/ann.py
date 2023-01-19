@@ -1,5 +1,4 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2020-2022: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 """
