@@ -13,7 +13,6 @@ from pysages.utils.compat import JaxArray
 # PySAGES main dispatcher
 dispatch = Dispatcher()
 
-
 Bool = Union[JaxArray, bool]
 Float = Union[JaxArray, float]
 Int = Union[JaxArray, int]
@@ -51,6 +50,10 @@ def copy(x: JaxArray, _: ToCPU):  # noqa: F811 # pylint: disable=C0116,E0102
 
 def identity(x):
     return x
+
+
+def eps(T: type = np.zeros(0).dtype):
+    return np.finfo(T).eps
 
 
 def row_sum(x):
