@@ -20,5 +20,6 @@ from .core import (
     eps,
     gaussian,
     identity,
+    only_or_identity,
 )
 from .transformations import quaternion_from_euler, quaternion_matrix
