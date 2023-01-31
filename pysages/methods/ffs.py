@@ -85,6 +85,8 @@ def run(
     Direct version of the Forward Flux Sampling algorithm.
     [Phys. Rev. Lett. 94, 018104 (2005)](https://doi.org/10.1103/PhysRevLett.94.018104)
     [J. Chem. Phys. 124, 024102 (2006)](https://doi.org/10.1063/1.2140273)
+    Coarse Graining FFS 
+    (https://doi.org/10.1073/pnas.1509267112)
 
     Arguments
     ---------
@@ -113,6 +115,12 @@ def run(
 
     sampling_steps_basin: int
         Period for sampling configurations in the basin
+        
+    sampling_steps_flow: int
+        Period for sampling configurations for intial flow
+        
+    sampling_steps_window: int
+        Period for sampling configurations in each window
 
     Nmax_replicas: int
         Number of stored configuration for each window
@@ -312,15 +320,16 @@ def initial_flow(Num_window0, timestep, grid, initial_snapshots, run, sampler, h
             run(sampling_time)
             time_count += timestep * sampling_time
             xi = sampler.state.xi.block_until_ready()
-
-            if np.all(xi >= win_A) and np.all(xi < grid[1]):
-                success += 1
-                has_reached_A = True
-
-                if len(window0_snaps) <= Num_window0:
-                    snap = sampler.take_snapshot()
-                    window0_snaps.append(snap)
-
+            
+            if np.all(xi >= win_A):
+                if np.all(xi < grid[1]):
+                    success += 1
+                    has_reached_A = True
+                    if len(window0_snaps) <= Num_window0:
+                        snap = sampler.take_snapshot()
+                        window0_snaps.append(snap)
+                if np.all(xi > grid[1]):
+                    raise ValueError("Bad sampling time for initial flow, two windows crossed")
                 break
 
     print(f"Finish Initial Flow with {success} succeses over {time_count} time\n")
