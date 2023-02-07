@@ -1,13 +1,12 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 from typing import NamedTuple
 
 from jax import numpy as np
-from jax import random, tree_flatten, vmap
+from jax import random, vmap
 from jax.numpy.linalg import norm
-from jax.tree_util import PyTreeDef
+from jax.tree_util import PyTreeDef, tree_flatten
 from numpy import cumsum
 from plum import Dispatcher
 

@@ -70,13 +70,3 @@ To ease collaboration we use [trunk](https://trunk.io) as a development tool fre
 This includes version-checked linters that can be run automatically.
 We ship a launcher for trunk with this repo `./trunk`, no installation required.
 For details about how to use `./trunk fmt` to format existing code into this style and `./trunk check` to verify a consistent code style, check out the trunk documentation [page](https://docs.trunk.io/docs).
-
-### Trunk githooks
-
-For the development of this repo, we highly recommend to activate trunk's interaction with githooks.
-The ensures, that any code committed and pushed fulfills the coding standards. (Otherwise a CI test will fail on the repo side PRs.)
-This feature requires to be activated by developers on each machine.
-
-```shell
-./trunk git-hooks install
-```

@@ -1,5 +1,4 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 import importlib
@@ -34,7 +33,7 @@ from pysages.backends.snapshot import (
 )
 from pysages.backends.snapshot import restore as _restore
 from pysages.methods import SamplingMethod
-from pysages.utils import copy
+from pysages.utils import check_device_array, copy
 
 # TODO: Figure out a way to automatically tie the lifetime of Sampler
 # objects to the contexts they bind to
@@ -156,6 +155,8 @@ def take_snapshot(wrapped_context, location=default_location()):
     forces = copy(asarray(net_forces(sysview, location, AccessMode.ReadWrite)))
     ids = copy(asarray(rtags(sysview, location, AccessMode.Read)))
     imgs = copy(asarray(images(sysview, location, AccessMode.Read)))
+
+    check_device_array(positions)  # currently, we only support `DeviceArray`s
 
     box = sysview.particle_data.getGlobalBox()
     L = box.getL()

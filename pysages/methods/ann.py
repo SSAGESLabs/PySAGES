@@ -1,5 +1,4 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2020-2022: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 """
@@ -14,6 +13,7 @@ The gradient of the neural network model with respect to the CVs is then used
 as biasing force for the simulation.
 """
 
+import numbers
 from functools import partial
 from typing import NamedTuple
 
@@ -106,6 +106,9 @@ class ANN(NNSamplingMethod):
     snapshot_flags = {"positions", "indices"}
 
     def __init__(self, cvs, grid, topology, kT, **kwargs):
+        # kT must be unitless but consistent with the internal unit system of the backend
+        assert isinstance(kT, numbers.Real)
+
         super().__init__(cvs, grid, topology, **kwargs)
 
         self.kT = kT

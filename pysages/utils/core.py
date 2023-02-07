@@ -1,22 +1,19 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 from copy import deepcopy
-from importlib import import_module
 from typing import Union
 
-import jaxlib.xla_extension as xe
 import numpy
 from jax import numpy as np
-from jax.tree_util import register_pytree_node
 from plum import Dispatcher
+
+from pysages.utils.compat import JaxArray
 
 # PySAGES main dispatcher
 dispatch = Dispatcher()
 
 
-JaxArray = xe.DeviceArray
 Bool = Union[JaxArray, bool]
 Float = Union[JaxArray, float]
 Int = Union[JaxArray, int]
@@ -27,40 +24,29 @@ class ToCPU:
     pass
 
 
-# - https://github.com/google/jax/issues/446
-# - https://github.com/google/jax/issues/806
-def register_pytree_namedtuple(cls):
-    register_pytree_node(
-        cls,
-        lambda xs: (tuple(xs), None),  # tell JAX how to unpack
-        lambda _, xs: cls(*xs),  # tell JAX how to pack back
-    )
-    return cls
-
-
 @dispatch
 def copy(x: Scalar):
     return x
 
 
 @dispatch(precedence=1)
-def copy(t: tuple, *args):
-    return tuple(copy(x, *args) for x in t)
+def copy(t: tuple, *args):  # noqa: F811 # pylint: disable=C0116,E0102
+    return tuple(copy(x, *args) for x in t)  # pylint: disable=E1120
 
 
 @dispatch
-def copy(x: JaxArray):
+def copy(x: JaxArray):  # noqa: F811 # pylint: disable=C0116,E0102
     return x.copy()
 
 
 @dispatch
-def copy(x, _: ToCPU):
+def copy(x, _: ToCPU):  # noqa: F811 # pylint: disable=C0116,E0102
     return deepcopy(x)
 
 
 @dispatch
-def copy(x: JaxArray, _: ToCPU):
-    return numpy.asarray(x._value)
+def copy(x: JaxArray, _: ToCPU):  # noqa: F811 # pylint: disable=C0116,E0102
+    return numpy.asarray(x._value)  # pylint: disable=W0212
 
 
 def identity(x):
@@ -79,10 +65,3 @@ def gaussian(a, sigma, x):
     N-dimensional origin-centered gaussian with height `a` and standard deviation `sigma`.
     """
     return a * np.exp(-row_sum((x / sigma) ** 2) / 2)
-
-
-def try_import(new_name, old_name):
-    try:
-        return import_module(new_name)
-    except ModuleNotFoundError:
-        return import_module(old_name)

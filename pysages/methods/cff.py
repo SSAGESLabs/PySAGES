@@ -1,5 +1,4 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 """
@@ -12,6 +11,7 @@ estimates. It can be seen as a generalization of ANN and FUNN sampling methods t
 two neural networks to approximate the free energy and its derivatives.
 """
 
+import numbers
 from functools import partial
 from typing import NamedTuple, Tuple
 
@@ -19,7 +19,6 @@ from jax import jit
 from jax import numpy as np
 from jax import vmap
 from jax.lax import cond
-from jax.scipy import linalg
 
 from pysages.approxfun import compute_mesh
 from pysages.approxfun import scale as _scale
@@ -32,7 +31,7 @@ from pysages.ml.objectives import L2Regularization, Sobolev1SSE
 from pysages.ml.optimizers import LevenbergMarquardt
 from pysages.ml.training import NNData, build_fitting_function, convolve, normalize
 from pysages.ml.utils import blackman_kernel, pack, unpack
-from pysages.utils import Bool, Int, JaxArray, dispatch
+from pysages.utils import Bool, Int, JaxArray, dispatch, solve_pos_def
 
 # Aliases
 f32 = np.float32
@@ -154,7 +153,11 @@ class CFF(NNSamplingMethod):
     snapshot_flags = {"positions", "indices", "momenta"}
 
     def __init__(self, cvs, grid, topology, kT, **kwargs):
+        # kT must be unitless but consistent with the internal unit system of the backend
+        assert isinstance(kT, numbers.Real)
+
         super().__init__(cvs, grid, topology, **kwargs)
+
         self.kT = kT
         self.N = np.asarray(self.kwargs.get("N", 500))
         self.train_freq = self.kwargs.get("train_freq", 5000)
@@ -203,7 +206,7 @@ def _cff(method: CFF, snapshot, helpers):
         force = np.zeros(dims)
         Wp = np.zeros(dims)
         Wp_ = np.zeros(dims)
-        nn = NNData(ps, np.zeros(dims), np.array(1.0))
+        nn = NNData(ps, np.array(0.0), np.array(1.0))
         fnn = NNData(fps, np.zeros(dims), np.array(1.0))
 
         return CFFState(xi, bias, hist, histp, prob, fe, Fsum, force, Wp, Wp_, nn, fnn, 1)
@@ -218,7 +221,7 @@ def _cff(method: CFF, snapshot, helpers):
         xi, Jxi = cv(data)
         #
         p = data.momenta
-        Wp = linalg.solve(Jxi @ Jxi.T, Jxi @ p, sym_pos="sym")
+        Wp = solve_pos_def(Jxi @ Jxi.T, Jxi @ p)
         dWp_dt = (1.5 * Wp - 2.0 * state.Wp + 0.5 * state.Wp_) / dt
         #
         I_xi = get_grid_index(xi)
@@ -376,8 +379,8 @@ def analyze(result: Result[CFF]):
     _, layout = unpack(model.parameters)
 
     def average_forces(hist, Fsum):
-        hist = np.expand_dims(hist, hist.ndim)
-        return Fsum / np.maximum(hist, 1)
+        shape = (*Fsum.shape[:-1], 1)
+        return Fsum / np.maximum(hist.reshape(shape), 1)
 
     def build_fes_fn(nn):
         def fes_fn(x):

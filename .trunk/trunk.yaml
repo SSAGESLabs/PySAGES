@@ -6,31 +6,33 @@ runtimes:
     - python@3.10.3
 actions:
   enabled:
+    - trunk-announce
     - trunk-cache-prune
     - trunk-upgrade-available
     - trunk-fmt-pre-commit
     - trunk-check-pre-push
 cli:
-  version: 0.18.0-beta
+  version: 1.3.2
 plugins:
   sources:
     - id: trunk
-      ref: v0.0.4
+      ref: v0.0.5
       uri: https://github.com/trunk-io/plugins
 lint:
   enabled:
-    - actionlint@1.6.17
-    - black@22.8.0
-    - flake8@5.0.4
+    - svgo@3.0.2
+    - actionlint@1.6.23
+    - black@22.12.0
+    - flake8@6.0.0
     - git-diff-check@SYSTEM
-    - gitleaks@8.12.0
-    - hadolint@2.10.0
-    - isort@5.10.1
-    - markdownlint@0.32.2
-    - prettier@2.7.1
-    - shellcheck@0.8.0
+    - gitleaks@8.15.3
+    - hadolint@2.12.0
+    - isort@5.11.4
+    - markdownlint@0.33.0
+    - prettier@2.8.3
+    - shellcheck@0.9.0
     - shfmt@3.5.0
-    - taplo@release-taplo-cli-0.7.0
+    - taplo@0.7.0
   ignore:
     - linters: [prettier]
       paths:
@@ -46,6 +48,21 @@ lint:
         - examples/hoomd-blue/funn/Butane_FUNN.md
         - examples/hoomd-blue/umbrella_integration/Umbrella_Integration.md
         - examples/openmm/metad/nacl/Metadynamics_NaCl.md
+    - linters: [black]
+      paths:
+        - examples/Advanced_Sampling_Introduction.ipynb
+        - examples/Install_PySAGES_Environment.ipynb
+        - examples/openmm/Harmonic_Bias.ipynb
+        - examples/hoomd-blue/ann/Butane_ANN.ipynb
+        - examples/hoomd-blue/harmonic_bias/Harmonic_Bias.ipynb
+        - examples/openmm/metad/Metadynamics-ADP.ipynb
+        - examples/hoomd-blue/cff/Butane_CFF.ipynb
+        - examples/hoomd-blue/spectral_abf/Butane-SpectralABF.ipynb
+        - examples/openmm/spectral_abf/ADP_SpectralABF.ipynb
+        - examples/hoomd-blue/funn/Butane_FUNN.ipynb
+        - examples/hoomd-blue/umbrella_integration/Umbrella_Integration.ipynb
+        - examples/openmm/metad/nacl/Metadynamics_NaCl.ipynb
+
 merge:
   required_statuses:
     - trunk

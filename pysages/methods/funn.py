@@ -1,5 +1,4 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 """
@@ -22,7 +21,6 @@ from jax import jit
 from jax import numpy as np
 from jax import vmap
 from jax.lax import cond
-from jax.scipy import linalg
 
 from pysages.approxfun import compute_mesh
 from pysages.approxfun import scale as _scale
@@ -35,7 +33,7 @@ from pysages.ml.objectives import GradientsSSE, L2Regularization
 from pysages.ml.optimizers import LevenbergMarquardt
 from pysages.ml.training import NNData, build_fitting_function, convolve, normalize
 from pysages.ml.utils import blackman_kernel, pack, unpack
-from pysages.utils import Bool, Int, JaxArray, dispatch
+from pysages.utils import Bool, Int, JaxArray, dispatch, solve_pos_def
 
 
 class FUNNState(NamedTuple):
@@ -187,7 +185,7 @@ def _funn(method, snapshot, helpers):
         xi, Jxi = cv(data)
         #
         p = data.momenta
-        Wp = linalg.solve(Jxi @ Jxi.T, Jxi @ p, sym_pos="sym")
+        Wp = solve_pos_def(Jxi @ Jxi.T, Jxi @ p)
         dWp_dt = (1.5 * Wp - 2.0 * state.Wp + 0.5 * state.Wp_) / dt
         #
         I_xi = get_grid_index(xi)
@@ -361,8 +359,8 @@ def analyze(result: Result[FUNN]):
         return jit(fes_fn)
 
     def average_forces(hist, Fsum):
-        hist = np.expand_dims(hist, hist.ndim)
-        return Fsum / np.maximum(hist, 1)
+        shape = (*Fsum.shape[:-1], 1)
+        return Fsum / np.maximum(hist.reshape(shape), 1)
 
     def first_or_all(seq):
         return seq[0] if len(seq) == 1 else seq
