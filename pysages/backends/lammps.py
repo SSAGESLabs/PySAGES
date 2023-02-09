@@ -1,32 +1,27 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 # Maintainer: ndtrung
 
 import importlib
-import lammps
-
 from functools import partial
 from typing import Callable
 from warnings import warn
 
-from jax import jit, numpy as np
-from jax.dlpack import from_dlpack as asarray
+import lammps
 
-# TODO: lammps.dlext should support the following modules
-#   lammps.dlext wraps the device per-atom arrays via the KOKKOS package
 from lammps.dlext import (
     AccessLocation,
     AccessMode,
-    SystemView,
+    DLExtSampler,
     images,
     net_forces,
     positions_types,
-    rtags,
     velocities_masses,
-    DLExtSampler,
 )
+from jax import jit
+from jax import numpy as np
+from jax.dlpack import from_dlpack as asarray
 
 from pysages.backends.core import ContextWrapper
 from pysages.backends.snapshot import (
@@ -35,26 +30,41 @@ from pysages.backends.snapshot import (
     Snapshot,
     SnapshotMethods,
     build_data_querier,
-    restore as _restore,
 )
+from pysages.backends.snapshot import restore as _restore
 from pysages.methods import SamplingMethod
-from pysages.utils import copy
-
+from pysages.utils import check_device_array, copy
 
 # TODO: Figure out a way to automatically tie the lifetime of Sampler
 # objects to the contexts they bind to
 CONTEXTS_SAMPLERS = {}
 
 
+    SamplerBase = DLExtSampler
+
+    def is_on_gpu(context):
+        return context.on_gpu()
+
+    def get_integrator(context):
+        return context.integrator
+
+    def get_run_method(context):
+        return hoomd.run
+
+    def get_system(context):
+        return context.system
+
+    def set_half_step_hook(context, half_step_hook):
+        context.integrator.cpp_integrator.setHalfStepHook(half_step_hook)
+
+    def remove_half_step_hook(context):
+        context.integrator.cpp_integrator.removeHalfStepHook()
+
+
+
 class Sampler(DLExtSampler):
     def __init__(self, sysview, method_bundle, bias, callback: Callable, restore):
         initial_snapshot, initialize, method_update = method_bundle
-        self.state = initialize()
-        self.callback = callback
-        self.bias = bias
-        self.box = initial_snapshot.box
-        self.dt = initial_snapshot.dt
-        self._restore = restore
 
         def update(positions, vel_mass, rtags, images, forces, timestep):
             snapshot = self._pack_snapshot(positions, vel_mass, forces, rtags, images)
@@ -64,6 +74,12 @@ class Sampler(DLExtSampler):
                 self.callback(snapshot, self.state, timestep)
 
         super().__init__(sysview, update, default_location(), AccessMode.Read)
+        self.state = initialize()
+        self.callback = callback
+        self.bias = bias
+        self.box = initial_snapshot.box
+        self.dt = initial_snapshot.dt
+        self._restore = restore
 
     def restore(self, prev_snapshot):
         def restore_callback(positions, vel_mass, rtags, images, forces, n):
@@ -105,20 +121,18 @@ else:
         return AccessLocation.OnHost
 
 
-def is_on_gpu(context):
-    return context.on_gpu()
-
-
 def take_snapshot(wrapped_context, location=default_location()):
     context = wrapped_context.context
     sysview = wrapped_context.view
-    positions = asarray(positions_types(sysview, location, AccessMode.Read))
-    vel_mass = asarray(velocities_masses(sysview, location, AccessMode.Read))
-    forces = asarray(net_forces(sysview, location, AccessMode.ReadWrite))
-    ids = asarray(rtags(sysview, location, AccessMode.Read))
-    imgs = asarray(images(sysview, location, AccessMode.Read))
+    positions = copy(asarray(positions_types(sysview, location, AccessMode.Read)))
+    vel_mass = copy(asarray(velocities_masses(sysview, location, AccessMode.Read)))
+    forces = copy(asarray(net_forces(sysview, location, AccessMode.ReadWrite)))
+    ids = copy(asarray(rtags(sysview, location, AccessMode.Read)))
+    imgs = copy(asarray(images(sysview, location, AccessMode.Read)))
 
-    box = sysview.particle_data().getGlobalBox()
+    check_device_array(positions)  # currently, we only support `DeviceArray`s
+
+    box = sysview.particle_data.getGlobalBox()
     L = box.getL()
     xy = box.getTiltFactorXY()
     xz = box.getTiltFactorXZ()
@@ -126,7 +140,7 @@ def take_snapshot(wrapped_context, location=default_location()):
     lo = box.getLo()
     H = ((L.x, xy * L.y, xz * L.z), (0.0, L.y, yz * L.z), (0.0, 0.0, L.z))
     origin = (lo.x, lo.y, lo.z)
-    dt = context.integrator.dt
+    dt = get_integrator(context).dt
 
     return Snapshot(positions, vel_mass, forces, ids, imgs, Box(H, origin), dt)
 
@@ -193,7 +207,7 @@ def build_helpers(context, sampling_method):
     snapshot_methods = build_snapshot_methods(sampling_method)
     flags = sampling_method.snapshot_flags
     restore = partial(_restore, view)
-    helpers = HelperMethods(build_data_querier(snapshot_methods, flags))
+    helpers = HelperMethods(build_data_querier(snapshot_methods, flags), dimensionality)
 
     return helpers, restore, bias
 
@@ -202,20 +216,20 @@ def bind(
     wrapped_context: ContextWrapper, sampling_method: SamplingMethod, callback: Callable, **kwargs
 ):
     context = wrapped_context.context
+    sysview = SystemView(get_system(context))
+    wrapped_context.view = sysview
+    wrapped_context.run = get_run_method(context)
     helpers, restore, bias = build_helpers(context, sampling_method)
 
-    with SystemView(context.system_definition) as sysview:
-        wrapped_context.view = sysview
-        wrapped_context.run = lammps.run
-
+    with sysview:
         snapshot = take_snapshot(wrapped_context)
-        method_bundle = sampling_method.build(snapshot, helpers)
-        sync_and_bias = partial(bias, sync_backend=sysview.synchronize)
 
-        sampler = Sampler(sysview, method_bundle, sync_and_bias, callback, restore)
-        context.integrator.cpp_integrator.setHalfStepHook(sampler)
+    method_bundle = sampling_method.build(snapshot, helpers)
+    sync_and_bias = partial(bias, sync_backend=sysview.synchronize)
+    sampler = Sampler(sysview, method_bundle, sync_and_bias, callback, restore)
+    set_half_step_hook(context, sampler)
 
-        CONTEXTS_SAMPLERS[context] = sampler
+    CONTEXTS_SAMPLERS[context] = sampler
 
     return sampler
 
@@ -226,7 +240,7 @@ def detach(context):
     `Sampler` object.
     """
     if context in CONTEXTS_SAMPLERS:
-        context.integrator.cpp_integrator.removeHalfStepHook()
+        remove_half_step_hook(context)
         del CONTEXTS_SAMPLERS[context]
     else:
         warn("This context has no sampler bound to it.")
