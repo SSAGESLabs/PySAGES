@@ -12,6 +12,7 @@ from pysages.methods import HistogramLogger, Unbiased
 
 def generate_context(**kwargs):
 
+    infile = kawargv[1]
     args="-k on g 1 -sf kk"
     args=args.split()
     #args=["-k", "on", "g", "1", "-sf", "kk"]
