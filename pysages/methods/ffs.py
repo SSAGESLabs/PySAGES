@@ -85,7 +85,7 @@ def run(
     Direct version of the Forward Flux Sampling algorithm.
     [Phys. Rev. Lett. 94, 018104 (2005)](https://doi.org/10.1103/PhysRevLett.94.018104)
     [J. Chem. Phys. 124, 024102 (2006)](https://doi.org/10.1063/1.2140273)
-    Coarse Graining FFS 
+    Coarse Graining FFS
     (https://doi.org/10.1073/pnas.1509267112)
 
     Arguments
@@ -115,10 +115,10 @@ def run(
 
     sampling_steps_basin: int
         Period for sampling configurations in the basin
-        
+
     sampling_steps_flow: int
         Period for sampling configurations for intial flow
-        
+
     sampling_steps_window: int
         Period for sampling configurations in each window
 
@@ -176,7 +176,15 @@ def run(
 
         # Calculate initial flow
         phi_a, snaps_0 = initial_flow(
-            Nmax_replicas, dt, windows, ini_snapshots, run, sampler, helpers, cv, sampling_steps_flow
+            Nmax_replicas,
+            dt,
+            windows,
+            ini_snapshots,
+            run,
+            sampler,
+            helpers,
+            cv,
+            sampling_steps_flow,
         )
 
         write_to_file(phi_a)
@@ -187,7 +195,9 @@ def run(
         for k in range(1, len(windows)):
             if k == 1:
                 old_snaps = snaps_0
-            prob, w1_snapshots = running_window(windows, k, old_snaps, run, sampler, helpers, cv, sampling_steps_window)
+            prob, w1_snapshots = running_window(
+                windows, k, old_snaps, run, sampler, helpers, cv, sampling_steps_window
+            )
             write_to_file(prob)
             hist = hist.at[k].set(prob)
             old_snaps = increase_snaps(w1_snapshots, snaps_0)
@@ -297,7 +307,9 @@ def basin_sampling(
     return basin_snapshots
 
 
-def initial_flow(Num_window0, timestep, grid, initial_snapshots, run, sampler, helpers, cv, sampling_time):
+def initial_flow(
+    Num_window0, timestep, grid, initial_snapshots, run, sampler, helpers, cv, sampling_time
+):
     """
     Selects snapshots from list generated with `basin_sampling`.
     """
@@ -320,7 +332,7 @@ def initial_flow(Num_window0, timestep, grid, initial_snapshots, run, sampler, h
             run(sampling_time)
             time_count += timestep * sampling_time
             xi = sampler.state.xi.block_until_ready()
-            
+
             if np.all(xi >= win_A):
                 if np.all(xi < grid[1]):
                     success += 1
