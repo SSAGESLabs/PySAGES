@@ -52,6 +52,14 @@ def identity(x):
     return x
 
 
+def only_or_identity(seq):
+    """
+    Returns the only element of a sequence `seq` if its length is one,
+    otherwise returns `seq` itself.
+    """
+    return seq[0] if len(seq) == 1 else seq
+
+
 def eps(T: type = np.zeros(0).dtype):
     return np.finfo(T).eps
 
