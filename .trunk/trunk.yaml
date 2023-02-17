@@ -66,9 +66,9 @@ lint:
 merge:
   required_statuses:
     - trunk
-    - test (ubuntu-20.04, 3.7)
+    - test (ubuntu-20.04, 3.8)
     - test (ubuntu-20.04, 3.9)
-    - test (macos-latest, 3.7)
+    - test (macos-latest, 3.8)
     - test (macos-latest, 3.9)
     - doc-test
     - forward-flux-sampling
