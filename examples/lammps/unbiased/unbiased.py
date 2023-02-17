@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+import pdb
 import lammps
 #import lammps.dlext
 from lammps import lammps
@@ -12,7 +12,7 @@ from pysages.methods import HistogramLogger, Unbiased
 
 def generate_context(**kwargs):
 
-    infile = kawargv[1]
+    infile = kwargs[1]
     args="-k on g 1 -sf kk"
     args=args.split()
     #args=["-k", "on", "g", "1", "-sf", "kk"]
@@ -35,9 +35,9 @@ def main():
     method = Unbiased(cvs)
     callback = HistogramLogger(10)
 
-    #raw_result = pysages.run(method, generate_context, int(1e2), callback)
-
-    #print(np.asarray(raw_result.callbacks[0].data))
+    timesteps = 200
+    raw_result = pysages.run(method, generate_context, timesteps, callback)
+    print(np.asarray(raw_result.callbacks[0].data))
 
 
 if __name__ == "__main__":
