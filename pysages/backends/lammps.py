@@ -13,10 +13,7 @@ from lammps import lammps
 from lammps.dlext import (
     AccessLocation,
     AccessMode,
-    DLExtSampler,
-    net_forces,
-    positions_types,
-    velocities_masses,
+    DLExtSampler
 )
 from jax import jit
 from jax import numpy as np
@@ -61,7 +58,7 @@ def get_timestep(context):
     return context.extract_global("dt")
 
 def get_global_box(context):
-    boxlo,boxhi,xy,yz,xz,periodicity,_ = context.extract_box()
+    boxlo, boxhi, xy, yz, xz, periodicity, _ = context.extract_box()
     Lx = boxhi[0] - boxlo[0]
     Ly = boxhi[1] - boxlo[1]
     Lz = boxhi[2] - boxlo[2]
@@ -70,14 +67,16 @@ def get_global_box(context):
     return H, origin
 
 def set_post_force_hook(context, post_force_hook):
-    context.add_fix(post_force_hook)
+    # set_fix_external_callback
+    context.set_fix_external_callback(post_force_hook)
 
+# DLExtSampler is exported from lammps_dlext
 class Sampler(DLExtSampler):
     def __init__(self, method_bundle, bias, callback: Callable, restore):
         initial_snapshot, initialize, method_update = method_bundle
 
-        def update(positions, vel_mass, rtags, images, forces, timestep):
-            snapshot = self._pack_snapshot(positions, vel_mass, forces, rtags, images)
+        def update(positions, velocities, forces, tags, images, timestep):
+            snapshot = self._pack_snapshot(positions, velocities, forces, tags, images)
             self.state = method_update(snapshot, self.state)
             self.bias(snapshot, self.state)
             if self.callback:
@@ -92,8 +91,8 @@ class Sampler(DLExtSampler):
         self._restore = restore
 
     def restore(self, prev_snapshot):
-        def restore_callback(positions, vel_mass, rtags, images, forces, n):
-            snapshot = self._pack_snapshot(positions, vel_mass, forces, rtags, images)
+        def restore_callback(positions, velocities, forces, tags, images, n):
+            snapshot = self._pack_snapshot(positions, velocities, forces, tags, images)
             self._restore(snapshot, prev_snapshot)
 
         self.forward_data(restore_callback, default_location(), AccessMode.Overwrite, 0)
@@ -101,19 +100,19 @@ class Sampler(DLExtSampler):
     def take_snapshot(self):
         container = []
 
-        def snapshot_callback(positions, vel_mass, rtags, images, forces, n):
-            snapshot = self._pack_snapshot(positions, vel_mass, forces, rtags, images)
+        def snapshot_callback(positions, velocities, forces, tags, images, n):
+            snapshot = self._pack_snapshot(positions, velocities, forces, tags, images)
             container.append(copy(snapshot))
 
         self.forward_data(snapshot_callback, default_location(), AccessMode.Read, 0)
         return container[0]
 
-    def _pack_snapshot(self, positions, vel_mass, forces, rtags, images):
+    def _pack_snapshot(self, positions, velocities, forces, tags, images):
         return Snapshot(
             asarray(positions),
-            asarray(vel_mass),
+            asarray(velocities),
             asarray(forces),
-            asarray(rtags),
+            asarray(tags),
             asarray(images),
             self.box,
             self.dt,
@@ -130,21 +129,27 @@ else:
     def default_location():
         return AccessLocation.OnHost
 
-
+# build a Snapshot object that contains all the tensors from the context
+# 
 def take_snapshot(wrapped_context, location=default_location()):
     context = wrapped_context.context
-    positions = copy(asarray(positions_types(context, location, AccessMode.Read)))
-    vel_mass = copy(asarray(velocities_masses(context, location, AccessMode.Read)))
-    forces = copy(asarray(net_forces(context, location, AccessMode.ReadWrite)))
-    ids = copy(asarray(rtags(context, location, AccessMode.Read)))
-    imgs = copy(asarray(images(context, location, AccessMode.Read)))
+
+    # asarray needs argument of type DLManagedTensorPtr 
+    positions =  copy(asarray(context.get_positions(location, AccessMode.Read)))
+    types =      copy(asarray(context.get_types(location, AccessMode.Read)))
+    velocities = copy(asarray(context.get_velocities(location, AccessMode.Read)))
+    net_forces = copy(asarray(context.get_net_forces(location, AccessMode.ReadWrite)))
+    tags =       copy(asarray(context.get_tags(location, AccessMode.Read)))
+    imgs =       copy(asarray(context.get_images(location, AccessMode.Read)))
+
+    #rtags = copy(asarray(context.get_rtags(context, location, AccessMode.Read)))
 
     check_device_array(positions)  # currently, we only support `DeviceArray`s
 
     H, origin = get_global_box(context)
     dt = get_timestep(context)
 
-    return Snapshot(positions, vel_mass, forces, ids, imgs, Box(H, origin), dt)
+    return Snapshot(positions, velocities, net_forces, tags, imgs, Box(H, origin), dt)
 
 
 def build_snapshot_methods(sampling_method):
@@ -209,7 +214,7 @@ def build_helpers(context, sampling_method):
     snapshot_methods = build_snapshot_methods(sampling_method)
     flags = sampling_method.snapshot_flags
     restore = partial(_restore, view)
-    helpers = HelperMethods(build_data_querier(snapshot_methods, flags), dimensionality)
+    helpers = HelperMethods(build_data_querier(snapshot_methods, flags), get_dimension(context))
 
     return helpers, restore, bias
 
@@ -222,14 +227,14 @@ def bind(
     wrapped_context.run = get_run_method(context)
     helpers, restore, bias = build_helpers(context, sampling_method)
 
-    # take a simulation snapshot
+    # take a simulation snapshot from the context
     with context:
         snapshot = take_snapshot(wrapped_context)
 
     method_bundle = sampling_method.build(snapshot, helpers)
     sync_and_bias = partial(bias, sync_backend=None)
 
-    # create an instance of Sampler
+    # create an instance of Sampler (which is DLExtSampler)
     sampler = Sampler(context, method_bundle, sync_and_bias, callback, restore)
     # and connect it with the LAMMPS object (context)
     set_post_force_hook(context, sampler)
