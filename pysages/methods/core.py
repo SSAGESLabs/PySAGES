@@ -11,7 +11,7 @@ from typing import Callable, Optional, Union
 from jax import jit
 from plum import parametric
 
-from pysages.backends import ContextWrapper
+from pysages.backends import SamplingContext
 from pysages.colvars.core import build
 from pysages.grids import Grid, build_grid, get_info
 from pysages.methods.restraints import canonicalize
@@ -254,13 +254,13 @@ def run(  # noqa: F811 # pylint: disable=C0116,E0102
 
     context = context_generator(**context_args)
     context_args["context"] = context
-    wrapped_context = ContextWrapper(context, method, callback)
-    with wrapped_context:
-        wrapped_context.run(timesteps, **kwargs)
+    sampling_context = SamplingContext(context, method, callback)
+    with sampling_context:
+        sampling_context.run(timesteps, **kwargs)
         if post_run_action:
             post_run_action(**context_args)
 
-    return ReplicaResult(method, wrapped_context.sampler.state, callback)
+    return ReplicaResult(method, sampling_context.sampler.state, callback)
 
 
 @dispatch.abstract

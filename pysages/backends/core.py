@@ -58,7 +58,7 @@ class JaxMDContext(NamedTuple):
     dt: Float
 
 
-class ContextWrapper:
+class SamplingContext:
     """
     PySAGES simulation context. Manages access to the backend-dependent simulation context.
     """
@@ -70,39 +70,35 @@ class ContextWrapper:
         """
         self._backend_name = None
         module_name = type(context).__module__
+
         if module_name.startswith("ase.md"):
             self._backend_name = "ase"
         elif module_name.startswith("hoomd"):
             self._backend_name = "hoomd"
-        elif isinstance(context, JaxMDContext):
-            self._backend_name = "jax-md"
         elif module_name.startswith("simtk.openmm") or module_name.startswith("openmm"):
             self._backend_name = "openmm"
+        elif isinstance(context, JaxMDContext):
+            self._backend_name = "jax-md"
 
-        if self._backend_name is not None:
-            self._backend = import_module("." + self._backend_name, package="pysages.backends")
-        else:
+        if self._backend_name is None:
             backends = ", ".join(supported_backends())
-            raise ValueError(
-                f"Invalid backend {self._backend_name}: supported options are ({backends})"
-            )
+            raise ValueError(f"Invalid backend {module_name}: supported options are ({backends})")
 
         self.context = context
+        self.method = sampling_method
         self.view = None
         self.run = None
-        self.sampler = self._backend.bind(self, sampling_method, callback, **kwargs)
+
+        backend = import_module("." + self._backend_name, package="pysages.backends")
+        self.sampler = backend.bind(self, callback, **kwargs)
 
         # `self.view` and `self.run` *must* be set by the backend bind function.
         assert self.view is not None
         assert self.run is not None
 
-        self.synchronize = self.view.synchronize
-
-    def get_backend_name(self):
+    @property
+    def backend_name(self):
         return self._backend_name
-
-    def get_backend_module(self):
-        return self._backend
 
     def __enter__(self):
         """

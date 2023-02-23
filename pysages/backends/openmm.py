@@ -13,7 +13,7 @@ from jax.dlpack import from_dlpack as asarray
 from jax.lax import cond
 from openmm_dlext import ContextView, DeviceType, Force
 
-from pysages.backends.core import ContextWrapper
+from pysages.backends.core import SamplingContext
 from pysages.backends.snapshot import (
     Box,
     HelperMethods,
@@ -23,7 +23,6 @@ from pysages.backends.snapshot import (
 )
 from pysages.backends.snapshot import restore as _restore
 from pysages.backends.snapshot import restore_vm as _restore_vm
-from pysages.methods import SamplingMethod
 from pysages.utils import check_device_array, copy, try_import
 
 openmm = try_import("openmm", "simtk.openmm")
@@ -57,9 +56,9 @@ def is_on_gpu(view: ContextView):
     return view.device_type() == DeviceType.GPU
 
 
-def take_snapshot(wrapped_context):
-    context = wrapped_context.context.context  # extra indirection for OpenMM
-    context_view = wrapped_context.view
+def take_snapshot(sampling_context):
+    context = sampling_context.context.context  # extra indirection for OpenMM
+    context_view = sampling_context.view
 
     positions = asarray(dlext.positions(context_view))
     forces = asarray(dlext.forces(context_view))
@@ -191,21 +190,20 @@ def check_integrator(context):
         raise ValueError("Variable step size integrators are not supported")
 
 
-def bind(
-    wrapped_context: ContextWrapper, sampling_method: SamplingMethod, callback: Callable, **kwargs
-):
+def bind(sampling_context: SamplingContext, callback: Callable, **kwargs):
     # For OpenMM we need to store a Simulation object as the context,
-    simulation = wrapped_context.context
+    simulation = sampling_context.context
     context = simulation.context
     check_integrator(context)
+    sampling_method = sampling_context.method
     force = Force()
     force.add_to(context)  # OpenMM will handle the lifetime of the force
-    wrapped_context.view = force.view(context)
-    wrapped_context.run = simulation.step
-    helpers, restore, bias = build_helpers(wrapped_context.view, sampling_method)
-    snapshot = take_snapshot(wrapped_context)
+    sampling_context.view = force.view(context)
+    sampling_context.run = simulation.step
+    helpers, restore, bias = build_helpers(sampling_context.view, sampling_method)
+    snapshot = take_snapshot(sampling_context)
     method_bundle = sampling_method.build(snapshot, helpers)
-    sync_and_bias = partial(bias, sync_backend=wrapped_context.view.synchronize)
+    sync_and_bias = partial(bias, sync_backend=sampling_context.view.synchronize)
     sampler = Sampler(method_bundle, sync_and_bias, callback, restore)
     force.set_callback_in(context, sampler.update)
     return sampler

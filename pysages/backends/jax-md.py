@@ -7,7 +7,7 @@ from jax import jit
 from jax import numpy as np
 from jax_md import dataclasses
 
-from pysages.backends.core import ContextWrapper
+from pysages.backends.core import SamplingContext
 from pysages.backends.snapshot import (
     Box,
     HelperMethods,
@@ -15,7 +15,6 @@ from pysages.backends.snapshot import (
     SnapshotMethods,
     build_data_querier,
 )
-from pysages.methods import SamplingMethod
 from pysages.utils import check_device_array, copy
 
 
@@ -89,17 +88,17 @@ def build_helpers(context, sampling_method):
 def build_runner(context, sampler, callback, jit_compile=True):
     step_fn = context.step_fn
 
-    def _step(wrapped_context_state, snapshot, sampler_state):
-        context_state = wrapped_context_state.state
+    def _step(sampling_context_state, snapshot, sampler_state):
+        context_state = sampling_context_state.state
         snapshot = update_snapshot(snapshot, context_state)
-        wrapped_context_state = step_fn(wrapped_context_state)  # jax_md simulation step
+        sampling_context_state = step_fn(sampling_context_state)  # jax_md simulation step
         sampler_state = sampler.update(snapshot, sampler_state)  # pysages update
         if sampler_state.bias is not None:  # bias the simulation
-            context_state = wrapped_context_state.state
+            context_state = sampling_context_state.state
             biased_forces = context_state.force + sampler_state.bias
             context_state = dataclasses.replace(context_state, force=biased_forces)
-            wrapped_context_state = wrapped_context_state._replace(state=context_state)
-        return wrapped_context_state, snapshot, sampler_state
+            sampling_context_state = sampling_context_state._replace(state=context_state)
+        return sampling_context_state, snapshot, sampler_state
 
     step = jit(_step) if jit_compile else _step
 
@@ -122,17 +121,16 @@ class View(NamedTuple):
     synchronize: Callable
 
 
-def bind(
-    wrapped_context: ContextWrapper, sampling_method: SamplingMethod, callback: Callable, **kwargs
-):
-    context = wrapped_context.context
+def bind(sampling_context: SamplingContext, callback: Callable, **kwargs):
+    context = sampling_context.context
+    sampling_method = sampling_context.method
     context_state = context.init_fn(**kwargs)
     snapshot = take_snapshot(context_state.state, context.box, context.dt)
     helpers = build_helpers(context, sampling_method)
     method_bundle = sampling_method.build(snapshot, helpers)
     sampler = Sampler(method_bundle, context_state)
-    wrapped_context.view = View((lambda: None))
-    wrapped_context.run = build_runner(
+    sampling_context.view = View((lambda: None))
+    sampling_context.run = build_runner(
         context, sampler, callback, jit_compile=kwargs.get("jit_compile", True)
     )
     return sampler
