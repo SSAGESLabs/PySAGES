@@ -100,9 +100,9 @@ class Sampler(SamplerBase):
 
         super().__init__(sysview, update, default_location(), AccessMode.Read)
         self.state = initialize()
-        self.callback = callback
         self.bias = bias
         self.box = initial_snapshot.box
+        self.callback = callback
         self.dt = initial_snapshot.dt
         self._restore = restore
 

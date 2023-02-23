@@ -19,12 +19,13 @@ from pysages.utils import check_device_array, copy
 
 
 class Sampler:
-    def __init__(self, method_bundle, context_state):
-        snapshot, initialize, update = method_bundle
-        self.context_state = context_state
-        self.snapshot = snapshot
+    def __init__(self, method_bundle, context_state, callback: Callable):
+        initial_snapshot, initialize, method_update = method_bundle
         self.state = initialize()
-        self.update = update
+        self.callback = callback
+        self.context_state = context_state
+        self.snapshot = initial_snapshot
+        self.update = method_update
 
     def restore(self, prev_snapshot):
         self.snapshot = prev_snapshot
@@ -85,7 +86,7 @@ def build_helpers(context, sampling_method):
     return helpers
 
 
-def build_runner(context, sampler, callback, jit_compile=True):
+def build_runner(context, sampler, jit_compile=True):
     step_fn = context.step_fn
 
     def _step(sampling_context_state, snapshot, sampler_state):
@@ -111,8 +112,8 @@ def build_runner(context, sampler, callback, jit_compile=True):
             sampler.context_state = context_state
             sampler.snapshot = snapshot
             sampler.state = state
-            if callback:
-                callback(sampler.snapshot, sampler.state, i)
+            if sampler.callback:
+                sampler.callback(sampler.snapshot, sampler.state, i)
 
     return run
 
@@ -128,9 +129,9 @@ def bind(sampling_context: SamplingContext, callback: Callable, **kwargs):
     snapshot = take_snapshot(context_state.state, context.box, context.dt)
     helpers = build_helpers(context, sampling_method)
     method_bundle = sampling_method.build(snapshot, helpers)
-    sampler = Sampler(method_bundle, context_state)
+    sampler = Sampler(method_bundle, context_state, callback)
     sampling_context.view = View((lambda: None))
     sampling_context.run = build_runner(
-        context, sampler, callback, jit_compile=kwargs.get("jit_compile", True)
+        context, sampler, jit_compile=kwargs.get("jit_compile", True)
     )
     return sampler
