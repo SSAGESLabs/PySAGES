@@ -39,12 +39,6 @@ mkdir -p $PYSAGES_ENV .
 unzip -qquo pysages-env.zip -d $PYSAGES_ENV
 ```
 
-```bash id="LlVSU_-FoD4w"
-apt-cache policy libcudnn8
-apt install --allow-change-held-packages libcudnn8=8.4.1.50-1+cuda11.6
-update-alternatives --auto libcudnn &> /dev/null
-```
-
 ```python id="EMAWp8VloIk4"
 import os
 import sys
