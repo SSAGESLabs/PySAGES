@@ -16,7 +16,6 @@ We aim to implement this:
 from typing import Callable, List, Optional, Union
 
 import numpy as np
-import plum
 from numpy.linalg import norm
 from scipy.interpolate import interp1d
 
@@ -57,7 +56,7 @@ class SplineString(SamplingMethod):
     along the given path via umbrella integration.
     """
 
-    @plum.dispatch
+    @dispatch
     def __init__(
         self,
         cvs,
@@ -119,7 +118,7 @@ class SplineString(SamplingMethod):
         self.freeze_idx = freeze_idx
         self.path_history = []
 
-    @plum.dispatch
+    @dispatch
     def __init__(  # noqa: F811 # pylint: disable=C0116,E0102
         self,
         umbrella_sampler: UmbrellaIntegration,
@@ -269,25 +268,28 @@ def run(  # pylint: disable=arguments-differ
             method.umbrella_sampler.submethods[i].center = new_centers[-1]
 
         method.path_history.append(new_centers)
-        string_result = Result(method, umbrella_result.states, umbrella_result.callbacks)
 
     if executor_shutdown:
         executor.shutdown()
 
-    return string_result
+    return Result(
+        method, umbrella_result.states, umbrella_result.callbacks, umbrella_result.snapshots
+    )
 
 
 @dispatch
 def analyze(result: Result[SplineString]):
-
-    umbrella_result = Result(result.method.umbrella_sampler, result.states, result.callbacks)
+    umbrella_result = Result(
+        result.method.umbrella_sampler, result.states, result.callbacks, result.snapshots
+    )
+    path_history = result.method.path_history
     ana = pysages.analyze(umbrella_result)
-    ana["path_history"] = result.method.path_history
+    ana["path_history"] = path_history
     path = []
     point_convergence = []
-    for i in range(len(result.method.path_history[-1])):
-        a = result.method.path_history[-2][i]
-        b = result.method.path_history[-1][i]
+    for i in range(len(path_history[-1])):
+        a = path_history[-2][i]
+        b = path_history[-1][i]
         point_convergence.append(result.method.metric(a, b))
         path.append(a)
     ana["point_convergence"] = point_convergence

@@ -28,10 +28,11 @@ class Result:
     def __infer_type_parameter__(cls, method, *_):
         return type(method)
 
-    def __init__(self, method, states, callbacks=None):
+    def __init__(self, method, states, callbacks, snapshots):
         self.method = method
         self.states = states
         self.callbacks = callbacks
+        self.snapshots = snapshots
 
 
 class ReplicaResult(Result):
@@ -194,9 +195,10 @@ def run(
         futures = [submit_work(ex, method, callback) for _ in range(config.copies)]
     results = [future.result() for future in futures]
     states = [r.states for r in results]
+    snapshots = [r.snapshots for r in results]
     callbacks = None if callback is None else [r.callbacks for r in results]
 
-    return Result(method, states, callbacks)
+    return Result(method, states, callbacks, snapshots)
 
 
 def _run(method, *args, **kwargs):
@@ -248,19 +250,20 @@ def run(  # noqa: F811 # pylint: disable=C0116,E0102
 
     *Note*: All arguments must be pickable.
     """
-
-    context_args = {} if context_args is None else context_args
     timesteps = int(timesteps)
 
+    context_args = {} if context_args is None else context_args
     context = context_generator(**context_args)
     context_args["context"] = context
     sampling_context = SamplingContext(context, method, callback)
+    sampler = sampling_context.sampler
+
     with sampling_context:
         sampling_context.run(timesteps, **kwargs)
         if post_run_action:
             post_run_action(**context_args)
 
-    return ReplicaResult(method, sampling_context.sampler.state, callback)
+    return ReplicaResult(method, sampler.state, callback, sampler.take_snapshot())
 
 
 @dispatch.abstract

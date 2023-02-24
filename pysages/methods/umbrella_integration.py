@@ -16,8 +16,6 @@ However, the method is not very accurate and it is preferred that more advanced 
 from copy import deepcopy
 from typing import Callable, Optional, Union
 
-import plum
-
 from pysages.methods.core import Result, SamplingMethod, _run
 from pysages.methods.harmonic_bias import HarmonicBias
 from pysages.methods.utils import HistogramLogger, SerialExecutor, listify, numpyfy_vals
@@ -34,7 +32,7 @@ class UmbrellaIntegration(SamplingMethod):
     Note that this is not very accurate and usually requires more sophisticated analysis on top.
     """
 
-    @plum.dispatch
+    @dispatch
     def __init__(
         self,
         cvs,
@@ -72,7 +70,7 @@ class UmbrellaIntegration(SamplingMethod):
         self.submethods = [HarmonicBias(cvs, k, c) for (k, c) in zip(ksprings, centers)]
         self.histograms = [HistogramLogger(p, o) for (p, o) in zip(periods, offsets)]
 
-    @plum.dispatch
+    @dispatch
     def __init__(  # noqa: F811 # pylint: disable=C0116,E0102
         self,
         biasers: list,
@@ -171,14 +169,16 @@ def run(  # pylint: disable=arguments-differ
         local_context_args["replica_num"] = rep
         callback = method.histograms[rep]
         futures.append(submit_work(executor, submethod, local_context_args, callback))
+
     results = [future.result() for future in futures]
     states = [r.states for r in results]
     callbacks = [r.callbacks for r in results]
+    snapshots = [r.snapshots for r in results]
 
     if executor_shutdown:
         executor.shutdown()
 
-    return Result(method, states, callbacks)
+    return Result(method, states, callbacks, snapshots)
 
 
 @dispatch
