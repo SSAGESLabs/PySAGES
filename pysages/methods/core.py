@@ -177,7 +177,6 @@ def run(
         which means only one simulation is run.
     """
     timesteps = int(timesteps)
-    context_args = {} if context_args is None else context_args
 
     def submit_work(executor, method, callback):
         return executor.submit(
@@ -236,7 +235,46 @@ def run(  # noqa: F811 # pylint: disable=C0116,E0102
     return Result(method, [sampler.state], callback, [sampler.take_snapshot()])
 
 
+@dispatch
+def run(  # noqa: F811 # pylint: disable=C0116,E0102
+    result: Result,
+    context_generator: Callable,
+    timesteps: Union[int, float],
+    context_args: Optional[dict] = None,
+    post_run_action: Optional[Callable] = None,
+    config: ReplicasConfiguration = ReplicasConfiguration(),
+    **kwargs,
+):
+    method = result.method
+    timesteps = int(timesteps)
+    callbacks_ = result.callbacks
+    callbacks = [None] * len(result.states) if callbacks_ is None else callbacks_
+
+    def submit_work(executor, result):
+        return executor.submit(
+            _run,
+            result,
+            context_generator,
+            timesteps,
+            context_args,
+            post_run_action,
+            **kwargs,
+        )
+
+    with config.executor as ex:
+        result_args = zip(result.states, callbacks, result.snapshots)
+        futures = [submit_work(ex, ReplicaResult(method, *args)) for args in result_args]
+
+    results = [future.result() for future in futures]
+    states = [r.states for r in results]
+    snapshots = [r.snapshots for r in results]
+    callbacks = None if callbacks_ is None else [r.callbacks for r in results]
+
+    return Result(method, states, callbacks, snapshots)
+
+
 def _run(method, *args, **kwargs):
+    # Trampoline method to enable multiple replicas to be run with mpi4py.
     run = methods_dispatch._functions["run"]
     return run(method, *args, **kwargs)
 
@@ -292,6 +330,39 @@ def run(  # noqa: F811 # pylint: disable=C0116,E0102
     context_args["context"] = context
     sampling_context = SamplingContext(context, method, callback)
     sampler = sampling_context.sampler
+
+    with sampling_context:
+        sampling_context.run(timesteps, **kwargs)
+        if post_run_action:
+            post_run_action(**context_args)
+
+    return ReplicaResult(method, sampler.state, callback, sampler.take_snapshot())
+
+
+@methods_dispatch
+def run(  # noqa: F811 # pylint: disable=C0116,E0102
+    result: ReplicaResult,
+    context_generator: Callable,
+    timesteps: Union[int, float],
+    context_args: Optional[dict] = None,
+    post_run_action: Optional[Callable] = None,
+    **kwargs,
+):
+    """
+    Base implementation for running a single simulation from a previously stored `Result`.
+    """
+    timesteps = int(timesteps)
+
+    method = result.method
+    callback = result.callbacks
+
+    context_args = {} if context_args is None else context_args
+    context = context_generator(**context_args)
+    context_args["context"] = context
+    sampling_context = SamplingContext(context, method, callback)
+    sampler = sampling_context.sampler
+    sampler.restore(result.snapshots)
+    sampler.state = result.states
 
     with sampling_context:
         sampling_context.run(timesteps, **kwargs)
