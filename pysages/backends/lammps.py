@@ -73,6 +73,7 @@ def set_post_force_hook(context, post_force_hook):
 # DLExtSampler is exported from lammps_dlext
 class Sampler(DLExtSampler):
     def __init__(self, method_bundle, bias, callback: Callable, restore):
+        # method_bundle returned from the sampling method's build()
         initial_snapshot, initialize, method_update = method_bundle
 
         def update(positions, velocities, forces, tags, images, timestep):
@@ -95,6 +96,8 @@ class Sampler(DLExtSampler):
             snapshot = self._pack_snapshot(positions, velocities, forces, tags, images)
             self._restore(snapshot, prev_snapshot)
 
+        # here Sampler forward_data() just overwrites the data with the previously stored snapshot
+        #    and does not move forward (nsteps = 0)
         self.forward_data(restore_callback, default_location(), AccessMode.Overwrite, 0)
 
     def take_snapshot(self):
@@ -230,6 +233,11 @@ def bind(
     # take a simulation snapshot from the context
     with context:
         snapshot = take_snapshot(wrapped_context)
+
+    # the build() member function of a specific sampling method (e.g. see abf.py) returns a triplet:
+    #   1) initial_snapshot (object)  : initial configuration of the simulation context
+    #   2) initialize()     (function): returns the initial state of the sampling method
+    #   3) method_update    (function): generalize() update a state depending on JIT or not
 
     method_bundle = sampling_method.build(snapshot, helpers)
     sync_and_bias = partial(bias, sync_backend=None)
