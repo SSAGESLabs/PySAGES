@@ -64,13 +64,19 @@ class UmbrellaIntegration(SamplingMethod):
 
         super().__init__(cvs, **kwargs)
 
+        print("A")
         replicas = len(centers)
         ksprings = listify(ksprings, replicas, "ksprings", float)
         periods = listify(hist_periods, replicas, "hist_periods", int)
         offsets = listify(hist_offsets, replicas, "hist_offsets", int)
 
+        print("A1")
         self.submethods = [HarmonicBias(cvs, k, c) for (k, c) in zip(ksprings, centers)]
         self.histograms = [HistogramLogger(p, o) for (p, o) in zip(periods, offsets)]
+        print("A2")
+
+        print("A3", self.submethods)
+        print("A4", self.histograms)
 
     @plum.dispatch
     def __init__(  # noqa: F811 # pylint: disable=C0116,E0102
@@ -80,6 +86,7 @@ class UmbrellaIntegration(SamplingMethod):
         hist_offsets: Union[list, int] = 0,
         **kwargs
     ):
+        print("B")
         cvs = None
         for bias in biasers:
             if cvs is None:
@@ -91,12 +98,16 @@ class UmbrellaIntegration(SamplingMethod):
                         " for the individual biaser."
                     )
         super().__init__(cvs, **kwargs)
+        print("B1")
         replicas = len(biasers)
         periods = listify(hist_periods, replicas, "hist_periods", int)
         offsets = listify(hist_offsets, replicas, "hist_offsets", int)
 
+        print("B2")
         self.submethods = biasers
         self.histograms = [HistogramLogger(p, o) for (p, o) in zip(periods, offsets)]
+        print("B3", self.submethods)
+        print("B4", self.histograms)
 
     # We delegate the sampling work to HarmonicBias
     # (or possibly other methods in the future)
