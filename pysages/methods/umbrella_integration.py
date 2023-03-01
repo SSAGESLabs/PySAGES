@@ -34,9 +34,7 @@ class UmbrellaIntegration(SamplingMethod):
     Note that this is not very accurate and usually requires more sophisticated analysis on top.
     """
 
-    @plum.dispatch
-    def __init__(self, cvs, **kwargs):
-        print("no")
+    self.submethods = None
 
     @plum.dispatch
     def __init__(
@@ -181,6 +179,7 @@ def run(  # pylint: disable=arguments-differ
         )
 
     futures = []
+    print("asdf")
     for rep, submethod in enumerate(method.submethods):
         local_context_args = deepcopy(context_args)
         local_context_args["replica_num"] = rep
