@@ -34,7 +34,7 @@ class UmbrellaIntegration(SamplingMethod):
     Note that this is not very accurate and usually requires more sophisticated analysis on top.
     """
 
-    self.submethods = None
+    submethods = []
 
     @plum.dispatch
     def __init__(
