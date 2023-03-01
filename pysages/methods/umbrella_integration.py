@@ -35,6 +35,10 @@ class UmbrellaIntegration(SamplingMethod):
     """
 
     @plum.dispatch
+    def __init__(self, cvs, **kwargs):
+        print("no")
+
+    @plum.dispatch
     def __init__(
         self,
         cvs,
