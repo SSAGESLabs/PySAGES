@@ -90,9 +90,7 @@ Now we can finally install PySAGES. We clone the newest version from [here](http
 
 rm -rf PySAGES
 git clone https://github.com/SSAGESLabs/PySAGES.git &> /dev/null
-#git clone https://github.com/pabloferz/PySAGES.git
 cd PySAGES
-#git checkout non-group-cvs
 pip install -q . &> /dev/null
 ```
 
@@ -720,7 +718,7 @@ $$\int \text{d} \xi p_i^b(\xi) p_{i+1}^b(\xi) \gg 0$$
 
 ```python colab={"base_uri": "https://localhost:8080/"} id="CtaNDUQ0SrTZ" outputId="3255e692-bfbd-4f97-cc21-8659aa2b5b37"
 from pysages.methods import UmbrellaIntegration
-method = UmbrellaIntegration(cvs, ksprings=kspring, centers=centers, hist_periods=100)
+method = UmbrellaIntegration(cvs, kspring, centers, 100)
 result = pysages.run(method, generate_context, int(1e5))
 ```
 

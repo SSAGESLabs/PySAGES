@@ -190,7 +190,7 @@ def generate_context(**kwargs):
     hoomd.context.initialize("")
     context = hoomd.context.SimulationContext()
     with context:
-        print(f"Operating replica {kwargs.get("replica_num")}")
+        print(f"Operating replica {kwargs.get('replica_num')}")
         system = hoomd.init.read_gsd("start.gsd")
 
         hoomd.md.integrate.nve(group=hoomd.group.all())
