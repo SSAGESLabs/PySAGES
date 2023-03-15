@@ -13,7 +13,7 @@ from lammps import lammps
 from lammps.dlext import (
     AccessLocation,
     AccessMode,
-    DLExtSampler
+    DLExtSampler,
 )
 from jax import jit
 from jax import numpy as np
@@ -46,10 +46,11 @@ def is_on_gpu(context):
     return on_gpu
 
 # return a functor
-def get_run_method(context, ntimesteps, **kwargs):
+def get_run_method(context):
     def execute_run_cmd(ntimesteps, **kwargs):
-      context.execute(f"run {ntimesteps}")
-    return execute_run_cmd
+      context.command(f"run {ntimesteps}")
+    #return execute_run_cmd
+    return context.command
 
 def get_dimension(context):
     return context.extract_setting("dimension")
@@ -72,7 +73,7 @@ def set_post_force_hook(context, post_force_hook):
 
 # DLExtSampler is exported from lammps_dlext
 class Sampler(DLExtSampler):
-    def __init__(self, method_bundle, bias, callback: Callable, restore):
+    """ def __init__(self, method_bundle, bias, callback: Callable, restore):
         # method_bundle returned from the sampling method's build()
         initial_snapshot, initialize, method_update = method_bundle
 
@@ -89,6 +90,21 @@ class Sampler(DLExtSampler):
         self.bias = bias
         self.box = initial_snapshot.box
         self.dt = initial_snapshot.dt
+        self._restore = restore
+ """
+    def __init__(self, context, sampling_method, callback: Callable):
+        helpers, restore, bias = build_helpers(context, sampling_method)
+
+        # take a simulation snapshot from the context
+        self.context = context
+        with context:
+            snapshot = self.take_snapshot()
+
+        method_bundle = sampling_method.build(snapshot, helpers)
+        sync_and_bias = partial(bias, sync_backend=None)
+      
+        self.callback = callback
+        self.bias = bias
         self._restore = restore
 
     def restore(self, prev_snapshot):
@@ -134,16 +150,17 @@ else:
 
 # build a Snapshot object that contains all the tensors from the context
 # 
-def take_snapshot(wrapped_context, location=default_location()):
-    context = wrapped_context.context
+""" def take_snapshot(wrapped_context, location=default_location()):
+    context = wrapped_context
 
     # asarray needs argument of type DLManagedTensorPtr 
-    positions =  copy(asarray(context.get_positions(location, AccessMode.Read)))
-    types =      copy(asarray(context.get_types(location, AccessMode.Read)))
-    velocities = copy(asarray(context.get_velocities(location, AccessMode.Read)))
-    net_forces = copy(asarray(context.get_net_forces(location, AccessMode.ReadWrite)))
-    tags =       copy(asarray(context.get_tags(location, AccessMode.Read)))
-    imgs =       copy(asarray(context.get_images(location, AccessMode.Read)))
+    # It makes sense to be able have these get functions work on context rather than Sampler
+    positions =  copy(asarray(get_positions(context, location, AccessMode.Read)))
+    types =      copy(asarray(get_types(context, location, AccessMode.Read)))
+    velocities = copy(asarray(get_velocities(context, location, AccessMode.Read)))
+    net_forces = copy(asarray(get_net_forces(context, location, AccessMode.ReadWrite)))
+    tags =       copy(asarray(get_tags(context, location, AccessMode.Read)))
+    imgs =       copy(asarray(get_images(context, location, AccessMode.Read)))
 
     #rtags = copy(asarray(context.get_rtags(context, location, AccessMode.Read)))
 
@@ -153,7 +170,7 @@ def take_snapshot(wrapped_context, location=default_location()):
     dt = get_timestep(context)
 
     return Snapshot(positions, velocities, net_forces, tags, imgs, Box(H, origin), dt)
-
+ """
 
 def build_snapshot_methods(sampling_method):
     if sampling_method.requires_box_unwrapping:
@@ -228,22 +245,23 @@ def bind(
     context = wrapped_context.context
     wrapped_context.view = None
     wrapped_context.run = get_run_method(context)
-    helpers, restore, bias = build_helpers(context, sampling_method)
+    #helpers, restore, bias = build_helpers(context, sampling_method)
 
     # take a simulation snapshot from the context
-    with context:
-        snapshot = take_snapshot(wrapped_context)
+    #with context:
+    #    snapshot = take_snapshot(wrapped_context)
 
     # the build() member function of a specific sampling method (e.g. see abf.py) returns a triplet:
     #   1) initial_snapshot (object)  : initial configuration of the simulation context
     #   2) initialize()     (function): returns the initial state of the sampling method
     #   3) method_update    (function): generalize() update a state depending on JIT or not
 
-    method_bundle = sampling_method.build(snapshot, helpers)
-    sync_and_bias = partial(bias, sync_backend=None)
+    #method_bundle = sampling_method.build(snapshot, helpers)
+    #sync_and_bias = partial(bias, sync_backend=None)
 
     # create an instance of Sampler (which is DLExtSampler)
-    sampler = Sampler(context, method_bundle, sync_and_bias, callback, restore)
+    #sampler = Sampler(context, method_bundle, sync_and_bias, callback, restore)
+    sampler = Sampler(context, sampling_method, callback)
     # and connect it with the LAMMPS object (context)
-    set_post_force_hook(context, sampler)
+    #set_post_force_hook(context, sampler)
     return sampler
