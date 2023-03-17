@@ -5,11 +5,10 @@
 Building blocks for specifying restraints on collective variables.
 """
 
-from typing import NamedTuple
-
 from jax import numpy as np
 
-from pysages.utils import JaxArray, dispatch
+from pysages.typing import JaxArray, NamedTuple
+from pysages.utils import dispatch
 
 
 class CVRestraints(NamedTuple):

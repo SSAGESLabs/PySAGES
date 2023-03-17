@@ -3,7 +3,6 @@
 
 import importlib
 from functools import partial
-from typing import Callable
 from warnings import warn
 
 import hoomd
@@ -32,6 +31,7 @@ from pysages.backends.snapshot import (
     build_data_querier,
 )
 from pysages.backends.snapshot import restore as _restore
+from pysages.typing import Callable
 from pysages.utils import check_device_array, copy
 
 # TODO: Figure out a way to automatically tie the lifetime of Sampler

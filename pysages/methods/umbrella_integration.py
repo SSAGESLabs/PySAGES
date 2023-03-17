@@ -14,11 +14,11 @@ However, the method is not very accurate and it is preferred that more advanced 
 """
 
 from copy import deepcopy
-from typing import Callable, Optional, Union
 
 from pysages.methods.core import ReplicaResult, Result, SamplingMethod, _run, get_method
 from pysages.methods.harmonic_bias import HarmonicBias
 from pysages.methods.utils import HistogramLogger, SerialExecutor, listify, numpyfy_vals
+from pysages.typing import Callable, Optional, Union
 from pysages.utils import dispatch
 
 

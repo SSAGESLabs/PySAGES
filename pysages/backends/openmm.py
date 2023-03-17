@@ -3,7 +3,6 @@
 
 import importlib
 from functools import partial
-from typing import Callable
 
 import jax
 import openmm_dlext as dlext
@@ -23,6 +22,7 @@ from pysages.backends.snapshot import (
 )
 from pysages.backends.snapshot import restore as _restore
 from pysages.backends.snapshot import restore_vm as _restore_vm
+from pysages.typing import Callable
 from pysages.utils import check_device_array, copy, try_import
 
 openmm = try_import("openmm", "simtk.openmm")

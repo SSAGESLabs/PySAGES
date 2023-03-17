@@ -11,10 +11,8 @@ A common use case is to record collective variables in unbiased
 simulations via the Histogram logger.
 """
 
-from typing import NamedTuple, Optional
-
 from pysages.methods.core import SamplingMethod, generalize
-from pysages.utils import JaxArray
+from pysages.typing import JaxArray, NamedTuple, Optional
 
 
 class UnbiasedState(NamedTuple):

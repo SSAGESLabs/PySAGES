@@ -13,7 +13,6 @@ two neural networks to approximate the free energy and its derivatives.
 
 import numbers
 from functools import partial
-from typing import NamedTuple, Tuple
 
 from jax import jit
 from jax import numpy as np
@@ -31,7 +30,8 @@ from pysages.ml.objectives import L2Regularization, Sobolev1SSE
 from pysages.ml.optimizers import LevenbergMarquardt
 from pysages.ml.training import NNData, build_fitting_function, convolve, normalize
 from pysages.ml.utils import blackman_kernel, pack, unpack
-from pysages.utils import Bool, Int, JaxArray, dispatch, solve_pos_def
+from pysages.typing import JaxArray, NamedTuple, Tuple
+from pysages.utils import dispatch, solve_pos_def
 
 # Aliases
 f32 = np.float32
@@ -93,7 +93,7 @@ class CFFState(NamedTuple):
     Wp_: JaxArray
     nn: NNData
     fnn: NNData
-    nstep: Int
+    nstep: int
 
     def __repr__(self):
         return repr("PySAGES " + type(self).__name__)
@@ -105,7 +105,7 @@ class PartialCFFState(NamedTuple):
     Fsum: JaxArray
     ind: Tuple
     fnn: NNData
-    pred: Bool
+    pred: bool
 
 
 class CFF(NNSamplingMethod):

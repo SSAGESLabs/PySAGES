@@ -13,8 +13,6 @@ We aim to implement this:
 `Weinan, E., et. al. J. Chem. Phys. 126.16 (2007): 164103 <https://doi.org/10.1063/1.2720838>`_.
 """
 
-from typing import Callable, List, Optional, Union
-
 import numpy as np
 from numpy.linalg import norm
 from scipy.interpolate import interp1d
@@ -23,6 +21,7 @@ import pysages
 from pysages.methods.core import Result, SamplingMethod, get_method
 from pysages.methods.umbrella_integration import UmbrellaIntegration
 from pysages.methods.utils import SerialExecutor, listify, numpyfy_vals
+from pysages.typing import Callable, List, Optional, Union
 from pysages.utils import dispatch
 
 

@@ -6,7 +6,6 @@ from functools import reduce
 from inspect import getfullargspec
 from operator import or_
 from sys import modules as sys_modules
-from typing import Callable, Optional, Union
 
 from jax import jit
 from plum import parametric
@@ -16,7 +15,8 @@ from pysages.colvars.core import build
 from pysages.grids import Grid, build_grid, get_info
 from pysages.methods.restraints import canonicalize
 from pysages.methods.utils import ReplicasConfiguration, methods_dispatch
-from pysages.utils import ToCPU, copy, dispatch, identity
+from pysages.typing import Callable, Optional, Union
+from pysages.utils import ToCPU, copy, dispatch, dispatch_table, identity
 
 #  Base Classes
 #  ============
@@ -282,7 +282,7 @@ def run(  # noqa: F811 # pylint: disable=C0116,E0102
 
 def _run(method, *args, **kwargs):
     # Trampoline method to enable multiple replicas to be run with mpi4py.
-    run = methods_dispatch._functions["run"]
+    run = dispatch_table(methods_dispatch)["run"]
     return run(method, *args, **kwargs)
 
 

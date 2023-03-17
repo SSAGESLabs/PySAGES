@@ -11,14 +11,14 @@ The method allows to calculate rate constants and generate transition paths.
 """
 
 import sys
-from typing import Callable, NamedTuple, Optional
 from warnings import warn
 
 from jax import numpy as np
 
 from pysages.backends import SamplingContext
 from pysages.methods.core import SamplingMethod, generalize
-from pysages.utils import JaxArray, dispatch
+from pysages.typing import Callable, JaxArray, NamedTuple, Optional
+from pysages.utils import dispatch
 
 
 class FFSState(NamedTuple):

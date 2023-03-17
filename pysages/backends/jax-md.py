@@ -1,8 +1,6 @@
 # SPDX-License-Identifier: MIT
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
-from typing import Callable, NamedTuple
-
 from jax import jit
 from jax import numpy as np
 from jax_md import dataclasses
@@ -15,6 +13,7 @@ from pysages.backends.snapshot import (
     SnapshotMethods,
     build_data_querier,
 )
+from pysages.typing import Callable, NamedTuple
 from pysages.utils import check_device_array, copy
 
 
