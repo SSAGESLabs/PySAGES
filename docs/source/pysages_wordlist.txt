@@ -66,3 +66,11 @@ workflow
 covariance
 Metaclass
 serializable
+SpectralABF
+JaxArray
+CFF
+FUNN
+UmbrellaIntegration
+SplineString
+metadynamics
+metapotential

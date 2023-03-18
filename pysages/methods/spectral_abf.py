@@ -63,7 +63,7 @@ class SpectralABFState(NamedTuple):
         The value of `Wp` for the previous integration step.
 
     fun: Fun
-        Object that holds the coeffients of the basis functions
+        Object that holds the coefficients of the basis functions
         approximation to the free energy.
 
     nstep: int
@@ -202,7 +202,7 @@ def _spectral_abf(method, snapshot, helpers):
 def build_free_energy_fitter(method: SpectralABF, fit):
     """
     Returns a function that given a `SpectralABFState` performs a least squares fit of the
-    generalized average forces for finding the coeffients of a basis functions expansion
+    generalized average forces for finding the coefficients of a basis functions expansion
     of the free energy.
     """
 
@@ -223,7 +223,7 @@ def build_free_energy_fitter(method: SpectralABF, fit):
 @dispatch
 def build_force_estimator(method: SpectralABF):
     """
-    Returns a function that given the coeffients of basis functions expansion and a CV
+    Returns a function that given the coefficients of basis functions expansion and a CV
     value, evaluates the function approximation to the gradient of the free energy.
     """
     N = method.N
