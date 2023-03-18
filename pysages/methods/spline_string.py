@@ -20,7 +20,12 @@ from scipy.interpolate import interp1d
 import pysages
 from pysages.methods.core import Result, SamplingMethod, get_method
 from pysages.methods.umbrella_integration import UmbrellaIntegration
-from pysages.methods.utils import SerialExecutor, listify, numpyfy_vals
+from pysages.methods.utils import (
+    SerialExecutor,
+    listify,
+    methods_dispatch,
+    numpyfy_vals,
+)
 from pysages.typing import Callable, List, Optional, Union
 from pysages.utils import dispatch
 
@@ -55,7 +60,14 @@ class SplineString(SamplingMethod):
     along the given path via umbrella integration.
     """
 
-    @dispatch
+    umbrella_sampler = None
+    alpha = 1
+    metric = lambda x, y: norm(x - y)  # noqa: E731
+    spacing = None
+    freeze_idx = []
+    path_history = []
+
+    @methods_dispatch
     def __init__(
         self,
         cvs,
@@ -117,7 +129,7 @@ class SplineString(SamplingMethod):
         self.freeze_idx = freeze_idx
         self.path_history = []
 
-    @dispatch
+    @methods_dispatch
     def __init__(  # noqa: F811 # pylint: disable=C0116,E0102
         self,
         umbrella_sampler: UmbrellaIntegration,
@@ -158,6 +170,15 @@ class SplineString(SamplingMethod):
         self.spacing = _test_valid_spacing(replicas, spacing)
         self.freeze_idx = freeze_idx
         self.path_history = []
+
+    def __getstate__(self):
+        args = (self.umbrella_sampler, self.alpha, self.metric, self.spacing, self.freeze_idx)
+        return (*args, self.path_history)
+
+    def __setstate__(self, state):
+        *args, path_history = state
+        self.__init__(*args)
+        self.path_history = path_history
 
     # We delegate the sampling work to UmbrellaIntegration
     def build(self):  # pylint: disable=arguments-differ

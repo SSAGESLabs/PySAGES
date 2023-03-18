@@ -17,7 +17,13 @@ from copy import deepcopy
 
 from pysages.methods.core import ReplicaResult, Result, SamplingMethod, _run, get_method
 from pysages.methods.harmonic_bias import HarmonicBias
-from pysages.methods.utils import HistogramLogger, SerialExecutor, listify, numpyfy_vals
+from pysages.methods.utils import (
+    HistogramLogger,
+    SerialExecutor,
+    listify,
+    methods_dispatch,
+    numpyfy_vals,
+)
 from pysages.typing import Callable, Optional, Union
 from pysages.utils import dispatch
 
@@ -32,7 +38,10 @@ class UmbrellaIntegration(SamplingMethod):
     Note that this is not very accurate and usually requires more sophisticated analysis on top.
     """
 
-    @dispatch
+    submethods = []
+    histograms = []
+
+    @methods_dispatch
     def __init__(
         self,
         cvs,
@@ -70,7 +79,7 @@ class UmbrellaIntegration(SamplingMethod):
         self.submethods = [HarmonicBias(cvs, k, c) for (k, c) in zip(ksprings, centers)]
         self.histograms = [HistogramLogger(p, o) for (p, o) in zip(periods, offsets)]
 
-    @dispatch
+    @methods_dispatch
     def __init__(  # noqa: F811 # pylint: disable=C0116,E0102
         self,
         biasers: list,
@@ -95,6 +104,14 @@ class UmbrellaIntegration(SamplingMethod):
 
         self.submethods = biasers
         self.histograms = [HistogramLogger(p, o) for (p, o) in zip(periods, offsets)]
+
+    def __getstate__(self):
+        return (self.submethods, self.histograms)
+
+    def __setstate__(self, state):
+        biasers, histograms = state
+        self.__init__(biasers, 1)
+        self.histograms = histograms
 
     # We delegate the sampling work to HarmonicBias
     # (or possibly other methods in the future)
