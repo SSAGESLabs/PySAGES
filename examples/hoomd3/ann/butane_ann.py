@@ -21,7 +21,7 @@ import numpy as np
 import pysages
 from pysages import Grid
 from pysages.colvars import DihedralAngle
-from pysages.methods import ANN, CVRestraints
+from pysages.methods import ANN
 
 # %%
 kT = 0.596161
