@@ -19,9 +19,9 @@ params = {"A": 0.5, "i": 0, "w": 0.2, "p": 2}
 def generate_context(**kwargs):
     if kwargs.get("mpi_enabled"):
         MPI = importlib.import_module("mpi4py.MPI")
-        init_kwargs = {"mpi_comm": MPI.COMM_SELF}
+#        init_kwargs = {"mpi_comm": MPI.COMM_SELF}
     else:
-        init_kwargs = {}
+#        init_kwargs = {}
     sim = hoomd.Simulation(
         device=kwargs.get("context", hoomd.device.CPU()), seed=kwargs.get("seed", 1)
     )
@@ -109,7 +109,7 @@ def get_args(argv):
         ("log-delay", "d", int, 0, "Number of timesteps to discard before logging"),
     ]
     parser = argparse.ArgumentParser(description="Example script to run umbrella integration")
-    for (name, short, T, val, doc) in available_args:
+    for name, short, T, val, doc in available_args:
         parser.add_argument("--" + name, "-" + short, type=T, default=T(val), help=doc)
     parser.add_argument("--mpi", action="store_true", help="Use MPI executor")
     args = parser.parse_args(argv)

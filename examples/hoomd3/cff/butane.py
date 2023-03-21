@@ -272,7 +272,7 @@ def get_args(argv):
         ("train-freq", "f", int, 5e3, "Frequency for neural network training"),
     ]
     parser = argparse.ArgumentParser(description="Example script to run CFF")
-    for (name, short, T, val, doc) in available_args:
+    for name, short, T, val, doc in available_args:
         parser.add_argument("--" + name, "-" + short, type=T, default=T(val), help=doc)
 
     return parser.parse_args(argv)

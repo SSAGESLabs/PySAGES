@@ -33,7 +33,7 @@ def validate_hist(xi_hist, target, epsilon=0.1):
     for i in range(len(xi_hist)):
         val = np.sqrt(np.mean((xi_hist[i] - target[i]) ** 2))
         if val > epsilon:
-            raise RuntimeError(f"Biased historgram deviation too large: {val} epsilon {epsilon}")
+            raise RuntimeError(f"Biased histogram deviation too large: {val} epsilon {epsilon}")
 
 
 def get_target_dist(center, k, lim, bins):

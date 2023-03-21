@@ -272,7 +272,7 @@ def get_args(argv):
     ]
 
     parser = argparse.ArgumentParser(description="Example script to run FUNN")
-    for (name, short, T, val, doc) in available_args:
+    for name, short, T, val, doc in available_args:
         parser.add_argument("--" + name, "-" + short, type=T, default=T(val), help=doc)
 
     return parser.parse_args(argv)
