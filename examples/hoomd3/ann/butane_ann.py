@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-SpectralABF simulation of a butane molecule in HOOMD-blue and PySAGES.
+ANN simulation of a butane molecule in HOOMD-blue and PySAGES.
 """
 
 
