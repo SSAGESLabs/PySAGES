@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-SpectralABF simulation of a butane molecule in HOOMD-blue and PySAGES.
+FUNN simulation of a butane molecule in HOOMD-blue and PySAGES.
 """
 
 
@@ -15,7 +15,6 @@ import gsd
 import gsd.hoomd
 import hoomd
 import hoomd.md
-import matplotlib.pyplot as plt
 import numpy as np
 
 import pysages
