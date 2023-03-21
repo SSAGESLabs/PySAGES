@@ -20,7 +20,7 @@ def generate_context(**kwargs):
     if kwargs.get("mpi_enabled"):
         MPI = importlib.import_module("mpi4py.MPI")
 #        init_kwargs = {"mpi_comm": MPI.COMM_SELF}
-    else:
+#    else:
 #        init_kwargs = {}
     sim = hoomd.Simulation(
         device=kwargs.get("context", hoomd.device.CPU()), seed=kwargs.get("seed", 1)
