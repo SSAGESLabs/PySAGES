@@ -82,23 +82,41 @@ def generate_context(kT=kT, dt=dt, **kwargs):
     mC = 12.00
     mH = 1.008
 
-    # fmt: off
     snapshot.particles.mass[:] = [
-        mC, mH, mH, mH,  # grouped by carbon atoms
-        mC, mH, mH,
-        mC, mH, mH, 
-        mC, mH, mH, mH,
+        mC,
+        mH,
+        mH,
+        mH,  # grouped by carbon atoms
+        mC,
+        mH,
+        mH,
+        mC,
+        mH,
+        mH,
+        mC,
+        mH,
+        mH,
+        mH,
     ]
 
     reference_charges = np.array(
         [
-            -0.180000, 0.060000, 0.060000, 0.060000,  # grouped by carbon atoms
-            -0.120000, 0.060000, 0.060000,
-            -0.120000, 0.060000, 0.060000, 
-            -0.180000, 0.060000, 0.060000, 0.060000,
+            -0.180000,
+            0.060000,
+            0.060000,
+            0.060000,  # grouped by carbon atoms
+            -0.120000,
+            0.060000,
+            0.060000,
+            -0.120000,
+            0.060000,
+            0.060000,
+            -0.180000,
+            0.060000,
+            0.060000,
+            0.060000,
         ]
     )
-    # fmt: on
 
     charge_conversion = 18.22262
     snapshot.particles.charge[:] = charge_conversion * reference_charges[:]
@@ -112,15 +130,22 @@ def generate_context(kT=kT, dt=dt, **kwargs):
     snapshot.bonds.typeid[9] = 0
     snapshot.bonds.typeid[10:13] = 1
 
-    # fmt: off
-    snapshot.bonds.group=np.zeros((13, 2),dtype=int)
+    snapshot.bonds.group = np.zeros((13, 2), dtype=int)
     snapshot.bonds.group[:] = [
-        [0, 2], [0, 1], [0, 3], [0, 4],  # grouped by carbon atoms
-        [4, 5], [4, 6], [4, 7],
-        [7, 8], [7, 9], [7, 10],
-        [10, 11], [10, 12], [10, 13],
+        [0, 2],
+        [0, 1],
+        [0, 3],
+        [0, 4],  # grouped by carbon atoms
+        [4, 5],
+        [4, 6],
+        [4, 7],
+        [7, 8],
+        [7, 9],
+        [7, 10],
+        [10, 11],
+        [10, 12],
+        [10, 13],
     ]
-    # fmt: on
     snapshot.angles.N = 24
     snapshot.angles.typeid = np.zeros(24, dtype=int)
     snapshot.angles.typeid[0:2] = 2
@@ -135,22 +160,36 @@ def generate_context(kT=kT, dt=dt, **kwargs):
     snapshot.angles.typeid[16:21] = 1
     snapshot.angles.typeid[21:24] = 2
 
-    # fmt: off
-    snapshot.angles.group=np.zeros((24, 3),dtype=int)
+    snapshot.angles.group = np.zeros((24, 3), dtype=int)
     snapshot.angles.group[:] = [
-        [1, 0, 2], [2, 0, 3], [2, 0, 4],  # grouped by carbon atoms
-        [1, 0, 3], [1, 0, 4], [3, 0, 4],
-            # ---
-        [0, 4, 5], [0, 4, 6], [0, 4, 7],
-        [5, 4, 6], [5, 4, 7], [6, 4, 7],
-            # ---
-        [4, 7, 8], [4, 7, 9], [4, 7, 10],
-        [8, 7, 9], [8, 7, 10], [9, 7, 10],
-            # ---
-        [7, 10, 11], [7, 10, 12], [7, 10, 13],
-        [11, 10, 12], [11, 10, 13], [12, 10, 13],
+        [1, 0, 2],
+        [2, 0, 3],
+        [2, 0, 4],  # grouped by carbon atoms
+        [1, 0, 3],
+        [1, 0, 4],
+        [3, 0, 4],
+        # ---
+        [0, 4, 5],
+        [0, 4, 6],
+        [0, 4, 7],
+        [5, 4, 6],
+        [5, 4, 7],
+        [6, 4, 7],
+        # ---
+        [4, 7, 8],
+        [4, 7, 9],
+        [4, 7, 10],
+        [8, 7, 9],
+        [8, 7, 10],
+        [9, 7, 10],
+        # ---
+        [7, 10, 11],
+        [7, 10, 12],
+        [7, 10, 13],
+        [11, 10, 12],
+        [11, 10, 13],
+        [12, 10, 13],
     ]
-    # fmt: on
     snapshot.dihedrals.N = 27
     snapshot.dihedrals.typeid = np.zeros(27, dtype=int)
     snapshot.dihedrals.typeid[0:2] = 2
@@ -166,48 +205,76 @@ def generate_context(kT=kT, dt=dt, **kwargs):
     snapshot.dihedrals.typeid[17:21] = 1
     snapshot.dihedrals.typeid[21:27] = 2
 
-    # fmt: off
-    snapshot.dihedrals.group=np.zeros((27, 4),dtype=int)
+    snapshot.dihedrals.group = np.zeros((27, 4), dtype=int)
     snapshot.dihedrals.group[:] = [
-        [2, 0, 4, 5], [2, 0, 4, 6], [2, 0, 4, 7],  # grouped by pairs of central atoms
-        [1, 0, 4, 5], [1, 0, 4, 6], [1, 0, 4, 7],
-        [3, 0, 4, 5], [3, 0, 4, 6], [3, 0, 4, 7],
-            # ---
-        [0, 4, 7, 8], [0, 4, 7, 9], [0, 4, 7, 10],
-        [5, 4, 7, 8], [5, 4, 7, 9], [5, 4, 7, 10],
-        [6, 4, 7, 8], [6, 4, 7, 9], [6, 4, 7, 10],
-            # ---
-        [4, 7, 10, 11], [4, 7, 10, 12], [4, 7, 10, 13],
-        [8, 7, 10, 11], [8, 7, 10, 12], [8, 7, 10, 13],
-        [9, 7, 10, 11], [9, 7, 10, 12], [9, 7, 10, 13],
+        [2, 0, 4, 5],
+        [2, 0, 4, 6],
+        [2, 0, 4, 7],  # grouped by pairs of central atoms
+        [1, 0, 4, 5],
+        [1, 0, 4, 6],
+        [1, 0, 4, 7],
+        [3, 0, 4, 5],
+        [3, 0, 4, 6],
+        [3, 0, 4, 7],
+        # ---
+        [0, 4, 7, 8],
+        [0, 4, 7, 9],
+        [0, 4, 7, 10],
+        [5, 4, 7, 8],
+        [5, 4, 7, 9],
+        [5, 4, 7, 10],
+        [6, 4, 7, 8],
+        [6, 4, 7, 9],
+        [6, 4, 7, 10],
+        # ---
+        [4, 7, 10, 11],
+        [4, 7, 10, 12],
+        [4, 7, 10, 13],
+        [8, 7, 10, 11],
+        [8, 7, 10, 12],
+        [8, 7, 10, 13],
+        [9, 7, 10, 11],
+        [9, 7, 10, 12],
+        [9, 7, 10, 13],
     ]
-    # fmt: on
     snapshot.pairs.N = 27
     snapshot.pairs.typeid = np.zeros(27, dtype=int)
     snapshot.pairs.typeid[0:1] = 0
     snapshot.pairs.typeid[1:11] = 1
     snapshot.pairs.typeid[11:27] = 2
-    # fmt: off
-    snapshot.pairs.group=np.zeros((27, 2),dtype=int)
+    snapshot.pairs.group = np.zeros((27, 2), dtype=int)
     snapshot.pairs.group[:] = [
-            # CCCC
+        # CCCC
         [0, 10],
-            # HCCC
+        # HCCC
         [0, 8],
         [0, 9],
-        [5, 10], [6, 10],
-        [1, 7], [2, 7], [3, 7],
-        [11, 4], [12, 4], [13, 4],
-            # HCCH
-        [1, 5], [1, 6],
-        [2, 5], [2, 6],
-        [3, 5], [3, 6],
-        [5, 8], [6, 8],
-        [5, 9], [6, 9],
-        [8, 11], [8, 12], [8, 13],
-        [9, 11], [9, 12], [9, 13],
+        [5, 10],
+        [6, 10],
+        [1, 7],
+        [2, 7],
+        [3, 7],
+        [11, 4],
+        [12, 4],
+        [13, 4],
+        # HCCH
+        [1, 5],
+        [1, 6],
+        [2, 5],
+        [2, 6],
+        [3, 5],
+        [3, 6],
+        [5, 8],
+        [6, 8],
+        [5, 9],
+        [6, 9],
+        [8, 11],
+        [8, 12],
+        [8, 13],
+        [9, 11],
+        [9, 12],
+        [9, 13],
     ]
-    # fmt: on
     snapshot.particles.validate()
     sim.create_state_from_snapshot(snapshot, domain_decomposition=(None, None, None))
     exclusions = ["bond", "1-3", "1-4"]
