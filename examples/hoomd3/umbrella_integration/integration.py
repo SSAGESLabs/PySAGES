@@ -17,11 +17,6 @@ params = {"A": 0.5, "i": 0, "w": 0.2, "p": 2}
 
 
 def generate_context(**kwargs):
-    #    if kwargs.get("mpi_enabled"):
-    #        MPI = importlib.import_module("mpi4py.MPI")
-    #        init_kwargs = {"mpi_comm": MPI.COMM_SELF}
-    #    else:
-    #        init_kwargs = {}
     sim = hoomd.Simulation(
         device=kwargs.get("context", hoomd.device.CPU()), seed=kwargs.get("seed", 1)
     )
@@ -141,13 +136,10 @@ def main(argv):
     biasers = [HarmonicBias(cvs, args.k_spring, c) for c in centers]
     method = UmbrellaIntegration(biasers, args.log_period, args.log_delay)
 
-    context_args = {"mpi_enabled": args.mpi}
-
     raw_result = pysages.run(
         method,
         generate_context,
         args.time_steps,
-        context_args=context_args,
         post_run_action=post_run_action,
         executor=get_executor(args),
     )
