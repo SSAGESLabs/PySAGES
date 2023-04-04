@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
-from inspect import signature
+from inspect import Parameter, signature
 from typing import Callable, NamedTuple
 
 from ase.calculators.calculator import Calculator
@@ -48,8 +48,8 @@ class Sampler(Calculator):
         self._calculator = atoms.calc
         self._context = context
         self._biased_forces = initial_snapshot.forces
-        self._default_properties = list(sig["properties"].default)
-        self._default_changes = list(sig["system_changes"].default)
+        self._default_properties = list(_calculator_defaults(sig, "properties"))
+        self._default_changes = list(_calculator_defaults(sig, "system_changes"))
         for p in ("energy", "forces"):
             if p not in self._default_properties:
                 self._default_properties.append(p)
@@ -90,7 +90,7 @@ class Sampler(Calculator):
         atoms = self.atoms
         momenta, masses = prev_snapshot.vel_mass
         atoms.set_positions(prev_snapshot.positions)
-        atoms.set_masses(masses)  # masses need to be set before momenta
+        atoms.set_masses(masses.flatten())  # masses need to be set before momenta
         atoms.set_momenta(momenta, apply_constraint=False)
         atoms.set_cell(list(prev_snapshot.box.H))
         self.snapshot = prev_snapshot
@@ -118,6 +118,12 @@ def take_snapshot(simulation, forces=None):
 
     # ASE doesn't use images explicitely
     return Snapshot(positions, vel_mass, forces, ids, None, Box(H, origin), dt)
+
+
+def _calculator_defaults(sig, arg, default=[]):
+    fallback = Parameter("_", Parameter.KEYWORD_ONLY, default=default)
+    val = sig.get(arg, fallback).default
+    return val if type(val) is list else default
 
 
 def build_snapshot_methods(context, sampling_method):
