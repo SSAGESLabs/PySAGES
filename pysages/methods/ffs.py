@@ -75,7 +75,7 @@ def run(
     Nmax_replicas: int,
     verbose: bool = False,
     callback: Optional[Callable] = None,
-    context_args: Optional[dict] = None,
+    context_args: dict = {},
     **kwargs,
 ):
     """
@@ -121,19 +121,15 @@ def run(
         Allows for user defined actions into the simulation workflow of the method.
         `kwargs` gets passed to the backend `run` function.
 
-    context_args: Optional[dict] = None
+    context_args: dict = {}
         Arguments to pass down to `context_generator` to setup the simulation context.
 
     NOTE:
         The current implementation runs a single simulation/replica,
         but multiple concurrent simulations can be scripted on top of this.
     """
-
-    context_args = {} if context_args is None else context_args
-
-    context = context_generator(**context_args)
-    context_args["context"] = context
-    sampling_context = SamplingContext(context, method, callback)
+    sampling_context = SamplingContext(method, context_generator, callback, context_args)
+    context_args["context"] = sampling_context.context
 
     with sampling_context:
         sampler = sampling_context.sampler

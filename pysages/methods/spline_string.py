@@ -171,7 +171,7 @@ def run(  # pylint: disable=arguments-differ
     context_generator: Callable,
     timesteps: Union[int, float],
     stringsteps: Union[int, float],
-    context_args: Optional[dict] = None,
+    context_args: dict = {},
     post_run_action: Optional[Callable] = None,
     executor=SerialExecutor(),
     executor_shutdown=True,
@@ -197,7 +197,7 @@ def run(  # pylint: disable=arguments-differ
        Number of steps the string positions are iterated.
        It is the user responsibility to ensure final convergence.
 
-    context_args: Optional[dict] = None
+    context_args: dict = {}
         Arguments to pass down to `context_generator` to setup the simulation context.
 
     kwargs:
@@ -214,7 +214,6 @@ def run(  # pylint: disable=arguments-differ
     """
     timesteps = int(timesteps)
     stringsteps = int(stringsteps)
-    context_args = {} if context_args is None else context_args
     cv_shape = np.asarray(method.cvs).shape
 
     for step in range(stringsteps):

@@ -107,7 +107,7 @@ def run(  # pylint: disable=arguments-differ
     method: UmbrellaIntegration,
     context_generator: Callable,
     timesteps: Union[int, float],
-    context_args: Optional[dict] = None,
+    context_args: dict = {},
     post_run_action: Optional[Callable] = None,
     executor=SerialExecutor(),
     executor_shutdown=True,
@@ -133,7 +133,7 @@ def run(  # pylint: disable=arguments-differ
     timesteps: int
         Number of timesteps the simulation is running.
 
-    context_args: Optional[dict] = None
+    context_args: dict = {}
         Arguments to pass down to `context_generator` to setup the simulation context.
 
     kwargs:
@@ -149,7 +149,6 @@ def run(  # pylint: disable=arguments-differ
         This method does not accept a user defined callback.
     """
     timesteps = int(timesteps)
-    context_args = {} if context_args is None else context_args
 
     def submit_work(executor, method, context_args, callback):
         return executor.submit(
@@ -165,10 +164,10 @@ def run(  # pylint: disable=arguments-differ
 
     futures = []
     for rep, submethod in enumerate(method.submethods):
-        local_context_args = deepcopy(context_args)
-        local_context_args["replica_num"] = rep
+        replica_context_args = deepcopy(context_args)
+        replica_context_args["replica_num"] = rep
         callback = method.histograms[rep]
-        futures.append(submit_work(executor, submethod, local_context_args, callback))
+        futures.append(submit_work(executor, submethod, replica_context_args, callback))
 
     results = [future.result() for future in futures]
     states = [r.states for r in results]

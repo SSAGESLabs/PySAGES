@@ -134,7 +134,7 @@ def run(
     context_generator: Callable,
     timesteps: Union[int, float],
     callback: Optional[Callable] = None,
-    context_args: Optional[dict] = None,
+    context_args: dict = {},
     post_run_action: Optional[Callable] = None,
     config: ReplicasConfiguration = ReplicasConfiguration(),
     **kwargs,
@@ -160,7 +160,7 @@ def run(
         Allows for user defined actions into the simulation workflow of the method.
         `kwargs` gets passed to the backend `run` function.
 
-    context_args: Optional[dict] = None
+    context_args: dict = {}
         Arguments to pass down to `context_generator` to setup the simulation context.
 
     post_run_action: Optional[Callable] = None
@@ -240,7 +240,7 @@ def run(  # noqa: F811 # pylint: disable=C0116,E0102
     result: Result,
     context_generator: Callable,
     timesteps: Union[int, float],
-    context_args: Optional[dict] = None,
+    context_args: dict = {},
     post_run_action: Optional[Callable] = None,
     config: ReplicasConfiguration = ReplicasConfiguration(),
     **kwargs,
@@ -286,7 +286,7 @@ def run(  # noqa: F811 # pylint: disable=C0116,E0102
     method: SamplingMethod,
     context_generator: Callable,
     timesteps: Union[int, float],
-    context_args: Optional[dict] = None,
+    context_args: dict = {},
     callback: Optional[Callable] = None,
     post_run_action: Optional[Callable] = None,
     **kwargs,
@@ -308,7 +308,7 @@ def run(  # noqa: F811 # pylint: disable=C0116,E0102
     timesteps: int
         Number of time steps the simulation is running.
 
-    context_args: Optional[dict] = None
+    context_args: dict = {}
         Arguments to pass down to `context_generator` to setup the simulation context.
 
     callback: Optional[Callable] = None
@@ -325,10 +325,8 @@ def run(  # noqa: F811 # pylint: disable=C0116,E0102
     """
     timesteps = int(timesteps)
 
-    context_args = {} if context_args is None else context_args
-    context = context_generator(**context_args)
-    context_args["context"] = context
-    sampling_context = SamplingContext(context, method, callback)
+    sampling_context = SamplingContext(method, context_generator, callback, context_args)
+    context_args["context"] = sampling_context.context
     sampler = sampling_context.sampler
 
     with sampling_context:
@@ -344,7 +342,7 @@ def run(  # noqa: F811 # pylint: disable=C0116,E0102
     result: ReplicaResult,
     context_generator: Callable,
     timesteps: Union[int, float],
-    context_args: Optional[dict] = None,
+    context_args: dict = {},
     post_run_action: Optional[Callable] = None,
     **kwargs,
 ):
@@ -352,14 +350,11 @@ def run(  # noqa: F811 # pylint: disable=C0116,E0102
     Base implementation for running a single simulation from a previously stored `Result`.
     """
     timesteps = int(timesteps)
-
     method = result.method
     callback = result.callbacks
 
-    context_args = {} if context_args is None else context_args
-    context = context_generator(**context_args)
-    context_args["context"] = context
-    sampling_context = SamplingContext(context, method, callback)
+    sampling_context = SamplingContext(method, context_generator, callback, context_args)
+    context_args["context"] = sampling_context.context
     sampler = sampling_context.sampler
     sampler.restore(result.snapshots)
     sampler.state = result.states

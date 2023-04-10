@@ -63,12 +63,20 @@ class SamplingContext:
     PySAGES simulation context. Manages access to the backend-dependent simulation context.
     """
 
-    def __init__(self, context, sampling_method, callback: Callable = None, **kwargs):
+    def __init__(
+        self,
+        sampling_method,
+        context_generator: Callable,
+        callback: Optional[Callable] = None,
+        context_args: dict = {},
+        **kwargs,
+    ):
         """
         Automatically identifies the backend and binds the sampling method to
         the simulation context.
         """
         self._backend_name = None
+        context = context_generator(**context_args)
         module_name = type(context).__module__
 
         if module_name.startswith("ase.md"):
