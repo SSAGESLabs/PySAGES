@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 import pdb
 import lammps
-#import lammps.dlext
+
 from lammps import lammps
+import lammps.dlext as lammps_dlext
 import numpy as np
 
 import pysages
@@ -54,8 +55,17 @@ def main():
     callback = HistogramLogger(10)
     timesteps = 200
 
-    raw_result = pysages.run(method, generate_context, timesteps, callback)
-    print(np.asarray(raw_result.callbacks[0].data))
+    # testing the context
+    context = generate_context()
+    # args are formal, to be consistent with FixExternal to avoid crash
+    args = ["pf/callback", "1", "1"]
+    sampler = lammps_dlext.DLExtSampler(context, args, lammps_dlext.AccessLocation.OnDevice, lammps_dlext.AccessMode.Read)
+
+    # attempt to get the atom positions
+    x = get_positions(lammps_dlext.AccessLocation.OnHost)
+
+    # or
+    # x = get_positions(lammps_dlext.AccessLocation.OnDevice)
 
 
 if __name__ == "__main__":
