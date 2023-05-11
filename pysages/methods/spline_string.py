@@ -20,7 +20,7 @@ from numpy.linalg import norm
 from scipy.interpolate import interp1d
 
 import pysages
-from pysages.methods.core import Result, SamplingMethod
+from pysages.methods.core import Result, SamplingMethod, get_method
 from pysages.methods.umbrella_integration import UmbrellaIntegration
 from pysages.methods.utils import SerialExecutor, listify, numpyfy_vals
 from pysages.utils import dispatch
@@ -165,16 +165,16 @@ class SplineString(SamplingMethod):
         pass
 
 
-@dispatch
+@dispatch(precedence=1)
 def run(  # pylint: disable=arguments-differ
-    method: SplineString,
+    method_or_result: Union[SplineString, Result[SplineString]],
     context_generator: Callable,
     timesteps: Union[int, float],
     stringsteps: Union[int, float],
     context_args: dict = {},
     post_run_action: Optional[Callable] = None,
     executor=SerialExecutor(),
-    executor_shutdown=True,
+    executor_shutdown: bool = True,
     **kwargs
 ):
     """
@@ -212,6 +212,7 @@ def run(  # pylint: disable=arguments-differ
     * Note:
         This method does not accept a user defined callback.
     """
+    method = get_method(method_or_result)
     timesteps = int(timesteps)
     stringsteps = int(stringsteps)
     cv_shape = np.asarray(method.cvs).shape

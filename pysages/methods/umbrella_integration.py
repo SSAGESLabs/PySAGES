@@ -16,7 +16,7 @@ However, the method is not very accurate and it is preferred that more advanced 
 from copy import deepcopy
 from typing import Callable, Optional, Union
 
-from pysages.methods.core import Result, SamplingMethod, _run
+from pysages.methods.core import ReplicaResult, Result, SamplingMethod, _run, get_method
 from pysages.methods.harmonic_bias import HarmonicBias
 from pysages.methods.utils import HistogramLogger, SerialExecutor, listify, numpyfy_vals
 from pysages.utils import dispatch
@@ -102,15 +102,15 @@ class UmbrellaIntegration(SamplingMethod):
         pass
 
 
-@dispatch
+@dispatch(precedence=1)
 def run(  # pylint: disable=arguments-differ
-    method: UmbrellaIntegration,
+    method_or_result: Union[UmbrellaIntegration, Result[UmbrellaIntegration]],
     context_generator: Callable,
     timesteps: Union[int, float],
     context_args: dict = {},
     post_run_action: Optional[Callable] = None,
     executor=SerialExecutor(),
-    executor_shutdown=True,
+    executor_shutdown: bool = True,
     **kwargs
 ):
     """
@@ -148,26 +148,27 @@ def run(  # pylint: disable=arguments-differ
     * Note:
         This method does not accept a user defined callback.
     """
+    method = get_method(method_or_result)
     timesteps = int(timesteps)
 
-    def submit_work(executor, method, context_args, callback):
+    def submit_work(executor, method_or_result, context_args, callback):
         return executor.submit(
             _run,
-            method,
+            method_or_result,
             context_generator,
             timesteps,
             context_args,
-            callback,
+            *callback,
             post_run_action,
             **kwargs
         )
 
     futures = []
-    for rep, submethod in enumerate(method.submethods):
+    for n in range(len(method.submethods)):
         replica_context_args = deepcopy(context_args)
-        replica_context_args["replica_num"] = rep
-        callback = method.histograms[rep]
-        futures.append(submit_work(executor, submethod, replica_context_args, callback))
+        replica_context_args["replica_num"] = n
+        submethod_or_result, callback = _pack_args(method_or_result, n)
+        futures.append(submit_work(executor, submethod_or_result, replica_context_args, callback))
 
     results = [future.result() for future in futures]
     states = [r.states for r in results]
@@ -178,6 +179,20 @@ def run(  # pylint: disable=arguments-differ
         executor.shutdown()
 
     return Result(method, states, callbacks, snapshots)
+
+
+@dispatch
+def _pack_args(method: UmbrellaIntegration, n: int):
+    return method.submethods[n], (method.histograms[n],)
+
+
+@dispatch
+def _pack_args(  # noqa: F811 # pylint: disable=C0116,E0102
+    result: Result[UmbrellaIntegration], n: int
+):
+    method = result.method
+    submethod, callback = method.submethods[n], method.histograms[n]
+    return ReplicaResult(submethod, result.states[n], callback, result.snapshots[n]), ()
 
 
 @dispatch

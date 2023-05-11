@@ -16,7 +16,7 @@ from pysages.colvars.core import build
 from pysages.grids import Grid, build_grid, get_info
 from pysages.methods.restraints import canonicalize
 from pysages.methods.utils import ReplicasConfiguration, methods_dispatch
-from pysages.utils import dispatch, identity
+from pysages.utils import ToCPU, copy, dispatch, identity
 
 #  Base Classes
 #  ============
@@ -224,8 +224,15 @@ def run(  # noqa: F811 # pylint: disable=C0116,E0102
 
     NOTE: This interface supports only single replica runs.
     """
-    timesteps = int(timesteps)
     method = sampling_context.method
+    method_type = type(method)
+    if has_custom_run(method_type):
+        raise RuntimeError(
+            f"Method {method_type} is not compatible with the SamplingContext interface "
+            "use `pysages.run(method, context_generator, timesteps)` instead."
+        )
+
+    timesteps = int(timesteps)
     sampler = sampling_context.sampler
     callback = None if sampler.callback is None else [sampler.callback]
 
@@ -356,7 +363,10 @@ def run(  # noqa: F811 # pylint: disable=C0116,E0102
     sampling_context = SamplingContext(method, context_generator, callback, context_args)
     context_args["context"] = sampling_context.context
     sampler = sampling_context.sampler
-    sampler.restore(result.snapshots)
+    prev_snapshot = result.snapshots
+    if sampler.state.xi.device().platform == "cpu":
+        prev_snapshot = copy(prev_snapshot, ToCPU())
+    sampler.restore(prev_snapshot)
     sampler.state = result.states
 
     with sampling_context:
@@ -395,6 +405,24 @@ def check_dims(cvs, grid: Grid):
 @dispatch
 def check_dims(cvs, grid: type(None)):  # noqa: F811 # pylint: disable=C0116,E0102
     pass
+
+
+@dispatch
+def get_method(method: SamplingMethod):
+    return method
+
+
+@dispatch
+def get_method(result: Result):  # noqa: F811 # pylint: disable=C0116,E0102
+    return result.method
+
+
+def has_custom_run(method: type):
+    """Determine if `method` has a specialized `run` implementation."""
+    custom_run_methods = set()
+    for sig in dispatch._functions["run"].methods.keys():
+        custom_run_methods.update(sig.types[0].get_types())
+    return method in custom_run_methods
 
 
 def generalize(concrete_update, helpers, jit_compile=True):
