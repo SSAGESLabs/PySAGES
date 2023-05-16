@@ -323,7 +323,6 @@ def initial_flow(
 
         has_reached_A = False
         while not has_reached_A:
-            # TODO: make the number of timesteps below a parameter of the method.
             run(sampling_time)
             time_count += timestep * sampling_time
             xi = sampler.state.xi.block_until_ready()
@@ -336,7 +335,7 @@ def initial_flow(
                         snap = sampler.take_snapshot()
                         window0_snaps.append(snap)
                 if np.all(xi > grid[1]):
-                    raise ValueError("Bad sampling time for initial flow, two windows crossed")
+                    print("WARNING: Two windows crossed for the same sampling time")
                 break
 
     print(f"Finish Initial Flow with {success} succeses over {time_count} time\n")
