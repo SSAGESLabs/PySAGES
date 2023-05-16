@@ -6,7 +6,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.14.2
+      jupytext_version: 1.14.5
   kernelspec:
     display_name: Python 3
     language: python
@@ -55,13 +55,6 @@ The next step is to install PySAGES.
 First, we install the jaxlib version that matches the CUDA installation of this Colab setup. See the JAX documentation [here](https://github.com/google/jax) for more details.
 
 <!-- #endregion -->
-
-```bash id="R_gW2ERpi9tw"
-
-pip install -q --upgrade pip
-# Installs the wheel compatible with CUDA 11 and cuDNN 8.2 or newer.
-pip install -q --upgrade "jax[cuda]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html &> /dev/null
-```
 
 <!-- #region id="mx0IRythaTyG" -->
 

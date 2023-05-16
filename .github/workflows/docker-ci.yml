@@ -22,17 +22,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       - name: Build and export
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v3
         with:
           context: .
           tags: pysages:latest
           outputs: type=docker,dest=/tmp/pysages.tar
       - name: Upload artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: pysages
           path: /tmp/pysages.tar
@@ -43,9 +43,9 @@ jobs:
     needs: build
     steps:
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       - name: Download artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: pysages
           path: /tmp
@@ -62,9 +62,9 @@ jobs:
     needs: build
     steps:
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       - name: Download artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: pysages
           path: /tmp
@@ -78,9 +78,9 @@ jobs:
     needs: build
     steps:
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       - name: Download artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: pysages
           path: /tmp
@@ -96,9 +96,9 @@ jobs:
     needs: build
     steps:
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       - name: Download artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: pysages
           path: /tmp
@@ -112,9 +112,9 @@ jobs:
     needs: build
     steps:
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       - name: Download artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: pysages
           path: /tmp
@@ -128,9 +128,9 @@ jobs:
     needs: build
     steps:
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       - name: Download artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: pysages
           path: /tmp
@@ -148,9 +148,9 @@ jobs:
     needs: build
     steps:
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       - name: Download artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: pysages
           path: /tmp
@@ -164,9 +164,9 @@ jobs:
     needs: build
     steps:
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       - name: Download artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: pysages
           path: /tmp
@@ -184,9 +184,9 @@ jobs:
     needs: build
     steps:
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       - name: Download artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: pysages
           path: /tmp
@@ -202,9 +202,9 @@ jobs:
     needs: build
     steps:
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       - name: Download artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: pysages
           path: /tmp
@@ -218,9 +218,9 @@ jobs:
     needs: build
     steps:
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       - name: Download artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: pysages
           path: /tmp
@@ -236,9 +236,9 @@ jobs:
     needs: build
     steps:
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       - name: Download artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: pysages
           path: /tmp
@@ -254,9 +254,9 @@ jobs:
     needs: build
     steps:
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       - name: Download artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: pysages
           path: /tmp
@@ -265,7 +265,7 @@ jobs:
           docker load --input /tmp/pysages.tar
           docker run -v/tmp:/tmp -t pysages bash -c "cd PySAGES/examples/hoomd-blue/harmonic_bias/ && ./run.sh && mv hist.pdf /tmp/"
       - name: Upload artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: harmonic-hist.pdf
           path: /tmp/hist.pdf
@@ -276,9 +276,9 @@ jobs:
     needs: build
     steps:
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       - name: Download artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: pysages
           path: /tmp
@@ -292,9 +292,9 @@ jobs:
     needs: build
     steps:
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       - name: Download artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: pysages
           path: /tmp
@@ -303,7 +303,7 @@ jobs:
           docker load --input /tmp/pysages.tar
           docker run -v /tmp:/tmp -t pysages bash -c "cd PySAGES/examples/hoomd-blue/umbrella_integration && python3 ./gen_gsd.py && python3 integration.py --replicas=5 --time-steps=1000 && mkdir /tmp/plots && mv *.pdf /tmp/plots/"
       - name: Upload artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: umbrella-integration-plots
           path: /tmp/plots
@@ -314,9 +314,9 @@ jobs:
     needs: build
     steps:
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       - name: Download artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: pysages
           path: /tmp
@@ -325,7 +325,7 @@ jobs:
           docker load --input /tmp/pysages.tar
           docker run -v /tmp:/tmp -t pysages bash -c "cd PySAGES/examples/hoomd-blue/string && python3 ./gen_gsd.py && python3 spline_string.py --replicas=5 --time-steps=1000 --log-delay=0 --string-steps=2 && mkdir /tmp/plots && mv *.pdf /tmp/plots/"
       - name: Upload artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: spline-string-plots
           path: /tmp/plots
@@ -336,9 +336,9 @@ jobs:
     needs: build
     steps:
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       - name: Download artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: pysages
           path: /tmp
@@ -353,7 +353,7 @@ jobs:
           docker load --input /tmp/pysages.tar
           docker run -v /tmp:/tmp -t pysages bash -c "${SCRIPT}"
       - name: Upload artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: umbrella-integration-mpi-plots
           path: /tmp/plots

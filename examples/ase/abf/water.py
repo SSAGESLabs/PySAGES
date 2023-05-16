@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 
-
-import ase.units as units
-
 # %%
+import ase.units as units
 import numpy as np
 from ase import Atoms
 from ase.calculators.tip3p import TIP3P, angleHOH, rOH

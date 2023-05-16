@@ -7,7 +7,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.14.2
+      jupytext_version: 1.14.5
   kernelspec:
     display_name: Python 3
     name: python3
@@ -64,7 +64,7 @@ First, we install the jaxlib version that matches the CUDA installation of this 
 ```bash id="RUX1RAT3NF9s"
 
 pip install -q --upgrade pip &> /dev/null
-# Installs the wheel compatible with CUDA 11 and cuDNN 8.2 or newer.
+# Installs the wheel compatible with CUDA.
 pip install -q --upgrade "jax[cuda]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html &> /dev/null
 ```
 
@@ -190,7 +190,7 @@ def generate_context(**kwargs):
     hoomd.context.initialize("")
     context = hoomd.context.SimulationContext()
     with context:
-        print(f"Operating replica {kwargs.get("replica_num")}")
+        print(f"Operating replica {kwargs.get('replica_num')}")
         system = hoomd.init.read_gsd("start.gsd")
 
         hoomd.md.integrate.nve(group=hoomd.group.all())

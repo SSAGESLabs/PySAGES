@@ -12,7 +12,7 @@ actions:
     - trunk-fmt-pre-commit
     - trunk-check-pre-push
 cli:
-  version: 1.1.0
+  version: 1.3.2
 plugins:
   sources:
     - id: trunk
@@ -20,17 +20,17 @@ plugins:
       uri: https://github.com/trunk-io/plugins
 lint:
   enabled:
-    - svgo@3.0.1
-    - actionlint@1.6.22
-    - black@22.10.0
-    - flake8@5.0.4
+    - svgo@3.0.2
+    - actionlint@1.6.23
+    - black@22.12.0
+    - flake8@6.0.0
     - git-diff-check@SYSTEM
-    - gitleaks@8.15.0
+    - gitleaks@8.15.3
     - hadolint@2.12.0
-    - isort@5.10.1
-    - markdownlint@0.32.2
-    - prettier@2.7.1
-    - shellcheck@0.8.0
+    - isort@5.11.4
+    - markdownlint@0.33.0
+    - prettier@2.8.3
+    - shellcheck@0.9.0
     - shfmt@3.5.0
     - taplo@0.7.0
   ignore:
@@ -66,9 +66,9 @@ lint:
 merge:
   required_statuses:
     - trunk
-    - test (ubuntu-20.04, 3.7)
+    - test (ubuntu-20.04, 3.8)
     - test (ubuntu-20.04, 3.9)
-    - test (macos-latest, 3.7)
+    - test (macos-latest, 3.8)
     - test (macos-latest, 3.9)
     - doc-test
     - forward-flux-sampling

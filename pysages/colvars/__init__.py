@@ -1,5 +1,4 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 # pylint: disable=unused-import,relative-beyond-top-level
@@ -21,3 +20,12 @@ from .shape import (
     ShapeAnisotropy,
 )
 from .utils import get_periods, wrap
+
+# Conditionally export GeM if both `jax_md` and `jaxopt` are available
+try:
+    import jax_md
+    import jaxopt
+
+    from .patterns import GeM
+except ImportError:
+    pass

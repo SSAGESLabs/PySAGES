@@ -1,5 +1,4 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 """
@@ -17,12 +16,11 @@ We aim to implement this:
 from typing import Callable, List, Optional, Union
 
 import numpy as np
-import plum
 from numpy.linalg import norm
 from scipy.interpolate import interp1d
 
 import pysages
-from pysages.methods.core import Result, SamplingMethod
+from pysages.methods.core import Result, SamplingMethod, get_method
 from pysages.methods.umbrella_integration import UmbrellaIntegration
 from pysages.methods.utils import SerialExecutor, listify, numpyfy_vals
 from pysages.utils import dispatch
@@ -58,7 +56,7 @@ class SplineString(SamplingMethod):
     along the given path via umbrella integration.
     """
 
-    @plum.dispatch
+    @dispatch
     def __init__(
         self,
         cvs,
@@ -120,7 +118,7 @@ class SplineString(SamplingMethod):
         self.freeze_idx = freeze_idx
         self.path_history = []
 
-    @plum.dispatch
+    @dispatch
     def __init__(  # noqa: F811 # pylint: disable=C0116,E0102
         self,
         umbrella_sampler: UmbrellaIntegration,
@@ -167,16 +165,16 @@ class SplineString(SamplingMethod):
         pass
 
 
-@dispatch
+@dispatch(precedence=1)
 def run(  # pylint: disable=arguments-differ
-    method: SplineString,
+    method_or_result: Union[SplineString, Result[SplineString]],
     context_generator: Callable,
     timesteps: Union[int, float],
     stringsteps: Union[int, float],
-    context_args: Optional[dict] = None,
+    context_args: dict = {},
     post_run_action: Optional[Callable] = None,
     executor=SerialExecutor(),
-    executor_shutdown=True,
+    executor_shutdown: bool = True,
     **kwargs
 ):
     """
@@ -199,7 +197,7 @@ def run(  # pylint: disable=arguments-differ
        Number of steps the string positions are iterated.
        It is the user responsibility to ensure final convergence.
 
-    context_args: Optional[dict] = None
+    context_args: dict = {}
         Arguments to pass down to `context_generator` to setup the simulation context.
 
     kwargs:
@@ -214,9 +212,9 @@ def run(  # pylint: disable=arguments-differ
     * Note:
         This method does not accept a user defined callback.
     """
+    method = get_method(method_or_result)
     timesteps = int(timesteps)
     stringsteps = int(stringsteps)
-    context_args = {} if context_args is None else context_args
     cv_shape = np.asarray(method.cvs).shape
 
     for step in range(stringsteps):
@@ -270,25 +268,28 @@ def run(  # pylint: disable=arguments-differ
             method.umbrella_sampler.submethods[i].center = new_centers[-1]
 
         method.path_history.append(new_centers)
-        string_result = Result(method, umbrella_result.states, umbrella_result.callbacks)
 
     if executor_shutdown:
         executor.shutdown()
 
-    return string_result
+    return Result(
+        method, umbrella_result.states, umbrella_result.callbacks, umbrella_result.snapshots
+    )
 
 
 @dispatch
 def analyze(result: Result[SplineString]):
-
-    umbrella_result = Result(result.method.umbrella_sampler, result.states, result.callbacks)
+    umbrella_result = Result(
+        result.method.umbrella_sampler, result.states, result.callbacks, result.snapshots
+    )
+    path_history = result.method.path_history
     ana = pysages.analyze(umbrella_result)
-    ana["path_history"] = result.method.path_history
+    ana["path_history"] = path_history
     path = []
     point_convergence = []
-    for i in range(len(result.method.path_history[-1])):
-        a = result.method.path_history[-2][i]
-        b = result.method.path_history[-1][i]
+    for i in range(len(path_history[-1])):
+        a = path_history[-2][i]
+        b = path_history[-1][i]
         point_convergence.append(result.method.metric(a, b))
         path.append(a)
     ana["point_convergence"] = point_convergence

@@ -1,5 +1,4 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 import importlib
@@ -24,7 +23,7 @@ from jax import jit
 from jax import numpy as np
 from jax.dlpack import from_dlpack as asarray
 
-from pysages.backends.core import ContextWrapper
+from pysages.backends.core import SamplingContext
 from pysages.backends.snapshot import (
     Box,
     HelperMethods,
@@ -33,8 +32,7 @@ from pysages.backends.snapshot import (
     build_data_querier,
 )
 from pysages.backends.snapshot import restore as _restore
-from pysages.methods import SamplingMethod
-from pysages.utils import copy
+from pysages.utils import check_device_array, copy
 
 # TODO: Figure out a way to automatically tie the lifetime of Sampler
 # objects to the contexts they bind to
@@ -102,9 +100,9 @@ class Sampler(SamplerBase):
 
         super().__init__(sysview, update, default_location(), AccessMode.Read)
         self.state = initialize()
-        self.callback = callback
         self.bias = bias
         self.box = initial_snapshot.box
+        self.callback = callback
         self.dt = initial_snapshot.dt
         self._restore = restore
 
@@ -148,14 +146,16 @@ else:
         return AccessLocation.OnHost
 
 
-def take_snapshot(wrapped_context, location=default_location()):
-    context = wrapped_context.context
-    sysview = wrapped_context.view
+def take_snapshot(sampling_context, location=default_location()):
+    context = sampling_context.context
+    sysview = sampling_context.view
     positions = copy(asarray(positions_types(sysview, location, AccessMode.Read)))
     vel_mass = copy(asarray(velocities_masses(sysview, location, AccessMode.Read)))
     forces = copy(asarray(net_forces(sysview, location, AccessMode.ReadWrite)))
     ids = copy(asarray(rtags(sysview, location, AccessMode.Read)))
     imgs = copy(asarray(images(sysview, location, AccessMode.Read)))
+
+    check_device_array(positions)  # currently, we only support `DeviceArray`s
 
     box = sysview.particle_data.getGlobalBox()
     L = box.getL()
@@ -240,17 +240,16 @@ def build_helpers(context, sampling_method):
     return helpers, restore, bias
 
 
-def bind(
-    wrapped_context: ContextWrapper, sampling_method: SamplingMethod, callback: Callable, **kwargs
-):
-    context = wrapped_context.context
+def bind(sampling_context: SamplingContext, callback: Callable, **kwargs):
+    context = sampling_context.context
+    sampling_method = sampling_context.method
     sysview = SystemView(get_system(context))
-    wrapped_context.view = sysview
-    wrapped_context.run = get_run_method(context)
+    sampling_context.view = sysview
+    sampling_context.run = get_run_method(context)
     helpers, restore, bias = build_helpers(context, sampling_method)
 
     with sysview:
-        snapshot = take_snapshot(wrapped_context)
+        snapshot = take_snapshot(sampling_context)
 
     method_bundle = sampling_method.build(snapshot, helpers)
     sync_and_bias = partial(bias, sync_backend=sysview.synchronize)

@@ -7,7 +7,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.14.2
+      jupytext_version: 1.14.5
   kernelspec:
     display_name: Python 3
     name: python3
@@ -39,12 +39,6 @@ mkdir -p $PYSAGES_ENV .
 unzip -qquo pysages-env.zip -d $PYSAGES_ENV
 ```
 
-```bash id="LlVSU_-FoD4w"
-apt-cache policy libcudnn8
-apt install --allow-change-held-packages libcudnn8=8.4.1.50-1+cuda11.6
-update-alternatives --auto libcudnn &> /dev/null
-```
-
 ```python id="EMAWp8VloIk4"
 import os
 import sys
@@ -68,7 +62,7 @@ First, we install the jaxlib version that matches the CUDA installation of this 
 ```bash id="vK0RZtbroQWe"
 
 pip install -q --upgrade pip
-# Installs the wheel compatible with CUDA 11 and cuDNN 8.2 or newer.
+# Installs the wheel compatible with CUDA.
 pip install -q --upgrade "jax[cuda]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html &> /dev/null
 ```
 

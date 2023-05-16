@@ -1,19 +1,21 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 import ctypes
 
 import numba
 import numpy
-from jaxlib.xla_extension import DeviceArray
 from numpy.ctypeslib import as_ctypes_type
 from plum import dispatch
 
+from pysages.utils import JaxArray
+
 
 @dispatch
-def view(array: DeviceArray):
+def view(array: JaxArray):
     """Return a writable view of a JAX DeviceArray."""
+    # NOTE: We need a more general strategy to handle
+    # `SharedDeviceArray`s and `GlobalDeviceArray`s.
     ptype = ctypes.POINTER(as_ctypes_type(array.dtype))
     addr = array.device_buffer.unsafe_buffer_pointer()
     ptr = ctypes.cast(ctypes.c_void_p(addr), ptype)

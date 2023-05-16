@@ -1,5 +1,4 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 from dataclasses import dataclass
@@ -27,7 +26,7 @@ class Model:
 
 
 @dataclass
-class AbstractMLP(Model):
+class MLPBase(Model):
     def __init__(self, indim, layers, seed):
         # Build initialization and application functions for the network
         init, apply = stax.serial(*layers)
@@ -39,7 +38,7 @@ class AbstractMLP(Model):
 
 
 @dataclass
-class MLP(AbstractMLP):
+class MLP(MLPBase):
     """
     Multilayer-perceptron network.
     """
@@ -79,7 +78,7 @@ class MLP(AbstractMLP):
 
 
 @dataclass
-class Siren(AbstractMLP):
+class Siren(MLPBase):
     """
     Siren network as decribed in [1]
 

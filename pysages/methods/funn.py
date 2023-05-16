@@ -1,5 +1,4 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 """
@@ -26,15 +25,16 @@ from jax.lax import cond
 from pysages.approxfun import compute_mesh
 from pysages.approxfun import scale as _scale
 from pysages.grids import build_indexer
+from pysages.methods.analysis import GradientLearning, _analyze
 from pysages.methods.core import NNSamplingMethod, Result, generalize
 from pysages.methods.restraints import apply_restraints
 from pysages.methods.utils import numpyfy_vals
 from pysages.ml.models import MLP
-from pysages.ml.objectives import GradientsSSE, L2Regularization
+from pysages.ml.objectives import L2Regularization
 from pysages.ml.optimizers import LevenbergMarquardt
 from pysages.ml.training import NNData, build_fitting_function, convolve, normalize
 from pysages.ml.utils import blackman_kernel, pack, unpack
-from pysages.utils import Bool, Int, JaxArray, dispatch, solve_pos_def
+from pysages.utils import Bool, Int, JaxArray, dispatch, only_or_identity, solve_pos_def
 
 
 class FUNNState(NamedTuple):
@@ -289,13 +289,20 @@ def build_force_estimator(method: FUNN):
 
 
 @dispatch
-def analyze(result: Result[FUNN]):
+def analyze(result: Result[FUNN], **kwargs):
     """
     Parameters
     ----------
 
     result: Result[FUNN]
         Result bundle containing the method, final states, and callbacks.
+
+    topology: Optional[Tuple[int]] = result.method.topology
+        Defines the architecture of the neural network
+        (number of nodes in each hidden layer).
+
+    Returns
+    -------
 
     dict:
         A dictionary with the following keys:
@@ -316,76 +323,14 @@ def analyze(result: Result[FUNN]):
             Coefficients of the basis functions expansion approximating the free energy.
 
         fes_fn: Callable[[JaxArray], JaxArray]
-            Function that allows to interpolate the free energy in the CV domain defined
-            by the grid.
+            Function that allows to interpolate the free energy in the
+            CV domain defined by the grid.
 
     NOTE:
-    For multiple-replicas runs we return a list (one item per-replica) for each attribute.
+    For multiple-replicas runs we return a list (one item per-replica)
+    for each attribute.
     """
-    method = result.method
-    states = result.states
-
-    grid = method.grid
-    mesh = (compute_mesh(grid) + 1) * grid.size / 2 + grid.lower
-
-    model = MLP(grid.shape.size, 1, method.topology, transform=partial(_scale, grid=grid))
-    optimizer = LevenbergMarquardt(loss=GradientsSSE(), max_iters=2500, reg=L2Regularization(1e-3))
-    fit = build_fitting_function(model, optimizer)
-
-    @vmap
-    def smooth(data):
-        boundary = "wrap" if grid.is_periodic else "edge"
-        kernel = np.float32(blackman_kernel(grid.shape.size, 7))
-        return convolve(data.T, kernel, boundary=boundary).T
-
-    def train(nn, data):
-        axes = tuple(range(data.ndim - 1))
-        std = data.std(axis=axes).max()
-        reference = np.float64(smooth(np.float32(data / std)))
-        params = fit(nn.params, mesh, reference).params
-        return NNData(params, nn.mean, std / reference.std(axis=axes).max())
-
-    def build_fes_fn(state):
-        hist = np.expand_dims(state.hist, state.hist.ndim)
-        F = state.Fsum / np.maximum(hist, 1)
-
-        ps, layout = unpack(model.parameters)
-        nn = train(NNData(ps, 0.0, 1.0), F)
-
-        def fes_fn(x):
-            params = pack(nn.params, layout)
-            A = nn.std * model.apply(params, x) + nn.mean
-            return A.max() - A
-
-        return jit(fes_fn)
-
-    def average_forces(hist, Fsum):
-        shape = (*Fsum.shape[:-1], 1)
-        return Fsum / np.maximum(hist.reshape(shape), 1)
-
-    def first_or_all(seq):
-        return seq[0] if len(seq) == 1 else seq
-
-    hists = []
-    mean_forces = []
-    free_energies = []
-    nns = []
-    fes_fns = []
-
-    for s in states:
-        fes_fn = build_fes_fn(s)
-        hists.append(s.hist)
-        mean_forces.append(average_forces(s.hist, s.Fsum))
-        free_energies.append(fes_fn(mesh))
-        nns.append(s.nn)
-        fes_fns.append(fes_fn)
-
-    ana_result = dict(
-        histogram=first_or_all(hists),
-        mean_force=first_or_all(mean_forces),
-        free_energy=first_or_all(free_energies),
-        mesh=mesh,
-        nn=first_or_all(nns),
-        fes_fn=first_or_all(fes_fns),
-    )
-    return numpyfy_vals(ana_result)
+    topology = kwargs.get("topology", result.method.topology)
+    _result = _analyze(result, GradientLearning(), topology)
+    _result["nn"] = only_or_identity([state.nn for state in result.states])
+    return numpyfy_vals(_result)
