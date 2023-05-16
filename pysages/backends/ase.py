@@ -1,14 +1,14 @@
 # SPDX-License-Identifier: MIT
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
-from inspect import signature
+from inspect import Parameter, signature
 from typing import Callable, NamedTuple
 
 from ase.calculators.calculator import Calculator
 from jax import jit
 from jax import numpy as np
 
-from pysages.backends.core import ContextWrapper
+from pysages.backends.core import SamplingContext
 from pysages.backends.snapshot import (
     Box,
     HelperMethods,
@@ -17,7 +17,6 @@ from pysages.backends.snapshot import (
     build_data_querier,
 )
 from pysages.backends.utils import view
-from pysages.methods import SamplingMethod
 from pysages.utils import ToCPU, copy
 
 
@@ -48,8 +47,8 @@ class Sampler(Calculator):
         self._calculator = atoms.calc
         self._context = context
         self._biased_forces = initial_snapshot.forces
-        self._default_properties = list(sig["properties"].default)
-        self._default_changes = list(sig["system_changes"].default)
+        self._default_properties = list(_calculator_defaults(sig, "properties"))
+        self._default_changes = list(_calculator_defaults(sig, "system_changes"))
         for p in ("energy", "forces"):
             if p not in self._default_properties:
                 self._default_properties.append(p)
@@ -90,7 +89,7 @@ class Sampler(Calculator):
         atoms = self.atoms
         momenta, masses = prev_snapshot.vel_mass
         atoms.set_positions(prev_snapshot.positions)
-        atoms.set_masses(masses)  # masses need to be set before momenta
+        atoms.set_masses(masses.flatten())  # masses need to be set before momenta
         atoms.set_momenta(momenta, apply_constraint=False)
         atoms.set_cell(list(prev_snapshot.box.H))
         self.snapshot = prev_snapshot
@@ -118,6 +117,12 @@ def take_snapshot(simulation, forces=None):
 
     # ASE doesn't use images explicitely
     return Snapshot(positions, vel_mass, forces, ids, None, Box(H, origin), dt)
+
+
+def _calculator_defaults(sig, arg, default=[]):
+    fallback = Parameter("_", Parameter.KEYWORD_ONLY, default=default)
+    val = sig.get(arg, fallback).default
+    return val if type(val) is list else default
 
 
 def build_snapshot_methods(context, sampling_method):
@@ -153,18 +158,17 @@ class View(NamedTuple):
     synchronize: Callable
 
 
-def bind(
-    wrapped_context: ContextWrapper, sampling_method: SamplingMethod, callback: Callable, **kwargs
-):
+def bind(sampling_context: SamplingContext, callback: Callable, **kwargs):
     """
     Entry point for the backend code, it gets called when the simulation
     context is wrapped within `pysages.run`.
     """
-    context = wrapped_context.context
+    context = sampling_context.context
+    sampling_method = sampling_context.method
     snapshot = take_snapshot(context)
-    helpers = build_helpers(wrapped_context.view, sampling_method)
+    helpers = build_helpers(sampling_context, sampling_method)
     method_bundle = sampling_method.build(snapshot, helpers)
     sampler = Sampler(context, method_bundle, callback)
-    wrapped_context.view = View((lambda: None))
-    wrapped_context.run = context.run
+    sampling_context.view = View((lambda: None))
+    sampling_context.run = context.run
     return sampler

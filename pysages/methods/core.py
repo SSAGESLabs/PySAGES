@@ -11,12 +11,12 @@ from typing import Callable, Optional, Union
 from jax import jit
 from plum import parametric
 
-from pysages.backends import ContextWrapper
+from pysages.backends import SamplingContext
 from pysages.colvars.core import build
 from pysages.grids import Grid, build_grid, get_info
 from pysages.methods.restraints import canonicalize
 from pysages.methods.utils import ReplicasConfiguration, methods_dispatch
-from pysages.utils import dispatch, identity
+from pysages.utils import ToCPU, copy, dispatch, identity
 
 #  Base Classes
 #  ============
@@ -28,10 +28,11 @@ class Result:
     def __infer_type_parameter__(cls, method, *_):
         return type(method)
 
-    def __init__(self, method, states, callbacks=None):
+    def __init__(self, method, states, callbacks, snapshots):
         self.method = method
         self.states = states
         self.callbacks = callbacks
+        self.snapshots = snapshots
 
 
 class ReplicaResult(Result):
@@ -133,7 +134,7 @@ def run(
     context_generator: Callable,
     timesteps: Union[int, float],
     callback: Optional[Callable] = None,
-    context_args: Optional[dict] = None,
+    context_args: dict = {},
     post_run_action: Optional[Callable] = None,
     config: ReplicasConfiguration = ReplicasConfiguration(),
     **kwargs,
@@ -159,7 +160,7 @@ def run(
         Allows for user defined actions into the simulation workflow of the method.
         `kwargs` gets passed to the backend `run` function.
 
-    context_args: Optional[dict] = None
+    context_args: dict = {}
         Arguments to pass down to `context_generator` to setup the simulation context.
 
     post_run_action: Optional[Callable] = None
@@ -176,7 +177,6 @@ def run(
         which means only one simulation is run.
     """
     timesteps = int(timesteps)
-    context_args = {} if context_args is None else context_args
 
     def submit_work(executor, method, callback):
         return executor.submit(
@@ -194,12 +194,94 @@ def run(
         futures = [submit_work(ex, method, callback) for _ in range(config.copies)]
     results = [future.result() for future in futures]
     states = [r.states for r in results]
+    snapshots = [r.snapshots for r in results]
     callbacks = None if callback is None else [r.callbacks for r in results]
 
-    return Result(method, states, callbacks)
+    return Result(method, states, callbacks, snapshots)
+
+
+@dispatch
+def run(  # noqa: F811 # pylint: disable=C0116,E0102
+    sampling_context: SamplingContext,
+    timesteps: Union[int, float],
+    **kwargs,
+):
+    """
+    Alternative interface for running a simulation from a `SamplingContext`.
+
+    Parameters
+    ----------
+
+    sampling_context: SamplingContext
+        Instance of the simulation context of one of the supported backends
+        wrapped as a `SamplingContext`.
+
+    timesteps: int
+        Number of time steps the simulation is running.
+
+    kwargs: dict
+        These gets passed to the backend `run` function.
+
+    NOTE: This interface supports only single replica runs.
+    """
+    method = sampling_context.method
+    method_type = type(method)
+    if has_custom_run(method_type):
+        raise RuntimeError(
+            f"Method {method_type} is not compatible with the SamplingContext interface "
+            "use `pysages.run(method, context_generator, timesteps)` instead."
+        )
+
+    timesteps = int(timesteps)
+    sampler = sampling_context.sampler
+    callback = None if sampler.callback is None else [sampler.callback]
+
+    with sampling_context:
+        sampling_context.run(timesteps, **kwargs)
+
+    return Result(method, [sampler.state], callback, [sampler.take_snapshot()])
+
+
+@dispatch
+def run(  # noqa: F811 # pylint: disable=C0116,E0102
+    result: Result,
+    context_generator: Callable,
+    timesteps: Union[int, float],
+    context_args: dict = {},
+    post_run_action: Optional[Callable] = None,
+    config: ReplicasConfiguration = ReplicasConfiguration(),
+    **kwargs,
+):
+    method = result.method
+    timesteps = int(timesteps)
+    callbacks_ = result.callbacks
+    callbacks = [None] * len(result.states) if callbacks_ is None else callbacks_
+
+    def submit_work(executor, result):
+        return executor.submit(
+            _run,
+            result,
+            context_generator,
+            timesteps,
+            context_args,
+            post_run_action,
+            **kwargs,
+        )
+
+    with config.executor as ex:
+        result_args = zip(result.states, callbacks, result.snapshots)
+        futures = [submit_work(ex, ReplicaResult(method, *args)) for args in result_args]
+
+    results = [future.result() for future in futures]
+    states = [r.states for r in results]
+    snapshots = [r.snapshots for r in results]
+    callbacks = None if callbacks_ is None else [r.callbacks for r in results]
+
+    return Result(method, states, callbacks, snapshots)
 
 
 def _run(method, *args, **kwargs):
+    # Trampoline method to enable multiple replicas to be run with mpi4py.
     run = methods_dispatch._functions["run"]
     return run(method, *args, **kwargs)
 
@@ -211,7 +293,7 @@ def run(  # noqa: F811 # pylint: disable=C0116,E0102
     method: SamplingMethod,
     context_generator: Callable,
     timesteps: Union[int, float],
-    context_args: Optional[dict] = None,
+    context_args: dict = {},
     callback: Optional[Callable] = None,
     post_run_action: Optional[Callable] = None,
     **kwargs,
@@ -233,7 +315,7 @@ def run(  # noqa: F811 # pylint: disable=C0116,E0102
     timesteps: int
         Number of time steps the simulation is running.
 
-    context_args: Optional[dict] = None
+    context_args: dict = {}
         Arguments to pass down to `context_generator` to setup the simulation context.
 
     callback: Optional[Callable] = None
@@ -248,19 +330,51 @@ def run(  # noqa: F811 # pylint: disable=C0116,E0102
 
     *Note*: All arguments must be pickable.
     """
-
-    context_args = {} if context_args is None else context_args
     timesteps = int(timesteps)
 
-    context = context_generator(**context_args)
-    context_args["context"] = context
-    wrapped_context = ContextWrapper(context, method, callback)
-    with wrapped_context:
-        wrapped_context.run(timesteps, **kwargs)
+    sampling_context = SamplingContext(method, context_generator, callback, context_args)
+    context_args["context"] = sampling_context.context
+    sampler = sampling_context.sampler
+
+    with sampling_context:
+        sampling_context.run(timesteps, **kwargs)
         if post_run_action:
             post_run_action(**context_args)
 
-    return ReplicaResult(method, wrapped_context.sampler.state, callback)
+    return ReplicaResult(method, sampler.state, callback, sampler.take_snapshot())
+
+
+@methods_dispatch
+def run(  # noqa: F811 # pylint: disable=C0116,E0102
+    result: ReplicaResult,
+    context_generator: Callable,
+    timesteps: Union[int, float],
+    context_args: dict = {},
+    post_run_action: Optional[Callable] = None,
+    **kwargs,
+):
+    """
+    Base implementation for running a single simulation from a previously stored `Result`.
+    """
+    timesteps = int(timesteps)
+    method = result.method
+    callback = result.callbacks
+
+    sampling_context = SamplingContext(method, context_generator, callback, context_args)
+    context_args["context"] = sampling_context.context
+    sampler = sampling_context.sampler
+    prev_snapshot = result.snapshots
+    if sampler.state.xi.device().platform == "cpu":
+        prev_snapshot = copy(prev_snapshot, ToCPU())
+    sampler.restore(prev_snapshot)
+    sampler.state = result.states
+
+    with sampling_context:
+        sampling_context.run(timesteps, **kwargs)
+        if post_run_action:
+            post_run_action(**context_args)
+
+    return ReplicaResult(method, sampler.state, callback, sampler.take_snapshot())
 
 
 @dispatch.abstract
@@ -291,6 +405,24 @@ def check_dims(cvs, grid: Grid):
 @dispatch
 def check_dims(cvs, grid: type(None)):  # noqa: F811 # pylint: disable=C0116,E0102
     pass
+
+
+@dispatch
+def get_method(method: SamplingMethod):
+    return method
+
+
+@dispatch
+def get_method(result: Result):  # noqa: F811 # pylint: disable=C0116,E0102
+    return result.method
+
+
+def has_custom_run(method: type):
+    """Determine if `method` has a specialized `run` implementation."""
+    custom_run_methods = set()
+    for sig in dispatch._functions["run"].methods.keys():
+        custom_run_methods.update(sig.types[0].get_types())
+    return method in custom_run_methods
 
 
 def generalize(concrete_update, helpers, jit_compile=True):
