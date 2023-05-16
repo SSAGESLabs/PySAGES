@@ -66,6 +66,8 @@ def main():
         ("cv-distance", "d", float, 50, "Distance from the intial to the final dihedral."),
         ("window-number", "Nw", int, 4, "Number of windows."),
         ("sampling-steps", "S", int, 20000, "Period for sampling configurations in the basin."),
+        ("flow-steps", "F", int, 20, "Period for sampling configurations in the initial flow."),
+        ("window-steps", "W", int, 20, "Period for sampling configurations in the windows."),
         ("replicas", "R", int, 20, "Number of stored configurations for each window."),
     ]
     parser = argparse.ArgumentParser(description="Run forward flux sampling.")
@@ -89,6 +91,8 @@ def main():
         win_f,
         args.window_number,
         args.sampling_steps,
+        args.flow_steps,
+        args.window_steps,
         args.replicas,
     )
 

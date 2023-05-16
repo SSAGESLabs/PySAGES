@@ -72,6 +72,8 @@ def run(
     win_l: float,
     Nw: int,
     sampling_steps_basin: int,
+    sampling_steps_flow: int,
+    sampling_steps_window: int,
     Nmax_replicas: int,
     verbose: bool = False,
     callback: Optional[Callable] = None,
@@ -82,6 +84,8 @@ def run(
     Direct version of the Forward Flux Sampling algorithm.
     [Phys. Rev. Lett. 94, 018104 (2005)](https://doi.org/10.1103/PhysRevLett.94.018104)
     [J. Chem. Phys. 124, 024102 (2006)](https://doi.org/10.1063/1.2140273)
+    Coarse Graining FFS
+    (https://doi.org/10.1073/pnas.1509267112)
 
     Arguments
     ---------
@@ -110,6 +114,12 @@ def run(
 
     sampling_steps_basin: int
         Period for sampling configurations in the basin
+
+    sampling_steps_flow: int
+        Period for sampling configurations for intial flow
+
+    sampling_steps_window: int
+        Period for sampling configurations in each window
 
     Nmax_replicas: int
         Number of stored configuration for each window
@@ -161,7 +171,15 @@ def run(
 
         # Calculate initial flow
         phi_a, snaps_0 = initial_flow(
-            Nmax_replicas, dt, windows, ini_snapshots, run, sampler, helpers, cv
+            Nmax_replicas,
+            dt,
+            windows,
+            ini_snapshots,
+            run,
+            sampler,
+            helpers,
+            cv,
+            sampling_steps_flow,
         )
 
         write_to_file(phi_a)
@@ -172,7 +190,9 @@ def run(
         for k in range(1, len(windows)):
             if k == 1:
                 old_snaps = snaps_0
-            prob, w1_snapshots = running_window(windows, k, old_snaps, run, sampler, helpers, cv)
+            prob, w1_snapshots = running_window(
+                windows, k, old_snaps, run, sampler, helpers, cv, sampling_steps_window
+            )
             write_to_file(prob)
             hist = hist.at[k].set(prob)
             old_snaps = increase_snaps(w1_snapshots, snaps_0)
@@ -282,7 +302,9 @@ def basin_sampling(
     return basin_snapshots
 
 
-def initial_flow(Num_window0, timestep, grid, initial_snapshots, run, sampler, helpers, cv):
+def initial_flow(
+    Num_window0, timestep, grid, initial_snapshots, run, sampler, helpers, cv, sampling_time
+):
     """
     Selects snapshots from list generated with `basin_sampling`.
     """
@@ -301,19 +323,19 @@ def initial_flow(Num_window0, timestep, grid, initial_snapshots, run, sampler, h
 
         has_reached_A = False
         while not has_reached_A:
-            # TODO: make the number of timesteps below a parameter of the method.
-            run(1)
-            time_count += timestep
+            run(sampling_time)
+            time_count += timestep * sampling_time
             xi = sampler.state.xi.block_until_ready()
 
-            if np.all(xi >= win_A) and np.all(xi < grid[1]):
-                success += 1
-                has_reached_A = True
-
-                if len(window0_snaps) <= Num_window0:
-                    snap = sampler.take_snapshot()
-                    window0_snaps.append(snap)
-
+            if np.all(xi >= win_A):
+                if np.all(xi < grid[1]):
+                    success += 1
+                    has_reached_A = True
+                    if len(window0_snaps) <= Num_window0:
+                        snap = sampler.take_snapshot()
+                        window0_snaps.append(snap)
+                if np.all(xi > grid[1]):
+                    print("WARNING: Two windows crossed for the same sampling time")
                 break
 
     print(f"Finish Initial Flow with {success} succeses over {time_count} time\n")
@@ -322,7 +344,7 @@ def initial_flow(Num_window0, timestep, grid, initial_snapshots, run, sampler, h
     return phi_a, window0_snaps
 
 
-def running_window(grid, step, old_snapshots, run, sampler, helpers, cv):
+def running_window(grid, step, old_snapshots, run, sampler, helpers, cv, sampling_time):
     success = 0
     new_snapshots = []
     win_A = grid[0]
@@ -340,7 +362,7 @@ def running_window(grid, step, old_snapshots, run, sampler, helpers, cv):
         # this can be probably be improved
         running = True
         while running:
-            run(1)
+            run(sampling_time)
             xi = sampler.state.xi.block_until_ready()
 
             if np.all(xi < win_A):
