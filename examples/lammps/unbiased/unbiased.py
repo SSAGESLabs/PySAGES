@@ -55,17 +55,31 @@ def main():
     callback = HistogramLogger(10)
     timesteps = 200
 
-    # testing the context
+    # generate the simulation context
     context = generate_context()
-    # args are formal, to be consistent with FixExternal to avoid crash
-    args = ["pf/callback", "1", "1"]
-    sampler = lammps_dlext.DLExtSampler(context, args, lammps_dlext.AccessLocation.OnDevice, lammps_dlext.AccessMode.Read)
+
+    # create a LAMMPS view object
+    view = lammps_dlext.LAMMPSView(context)
+    N = view.global_particle_number()
+    print(f"Total number of particles = {N}")
+    cuda_enabled = view.has_kokkos_cuda_enabled()
+    print(f"CUDA enabled = {cuda_enabled}")
+
+    # create a Sampler object
+    args = "mydlext all dlext"
+    args=args.split()
+    # TODO: this still crashes
+    #sampler = lammps_dlext.FixDLExt(context, args)
 
     # attempt to get the atom positions
-    x = get_positions(lammps_dlext.AccessLocation.OnHost)
+    #x = sampler.positions()
 
-    # or
-    # x = get_positions(lammps_dlext.AccessLocation.OnDevice)
+    #raw_result = pysages.run(method, generate_context, timesteps, callback)
+    #print(np.asarray(raw_result.callbacks[0].data))
+
+    # closing LAMMPS
+    context.close()
+    context.finalize()
 
 
 if __name__ == "__main__":
