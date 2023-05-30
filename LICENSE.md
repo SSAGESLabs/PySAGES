@@ -1,12 +1,14 @@
-PySAGES as a whole is licensed under the GPL-3.0 or later. But do note that only some of
-the code under the `methods` is covered by GPL, as it is based on the original SSAGES
-implementation. The rest of the code is licensed under the MIT License.
+# License
 
-The following applies to all the code except for the implementation found in `methods`:
+PySAGES as a whole is licensed under the GPL-3.0 or later. But do note that only the code
+in `pysages/methods/abf.py` is explicitly covered by GPL, as it is based on the original
+SSAGES implementation. The rest of the code is licensed under the MIT License.
+
+The following applies to all the code except for `pysages/methods/abf.py`:
 
 > MIT License
 >
-> Copyright (c) 2020-2021 PySAGES contributors
+> Copyright (c) 2020-2023 PySAGES Contributors
 >
 > Permission is hereby granted, free of charge, to any person obtaining a copy
 > of this software and associated documentation files (the "Software"), to deal
@@ -26,23 +28,23 @@ The following applies to all the code except for the implementation found in `me
 > OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 > SOFTWARE.
 
-Whereas the following applies to a subset of the files under `methods`:
+Whereas the following applies to `pysages/methods/abf.py`:
 
->   Copyright (C) 2016-2021 SSAGES contributors
->   Copyright (C) 2020-2021 PySAGES contributors
+> Copyright (C) 2016-2020 SSAGES Contributors
+> Copyright (C) 2020-2023 PySAGES Contributors
 >
->   This program is free software: you can redistribute it and/or modify
->   it under the terms of the GNU General Public License as published by
->   the Free Software Foundation, either version 3 of the License, or
->   (at your option) any later version.
+> This program is free software: you can redistribute it and/or modify
+> it under the terms of the GNU General Public License as published by
+> the Free Software Foundation, either version 3 of the License, or
+> (at your option) any later version.
 >
->   This program is distributed in the hope that it will be useful,
->   but WITHOUT ANY WARRANTY; without even the implied warranty of
->   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
->   GNU General Public License for more details.
+> This program is distributed in the hope that it will be useful,
+> but WITHOUT ANY WARRANTY; without even the implied warranty of
+> MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+> GNU General Public License for more details.
 >
->   You should have received a copy of the GNU General Public License
->   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+> You should have received a copy of the GNU General Public License
+> along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-For a list of contributors to the original project visit
-https://github.com/SSAGESproject/SSAGES.
+For a list of contributors to the SSAGES project visit
+<https://github.com/SSAGESproject/SSAGES>.

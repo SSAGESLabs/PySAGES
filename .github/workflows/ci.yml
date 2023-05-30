@@ -4,13 +4,15 @@ on:
   push:
     branches:
       - main
+      - trunk-merge/**
     paths-ignore:
-      - 'README.md'
+      - "README.md"
   pull_request:
     branches:
       - main
     paths-ignore:
-      - 'README.md'
+      - "README.md"
+  workflow_call:
 
 jobs:
   test:
@@ -21,9 +23,9 @@ jobs:
         os: [ubuntu-20.04, macos-latest]
         python-version: [3.7, 3.9]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Set up Python ${{ matrix.python-version }} on ${{ matrix.os }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -42,48 +44,17 @@ jobs:
           mv *.pdf /tmp/test_plots
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: test_plots
           path: /tmp/test_plots
 
-  style:
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.9
-      - name: Install python dependecies
-        run: |
-          python -m pip install --upgrade pip
-          pip install jaxlib pytest pylint flake8
-      - name: Install pysages
-        run: pip install .
-      - name: Run pylint & flake
-        run: |
-          pylint pysages/methods/__init__.py
-          pylint pysages/methods/abf.py
-          pylint pysages/methods/metad.py
-          pylint pysages/methods/utils.py
-          pylint pysages/methods/harmonic_bias.py
-          pylint pysages/methods/umbrella_integration.py
-          pylint pysages/collective_variables
-          flake8 pysages/methods/__init__.py
-          flake8 pysages/methods/abf.py
-          flake8 pysages/methods/metad.py
-          flake8 pysages/methods/utils.py
-          flake8 pysages/methods/harmonic_bias.py
-          flake8 pysages/methods/umbrella_integration.py
-          flake8 pysages/collective_variables
-
   doc-test:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: 3.9
       - name: Install python dependecies
@@ -94,4 +65,4 @@ jobs:
       - name: Install pysages
         run: pip install .
       - name: Build documentation
-        run: cd docs && sphinx-build -W source build
+        run: cd docs && sphinx-build -b spelling -W --keep-going source build

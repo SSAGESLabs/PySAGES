@@ -1,5 +1,4 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 """
@@ -18,24 +17,23 @@ appropriate method.
 from functools import partial
 from typing import NamedTuple, Tuple
 
-from jax import grad, jit, numpy as np, vmap
+from jax import jit
+from jax import numpy as np
+from jax import vmap
 from jax.lax import cond
-from jax.scipy import linalg
 
-from pysages.approxfun import compute_mesh, scale as _scale
+from pysages.approxfun import compute_mesh
+from pysages.approxfun import scale as _scale
 from pysages.grids import build_indexer
-from pysages.methods.core import NNSamplingMethod, generalize
+from pysages.methods.core import NNSamplingMethod, Result, generalize
+from pysages.methods.restraints import apply_restraints
+from pysages.methods.utils import numpyfy_vals
 from pysages.ml.models import MLP
-from pysages.ml.objectives import L2Regularization
+from pysages.ml.objectives import GradientsSSE, L2Regularization
 from pysages.ml.optimizers import LevenbergMarquardt
-from pysages.ml.training import (
-    NNData,
-    build_fitting_function,
-    normalize,
-    convolve,
-)
+from pysages.ml.training import NNData, build_fitting_function, convolve, normalize
 from pysages.ml.utils import blackman_kernel, pack, unpack
-from pysages.utils import Bool, Int, JaxArray
+from pysages.utils import Bool, Int, JaxArray, dispatch, solve_pos_def
 
 
 class FUNNState(NamedTuple):
@@ -44,21 +42,29 @@ class FUNNState(NamedTuple):
 
     Parameters
     ----------
+
     xi: JaxArray (CV shape)
         Last collective variable recorded in the simulation.
+
     bias: JaxArray (natoms, 3)
         Array with biasing forces for each particle.
+
     hist: JaxArray (grid.shape)
         Histogram of visits to the bins in the collective variable grid.
+
     Fsum: JaxArray (grid.shape, CV shape)
         The cumulative force recorded at each bin of the CV grid.
+
     Wp: JaxArray (CV shape)
         Estimate of the product $W p$ where `p` is the matrix of momenta and
         `W` the Moore-Penrose inverse of the Jacobian of the CVs.
+
     Wp_: JaxArray (CV shape)
         The value of `Wp` for the previous integration step.
-    nn: NNDada
+
+    nn: NNData
         Bundle of the neural network parameters, and output scaling coefficients.
+
     nstep: int
         Count the number of times the method's update has been called.
     """
@@ -92,41 +98,49 @@ class FUNN(NNSamplingMethod):
     "Adaptive enhanced sampling by force-biasing using neural networks"
     [J. Chem. Phys. 148, 134108 (2018)](https://doi.org/10.1063/1.5020733).
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     cvs: Union[List, Tuple]
         List of collective variables.
+
     grid: Grid
         Specifies the CV domain and number of bins for discretizing the CV space
         along each CV dimension.
+
     topology: Tuple[int]
         Defines the architecture of the neural network
         (number of nodes of each hidden layer).
 
-    Keyword arguments
-    -----------------
-    N: int
+    N: Optional[int] = 500
         Threshold parameter before accounting for the full average of the
-        binned generalized mean force (defaults to 200).
-    train_freq: int
-        Training frequency (defaults to 5000).
-    optimizer:
-        Optimization method used for training defaults to LevenbergMarquardt().
+        binned generalized mean force.
+
+    train_freq: Optional[int] = 5000
+        Training frequency.
+
+    optimizer: Optional[Optimizer]
+        Optimization method used for training, defaults to LevenbergMarquardt().
+
+    restraints: Optional[CVRestraints] = None
+        If provided, indicate that harmonic restraints will be applied when any
+        collective variable lies outside the box from `restraints.lower` to
+        `restraints.upper`.
     """
 
     snapshot_flags = {"positions", "indices", "momenta"}
 
-    def __init__(self, cvs, grid, topology, *args, **kwargs):
-        super().__init__(cvs, grid, topology, *args, **kwargs)
+    def __init__(self, cvs, grid, topology, **kwargs):
+        super().__init__(cvs, grid, topology, **kwargs)
 
-        self.N = np.asarray(kwargs.get("N", 200))
+        self.N = np.asarray(kwargs.get("N", 500))
         self.train_freq = kwargs.get("train_freq", 5000)
 
         # Neural network and optimizer intialization
         dims = grid.shape.size
         scale = partial(_scale, grid=grid)
         self.model = MLP(dims, dims, topology, transform=scale)
-        self.optimizer = kwargs.get("optimizer", LevenbergMarquardt(reg=L2Regularization(1e-6)))
+        default_optimizer = LevenbergMarquardt(reg=L2Regularization(1e-6))
+        self.optimizer = kwargs.get("optimizer", default_optimizer)
 
     def build(self, snapshot, helpers):
         return _funn(self, snapshot, helpers)
@@ -147,11 +161,11 @@ def _funn(method, snapshot, helpers):
     # Helper methods
     get_grid_index = build_indexer(grid)
     learn_free_energy_grad = build_free_energy_grad_learner(method)
-    estimate_free_energy_grad = build_free_energy_grad_estimator(method)
+    estimate_free_energy_grad = build_force_estimator(method)
 
     def initialize():
         xi, _ = cv(helpers.query(snapshot))
-        bias = np.zeros((natoms, 3))
+        bias = np.zeros((natoms, helpers.dimensionality()))
         hist = np.zeros(grid.shape, dtype=np.uint32)
         Fsum = np.zeros((*grid.shape, dims))
         F = np.zeros(dims)
@@ -171,7 +185,7 @@ def _funn(method, snapshot, helpers):
         xi, Jxi = cv(data)
         #
         p = data.momenta
-        Wp = linalg.solve(Jxi @ Jxi.T, Jxi @ p, sym_pos="sym")
+        Wp = solve_pos_def(Jxi @ Jxi.T, Jxi @ p)
         dWp_dt = (1.5 * Wp - 2.0 * state.Wp + 0.5 * state.Wp_) / dt
         #
         I_xi = get_grid_index(xi)
@@ -205,7 +219,7 @@ def build_free_energy_grad_learner(method: FUNN):
     smoothing_kernel = blackman_kernel(dims, 7)
     padding = "wrap" if grid.is_periodic else "edge"
     conv = partial(convolve, kernel=smoothing_kernel, boundary=padding)
-    smooth = lambda y: vmap(conv)(y.T).T
+    smooth = jit(lambda y: vmap(conv)(y.T).T)
 
     _, layout = unpack(model.parameters)
     fit = build_fitting_function(model, method.optimizer)
@@ -231,30 +245,146 @@ def build_free_energy_grad_learner(method: FUNN):
     return _learn_free_energy_grad
 
 
-def build_free_energy_grad_estimator(method: FUNN):
+def build_force_estimator(method: FUNN):
     """
     Returns a function that given the neural network parameters and a CV value,
     evaluates the network on the provided CV.
     """
-
     f32 = np.float32
     f64 = np.float64
 
     N = method.N
     model = method.model
+    grid = method.grid
     _, layout = unpack(model.parameters)
 
-    def estimate_abf(state):
+    def average_force(state):
         i = state.ind
         return state.Fsum[i] / np.maximum(N, state.hist[i])
 
-    def estimate_grad(state):
+    def predict_force(state):
         nn = state.nn
         x = state.xi
         params = pack(nn.params, layout)
         return nn.std * f64(model.apply(params, f32(x)).flatten()) + nn.mean
 
-    def _estimate_grad(state):
-        return cond(state.pred, estimate_grad, estimate_abf, state)
+    def _estimate_force(state):
+        return cond(state.pred, predict_force, average_force, state)
 
-    return _estimate_grad
+    if method.restraints is None:
+        estimate_force = _estimate_force
+    else:
+        lo, hi, kl, kh = method.restraints
+
+        def restraints_force(state):
+            xi = state.xi.reshape(grid.shape.size)
+            return apply_restraints(lo, hi, kl, kh, xi)
+
+        def estimate_force(state):
+            ob = np.any(np.array(state.ind) == grid.shape)  # Out of bounds condition
+            return cond(ob, restraints_force, _estimate_force, state)
+
+    return estimate_force
+
+
+@dispatch
+def analyze(result: Result[FUNN]):
+    """
+    Parameters
+    ----------
+
+    result: Result[FUNN]
+        Result bundle containing the method, final states, and callbacks.
+
+    dict:
+        A dictionary with the following keys:
+
+        histogram: JaxArray
+            A histogram of the visits to each bin in the CV grid.
+
+        mean_force: JaxArray
+            Generalized mean forces at each bin in the CV grid.
+
+        free_energy: JaxArray
+            Free energy at each bin in the CV grid.
+
+        mesh: JaxArray
+            These are the values of the CVs that are used as inputs for training.
+
+        nn: NNData
+            Coefficients of the basis functions expansion approximating the free energy.
+
+        fes_fn: Callable[[JaxArray], JaxArray]
+            Function that allows to interpolate the free energy in the CV domain defined
+            by the grid.
+
+    NOTE:
+    For multiple-replicas runs we return a list (one item per-replica) for each attribute.
+    """
+    method = result.method
+    states = result.states
+
+    grid = method.grid
+    mesh = (compute_mesh(grid) + 1) * grid.size / 2 + grid.lower
+
+    model = MLP(grid.shape.size, 1, method.topology, transform=partial(_scale, grid=grid))
+    optimizer = LevenbergMarquardt(loss=GradientsSSE(), max_iters=2500, reg=L2Regularization(1e-3))
+    fit = build_fitting_function(model, optimizer)
+
+    @vmap
+    def smooth(data):
+        boundary = "wrap" if grid.is_periodic else "edge"
+        kernel = np.float32(blackman_kernel(grid.shape.size, 7))
+        return convolve(data.T, kernel, boundary=boundary).T
+
+    def train(nn, data):
+        axes = tuple(range(data.ndim - 1))
+        std = data.std(axis=axes).max()
+        reference = np.float64(smooth(np.float32(data / std)))
+        params = fit(nn.params, mesh, reference).params
+        return NNData(params, nn.mean, std / reference.std(axis=axes).max())
+
+    def build_fes_fn(state):
+        hist = np.expand_dims(state.hist, state.hist.ndim)
+        F = state.Fsum / np.maximum(hist, 1)
+
+        ps, layout = unpack(model.parameters)
+        nn = train(NNData(ps, 0.0, 1.0), F)
+
+        def fes_fn(x):
+            params = pack(nn.params, layout)
+            A = nn.std * model.apply(params, x) + nn.mean
+            return A.max() - A
+
+        return jit(fes_fn)
+
+    def average_forces(hist, Fsum):
+        shape = (*Fsum.shape[:-1], 1)
+        return Fsum / np.maximum(hist.reshape(shape), 1)
+
+    def first_or_all(seq):
+        return seq[0] if len(seq) == 1 else seq
+
+    hists = []
+    mean_forces = []
+    free_energies = []
+    nns = []
+    fes_fns = []
+
+    for s in states:
+        fes_fn = build_fes_fn(s)
+        hists.append(s.hist)
+        mean_forces.append(average_forces(s.hist, s.Fsum))
+        free_energies.append(fes_fn(mesh))
+        nns.append(s.nn)
+        fes_fns.append(fes_fn)
+
+    ana_result = dict(
+        histogram=first_or_all(hists),
+        mean_force=first_or_all(mean_forces),
+        free_energy=first_or_all(free_energies),
+        mesh=mesh,
+        nn=first_or_all(nns),
+        fes_fn=first_or_all(fes_fns),
+    )
+    return numpyfy_vals(ana_result)

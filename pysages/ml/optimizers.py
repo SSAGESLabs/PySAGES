@@ -1,32 +1,28 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
-
 from dataclasses import dataclass
 from functools import partial
 from typing import Any, Callable, NamedTuple, Tuple, Union
 
+import jax
 from jax import numpy as np
 from jax.lax import cond
 from jax.numpy.linalg import pinv
-from jax.scipy.linalg import solve
 
 from pysages.ml.objectives import (
-    Loss,
-    L2Regularization,
-    Regularizer,
     SSE,
-    build_error_function,
+    L2Regularization,
+    Loss,
+    Regularizer,
     build_damped_hessian,
+    build_error_function,
     build_jac_err_prod,
-    build_split_cost_function,
     build_objective_function,
+    build_split_cost_function,
     sum_squares,
 )
 from pysages.ml.utils import dispatch, pack, unpack
-from pysages.utils import Bool, Float, Int, JaxArray, try_import
-
-import jax
+from pysages.utils import Bool, Float, Int, JaxArray, solve_pos_def, try_import
 
 jopt = try_import("jax.example_libraries.optimizers", "jax.experimental.optimizers")
 
@@ -211,7 +207,7 @@ def build(optimizer: LevenbergMarquardt, model):
         H = damped_hessian(J, mu)
         Je = jac_err_prod(J, e_, p_)
         #
-        dp = solve(H, Je, sym_pos=True)
+        dp = solve_pos_def(H, Je)
         p = p_ - dp
         e = error(p, x, y)
         C = cost(e, p)
@@ -263,9 +259,9 @@ def build(optimizer: LevenbergMarquardtBR, model):
         J = jacobian(p_, x, y)
         H = J.T @ J
         Je = J.T @ e_ + alpha_ * p_
-        I = np.diag_indices_from(H)
+        idx = np.diag_indices_from(H)
         #
-        dp = solve(H.at[I].add(alpha_ + mu), Je, sym_pos=True)
+        dp = solve_pos_def(H.at[idx].add(alpha_ + mu), Je)
         p = p_ - dp
         e = error(p, x, y)
         C = (sum_squares(e) + alpha * sum_squares(p)) / 2
@@ -283,7 +279,7 @@ def build(optimizer: LevenbergMarquardtBR, model):
         C = np.where(bad_step, C_, C)
         improved = (C_ > C) | bad_step
         #
-        bundle = (alpha, H, I, sse, ssp, x.size)
+        bundle = (alpha, H, idx, sse, ssp, x.size)
         alpha, *_ = cond(bad_step, lambda t: t, update_hyperparams, bundle)
         C = (sse + alpha * ssp) / 2
         #
@@ -294,9 +290,9 @@ def build(optimizer: LevenbergMarquardtBR, model):
 
 def update_hyperparams(nlayers, nparams, alpha_0, bundle):
     l, k = nlayers, nparams
-    alpha, H, I, sse, ssp, n = bundle
-    gamma = k - alpha * pinv(H.at[I].add(alpha)).trace()
+    alpha, H, idx, sse, ssp, n = bundle
+    gamma = k - alpha * pinv(H.at[idx].add(alpha)).trace()
     reset = np.isnan(gamma) | (gamma >= n) | (sse.sum() < 1e-4) | (ssp.sum() < 1e-4)
     beta = np.where(reset, 1.0, (n / l) ** 2 * (n - gamma) / sse)
     alpha = np.where(reset, alpha_0, gamma / ssp)
-    return (alpha / beta, H, I, sse, ssp, n)
+    return (alpha / beta, H, idx, sse, ssp, n)

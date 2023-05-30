@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 
 
+import argparse
+
+import numpy
+
+import pysages
+
 # %%
-from pysages.collective_variables import DihedralAngle
+from pysages.colvars import DihedralAngle
 from pysages.methods import FFS
 from pysages.utils import try_import
-
-import argparse
-import numpy
-import pysages
 
 openmm = try_import("openmm", "simtk.openmm")
 unit = try_import("openmm.unit", "simtk.unit")
@@ -29,7 +31,6 @@ def generate_simulation(pdb_filename=adp_pdb, T=T, dt=dt):
     pdb = app.PDBFile(pdb_filename)
 
     ff = app.ForceField("amber99sb.xml", "tip3p.xml")
-    kT = (kB * T).value_in_unit(unit.kilojoules_per_mole)
     cutoff_distance = 1.0 * unit.nanometer
     topology = pdb.topology
 
@@ -79,7 +80,8 @@ def main():
     win_0 = (args.cv_start / 180) * pi
     win_f = ((args.cv_start + args.cv_distance) / 180) * pi
 
-    method.run(
+    pysages.run(
+        method,
         generate_simulation,
         args.timesteps,
         dt,

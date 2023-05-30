@@ -1,11 +1,7 @@
 repos:
-- repo: https://github.com/psf/black
-  rev: 22.3.0
-  hooks:
-  - id: black
-- repo: https://github.com/mwouts/jupytext
-  rev: v1.13.8
-  hooks:
-  - id: jupytext
-    args: [--sync]
-    language: python
+  - repo: https://github.com/mwouts/jupytext
+    rev: v1.14.4
+    hooks:
+      - id: jupytext
+        args: [--sync]
+        language: python

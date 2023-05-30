@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 
-import numpy as np
-import matplotlib.pyplot as plt
 import hoomd
-import hoomd.md
 import hoomd.dlext
+import hoomd.md
+import matplotlib.pyplot as plt
+import numpy as np
 
-from pysages.collective_variables import Component
+import pysages
+from pysages.colvars import Component
 from pysages.methods import HarmonicBias, HistogramLogger
 
 
@@ -71,7 +72,7 @@ def main():
     method = HarmonicBias(cvs, k, center_cv)
     callback = HistogramLogger(100)
 
-    method.run(generate_context, int(1e5), callback, {"A": 7.0}, profile=True)
+    pysages.run(method, generate_context, int(1e5), callback, {"A": 7.0}, profile=True)
 
     # Lmax = np.max([system.box.Lx, system.box.Ly, system.box.Lz])
     Lmax = 5.0

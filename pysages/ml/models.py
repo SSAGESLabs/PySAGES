@@ -1,5 +1,4 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 from dataclasses import dataclass
@@ -9,7 +8,7 @@ from typing import Callable, Optional
 from jax import numpy as np
 from jax.nn.initializers import variance_scaling
 
-from pysages.ml.utils import rng_key, dispatch
+from pysages.ml.utils import dispatch, rng_key
 from pysages.utils import JaxArray, try_import
 
 stax = try_import("jax.example_libraries.stax", "jax.experimental.stax")

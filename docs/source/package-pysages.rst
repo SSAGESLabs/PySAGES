@@ -3,8 +3,7 @@ PySAGES
 
 .. rubric:: Overview
 
-This documentation and software is under development.
-It is mainly available here testing purposes.
+This documentation and software are under development. The API and implementation may change in the future.
 
 .. rubric:: Details
 
@@ -18,4 +17,4 @@ It is mainly available here testing purposes.
    :maxdepth: 3
 
    module-pysages-methods
-   module-pysages-collective_variables
+   module-pysages-colvars

@@ -1,11 +1,14 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
+import importlib
 from functools import partial
 from typing import Callable
 
-from jax import jit, numpy as np
+import jax
+import openmm_dlext as dlext
+from jax import jit
+from jax import numpy as np
 from jax.dlpack import from_dlpack as asarray
 from jax.lax import cond
 from openmm_dlext import ContextView, DeviceType, Force
@@ -17,26 +20,23 @@ from pysages.backends.snapshot import (
     Snapshot,
     SnapshotMethods,
     build_data_querier,
-    restore as _restore,
-    restore_vm as _restore_vm,
 )
+from pysages.backends.snapshot import restore as _restore
+from pysages.backends.snapshot import restore_vm as _restore_vm
 from pysages.methods import SamplingMethod
-from pysages.utils import try_import
-
-import importlib
-import jax
-import openmm_dlext as dlext
+from pysages.utils import check_device_array, copy, try_import
 
 openmm = try_import("openmm", "simtk.openmm")
 unit = try_import("openmm.unit", "simtk.unit")
 
 
 class Sampler:
-    def __init__(self, method_bundle, bias, callback: Callable):
-        snapshot, initialize, update = method_bundle
+    def __init__(self, method_bundle, bias, callback: Callable, restore):
+        snapshot, initialize, method_update = method_bundle
         self.snapshot = snapshot
         self.state = initialize()
-        self._update = update
+        self._update = method_update
+        self._restore = restore
         self.bias = bias
         self.callback = callback
 
@@ -46,27 +46,34 @@ class Sampler:
         if self.callback:
             self.callback(self.snapshot, self.state, timestep)
 
+    def restore(self, prev_snapshot):
+        self._restore(self.snapshot, prev_snapshot)
+
+    def take_snapshot(self):
+        return copy(self.snapshot)
+
 
 def is_on_gpu(view: ContextView):
     return view.device_type() == DeviceType.GPU
 
 
 def take_snapshot(wrapped_context):
-    #
     context = wrapped_context.context.context  # extra indirection for OpenMM
     context_view = wrapped_context.view
-    #
+
     positions = asarray(dlext.positions(context_view))
     forces = asarray(dlext.forces(context_view))
     ids = asarray(dlext.atom_ids(context_view))
-    #
+
     velocities = asarray(dlext.velocities(context_view))
     if is_on_gpu(context_view):
         vel_mass = velocities
     else:
         inverse_masses = asarray(dlext.inverse_masses(context_view))
         vel_mass = (velocities, inverse_masses.reshape((-1, 1)))
-    #
+
+    check_device_array(positions)  # currently, we only support `DeviceArray`s
+
     box_vectors = context.getSystem().getDefaultPeriodicBoxVectors()
     a = box_vectors[0].value_in_unit(unit.nanometer)
     b = box_vectors[1].value_in_unit(unit.nanometer)
@@ -74,6 +81,7 @@ def take_snapshot(wrapped_context):
     H = ((a[0], b[0], c[0]), (a[1], b[1], c[1]), (a[2], b[2], c[2]))
     origin = (0.0, 0.0, 0.0)
     dt = context.getIntegrator().getStepSize() / unit.picosecond
+
     # OpenMM doesn't have images
     return Snapshot(positions, vel_mass, forces, ids, None, Box(H, origin), dt)
 
@@ -153,7 +161,8 @@ def build_helpers(context, sampling_method):
 
     def bias(snapshot, state, sync_backend):
         """Adds the computed bias to the forces."""
-        # TODO: check if this can be JIT compiled with numba.
+        if state.bias is None:
+            return
         biases = adapt(state.bias)
         # Forces may be computed asynchronously on the GPU, so we need to
         # synchronize them before applying the bias.
@@ -163,12 +172,15 @@ def build_helpers(context, sampling_method):
         forces += biases
         sync_forces()
 
+    def dimensionality():
+        return 3  # all OpenMM simulations boxes are 3-dimensional
+
     snapshot_methods = build_snapshot_methods(context, sampling_method)
     flags = sampling_method.snapshot_flags
     restore = partial(_restore, view, restore_vm=restore_vm)
-    helpers = HelperMethods(build_data_querier(snapshot_methods, flags), restore)
+    helpers = HelperMethods(build_data_querier(snapshot_methods, flags), dimensionality)
 
-    return helpers, bias
+    return helpers, restore, bias
 
 
 def check_integrator(context):
@@ -190,10 +202,10 @@ def bind(
     force.add_to(context)  # OpenMM will handle the lifetime of the force
     wrapped_context.view = force.view(context)
     wrapped_context.run = simulation.step
-    helpers, bias = build_helpers(wrapped_context.view, sampling_method)
+    helpers, restore, bias = build_helpers(wrapped_context.view, sampling_method)
     snapshot = take_snapshot(wrapped_context)
     method_bundle = sampling_method.build(snapshot, helpers)
     sync_and_bias = partial(bias, sync_backend=wrapped_context.view.synchronize)
-    sampler = Sampler(method_bundle, sync_and_bias, callback)
+    sampler = Sampler(method_bundle, sync_and_bias, callback, restore)
     force.set_callback_in(context, sampler.update)
     return sampler

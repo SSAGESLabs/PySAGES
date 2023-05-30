@@ -10,17 +10,16 @@ Adapted from [SSAGES](https://github.com/SSAGESproject/SSAGES).
 import argparse
 import sys
 import time
+from math import pi, sqrt
 
-import numpy as np
 import hoomd
 import hoomd.md
+import numpy as np
 
-from math import sqrt, pi
-
+import pysages
 from pysages import Grid
-from pysages.collective_variables import DihedralAngle
-from pysages.methods import Metadynamics, MetaDLogger
-
+from pysages.colvars import DihedralAngle
+from pysages.methods import MetaDLogger, Metadynamics
 
 # %%
 kB = 8.314462618e-3
@@ -290,7 +289,7 @@ def main(argv=[]):
     callback = MetaDLogger(hills_file, stride) if args.log else None
 
     tic = time.perf_counter()
-    method.run(generate_context, timesteps, callback)
+    pysages.run(method, generate_context, timesteps, callback)
     toc = time.perf_counter()
     print(f"Completed the simulation in {toc - tic:0.4f} seconds.")
 
