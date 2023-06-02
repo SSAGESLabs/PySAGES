@@ -130,41 +130,40 @@ def run(  # pylint: disable=arguments-differ
     executor_shutdown: bool = True,
     **kwargs
 ):
-    """
-    Implementation of the execution of umbrella integration with up to linear
-    order (ignoring second order terms with covariance matrix) as described in
-    J. Chem. Phys. 131, 034109 (2009); https://doi.org/10.1063/1.3175798 (equation 13).
-    Higher order approximations can be implemented by the user using the provided
-    covariance matrix.
+    # """
+    # Implementation of the execution of umbrella integration with up to linear
+    # order (ignoring second order terms with covariance matrix) as described in
+    # J. Chem. Phys. 131, 034109 (2009); https://doi.org/10.1063/1.3175798 (equation 13).
+    # Higher order approximations can be implemented by the user using the provided
+    # covariance matrix.
 
-    Arguments
-    ---------
-    context_generator: Callable
-        User defined function that sets up a simulation context with the backend.
-        Must return an instance of `hoomd.conext.SimulationContext` for HOOMD-blue and
-        `openmm.Context` for OpenMM.
-        The function gets `context_args` unpacked for additional user args.
-        For each replica along the path, the argument `replica_num` in [0, ..., N-1]
-        is set in the `context_generator` to load the appropriate initial condition.
+    # Arguments
+    # ---------
+    # context_generator: Callable
+    #     User defined function that sets up a simulation context with the backend.
+    #     Must return an instance of `hoomd.conext.SimulationContext` for HOOMD-blue and
+    #     `openmm.Context` for OpenMM.
+    #     The function gets `context_args` unpacked for additional user args.
+    #     For each replica along the path, the argument `replica_num` in [0, ..., N-1]
+    #     is set in the `context_generator` to load the appropriate initial condition.
 
-    timesteps: int
-        Number of timesteps the simulation is running.
+    # timesteps: int
+    #     Number of timesteps the simulation is running.
 
-    context_args: dict = {}
-        Arguments to pass down to `context_generator` to setup the simulation context.
+    # context_args: dict = {}
+    #     Arguments to pass down to `context_generator` to setup the simulation context.
 
-    kwargs:
-        Passed to the backend run function as additional user arguments.
+    # kwargs:
+    #     Passed to the backend run function as additional user arguments.
 
-    post_run_action: Optional[Callable] = None
-        Callable function that enables actions after the run execution of PySAGES.
-        Actions are executed inside the generated context.
-        Example uses for this include writing a final configuration file.
-        This function gets `context_args` unpacked just like `context_generator`.
+    # post_run_action: Optional[Callable] = None
+    #     Callable function that enables actions after the run execution of PySAGES.
+    #     Actions are executed inside the generated context.
+    #     Example uses for this include writing a final configuration file.
+    #     This function gets `context_args` unpacked just like `context_generator`.
 
-    * Note:
-        This method does not accept a user defined callback.
-    """
+    # **Note**: This method does not accept a user defined callback.
+    # """
     method = get_method(method_or_result)
     timesteps = int(timesteps)
 
