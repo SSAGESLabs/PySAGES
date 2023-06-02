@@ -102,7 +102,7 @@ class SamplingMethod(metaclass=SamplingMethodMeta):
         """
         Returns the snapshot, and two functions, ``initialize`` and ``update``.
 
-        The ``initialize`` function is intended to allocate any runtime
+        The ``initialize`` function is intended to allocate any run-time
         information required by the ``update`` function. The ``update``
         function is called after each integration step, that is, after each
         call to the wrapped context's ``run`` method.
