@@ -15,7 +15,13 @@ However, the method is not very accurate and it is preferred that more advanced 
 
 from copy import deepcopy
 
-from pysages.methods.core import ReplicaResult, Result, SamplingMethod, _run, get_method
+from pysages.methods.core import (
+    ReplicaResult,
+    Result,
+    SamplingMethod,
+    _run_replica,
+    get_method,
+)
 from pysages.methods.harmonic_bias import HarmonicBias
 from pysages.methods.utils import (
     HistogramLogger,
@@ -169,7 +175,7 @@ def run(  # pylint: disable=arguments-differ
 
     def submit_work(executor, method_or_result, context_args, callback):
         return executor.submit(
-            _run,
+            _run_replica,
             method_or_result,
             context_generator,
             timesteps,
