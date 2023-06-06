@@ -336,7 +336,7 @@ class GeM(CollectiveVariable):
             random Euler angles.
     nbrs: callable
             JAX MD neighbor list function to update the neighbor list.
-    fractional_coords: Bool
+    fractional_coords: bool
             Set to True if NPT simulation is considered and the box size
             changes; use periodic_general for constructing the neighborlist.
     Returns

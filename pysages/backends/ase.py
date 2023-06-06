@@ -2,7 +2,6 @@
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 from inspect import Parameter, signature
-from typing import Callable, NamedTuple
 
 from ase.calculators.calculator import Calculator
 from jax import jit
@@ -17,6 +16,7 @@ from pysages.backends.snapshot import (
     build_data_querier,
 )
 from pysages.backends.utils import view
+from pysages.typing import Callable, NamedTuple
 from pysages.utils import ToCPU, copy
 
 

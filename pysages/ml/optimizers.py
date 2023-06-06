@@ -2,7 +2,6 @@
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 from dataclasses import dataclass
 from functools import partial
-from typing import Any, Callable, NamedTuple, Tuple, Union
 
 import jax
 from jax import numpy as np
@@ -22,7 +21,8 @@ from pysages.ml.objectives import (
     sum_squares,
 )
 from pysages.ml.utils import dispatch, pack, unpack
-from pysages.utils import Bool, Float, Int, JaxArray, solve_pos_def, try_import
+from pysages.typing import Any, Callable, JaxArray, NamedTuple, Tuple, Union
+from pysages.utils import solve_pos_def, try_import
 
 jopt = try_import("jax.example_libraries.optimizers", "jax.experimental.optimizers")
 
@@ -35,10 +35,10 @@ class AdamParams(NamedTuple):
     Parameters for the ADAM optimizer.
     """
 
-    step_size: Union[Float, Callable] = 1e-2
-    beta_1: Float = 0.9
-    beta_2: Float = 0.999
-    tol: Float = 1e-8
+    step_size: Union[float, Callable] = 1e-2
+    beta_1: float = 0.9
+    beta_2: float = 0.999
+    tol: float = 1e-8
 
 
 class LevenbergMarquardtParams(NamedTuple):
@@ -46,12 +46,12 @@ class LevenbergMarquardtParams(NamedTuple):
     Parameters for the Levenberg-Marquardt optimizer.
     """
 
-    mu_0: Float = 1e-1
-    mu_c: Float = 10.0
-    mu_min: Float = 1e-8
-    mu_max: Float = 1e8
-    rho_c: Float = 1e-1
-    rho_min: Float = 1e-4
+    mu_0: float = 1e-1
+    mu_c: float = 10.0
+    mu_min: float = 1e-8
+    mu_max: float = 1e8
+    rho_c: float = 1e-1
+    rho_min: float = 1e-4
 
 
 # Optimizers state
@@ -65,8 +65,8 @@ class WrappedState(NamedTuple):
 
     data: Tuple[JaxArray, JaxArray]
     params: Any
-    iters: Int = 0
-    improved: Bool = True
+    iters: int = 0
+    improved: bool = True
 
 
 class LevenbergMarquardtState(NamedTuple):
@@ -77,10 +77,10 @@ class LevenbergMarquardtState(NamedTuple):
     data: Tuple[JaxArray, JaxArray]
     params: JaxArray
     errors: JaxArray
-    cost: Float
-    mu: Float
-    iters: Int = 0
-    improved: Bool = True
+    cost: float
+    mu: float
+    iters: int = 0
+    improved: bool = True
 
 
 class LevenbergMarquardtBRState(NamedTuple):
@@ -91,11 +91,11 @@ class LevenbergMarquardtBRState(NamedTuple):
     data: Tuple[JaxArray, JaxArray]
     params: JaxArray
     errors: JaxArray
-    cost: Float
-    mu: Float
-    alpha: Float = 1e-4
-    iters: Int = 0
-    improved: Bool = True
+    cost: float
+    mu: float
+    alpha: float = 1e-4
+    iters: int = 0
+    improved: bool = True
 
 
 class Optimizer:
@@ -115,8 +115,8 @@ class Adam(Optimizer):
     params: AdamParams = AdamParams()
     loss: Loss = SSE()
     reg: Regularizer = L2Regularization(0.0)
-    tol: Float = 1e-4
-    max_iters: Int = 10000
+    tol: float = 1e-4
+    max_iters: int = 10000
 
 
 @dataclass
@@ -128,7 +128,7 @@ class LevenbergMarquardt(Optimizer):
     params: LevenbergMarquardtParams = LevenbergMarquardtParams()
     loss: Loss = SSE()
     reg: Regularizer = L2Regularization(0.0)
-    max_iters: Int = 500
+    max_iters: int = 500
 
 
 @dataclass
@@ -138,8 +138,8 @@ class LevenbergMarquardtBR(Optimizer):
     """
 
     params: LevenbergMarquardtParams = LevenbergMarquardtParams()
-    alpha: Float = np.float64(0.0)
-    max_iters: Int = 500
+    alpha: float = 0.0
+    max_iters: int = 500
     update: Callable = lambda a, b, c, t: t
 
 

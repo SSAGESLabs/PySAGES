@@ -4,11 +4,10 @@
 # Code adapted from
 # https://github.com/cgohlke/transformations/blob/v2022.9.26/transformations/transformations.py
 
-from typing import List, NamedTuple
-
 from jax import lax
 from jax import numpy as np
 
+from pysages.typing import List, NamedTuple
 from pysages.utils.core import dispatch, eps
 
 # axes indices sequences for Euler angles

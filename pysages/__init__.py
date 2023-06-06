@@ -69,13 +69,14 @@ from .methods import (  # noqa: E402, F401
     ReplicasConfiguration,
     SerialExecutor,
 )
-from .utils import dispatch  # noqa: E402, F401
+from .utils import dispatch, dispatch_table  # noqa: E402, F401
 
-run = dispatch._functions["run"]
-analyze = dispatch._functions["analyze"]
+run = dispatch_table(dispatch)["run"]
+analyze = dispatch_table(dispatch)["analyze"]
 
 
 # Reduce namespace noise
+del dispatch_table
 del jax
 del os
 del _config_jax

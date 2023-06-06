@@ -1,8 +1,6 @@
 # SPDX-License-Identifier: MIT
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
-from typing import NamedTuple, Union
-
 import jax.numpy as np
 import numpy as onp
 from jax import grad, value_and_grad, vmap
@@ -15,7 +13,7 @@ from pysages.ml.utils import (
     sum_squares,
     unpack,
 )
-from pysages.utils import Float
+from pysages.typing import NamedTuple, Union
 
 
 # Losses
@@ -77,14 +75,14 @@ class Regularizer:
 
 
 # On Python >= 3.9 NamedTuple cannot be used directly as superclass
-L2Regularization = NamedTuple("L2Regularization", [("coeff", Float)])
+L2Regularization = NamedTuple("L2Regularization", [("coeff", float)])
 
 
 class L2Regularization(Regularizer, L2Regularization):
     """
     L2-norm regularization.
 
-    coeff: Float
+    coeff: float
         Hyperparameter, coefficient for the regularizing term.
     """
 

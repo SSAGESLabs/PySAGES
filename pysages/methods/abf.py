@@ -17,8 +17,6 @@ approximated by a second order backward finite difference in the simulation
 time step.
 """
 
-from typing import NamedTuple
-
 from jax import jit
 from jax import numpy as np
 from jax.lax import cond
@@ -28,7 +26,8 @@ from pysages.methods.analysis import GradientLearning, _analyze
 from pysages.methods.core import GriddedSamplingMethod, Result, generalize
 from pysages.methods.restraints import apply_restraints
 from pysages.methods.utils import numpyfy_vals
-from pysages.utils import JaxArray, dispatch, solve_pos_def
+from pysages.typing import JaxArray, NamedTuple
+from pysages.utils import dispatch, solve_pos_def
 
 
 class ABFState(NamedTuple):

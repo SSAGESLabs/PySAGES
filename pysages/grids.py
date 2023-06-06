@@ -5,9 +5,10 @@ from dataclasses import dataclass
 
 from jax import jit
 from jax import numpy as np
-from plum import Union, parametric, type_parameter
+from plum import Union, parametric
 
-from pysages.utils import JaxArray, dispatch
+from pysages.typing import JaxArray
+from pysages.utils import dispatch, is_generic_subclass
 
 
 class GridType:
@@ -48,7 +49,7 @@ class Grid:
         self.size = self.upper - self.lower
 
     def __check_init_invariants__(self, **kwargs):
-        T = type_parameter(self)
+        T = type(self).type_parameter
         if not (issubclass(type(T), type) and issubclass(T, GridType)):
             raise TypeError("Type parameter must be a subclass of GridType.")
         if len(kwargs) > 1 or (len(kwargs) == 1 and "periodic" not in kwargs):
@@ -57,19 +58,19 @@ class Grid:
         if type(periodic) is not bool:
             raise TypeError("`periodic` must be a bool.")
         type_kw_mismatch = (not periodic and T is Periodic) or (
-            periodic and issubclass(Union[T], Union[Regular, Chebyshev])
+            periodic and is_generic_subclass(Union[T], Union[Regular, Chebyshev])
         )
         if type_kw_mismatch:
             raise ValueError("Incompatible type parameter and keyword argument")
 
     def __repr__(self):
-        T = type_parameter(self)
+        T = type(self).type_parameter
         P = "" if T is Regular else f"[{T.__name__}]"
         return f"Grid{P} ({' x '.join(map(str, self.shape))})"
 
     @property
     def is_periodic(self):
-        return type_parameter(self) is Periodic
+        return type(self).type_parameter is Periodic
 
 
 @dispatch
@@ -91,7 +92,7 @@ def convert(grid: Grid, T: type):
 
 @dispatch
 def get_info(grid: Grid):
-    T = type_parameter(grid)
+    T = type(grid).type_parameter
     grid_args = (
         tuple(float(x) for x in grid.lower),
         tuple(float(x) for x in grid.upper),

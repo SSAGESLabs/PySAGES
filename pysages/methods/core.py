@@ -6,7 +6,6 @@ from functools import reduce
 from inspect import getfullargspec
 from operator import or_
 from sys import modules as sys_modules
-from typing import Callable, Optional, Union
 
 from jax import jit
 from plum import parametric
@@ -15,8 +14,9 @@ from pysages.backends import SamplingContext
 from pysages.colvars.core import build
 from pysages.grids import Grid, build_grid, get_info
 from pysages.methods.restraints import canonicalize
-from pysages.methods.utils import ReplicasConfiguration, methods_dispatch
-from pysages.utils import ToCPU, copy, dispatch, identity
+from pysages.methods.utils import ReplicasConfiguration
+from pysages.typing import Callable, Optional, Union
+from pysages.utils import ToCPU, copy, dispatch, dispatch_table, identity
 
 #  Base Classes
 #  ============
@@ -24,6 +24,22 @@ from pysages.utils import ToCPU, copy, dispatch, identity
 
 @parametric
 class Result:
+    """
+    Bundles the essential information needed to estimate the free energy of a
+    system, as well as the necessary data for restarting the simulation.
+
+    Parameters
+    ----------
+    method: ``SamplingMethod``
+        The sampling method used.
+    states: ``List[SamplingMethodState]``
+        The last state of the sampling method for each system replica run.
+    callbacks: ``Optional[List[Callback]]``
+        Optional set of callbacks for all simulation replicas.
+    snapshots: ``List[Snapshot]``
+        Last snapshot of each replica of the simulation.
+    """
+
     @classmethod
     def __infer_type_parameter__(cls, method, *_):
         return type(method)
@@ -58,10 +74,10 @@ class SamplingMethod(metaclass=SamplingMethodMeta):
     """
     Abstract base class for all sampling methods.
 
-    Defines the constructor that expects the collective variables,
-    the build method to initialize the GPU execution for the biasing,
-    and the run method that executes the simulation run.
-    All these are intended to be enhanced/overwritten by inheriting classes.
+    This class defines a constructor that expects the list of collective
+    variables and provides the necessary methods for initializing and executing
+    the biasing during a simulation. Inheriting classes are expected to enhance
+    or overwrite its methods as needed.
     """
 
     __special_args__ = set()
@@ -84,15 +100,18 @@ class SamplingMethod(metaclass=SamplingMethodMeta):
     @abstractmethod
     def build(self, snapshot, helpers, *args, **kwargs):
         """
-        Returns the snapshot, and two functions: `initialize` and `update`.
-        `initialize` is intended to allocate any run time information required
-        by `update`, while `update` is intended to be called after each call to
-        the wrapped context's `run` method.
+        Returns the snapshot, and two functions, ``initialize`` and ``update``.
+
+        The ``initialize`` function is intended to allocate any run-time
+        information required by the ``update`` function. The ``update``
+        function is called after each integration step, that is, after each
+        call to the wrapped context's ``run`` method.
         """
-        pass
 
 
 class GriddedSamplingMethod(SamplingMethod):
+    """Base class for sampling methods that use grids."""
+
     __special_args__ = {"grid"}
 
     def __init__(self, cvs, grid, **kwargs):
@@ -115,6 +134,8 @@ class GriddedSamplingMethod(SamplingMethod):
 
 
 class NNSamplingMethod(GriddedSamplingMethod):
+    """Base class for sampling methods that use neural networks."""
+
     def __init__(self, cvs, grid, topology, **kwargs):
         super().__init__(cvs, grid, **kwargs)
         self.topology = topology
@@ -128,8 +149,17 @@ class NNSamplingMethod(GriddedSamplingMethod):
 #  ==============
 
 
+@dispatch.abstract
+def run(method_or_result, context_generator, timesteps, **kwargs):
+    """
+    Runs a single or multiple replicas of a simulation with the specified sampling method.
+
+    **Note**: Many specializations for this method are provided.
+    """
+
+
 @dispatch
-def run(
+def run(  # noqa: F811 # pylint: disable=C0116,E0102
     method: SamplingMethod,
     context_generator: Callable,
     timesteps: Union[int, float],
@@ -139,48 +169,46 @@ def run(
     config: ReplicasConfiguration = ReplicasConfiguration(),
     **kwargs,
 ):
-    """
-    Base implementation for running a single simulation with the specified `SamplingMethod`.
+    # """
+    # Parameters
+    # ----------
 
-    Parameters
-    ----------
+    # method_or_result: Union[SamplingMethod, Result]
 
-    method: SamplingMethod
+    # context_generator: Callable
+    #     User defined function that sets up a simulation context with the backend.
+    #     Must return an instance of hoomd.context.SimulationContext for HOOMD-blue
+    #     and openmm.Simulation for OpenMM. The function gets context_args
+    #     unpacked for additional user arguments.
 
-    context_generator: Callable
-        User defined function that sets up a simulation context with the backend.
-        Must return an instance of `hoomd.context.SimulationContext` for HOOMD-blue
-        and `openmm.Simulation` for OpenMM. The function gets `context_args`
-        unpacked for additional user arguments.
+    # timesteps: int
+    #     Number of time steps the simulation is running.
 
-    timesteps: int
-        Number of time steps the simulation is running.
+    # callback: Optional[Callable] = None
+    #     Allows for user defined actions into the simulation workflow of the method.
+    #     kwargs gets passed to the backend run function.
 
-    callback: Optional[Callable] = None
-        Allows for user defined actions into the simulation workflow of the method.
-        `kwargs` gets passed to the backend `run` function.
+    # context_args: dict = {}
+    #     Arguments to pass down to context_generator to setup the simulation context.
 
-    context_args: dict = {}
-        Arguments to pass down to `context_generator` to setup the simulation context.
+    # post_run_action: Optional[Callable] = None
+    #     Callable function that enables actions after the run execution of PySAGES.
+    #     Actions are executed inside the generated context. Example uses for this
+    #     include writing a final configuration file. This function gets context_args
+    #     unpacked just like context_generator.
 
-    post_run_action: Optional[Callable] = None
-        Callable function that enables actions after the run execution of PySAGES.
-        Actions are executed inside the generated context. Example uses for this
-        include writing a final configuration file. This function gets `context_args`
-        unpacked just like `context_generator`.
-
-    config: ReplicasConfiguration = ReplicasConfiguration()
-        Specifies the number of replicas of the simulation to generate.
-        It also contains an `executor` which will manage different process
-        or threads in case the multiple simulation are to be run in parallel.
-        Defaults to `ReplicasConfiguration(1, SerialExecutor())`,
-        which means only one simulation is run.
-    """
+    # config: ReplicasConfiguration = ReplicasConfiguration()
+    #     Specifies the number of replicas of the simulation to generate.
+    #     It also contains an executor which will manage different process
+    #     or threads in case the multiple simulation are to be run in parallel.
+    #     Defaults to ReplicasConfiguration(1, SerialExecutor()),
+    #     which means only one simulation is run.
+    # """
     timesteps = int(timesteps)
 
     def submit_work(executor, method, callback):
         return executor.submit(
-            _run,
+            _run_replica,
             method,
             context_generator,
             timesteps,
@@ -206,30 +234,29 @@ def run(  # noqa: F811 # pylint: disable=C0116,E0102
     timesteps: Union[int, float],
     **kwargs,
 ):
-    """
-    Alternative interface for running a simulation from a `SamplingContext`.
+    # """
+    # Alternative interface for running a simulation from a SamplingContext.
 
-    Parameters
-    ----------
+    # Parameters
+    # ----------
+    # sampling_context: SamplingContext
+    #     Instance of the simulation context of one of the supported backends
+    #     wrapped as a SamplingContext.
+    # timesteps: int
+    #     Number of time steps the simulation is running.
+    # kwargs: dict
+    #     These gets passed to the backend run function.
 
-    sampling_context: SamplingContext
-        Instance of the simulation context of one of the supported backends
-        wrapped as a `SamplingContext`.
-
-    timesteps: int
-        Number of time steps the simulation is running.
-
-    kwargs: dict
-        These gets passed to the backend `run` function.
-
-    NOTE: This interface supports only single replica runs.
-    """
+    # Notes
+    # -----
+    # This interface supports only single replica runs.
+    # """
     method = sampling_context.method
     method_type = type(method)
     if has_custom_run(method_type):
         raise RuntimeError(
             f"Method {method_type} is not compatible with the SamplingContext interface "
-            "use `pysages.run(method, context_generator, timesteps)` instead."
+            "use pysages.run(method, context_generator, timesteps) instead."
         )
 
     timesteps = int(timesteps)
@@ -252,6 +279,9 @@ def run(  # noqa: F811 # pylint: disable=C0116,E0102
     config: ReplicasConfiguration = ReplicasConfiguration(),
     **kwargs,
 ):
+    # """
+    # Restart a simulation from a previously stored result.
+    # """
     method = result.method
     timesteps = int(timesteps)
     callbacks_ = result.callbacks
@@ -259,7 +289,7 @@ def run(  # noqa: F811 # pylint: disable=C0116,E0102
 
     def submit_work(executor, result):
         return executor.submit(
-            _run,
+            _run_replica,
             result,
             context_generator,
             timesteps,
@@ -280,16 +310,14 @@ def run(  # noqa: F811 # pylint: disable=C0116,E0102
     return Result(method, states, callbacks, snapshots)
 
 
-def _run(method, *args, **kwargs):
+def _run_replica(method, *args, **kwargs):
     # Trampoline method to enable multiple replicas to be run with mpi4py.
-    run = methods_dispatch._functions["run"]
+    run = dispatch_table(dispatch)["_run"]
     return run(method, *args, **kwargs)
 
 
-# We use `methods_dispatch` instead of the global dispatcher `dispatch` to
-# separate the definitions for a single run vs multiple replica simulations.
-@methods_dispatch
-def run(  # noqa: F811 # pylint: disable=C0116,E0102
+@dispatch
+def _run(  # noqa: F811 # pylint: disable=C0116,E0102
     method: SamplingMethod,
     context_generator: Callable,
     timesteps: Union[int, float],
@@ -328,7 +356,7 @@ def run(  # noqa: F811 # pylint: disable=C0116,E0102
         include writing a final configuration file. This function gets `context_args`
         unpacked just like `context_generator`.
 
-    *Note*: All arguments must be pickable.
+    **Note**: All arguments must be pickable.
     """
     timesteps = int(timesteps)
 
@@ -344,8 +372,8 @@ def run(  # noqa: F811 # pylint: disable=C0116,E0102
     return ReplicaResult(method, sampler.state, callback, sampler.take_snapshot())
 
 
-@methods_dispatch
-def run(  # noqa: F811 # pylint: disable=C0116,E0102
+@dispatch
+def _run(  # noqa: F811 # pylint: disable=C0116,E0102
     result: ReplicaResult,
     context_generator: Callable,
     timesteps: Union[int, float],
@@ -418,9 +446,11 @@ def get_method(result: Result):  # noqa: F811 # pylint: disable=C0116,E0102
 
 
 def has_custom_run(method: type):
-    """Determine if `method` has a specialized `run` implementation."""
+    """
+    Determine if ``method`` has a specialized ``run`` implementation.
+    """
     custom_run_methods = set()
-    for sig in dispatch._functions["run"].methods.keys():
+    for sig in dispatch_table(dispatch)["run"].methods.keys():
         custom_run_methods.update(sig.types[0].get_types())
     return method in custom_run_methods
 

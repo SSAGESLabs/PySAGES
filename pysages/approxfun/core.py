@@ -5,14 +5,14 @@ from abc import ABC
 from dataclasses import dataclass
 from functools import partial
 from itertools import product
-from typing import NamedTuple
 
 from jax import jit
 from jax import numpy as np
 from jax import vmap
 
 from pysages.grids import Chebyshev, Grid
-from pysages.utils import Float, JaxArray, dispatch
+from pysages.typing import JaxArray, NamedTuple
+from pysages.utils import dispatch
 
 
 class Fun(NamedTuple):
@@ -23,7 +23,7 @@ class Fun(NamedTuple):
 
     scale: JaxArray
     coefficients: JaxArray
-    c0: Float
+    c0: float
 
 
 @dataclass

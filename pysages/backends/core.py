@@ -2,9 +2,8 @@
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 from importlib import import_module
-from typing import Any, Callable, NamedTuple, Optional
 
-from pysages.utils import Float, JaxArray
+from pysages.typing import Any, Callable, JaxArray, NamedTuple, Optional
 
 JaxMDState = Any
 
@@ -48,14 +47,14 @@ class JaxMDContext(NamedTuple):
     box: JaxArray
         Affine transformation from a unit hypercube to the simulation box.
 
-    dt: Float
+    dt: float
         Step size of the simulation.
     """
 
     init_fn: Callable[..., JaxMDContextState]
     step_fn: Callable[..., JaxMDContextState]
     box: JaxArray
-    dt: Float
+    dt: float
 
 
 class SamplingContext:

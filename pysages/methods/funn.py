@@ -15,7 +15,6 @@ appropriate method.
 """
 
 from functools import partial
-from typing import NamedTuple, Tuple
 
 from jax import jit
 from jax import numpy as np
@@ -34,7 +33,8 @@ from pysages.ml.objectives import L2Regularization
 from pysages.ml.optimizers import LevenbergMarquardt
 from pysages.ml.training import NNData, build_fitting_function, convolve, normalize
 from pysages.ml.utils import blackman_kernel, pack, unpack
-from pysages.utils import Bool, Int, JaxArray, dispatch, only_or_identity, solve_pos_def
+from pysages.typing import JaxArray, NamedTuple, Tuple
+from pysages.utils import dispatch, only_or_identity, solve_pos_def
 
 
 class FUNNState(NamedTuple):
@@ -78,7 +78,7 @@ class FUNNState(NamedTuple):
     Wp: JaxArray
     Wp_: JaxArray
     nn: NNData
-    nstep: Int
+    nstep: int
 
     def __repr__(self):
         return repr("PySAGES " + type(self).__name__)
@@ -90,7 +90,7 @@ class PartialFUNNState(NamedTuple):
     Fsum: JaxArray
     ind: Tuple
     nn: NNData
-    pred: Bool
+    pred: bool
 
 
 class FUNN(NNSamplingMethod):

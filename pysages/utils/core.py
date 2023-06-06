@@ -2,21 +2,15 @@
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 from copy import deepcopy
-from typing import Union
 
 import numpy
 from jax import numpy as np
 from plum import Dispatcher
 
-from pysages.utils.compat import JaxArray
+from pysages.typing import JaxArray, Scalar
 
 # PySAGES main dispatcher
 dispatch = Dispatcher()
-
-Bool = Union[JaxArray, bool]
-Float = Union[JaxArray, float]
-Int = Union[JaxArray, int]
-Scalar = Union[None, bool, int, float]
 
 
 class ToCPU:

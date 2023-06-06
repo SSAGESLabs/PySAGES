@@ -13,8 +13,6 @@ simulation, which is done from the continuous approximation to the generalized m
 provided by the basis functions expansion.
 """
 
-from typing import NamedTuple, Tuple
-
 from jax import jit
 from jax import numpy as np
 from jax.lax import cond
@@ -31,7 +29,8 @@ from pysages.grids import Chebyshev, Grid, build_indexer, convert
 from pysages.methods.core import GriddedSamplingMethod, Result, generalize
 from pysages.methods.restraints import apply_restraints
 from pysages.methods.utils import numpyfy_vals
-from pysages.utils import Bool, Int, JaxArray, dispatch, solve_pos_def
+from pysages.typing import JaxArray, NamedTuple, Tuple
+from pysages.utils import dispatch, solve_pos_def
 
 
 class SpectralABFState(NamedTuple):
@@ -64,7 +63,7 @@ class SpectralABFState(NamedTuple):
         The value of `Wp` for the previous integration step.
 
     fun: Fun
-        Object that holds the coeffients of the basis functions
+        Object that holds the coefficients of the basis functions
         approximation to the free energy.
 
     nstep: int
@@ -79,7 +78,7 @@ class SpectralABFState(NamedTuple):
     Wp: JaxArray
     Wp_: JaxArray
     fun: Fun
-    nstep: Int
+    nstep: int
 
     def __repr__(self):
         return repr("PySAGES " + type(self).__name__)
@@ -91,7 +90,7 @@ class PartialSpectralABFState(NamedTuple):
     Fsum: JaxArray
     ind: Tuple
     fun: Fun
-    pred: Bool
+    pred: bool
 
 
 class SpectralABF(GriddedSamplingMethod):
@@ -203,7 +202,7 @@ def _spectral_abf(method, snapshot, helpers):
 def build_free_energy_fitter(method: SpectralABF, fit):
     """
     Returns a function that given a `SpectralABFState` performs a least squares fit of the
-    generalized average forces for finding the coeffients of a basis functions expansion
+    generalized average forces for finding the coefficients of a basis functions expansion
     of the free energy.
     """
 
@@ -224,7 +223,7 @@ def build_free_energy_fitter(method: SpectralABF, fit):
 @dispatch
 def build_force_estimator(method: SpectralABF):
     """
-    Returns a function that given the coeffients of basis functions expansion and a CV
+    Returns a function that given the coefficients of basis functions expansion and a CV
     value, evaluates the function approximation to the gradient of the free energy.
     """
     N = method.N

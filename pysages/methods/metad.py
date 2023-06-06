@@ -6,8 +6,6 @@ Implementation of Standard and Well-tempered Metadynamics
 both with optional support for grids.
 """
 
-from typing import NamedTuple, Optional
-
 from jax import grad, jit
 from jax import numpy as np
 from jax import value_and_grad, vmap
@@ -19,7 +17,8 @@ from pysages.grids import build_indexer
 from pysages.methods.core import GriddedSamplingMethod, Result, generalize
 from pysages.methods.restraints import apply_restraints
 from pysages.methods.utils import numpyfy_vals
-from pysages.utils import JaxArray, dispatch, gaussian, identity
+from pysages.typing import JaxArray, NamedTuple, Optional
+from pysages.utils import dispatch, gaussian, identity
 
 
 class MetadynamicsState(NamedTuple):
