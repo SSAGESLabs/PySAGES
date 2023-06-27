@@ -72,7 +72,7 @@ def main():
     #sampler = lammps_dlext.FixDLExt(context, args)
 
     # attempt to get the atom positions
-    #x = sampler.positions()
+    x = lammps_dlext.positions(view, lammps_dlext.kOnHost)
 
     #raw_result = pysages.run(method, generate_context, timesteps, callback)
     #print(np.asarray(raw_result.callbacks[0].data))
