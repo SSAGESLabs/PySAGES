@@ -6,20 +6,18 @@
 import importlib
 from functools import partial
 from typing import Callable
-from warnings import warn
 
-import lammps
-from lammps import lammps
+from lammps import dlext
 from lammps.dlext import (
-    AccessLocation,
-    AccessMode,
-    DLExtSampler,
+    ExecutionSpace,
+    FixDLExt,
+    LAMMPSView,
 )
 from jax import jit
 from jax import numpy as np
 from jax.dlpack import from_dlpack as asarray
 
-from pysages.backends.core import ContextWrapper
+from pysages.backends.core import SamplingContext
 from pysages.backends.snapshot import (
     Box,
     HelperMethods,
@@ -28,38 +26,19 @@ from pysages.backends.snapshot import (
     build_data_querier,
 )
 from pysages.backends.snapshot import restore as _restore
-from pysages.methods import SamplingMethod
 from pysages.utils import check_device_array, copy
 
-# TODO: Figure out a way to automatically tie the lifetime of Sampler
-# objects to the contexts they bind to
-CONTEXTS_SAMPLERS = {}
-
-# need some API from context (context = lammps(cmdargs=args))
-def is_on_gpu(context):
-    on_gpu = False
-    pkg_kokkos_enabled = context.has_package('KOKKOS')
-    if pkg_kokkos_enabled == True:
-        kokkos_backends = context.accelerator_config["KOKKOS"]
-        if 'cuda' in kokkos_backends["api"]:
-            on_gpu = True
-    return on_gpu
-
-# return a functor
-def get_run_method(context):
-    def execute_run_cmd(ntimesteps, **kwargs):
-      context.command(f"run {ntimesteps}")
-    #return execute_run_cmd
-    return context.command
 
 def get_dimension(context):
     return context.extract_setting("dimension")
 
+
 def get_timestep(context):
     return context.extract_global("dt")
 
+
 def get_global_box(context):
-    boxlo, boxhi, xy, yz, xz, periodicity, _ = context.extract_box()
+    boxlo, boxhi, xy, yz, xz, *_ = context.extract_box()
     Lx = boxhi[0] - boxlo[0]
     Ly = boxhi[1] - boxlo[1]
     Lz = boxhi[2] - boxlo[2]
@@ -67,110 +46,86 @@ def get_global_box(context):
     H = ((Lx, xy * Ly, xz * Lz), (0.0, Ly, yz * Lz), (0.0, 0.0, Lz))
     return H, origin
 
+
 def set_post_force_hook(context, post_force_hook):
     # set_fix_external_callback
     context.set_fix_external_callback(post_force_hook)
 
+
 # DLExtSampler is exported from lammps_dlext
-class Sampler(DLExtSampler):
-    """ def __init__(self, method_bundle, bias, callback: Callable, restore):
-        # method_bundle returned from the sampling method's build()
+class Sampler(FixDLExt):
+    def __init__(self, context, method_bundle, bias, callback: Callable, restore):
+        super().__init__(context, "1 all dlext space device".split())
+
         initial_snapshot, initialize, method_update = method_bundle
 
-        def update(positions, velocities, forces, tags, images, timestep):
-            snapshot = self._pack_snapshot(positions, velocities, forces, tags, images)
-            self.state = method_update(snapshot, self.state)
-            self.bias(snapshot, self.state)
+        def update(timestep):
+            self.state = method_update(self.snapshot, self.state)
+            self.bias(self.snapshot, self.state)
             if self.callback:
-                self.callback(snapshot, self.state, timestep)
+                self.callback(self.snapshot, self.state, timestep)
 
-        super().__init__(update, default_location(), AccessMode.Read)
+        self.set_callback(update)
         self.state = initialize()
-        self.callback = callback
         self.bias = bias
-        self.box = initial_snapshot.box
+        self.callback = callback
+        self.snapshot = initial_snapshot
         self.dt = initial_snapshot.dt
-        self._restore = restore
- """
-    def __init__(self, context, sampling_method, callback: Callable):
-        helpers, restore, bias = build_helpers(context, sampling_method)
-
-        # take a simulation snapshot from the context
-        self.context = context
-        with context:
-            snapshot = self.take_snapshot()
-
-        method_bundle = sampling_method.build(snapshot, helpers)
-        sync_and_bias = partial(bias, sync_backend=None)
-      
-        self.callback = callback
-        self.bias = bias
+        self.box = initial_snapshot.box
         self._restore = restore
 
     def restore(self, prev_snapshot):
-        def restore_callback(positions, velocities, forces, tags, images, n):
-            snapshot = self._pack_snapshot(positions, velocities, forces, tags, images)
-            self._restore(snapshot, prev_snapshot)
-
-        # here Sampler forward_data() just overwrites the data with the previously stored snapshot
-        #    and does not move forward (nsteps = 0)
-        self.forward_data(restore_callback, default_location(), AccessMode.Overwrite, 0)
+        self._restore(self.snapshot, prev_snapshot)
 
     def take_snapshot(self):
-        container = []
+        location = default_location()
 
-        def snapshot_callback(positions, velocities, forces, tags, images, n):
-            snapshot = self._pack_snapshot(positions, velocities, forces, tags, images)
-            container.append(copy(snapshot))
+        positions = copy(asarray(dlext.positions(self.view, location)))
+        types = copy(asarray(dlext.types(self.view, location)))
+        velocities = copy(asarray(dlext.velocities(self.view, location)))
+        masses = copy(asarray(dlext.masses(self.view, location)))
+        forces = copy(asarray(dlext.forces(self.view, location)))
+        tags = copy(asarray(dlext.tags(self.view, location)))
+        imgs = copy(asarray(dlext.images(self.view, location)))
 
-        self.forward_data(snapshot_callback, default_location(), AccessMode.Read, 0)
-        return container[0]
+        vel_mass = (velocities, masses[types])
 
-    def _pack_snapshot(self, positions, velocities, forces, tags, images):
-        return Snapshot(
-            asarray(positions),
-            asarray(velocities),
-            asarray(forces),
-            asarray(tags),
-            asarray(images),
-            self.box,
-            self.dt,
-        )
+        return Snapshot(positions, vel_mass, forces, tags, imgs, self.box, self.dt)
 
 
-if hasattr(AccessLocation, "OnDevice"):
+if hasattr(ExecutionSpace, "kOnDevice"):
 
     def default_location():
-        return AccessLocation.OnDevice
+        return ExecutionSpace.kOnDevice
 
 else:
 
     def default_location():
-        return AccessLocation.OnHost
+        return ExecutionSpace.kOnHost
+
 
 # build a Snapshot object that contains all the tensors from the context
-# 
-""" def take_snapshot(wrapped_context, location=default_location()):
-    context = wrapped_context
+def take_snapshot(sampling_context, location=default_location()):
+    context = sampling_context.context
+    view = sampling_context.view
 
-    # asarray needs argument of type DLManagedTensorPtr 
-    # It makes sense to be able have these get functions work on context rather than Sampler
-    positions =  copy(asarray(get_positions(context, location, AccessMode.Read)))
-    types =      copy(asarray(get_types(context, location, AccessMode.Read)))
-    velocities = copy(asarray(get_velocities(context, location, AccessMode.Read)))
-    net_forces = copy(asarray(get_net_forces(context, location, AccessMode.ReadWrite)))
-    tags =       copy(asarray(get_tags(context, location, AccessMode.Read)))
-    imgs =       copy(asarray(get_images(context, location, AccessMode.Read)))
+    positions = copy(asarray(dlext.positions(view, location)))
+    types = copy(asarray(dlext.types(view, location)))
+    velocities = copy(asarray(dlext.velocities(view, location)))
+    masses = copy(asarray(dlext.masses(view, location)))
+    net_forces = copy(asarray(dlext.forces(view, location)))
+    tags = copy(asarray(dlext.tags(view, location)))
+    imgs = copy(asarray(dlext.images(view, location)))
 
-    #rtags = copy(asarray(context.get_rtags(context, location, AccessMode.Read)))
+    vel_mass = (velocities, masses[types])
 
     check_device_array(positions)  # currently, we only support `DeviceArray`s
 
     H, origin = get_global_box(context)
     dt = get_timestep(context)
 
-    return Snapshot(positions, velocities, net_forces, tags, imgs, Box(H, origin), dt)
- """
+    return Snapshot(positions, vel_mass, net_forces, tags, imgs, Box(H, origin), dt)
+
 
 def build_snapshot_methods(sampling_method):
     if sampling_method.requires_box_unwrapping:
@@ -190,8 +145,7 @@ def build_snapshot_methods(sampling_method):
 
     @jit
     def momenta(snapshot):
-        M = snapshot.vel_mass[:, 3:]
-        V = snapshot.vel_mass[:, :3]
+        V, M = snapshot.vel_mass
         return (M * V).flatten()
 
     @jit
@@ -201,10 +155,14 @@ def build_snapshot_methods(sampling_method):
     return SnapshotMethods(jit(positions), indices, momenta, masses)
 
 
-def build_helpers(context, sampling_method):
+def build_helpers(sampling_context):
+    context = sampling_context.context
+    sampling_method = sampling_context.method
+    view = sampling_context.view
+
     # Depending on the device being used we need to use either cupy or numpy
     # (or numba) to generate a view of jax's DeviceArrays
-    if is_on_gpu(context):
+    if view.has_kokkos_cuda_enabled():
         cupy = importlib.import_module("cupy")
         view = cupy.asarray
 
@@ -239,29 +197,21 @@ def build_helpers(context, sampling_method):
     return helpers, restore, bias
 
 
-def bind(
-    wrapped_context: ContextWrapper,  sampling_method: SamplingMethod, callback: Callable, **kwargs
-):
-    context = wrapped_context.context
-    wrapped_context.view = None
-    wrapped_context.run = get_run_method(context)
-    #helpers, restore, bias = build_helpers(context, sampling_method)
+def bind(sampling_context: SamplingContext, callback: Callable, **kwargs):
+    context = sampling_context.context
+    sampling_method = sampling_context.method
+    view = LAMMPSView(context)
+    sampling_context.view = view
+    sampling_context.run = lambda n, **kwargs: context.command(f"run {n}")
+    helpers, restore, bias = build_helpers(sampling_context)
 
-    # take a simulation snapshot from the context
-    #with context:
-    #    snapshot = take_snapshot(wrapped_context)
+    snapshot = take_snapshot(sampling_context)
 
-    # the build() member function of a specific sampling method (e.g. see abf.py) returns a triplet:
-    #   1) initial_snapshot (object)  : initial configuration of the simulation context
-    #   2) initialize()     (function): returns the initial state of the sampling method
-    #   3) method_update    (function): generalize() update a state depending on JIT or not
-
-    #method_bundle = sampling_method.build(snapshot, helpers)
-    #sync_and_bias = partial(bias, sync_backend=None)
-
-    # create an instance of Sampler (which is DLExtSampler)
-    #sampler = Sampler(context, method_bundle, sync_and_bias, callback, restore)
-    sampler = Sampler(context, sampling_method, callback)
-    # and connect it with the LAMMPS object (context)
-    #set_post_force_hook(context, sampler)
-    return sampler
+    # the build() member function of a specific sampling method
+    # (e.g. see abf.py) returns a triplet:
+    #   initial_snapshot (object)  : initial configuration of the simulation context
+    #   initialize       (function): returns the initial state of the sampling method
+    #   method_update    (function): generalize() update a state depending on JIT or not
+    method_bundle = sampling_method.build(snapshot, helpers)
+    sync_and_bias = partial(bias, sync_backend=view.synchronize)
+    return Sampler(view, method_bundle, sync_and_bias, callback, restore)

@@ -76,10 +76,10 @@ class ContextWrapper:
             self._backend_name = "hoomd"
         elif isinstance(context, JaxMDContext):
             self._backend_name = "jax-md"
-        elif module_name.startswith("simtk.openmm") or module_name.startswith("openmm"):
-            self._backend_name = "openmm"
         elif module_name.startswith("lammps"):
             self._backend_name = "lammps"            
+        elif module_name.startswith("simtk.openmm") or module_name.startswith("openmm"):
+            self._backend_name = "openmm"
 
         if self._backend_name is not None:
             self._backend = import_module("." + self._backend_name, package="pysages.backends")
