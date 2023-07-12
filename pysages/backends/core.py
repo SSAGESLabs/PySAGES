@@ -2,9 +2,8 @@
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 from importlib import import_module
-from typing import Any, Callable, NamedTuple, Optional
 
-from pysages.utils import Float, JaxArray
+from pysages.typing import Any, Callable, JaxArray, NamedTuple, Optional
 
 JaxMDState = Any
 
@@ -48,28 +47,37 @@ class JaxMDContext(NamedTuple):
     box: JaxArray
         Affine transformation from a unit hypercube to the simulation box.
 
-    dt: Float
+    dt: float
         Step size of the simulation.
     """
 
     init_fn: Callable[..., JaxMDContextState]
     step_fn: Callable[..., JaxMDContextState]
     box: JaxArray
-    dt: Float
+    dt: float
 
 
-class ContextWrapper:
+class SamplingContext:
     """
     PySAGES simulation context. Manages access to the backend-dependent simulation context.
     """
 
-    def __init__(self, context, sampling_method, callback: Callable = None, **kwargs):
+    def __init__(
+        self,
+        sampling_method,
+        context_generator: Callable,
+        callback: Optional[Callable] = None,
+        context_args: dict = {},
+        **kwargs,
+    ):
         """
         Automatically identifies the backend and binds the sampling method to
         the simulation context.
         """
         self._backend_name = None
+        context = context_generator(**context_args)
         module_name = type(context).__module__
+
         if module_name.startswith("ase.md"):
             self._backend_name = "ase"
         elif module_name.startswith("hoomd"):
@@ -81,30 +89,25 @@ class ContextWrapper:
         elif module_name.startswith("simtk.openmm") or module_name.startswith("openmm"):
             self._backend_name = "openmm"
 
-        if self._backend_name is not None:
-            self._backend = import_module("." + self._backend_name, package="pysages.backends")
-        else:
+        if self._backend_name is None:
             backends = ", ".join(supported_backends())
-            raise ValueError(
-                f"Invalid backend {self._backend_name}: supported options are ({backends})"
-            )
+            raise ValueError(f"Invalid backend {module_name}: supported options are ({backends})")
 
         self.context = context
+        self.method = sampling_method
         self.view = None
         self.run = None
-        self.sampler = self._backend.bind(self, sampling_method, callback, **kwargs)
+
+        backend = import_module("." + self._backend_name, package="pysages.backends")
+        self.sampler = backend.bind(self, callback, **kwargs)
 
         # `self.view` and `self.run` *must* be set by the backend bind function.
         assert self.view is not None
         assert self.run is not None
 
-        self.synchronize = self.view.synchronize
-
-    def get_backend_name(self):
+    @property
+    def backend_name(self):
         return self._backend_name
-
-    def get_backend_module(self):
-        return self._backend
 
     def __enter__(self):
         """

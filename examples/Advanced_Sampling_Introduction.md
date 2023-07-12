@@ -7,7 +7,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.14.4
+      jupytext_version: 1.14.6
   kernelspec:
     display_name: Python 3
     name: python3
@@ -53,12 +53,6 @@ mkdir -p $PYSAGES_ENV .
 unzip -qquo pysages-env.zip -d $PYSAGES_ENV
 ```
 
-```bash id="LlVSU_-FoD4w"
-apt-cache policy libcudnn8 &> /dev/null
-apt install --allow-change-held-packages libcudnn8=8.4.1.50-1+cuda11.6 &> /dev/null
-update-alternatives --auto libcudnn &> /dev/null
-```
-
 ```python id="EMAWp8VloIk4"
 import os
 import sys
@@ -82,7 +76,7 @@ First, we install the jaxlib version that matches the CUDA installation of this 
 ```bash id="vK0RZtbroQWe"
 
 pip install -q --upgrade pip
-# Installs the wheel compatible with CUDA 11 and cuDNN 8.2 or newer.
+# Installs the wheel compatible with CUDA
 pip install -q --upgrade "jax[cuda]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html &> /dev/null
 ```
 
@@ -96,9 +90,7 @@ Now we can finally install PySAGES. We clone the newest version from [here](http
 
 rm -rf PySAGES
 git clone https://github.com/SSAGESLabs/PySAGES.git &> /dev/null
-#git clone https://github.com/pabloferz/PySAGES.git
 cd PySAGES
-#git checkout non-group-cvs
 pip install -q . &> /dev/null
 ```
 
@@ -726,7 +718,7 @@ $$\int \text{d} \xi p_i^b(\xi) p_{i+1}^b(\xi) \gg 0$$
 
 ```python colab={"base_uri": "https://localhost:8080/"} id="CtaNDUQ0SrTZ" outputId="3255e692-bfbd-4f97-cc21-8659aa2b5b37"
 from pysages.methods import UmbrellaIntegration
-method = UmbrellaIntegration(cvs, ksprings=kspring, centers=centers, hist_periods=100)
+method = UmbrellaIntegration(cvs, kspring, centers, 100)
 result = pysages.run(method, generate_context, int(1e5))
 ```
 

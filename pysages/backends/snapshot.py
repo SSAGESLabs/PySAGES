@@ -1,12 +1,11 @@
 # SPDX-License-Identifier: MIT
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
-from typing import Callable, NamedTuple, Optional, Tuple, Union
-
 from jax import jit
 from jax import numpy as np
 
-from pysages.utils import JaxArray, copy, dispatch
+from pysages.typing import Callable, JaxArray, NamedTuple, Optional, Tuple, Union
+from pysages.utils import copy, dispatch
 
 AbstractBox = NamedTuple("AbstractBox", [("H", JaxArray), ("origin", JaxArray)])
 

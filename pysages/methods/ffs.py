@@ -11,14 +11,14 @@ The method allows to calculate rate constants and generate transition paths.
 """
 
 import sys
-from typing import Callable, NamedTuple, Optional
 from warnings import warn
 
 from jax import numpy as np
 
-from pysages.backends import ContextWrapper
+from pysages.backends import SamplingContext
 from pysages.methods.core import SamplingMethod, generalize
-from pysages.utils import JaxArray, dispatch
+from pysages.typing import Callable, JaxArray, NamedTuple, Optional
+from pysages.utils import dispatch
 
 
 class FFSState(NamedTuple):
@@ -61,7 +61,6 @@ class FFS(SamplingMethod):
         return _ffs(self, snapshot, helpers)
 
 
-# We override the default run method as FFS is algorithmically fairly different
 @dispatch
 def run(
     method: FFS,
@@ -75,68 +74,64 @@ def run(
     Nmax_replicas: int,
     verbose: bool = False,
     callback: Optional[Callable] = None,
-    context_args: Optional[dict] = None,
+    context_args: dict = {},
     **kwargs,
 ):
-    """
-    Direct version of the Forward Flux Sampling algorithm.
-    [Phys. Rev. Lett. 94, 018104 (2005)](https://doi.org/10.1103/PhysRevLett.94.018104)
-    [J. Chem. Phys. 124, 024102 (2006)](https://doi.org/10.1063/1.2140273)
+    # """
+    # Direct version of the Forward Flux Sampling algorithm.
+    # [Phys. Rev. Lett. 94, 018104 (2005)](https://doi.org/10.1103/PhysRevLett.94.018104)
+    # [J. Chem. Phys. 124, 024102 (2006)](https://doi.org/10.1063/1.2140273)
 
-    Arguments
-    ---------
-    method: FFS
+    # Arguments
+    # ---------
+    # method: FFS
 
-    context_generator: Callable
-        User defined function that sets up a simulation context with the backend.
-        Must return an instance of `hoomd.context.SimulationContext` for HOOMD-blue
-        and `simtk.openmm.Simulation` for OpenMM. The function gets `context_args`
-        unpacked for additional user arguments.
+    # context_generator: Callable
+    #     User defined function that sets up a simulation context with the backend.
+    #     Must return an instance of `hoomd.context.SimulationContext` for HOOMD-blue
+    #     and `simtk.openmm.Simulation` for OpenMM. The function gets `context_args`
+    #     unpacked for additional user arguments.
 
-    timesteps: int
-        Number of timesteps the simulation is running.
+    # timesteps: int
+    #     Number of timesteps the simulation is running.
 
-    dt: float
-        Timestep of the simulation
+    # dt: float
+    #     Timestep of the simulation
 
-    win_i: float
-        Initial window for the system
+    # win_i: float
+    #     Initial window for the system
 
-    win_l: float
-        Last window to be calculated in ffs
+    # win_l: float
+    #     Last window to be calculated in ffs
 
-    Nw: int
-        Number of equally spaced windows
+    # Nw: int
+    #     Number of equally spaced windows
 
-    sampling_steps_basin: int
-        Period for sampling configurations in the basin
+    # sampling_steps_basin: int
+    #     Period for sampling configurations in the basin
 
-    Nmax_replicas: int
-        Number of stored configuration for each window
+    # Nmax_replicas: int
+    #     Number of stored configuration for each window
 
-    verbose: bool
-        If True more information will be logged (useful for debbuging).
+    # verbose: bool
+    #     If True more information will be logged (useful for debbuging).
 
-    callback: Optional[Callable] = None
-        Allows for user defined actions into the simulation workflow of the method.
-        `kwargs` gets passed to the backend `run` function.
+    # callback: Optional[Callable] = None
+    #     Allows for user defined actions into the simulation workflow of the method.
+    #     `kwargs` gets passed to the backend `run` function.
 
-    context_args: Optional[dict] = None
-        Arguments to pass down to `context_generator` to setup the simulation context.
+    # context_args: dict = {}
+    #     Arguments to pass down to `context_generator` to setup the simulation context.
 
-    NOTE:
-        The current implementation runs a single simulation/replica,
-        but multiple concurrent simulations can be scripted on top of this.
-    """
+    # NOTE:
+    #     The current implementation runs a single simulation/replica,
+    #     but multiple concurrent simulations can be scripted on top of this.
+    # """
+    sampling_context = SamplingContext(method, context_generator, callback, context_args)
+    context_args["context"] = sampling_context.context
 
-    context_args = {} if context_args is None else context_args
-
-    context = context_generator(**context_args)
-    context_args["context"] = context
-    wrapped_context = ContextWrapper(context, method, callback)
-
-    with wrapped_context:
-        sampler = wrapped_context.sampler
+    with sampling_context:
+        sampler = sampling_context.sampler
         xi = sampler.state.xi.block_until_ready()
         windows = np.linspace(win_i, win_l, num=Nw)
 
@@ -144,7 +139,7 @@ def run(
         if not is_configuration_good:
             raise ValueError("Bad initial configuration")
 
-        run = wrapped_context.run
+        run = sampling_context.run
         helpers = method.helpers
         cv = method.cv
 
@@ -186,7 +181,7 @@ def run(
         write_to_file("# Flux Constant")
         write_to_file(K_t)
 
-    return wrapped_context.sampler.state
+    return sampling_context.sampler.state
 
 
 def _ffs(method, snapshot, helpers):

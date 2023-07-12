@@ -13,17 +13,20 @@ We aim to implement this:
 `Weinan, E., et. al. J. Chem. Phys. 126.16 (2007): 164103 <https://doi.org/10.1063/1.2720838>`_.
 """
 
-from typing import Callable, List, Optional, Union
-
 import numpy as np
-import plum
 from numpy.linalg import norm
 from scipy.interpolate import interp1d
 
 import pysages
-from pysages.methods.core import Result, SamplingMethod
+from pysages.methods.core import Result, SamplingMethod, get_method
 from pysages.methods.umbrella_integration import UmbrellaIntegration
-from pysages.methods.utils import SerialExecutor, listify, numpyfy_vals
+from pysages.methods.utils import (
+    SerialExecutor,
+    listify,
+    methods_dispatch,
+    numpyfy_vals,
+)
+from pysages.typing import Callable, List, Optional, Union
 from pysages.utils import dispatch
 
 
@@ -57,7 +60,14 @@ class SplineString(SamplingMethod):
     along the given path via umbrella integration.
     """
 
-    @plum.dispatch
+    umbrella_sampler = None
+    alpha = 1
+    metric = lambda x, y: norm(x - y)  # noqa: E731
+    spacing = None
+    freeze_idx = []
+    path_history = []
+
+    @methods_dispatch
     def __init__(
         self,
         cvs,
@@ -119,7 +129,7 @@ class SplineString(SamplingMethod):
         self.freeze_idx = freeze_idx
         self.path_history = []
 
-    @plum.dispatch
+    @methods_dispatch
     def __init__(  # noqa: F811 # pylint: disable=C0116,E0102
         self,
         umbrella_sampler: UmbrellaIntegration,
@@ -161,61 +171,69 @@ class SplineString(SamplingMethod):
         self.freeze_idx = freeze_idx
         self.path_history = []
 
+    def __getstate__(self):
+        args = (self.umbrella_sampler, self.alpha, self.metric, self.spacing, self.freeze_idx)
+        return (*args, self.path_history)
+
+    def __setstate__(self, state):
+        *args, path_history = state
+        self.__init__(*args)
+        self.path_history = path_history
+
     # We delegate the sampling work to UmbrellaIntegration
     def build(self):  # pylint: disable=arguments-differ
         pass
 
 
-@dispatch
+@dispatch(precedence=1)
 def run(  # pylint: disable=arguments-differ
-    method: SplineString,
+    method_or_result: Union[SplineString, Result[SplineString]],
     context_generator: Callable,
     timesteps: Union[int, float],
     stringsteps: Union[int, float],
-    context_args: Optional[dict] = None,
+    context_args: dict = {},
     post_run_action: Optional[Callable] = None,
     executor=SerialExecutor(),
-    executor_shutdown=True,
+    executor_shutdown: bool = True,
     **kwargs
 ):
-    """
-    Implementation of the spline interpolated (improved) string method.
+    # """
+    # Implementation of the spline interpolated (improved) string method.
 
-    Arguments
-    ---------
-    context_generator: Callable
-        User defined function that sets up a simulation context with the backend.
-        Must return an instance of `hoomd.conext.SimulationContext` for HOOMD-blue and
-        `openmm.Context` for OpenMM.
-        The function gets `context_args` unpacked for additional user args.
-        For each replica along the path, the argument `replica_num` in [0, ..., N-1]
-        is set in the `context_generator` to load the appropriate initial condition.
+    # Arguments
+    # ---------
+    # context_generator: Callable
+    #     User defined function that sets up a simulation context with the backend.
+    #     Must return an instance of `hoomd.conext.SimulationContext` for HOOMD-blue and
+    #     `openmm.Context` for OpenMM.
+    #     The function gets `context_args` unpacked for additional user args.
+    #     For each replica along the path, the argument `replica_num` in [0, ..., N-1]
+    #     is set in the `context_generator` to load the appropriate initial condition.
 
-    timesteps: int
-        Number of timesteps the simulation is running.
+    # timesteps: int
+    #     Number of timesteps the simulation is running.
 
-    stringsteps: int
-       Number of steps the string positions are iterated.
-       It is the user responsibility to ensure final convergence.
+    # stringsteps: int
+    #    Number of steps the string positions are iterated.
+    #    It is the user responsibility to ensure final convergence.
 
-    context_args: Optional[dict] = None
-        Arguments to pass down to `context_generator` to setup the simulation context.
+    # context_args: dict = {}
+    #     Arguments to pass down to `context_generator` to setup the simulation context.
 
-    kwargs:
-        Passed to the backend run function as additional user arguments.
+    # kwargs:
+    #     Passed to the backend run function as additional user arguments.
 
-    post_run_action: Optional[Callable] = None
-        Callable function that enables actions after the run execution of PySAGES.
-        Actions are executed inside the generated context.
-        Example uses for this include writing a final configuration file.
-        This function gets `context_args` unpacked just like `context_generator`.
+    # post_run_action: Optional[Callable] = None
+    #     Callable function that enables actions after the run execution of PySAGES.
+    #     Actions are executed inside the generated context.
+    #     Example uses for this include writing a final configuration file.
+    #     This function gets `context_args` unpacked just like `context_generator`.
 
-    * Note:
-        This method does not accept a user defined callback.
-    """
+    # **Note**: This method does not accept a user defined callback.
+    # """
+    method = get_method(method_or_result)
     timesteps = int(timesteps)
     stringsteps = int(stringsteps)
-    context_args = {} if context_args is None else context_args
     cv_shape = np.asarray(method.cvs).shape
 
     for step in range(stringsteps):
@@ -269,25 +287,28 @@ def run(  # pylint: disable=arguments-differ
             method.umbrella_sampler.submethods[i].center = new_centers[-1]
 
         method.path_history.append(new_centers)
-        string_result = Result(method, umbrella_result.states, umbrella_result.callbacks)
 
     if executor_shutdown:
         executor.shutdown()
 
-    return string_result
+    return Result(
+        method, umbrella_result.states, umbrella_result.callbacks, umbrella_result.snapshots
+    )
 
 
 @dispatch
 def analyze(result: Result[SplineString]):
-
-    umbrella_result = Result(result.method.umbrella_sampler, result.states, result.callbacks)
+    umbrella_result = Result(
+        result.method.umbrella_sampler, result.states, result.callbacks, result.snapshots
+    )
+    path_history = result.method.path_history
     ana = pysages.analyze(umbrella_result)
-    ana["path_history"] = result.method.path_history
+    ana["path_history"] = path_history
     path = []
     point_convergence = []
-    for i in range(len(result.method.path_history[-1])):
-        a = result.method.path_history[-2][i]
-        b = result.method.path_history[-1][i]
+    for i in range(len(path_history[-1])):
+        a = path_history[-2][i]
+        b = path_history[-1][i]
         point_convergence.append(result.method.metric(a, b))
         path.append(a)
     ana["point_convergence"] = point_convergence

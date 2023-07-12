@@ -15,7 +15,6 @@ as biasing force for the simulation.
 
 import numbers
 from functools import partial
-from typing import NamedTuple
 
 from jax import grad, jit
 from jax import numpy as np
@@ -32,7 +31,8 @@ from pysages.ml.objectives import L2Regularization
 from pysages.ml.optimizers import LevenbergMarquardt
 from pysages.ml.training import NNData, build_fitting_function, convolve, normalize
 from pysages.ml.utils import blackman_kernel, pack, unpack
-from pysages.utils import Int, JaxArray, dispatch
+from pysages.typing import JaxArray, NamedTuple
+from pysages.utils import dispatch
 
 
 class ANNState(NamedTuple):
@@ -70,7 +70,7 @@ class ANNState(NamedTuple):
     phi: JaxArray
     prob: JaxArray
     nn: NNData
-    nstep: Int
+    nstep: int
 
     def __repr__(self):
         return repr("PySAGES " + type(self).__name__)

@@ -14,13 +14,11 @@ The Hamiltonian is amended with a term
 biases the simulations around the collective variable :math:`\\xi_0`.
 """
 
-from typing import NamedTuple
-
 from jax import numpy as np
 
 from pysages.methods.bias import Bias
 from pysages.methods.core import generalize
-from pysages.utils import JaxArray
+from pysages.typing import JaxArray, NamedTuple
 
 
 class HarmonicBiasState(NamedTuple):

@@ -2,22 +2,15 @@
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 from copy import deepcopy
-from typing import Union
 
 import numpy
 from jax import numpy as np
 from plum import Dispatcher
 
-from pysages.utils.compat import JaxArray
+from pysages.typing import JaxArray, Scalar
 
 # PySAGES main dispatcher
 dispatch = Dispatcher()
-
-
-Bool = Union[JaxArray, bool]
-Float = Union[JaxArray, float]
-Int = Union[JaxArray, int]
-Scalar = Union[None, bool, int, float]
 
 
 class ToCPU:
@@ -51,6 +44,18 @@ def copy(x: JaxArray, _: ToCPU):  # noqa: F811 # pylint: disable=C0116,E0102
 
 def identity(x):
     return x
+
+
+def only_or_identity(seq):
+    """
+    Returns the only element of a sequence `seq` if its length is one,
+    otherwise returns `seq` itself.
+    """
+    return seq[0] if len(seq) == 1 else seq
+
+
+def eps(T: type = np.zeros(0).dtype):
+    return np.finfo(T).eps
 
 
 def row_sum(x):

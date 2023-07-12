@@ -3,13 +3,13 @@
 
 from dataclasses import dataclass
 from itertools import chain
-from typing import Callable, Optional
 
 from jax import numpy as np
 from jax.nn.initializers import variance_scaling
 
 from pysages.ml.utils import dispatch, rng_key
-from pysages.utils import JaxArray, try_import
+from pysages.typing import Callable, JaxArray, Optional
+from pysages.utils import try_import
 
 stax = try_import("jax.example_libraries.stax", "jax.experimental.stax")
 
@@ -26,7 +26,7 @@ class Model:
 
 
 @dataclass
-class AbstractMLP(Model):
+class MLPBase(Model):
     def __init__(self, indim, layers, seed):
         # Build initialization and application functions for the network
         init, apply = stax.serial(*layers)
@@ -38,7 +38,7 @@ class AbstractMLP(Model):
 
 
 @dataclass
-class MLP(AbstractMLP):
+class MLP(MLPBase):
     """
     Multilayer-perceptron network.
     """
@@ -78,7 +78,7 @@ class MLP(AbstractMLP):
 
 
 @dataclass
-class Siren(AbstractMLP):
+class Siren(MLPBase):
     """
     Siren network as decribed in [1]
 
