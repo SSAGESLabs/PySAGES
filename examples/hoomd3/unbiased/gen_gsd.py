@@ -20,7 +20,7 @@ def post_process_pos(snapshot):
 
 def get_snap(system):
     L = system.L
-    snapshot = gsd.hoomd.Snapshot()
+    snapshot = gsd.hoomd.Frame()
     snapshot.configuration.box = [L, L, L, 0, 0, 0]
 
     snapshot.particles.N = N = system.N

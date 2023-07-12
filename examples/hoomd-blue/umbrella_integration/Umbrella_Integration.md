@@ -107,7 +107,7 @@ The first step here is also to generate a simulation snapshot that can be used a
 <!-- #endregion -->
 
 ```python colab={"base_uri": "https://localhost:8080/"} id="QOrufad1RaMF" outputId="02f68f5a-54cc-435c-e3df-78f4826dc374"
-!pip install gsd
+!pip install gsd &> /dev/null
 import gsd
 import gsd.hoomd
 import numpy as np
@@ -125,7 +125,7 @@ def post_process_pos(snapshot):
 
 def get_snap(system):
     L = system.L
-    snapshot = gsd.hoomd.Snapshot()
+    snapshot = gsd.hoomd.Frame()
     snapshot.configuration.box = [L, L, L, 0, 0, 0]
 
     snapshot.particles.N = N = system.N
