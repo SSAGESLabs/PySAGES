@@ -56,7 +56,7 @@ def main(argv):
     snap = get_snap(system)
     snap = post_process_pos(snap)
     snap.particles.validate()
-    with gsd.hoomd.open("start.gsd", "wb") as f:
+    with gsd.hoomd.open("start.gsd", "w") as f:
         f.append(snap)
 
 
