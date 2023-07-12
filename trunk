@@ -8,7 +8,7 @@
 
 set -euo pipefail
 
-readonly TRUNK_LAUNCHER_VERSION="1.2.1"  # warning: this line is auto-updated
+readonly TRUNK_LAUNCHER_VERSION="1.2.4"  # warning: this line is auto-updated
 
 readonly SUCCESS_MARK="\033[0;32m✔\033[0m"
 readonly FAIL_MARK="\033[0;31m✘\033[0m"
@@ -16,9 +16,6 @@ readonly PROGRESS_MARKS=("⡿" "⢿" "⣻" "⣽" "⣾" "⣷" "⣯" "⣟")
 
 # This is how mktemp(1) decides where to create stuff in tmpfs.
 readonly TMPDIR="${TMPDIR:-/tmp}"
-
-readonly CLI_DIR="${HOME}/.cache/trunk/cli"
-mkdir -p "${CLI_DIR}"
 
 KERNEL=$(uname | tr "[:upper:]" "[:lower:]")
 readonly KERNEL
@@ -44,6 +41,19 @@ readonly TRUNK_LAUNCHER_DEBUG
 if [[ ${TRUNK_LAUNCHER_QUIET} != false ]]; then
   exec 3>&1 4>&2 &>/dev/null
 fi
+
+
+TRUNK_CACHE="${TRUNK_CACHE:-}"
+if [[ -n "${TRUNK_CACHE}" ]]; then
+  :
+elif [[ -n "${XDG_CACHE_HOME:-}" ]]; then
+  TRUNK_CACHE="${XDG_CACHE_HOME}/trunk"
+else
+  TRUNK_CACHE="${HOME}/.cache/trunk"
+fi
+readonly TRUNK_CACHE
+readonly CLI_DIR="${TRUNK_CACHE}/cli"
+mkdir -p "${CLI_DIR}"
 
 # platform check
 readonly MINIMUM_MACOS_VERSION="10.15"
@@ -331,7 +341,7 @@ download_cli() {
   if [[ ! -e ${OLD_TOOL_DIR} ]]; then
     ln -sf "${TOOL_PART}" "${OLD_TOOL_DIR}"
   fi
-  mv -n "${TMP_INSTALL_DIR}/trunk" "${TOOL_DIR}/"
+  mv -n "${TMP_INSTALL_DIR}/trunk" "${TOOL_DIR}/" || true
   rm -rf "${TMP_INSTALL_DIR}"
 }
 
@@ -361,27 +371,8 @@ readonly TOOL_PART="${version}-${PLATFORM}"
 readonly TOOL_DIR="${CLI_DIR}/${TOOL_PART}"
 
 if [[ ! -e ${TOOL_DIR}/trunk ]]; then
-  if [[ ${TRUNK_LAUNCHER_QUIET} == false && -n ${LATEST_FILE:-} ]]; then
-    read -rp "Would you like to download and run the latest version of trunk? (Y/n) " yn
-    case "${yn}" in
-    Yes | yes | Y | y | "") ;;
-    *) exit 1 ;;
-    esac
-  fi
-
   download_cli "${version}" "${version_sha256:-}"
-
-  # It looks better to have whitespace between the launcher download steps and the CLI invocation:
-  #
-  #   $ trunk check
-  #   ✔ Downloading Trunk 0.7.0-beta... done
-  #   ✔ Verifying Trunk sha256... done
-  #   ✔ Unpacking Trunk... done
-  #
-  #   Checking 100% [=============================================>]  30/30  1.4s
-  #
-  # so we insert an echo here
-  echo
+  echo # add newline between launcher and CLI output
 fi
 
 if [[ ${TRUNK_LAUNCHER_QUIET} != false ]]; then
@@ -395,7 +386,7 @@ fi
 ###############################################################################
 
 if [[ -n ${LATEST_FILE:-} ]]; then
-  mv -n "${LATEST_FILE}" "${TOOL_DIR}/version"
+  mv -n "${LATEST_FILE}" "${TOOL_DIR}/version" || true
 fi
 
 # NOTE: exec will overwrite the process image, so trap will not catch the exit signal.
