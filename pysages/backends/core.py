@@ -82,10 +82,12 @@ class SamplingContext:
             self._backend_name = "ase"
         elif module_name.startswith("hoomd"):
             self._backend_name = "hoomd"
-        elif module_name.startswith("simtk.openmm") or module_name.startswith("openmm"):
-            self._backend_name = "openmm"
         elif isinstance(context, JaxMDContext):
             self._backend_name = "jax-md"
+        elif module_name.startswith("lammps"):
+            self._backend_name = "lammps"
+        elif module_name.startswith("simtk.openmm") or module_name.startswith("openmm"):
+            self._backend_name = "openmm"
 
         if self._backend_name is None:
             backends = ", ".join(supported_backends())
@@ -113,14 +115,15 @@ class SamplingContext:
         """
         if hasattr(self.context, "__enter__"):
             return self.context.__enter__()
+        return self.context
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
         """
         Trampoline 'with statements' to the wrapped context when the backend supports it.
         """
         if hasattr(self.context, "__exit__"):
-            return self.context.__exit__(exc_type, exc_value, exc_traceback)
+            self.context.__exit__(exc_type, exc_value, exc_traceback)
 
 
 def supported_backends():
-    return ("ase", "hoomd", "jax-md", "openmm")
+    return ("ase", "hoomd", "jax-md", "lammps", "openmm")

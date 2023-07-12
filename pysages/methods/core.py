@@ -449,7 +449,7 @@ def has_custom_run(method: type):
     """
     Determine if ``method`` has a specialized ``run`` implementation.
     """
-    return has_method(dispatch_table(dispatch["run"]), method, 0)
+    return has_method(dispatch_table(dispatch)["run"], method, 0)
 
 
 def generalize(concrete_update, helpers, jit_compile=True):
