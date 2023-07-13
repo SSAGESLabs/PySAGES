@@ -56,13 +56,30 @@ if _plum_version_tuple < (2, 0, 0):
     def dispatch_table(dispatch):
         return dispatch._functions
 
+    def has_method(fn, T, index):
+        types_at_index = set()
+        for sig in fn.methods.keys():
+            types_at_index.update(sig.types[index].get_types())
+        return T in types_at_index
+
     is_generic_subclass = issubclass
 
 else:
     _bt = import_module("beartype.door")
+    _pm = import_module("plum")
 
     def dispatch_table(dispatch):
         return dispatch.functions
+
+    def has_method(fn, T, index):
+        types_at_index = set()
+        for sig in fn.methods:
+            typ = sig.types[index]
+            if _pm.get_origin(typ) is _pm.Union:
+                types_at_index.update(_pm.get_args(typ))
+            else:
+                types_at_index.add(typ)
+        return T in types_at_index
 
     def is_generic_subclass(A, B):
         return _bt.TypeHint(A) <= _bt.TypeHint(B)
