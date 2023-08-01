@@ -1,8 +1,8 @@
+import importlib
 import inspect
 import tempfile
 
 import dill as pickle
-import jax_md as jmd
 import numpy as np
 
 import pysages
@@ -14,7 +14,9 @@ pi = np.pi
 
 def build_neighbor_list(box_size, positions, r_cutoff, capacity_multiplier):
     """Helper function to generate a jax-md neighbor list"""
-    displacement_fn, shift_fn = jmd.space.periodic(box_size)
+    jmd = importlib.import_module("jax_md")
+
+    displacement_fn, _ = jmd.space.periodic(box_size)
     neighbor_list_fn = jmd.partition.neighbor_list(
         displacement_fn,
         box_size,
@@ -23,6 +25,7 @@ def build_neighbor_list(box_size, positions, r_cutoff, capacity_multiplier):
         format=jmd.partition.NeighborListFormat.Dense,
     )
     neighbors = neighbor_list_fn.allocate(positions)
+
     return neighbors
 
 
@@ -136,9 +139,11 @@ COLVAR_ARGS = {
         "number_of_opt_it": 10,
         "standard_deviation": 0.125,
         "mesh_size": 30,
-        "nbrs": build_neighbor_list(
-            2.0, positions=np.random.randn(20, 3), r_cutoff=1.5, capacity_multiplier=1.0
-        ),
+        "nbrs": None,
+        # Disable build_neighbor_list until jax_md stabilizes
+        # "nbrs": build_neighbor_list(
+        #     2.0, positions=np.random.randn(20, 3), r_cutoff=1.5, capacity_multiplier=1.0
+        # ),
         "fractional_coords": True,
     },
 }
