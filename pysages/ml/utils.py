@@ -63,7 +63,7 @@ def pack(params, layout):
     previously flatten with `unpack`.
     """
     structure, shapes, separators = layout
-    partition = params.split(separators)
+    partition = np.split(params, separators)
     ps = [p.reshape(s) for (p, s) in zip(partition, shapes)]
     return structure.unflatten(ps)
 
