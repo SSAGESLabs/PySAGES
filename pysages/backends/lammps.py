@@ -1,7 +1,10 @@
 # SPDX-License-Identifier: MIT
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
-# Maintainer: ndtrung
+"""
+This module defines the Sampler class, which is a LAMMPS fix that enables any PySAGES
+SamplingMethod to be hooked to a LAMMPS simulation instance.
+"""
 
 import importlib
 from functools import partial
@@ -24,12 +27,29 @@ from pysages.backends.snapshot import (
     build_data_querier,
 )
 from pysages.typing import Callable, Optional
-from pysages.utils import copy
+from pysages.utils import copy, identity
 
 kDefaultLocation = dlext.kOnHost if not hasattr(ExecutionSpace, "kOnDevice") else dlext.kOnDevice
 
 
-class Sampler(FixDLExt):
+class Sampler(FixDLExt):  # pylint: disable=R0902
+    """
+    LAMMPS fix that connects PySAGES sampling methods to LAMMPS simulations.
+
+    Parameters
+    ----------
+    context: ``lammps.core.lammps``
+        The LAMMPS simulation instance to which the PySAGES sampling
+        machinery will be hooked.
+    sampling_method: ``SamplingMethod``
+        The sampling method used.
+    callbacks: ``Optional[Callback]``
+        An optional callback. Some methods define one for logging,
+        but it can also be user-defined.
+    location: ``lammps.dlext.ExecutionSpace``
+        Device where the simulation data will be retrieved.
+    """
+
     def __init__(
         self, context, sampling_method, callback: Optional[Callable], location=kDefaultLocation
     ):
@@ -47,9 +67,9 @@ class Sampler(FixDLExt):
         _, initialize, method_update = sampling_method.build(initial_snapshot, helpers)
 
         self.callback = callback
-        self.restore = lambda prev_snapshot: restore(self.snapshot, prev_snapshot)
         self.snapshot = initial_snapshot
         self.state = initialize()
+        self._restore = restore
         self._update_box = lambda: self.snapshot.box
 
         def update(timestep):
@@ -87,7 +107,12 @@ class Sampler(FixDLExt):
 
         return Snapshot(s.positions, vel_mass, s.forces, s.ids[1:], s.images, box, dt)
 
+    def restore(self, prev_snapshot):
+        """Replaces this sampler's snapshot with `prev_snapshot`."""
+        self._restore(self.snapshot, prev_snapshot)
+
     def take_snapshot(self):
+        """Returns a copy of the current snapshot of the system."""
         s = self._partial_snapshot(include_masses=True)
         box = Box(*get_global_box(self.context))
         dt = get_timestep(self.context)
@@ -98,6 +123,9 @@ class Sampler(FixDLExt):
 
 
 def build_helpers(context, sampling_method, on_gpu, restore_fn):
+    """
+    Builds helper methods used for restoring snapshots and biasing a simulation.
+    """
     # Depending on the device being used we need to use either cupy or numpy
     # (or numba) to generate a view of jax's DeviceArrays
     if on_gpu:
@@ -133,6 +161,11 @@ def build_helpers(context, sampling_method, on_gpu, restore_fn):
 
 
 def build_snapshot_methods(sampling_method, on_gpu):
+    """
+    Builds methods for retrieving snapshot properties in a format useful for collective
+    variable calculations.
+    """
+
     if sampling_method.requires_box_unwrapping:
         device = jax.devices("gpu" if on_gpu else "cpu")[0]
         dtype = np.int64 if dlext.kImgBitSize == 64 else np.int32
@@ -172,10 +205,12 @@ def build_snapshot_methods(sampling_method, on_gpu):
 
 
 def get_dimension(context):
+    """Get the dimensionality of a LAMMPS simulation."""
     return context.extract_setting("dimension")
 
 
 def get_global_box(context):
+    """Get the box and origin of a LAMMPS simulation."""
     boxlo, boxhi, xy, yz, xz, *_ = context.extract_box()
     Lx = boxhi[0] - boxlo[0]
     Ly = boxhi[1] - boxlo[1]
@@ -186,10 +221,21 @@ def get_global_box(context):
 
 
 def get_timestep(context):
+    """Get the timestep of a LAMMPS simulation."""
     return context.extract_global("dt")
 
 
 def bind(sampling_context: SamplingContext, callback: Optional[Callable], **kwargs):
+    """
+    Defines and sets up a Sampler to perform an enhanced sampling simulation.
+
+    This function takes a ``sampling_context`` that has its context attribute as an instance
+    of a LAMMPS simulation, and creates a ``Sampler`` object that connects the PySAGES
+    sampling method to the LAMMPS simulation. It also modifies the sampling_context's view
+    and run attributes to use the sampler's view and the LAMMPS run command.
+    """
+    identity(kwargs)  # we ignore the kwargs for now
+
     context = sampling_context.context
     sampling_method = sampling_context.method
     sampler = Sampler(context, sampling_method, callback)

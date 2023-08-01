@@ -9,6 +9,7 @@
 
 - Pablo Zubieta
 - Ludwig Schneider
+- [Trung Nguyen](https://github.com/ndtrung81)
 
 ## Collective Variables
 
@@ -38,4 +39,4 @@ details. Specific contributions to this repository are listed below
 ## Other
 
 For other contributions such as bugfixes or performance improvements, take a look at
-https://github.com/SSAGESLabs/PySAGES/graphs/contributors
+https://github.com/SSAGESLabs/PySAGES/graphs/contributors.
