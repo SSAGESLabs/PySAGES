@@ -16,7 +16,7 @@ from pysages.grids import Grid, build_grid, get_info
 from pysages.methods.restraints import canonicalize
 from pysages.methods.utils import ReplicasConfiguration
 from pysages.typing import Callable, Optional, Union
-from pysages.utils import ToCPU, copy, dispatch, dispatch_table, identity
+from pysages.utils import ToCPU, copy, dispatch, dispatch_table, has_method, identity
 
 #  Base Classes
 #  ============
@@ -449,10 +449,7 @@ def has_custom_run(method: type):
     """
     Determine if ``method`` has a specialized ``run`` implementation.
     """
-    custom_run_methods = set()
-    for sig in dispatch_table(dispatch)["run"].methods.keys():
-        custom_run_methods.update(sig.types[0].get_types())
-    return method in custom_run_methods
+    return has_method(dispatch_table(dispatch)["run"], method, 0)
 
 
 def generalize(concrete_update, helpers, jit_compile=True):
