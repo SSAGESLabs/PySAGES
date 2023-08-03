@@ -7,6 +7,7 @@ SamplingMethod to be hooked to a LAMMPS simulation instance.
 """
 
 import importlib
+import weakref
 from functools import partial
 
 import jax
@@ -247,5 +248,7 @@ def bind(sampling_context: SamplingContext, callback: Optional[Callable], **kwar
     # Unfortunately, the default implementation of `lammps.__exit__` closes
     # the lammps instance, so we need to overwrite it.
     context.__exit__ = lambda *args: None
+    # Ensure that the lammps context is properly finalized.
+    weakref.finalize(context, context.finalize)
 
     return sampler
