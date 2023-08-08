@@ -27,46 +27,54 @@
 PySAGES (Python Suite for Advanced General Ensemble Simulations) is a Python
 implementation of [SSAGES](https://ssagesproject.github.io) with support for GPUs.
 
-**NOTICE**: This is in early stages of development. Expect breaking changes.
-
 ## Installation
 
-Currently, there is only support for
-[HOOMD-blue](https://glotzerlab.engin.umich.edu/hoomd-blue) and
-[OpenMM](http://openmm.org/), but gradual support for other molecular dynamics engines is
-planned (for instance, for all engines already supported by the original SSAGES).
+PySAGES currently supports [HOOMD-blue](https://glotzerlab.engin.umich.edu/hoomd-blue),
+[LAMMPS](https://www.lammps.org), [ASE](https://wiki.fysik.dtu.dk/ase/index.html), and
+[OpenMM](https://openmm.org). We plan to add support for other engines that have a python
+API, including those supported by the original SSAGES.
 
-You first need to install one of the following plugins depending on your molecular
-dynamics engine:
+Before installing PySAGES, you need to install one of the following plugins, depending on
+your molecular dynamics engine of choice:
 
-- For HOOMD-blue visit [HOOMD DLPack Plugin](https://github.com/SSAGESLabs/hoomd-dlext).
-- For OpenMM go to [OpenMM DLPack Plugin](https://github.com/SSAGESLabs/openmm-dlext).
+- [DLPack Plugin for HOOMD-blue](https://github.com/SSAGESLabs/hoomd-dlext)
+- [DLPack Plugin for OpenMM](https://github.com/SSAGESLabs/openmm-dlext)
+- [DLPack Plugin for LAMMPS](https://github.com/SSAGESLabs/lammps-dlext)
+- No plugin needed for ASE
 
-PySAGES also depends on [JAX](https://github.com/google/jax/), follow their installation
-guide to set it up. _NOTE:_ make sure you have jaxlib installed before using PySAGES.
-Depending on your local setup, you will have to install the jaxlib CPU version or the CUDA compatible flavor.
+You also need to install [JAX](https://github.com/google/jax), a library for
+high-performance numerical computing. Follow their installation guide and make sure you
+have it installed before using PySAGES. Depending on your local setup, you may need
+to install the CPU version or the CUDA compatible version.
 
-To test GPU support HOOMD-blue, HOOMD-dlext and JAX need to be built or installed with
-CUDA support.
+For GPU support, JAX and any backend (HOOMD-blue, LAMMPS, or OpenMM) need to be built or
+installed with CUDA support.
 
-Our installation tutorial on Google Colab enable you to see how PySAGES,
-HOOMD-blue and OpenMM can be built and installed into such environment.
-[![Install Env](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/examples/Install_PySAGES_Environment.ipynb)
+You can follow our installation tutorial on Google Colab to see how PySAGES, HOOMD-blue,
+and OpenMM can be built and installed in such an environment.
+[![Colab Badge]][Install Notebook]
 
 ## Usage
 
-PySAGES provide a straightforward interface to setup Collective Variables and Enhanced
-Sampling methods in your MD simulations. See the [documentation](https://pysages.readthedocs.io/en/latest/) to learn more.
+PySAGES provides a straightforward interface to set up collective variables and enhanced
+sampling methods in your MD simulations. See the
+[documentation](https://pysages.readthedocs.io/en/latest) to learn more.
 
-We provide ready-to-go examples for common methods.
-Checkout out the [examples](examples/) subfolder to look at different script and notebook examples.
-These include pre-set simulations and a tutorial on how to install PySAGES along with the supported MD engines.
+We provide ready-to-go examples for common methods. Check out the [examples](examples/)
+subfolder to look at different script and notebook examples. These include pre-set
+simulations and a tutorial on how to install PySAGES along with the supported MD engines.
 
 ## Development
 
-We believe in good software engineering and collaboration.
-As an open-source software we welcome all contributions.
-To ease collaboration we use [trunk](https://trunk.io) as a development tool free for open-source software.
-This includes version-checked linters that can be run automatically.
-We ship a launcher for trunk with this repo `./trunk`, no installation required.
-For details about how to use `./trunk fmt` to format existing code into this style and `./trunk check` to verify a consistent code style, check out the trunk documentation [page](https://docs.trunk.io/docs).
+We believe in good software engineering and collaboration. We welcome all contributions.
+To ease collaboration, we use [trunk](https://trunk.io) as a development tool free for
+open-source software. This includes version-checked linters that can be run automatically.
+We ship a launcher for trunk with this repo: `./trunk`, no installation required. For
+details about how to use `./trunk fmt` to format existing code into this style and
+`./trunk check` to verify a consistent code style, check out the [trunk documentation
+page](https://docs.trunk.io/docs).
+
+<!-- References -->
+
+[Colab Badge]: https://colab.research.google.com/assets/colab-badge.svg
+[Install Notebook]: https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/examples/Install_PySAGES_Environment.ipynb
