@@ -127,6 +127,8 @@ def build_helpers(context, sampling_method, on_gpu, restore_fn):
     """
     Builds helper methods used for restoring snapshots and biasing a simulation.
     """
+    dim = context.extract_setting("dimension")
+
     # Depending on the device being used we need to use either cupy or numpy
     # (or numba) to generate a view of jax's DeviceArrays
     if on_gpu:
@@ -156,7 +158,7 @@ def build_helpers(context, sampling_method, on_gpu, restore_fn):
     snapshot_methods = build_snapshot_methods(sampling_method, on_gpu)
     flags = sampling_method.snapshot_flags
     restore = partial(restore_fn, view)
-    helpers = HelperMethods(build_data_querier(snapshot_methods, flags), get_dimension(context))
+    helpers = HelperMethods(build_data_querier(snapshot_methods, flags), lambda: dim)
 
     return helpers, restore, bias
 
@@ -195,7 +197,7 @@ def build_snapshot_methods(sampling_method, on_gpu):
     @jit
     def momenta(snapshot):
         V, (masses, types) = snapshot.vel_mass
-        M = masses[types]
+        M = masses[types].reshape(-1, 1)
         return (M * V).flatten()
 
     @jit
@@ -203,11 +205,6 @@ def build_snapshot_methods(sampling_method, on_gpu):
         return snapshot.vel_mass[:, 3:]
 
     return SnapshotMethods(jit(positions), indices, momenta, masses)
-
-
-def get_dimension(context):
-    """Get the dimensionality of a LAMMPS simulation."""
-    return context.extract_setting("dimension")
 
 
 def get_global_box(context):
