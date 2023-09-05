@@ -9,7 +9,7 @@ If you are new to advanced sampling techniques in general you can try this inter
 
 ## HOOMD-blue
 
-Examples for Methods using HOOMD-blue can be found in the subfolder [hoomd-blue](hoomd-blue)
+Examples for Methods using HOOMD-blue can be found in the subfolders [hoomd-blue 2.x](hoomd-blue) and [hoomd-blue 3.x](hoomd3)
 
 ### HOOMD-blue notebooks
 
@@ -19,14 +19,25 @@ Examples for Methods using HOOMD-blue can be found in the subfolder [hoomd-blue]
 - Adaptive force-biasing sampling of the dihedral angle of butane using neural networks: [![FUNN](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/examples/hoomd-blue/funn/Butane_FUNN.ipynb)
 - Combined force-frequency sampling of the dihedral angle of butane: [![CFF](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/examples/hoomd-blue/cff/Butane_CFF.ipynb)
 
-### HOOMD-blue script examples
+### HOOMD-blue 2.x script examples
 
 - Harmonic bias restricting a particle in space: [harmonic_bias](hoomd-blue/harmonic_bias)
-- Umbella integration of a particle in an external potential: [umbrella_integration](hoomd-blue/umbrella_integration)
+- Umbrella integration of a particle in an external potential: [umbrella_integration](hoomd-blue/umbrella_integration)
 - Artificial neural networks sampling of the dihedral angle of butane: [ann](hoomd-blue/ann/butane_ann.py)
 - Adaptive force-biasing sampling of the dihedral angle of butane using neural networks: [funn](hoomd-blue/funn/butane.py)
 - Combined force-frequency sampling of the dihedral angle of butane: [cff](hoomd-blue/cff/butane.py)
 - Metadynamics sampling of the dihedral angle of butane: [metadynamics](hoomd-blue/metad/butane.py)
+- Spline String sampling of a particle in an external potential: [spline-string](hoomd-blue/string/spline_string.py)
+
+### HOOMD-blue 3.x script examples
+
+- Harmonic bias restricting a particle in space: [harmonic_bias](hoomd3/harmonic_bias)
+- Umbrella integration of a particle in an external potential: [umbrella_integration](hoomd3/umbrella_integration)
+- Artificial neural networks sampling of the dihedral angle of butane: [ann](hoomd3/ann/butane_ann.py)
+- Adaptive force-biasing sampling of the dihedral angle of butane using neural networks: [funn](hoomd3/funn/butane.py)
+- Combined force-frequency sampling of the dihedral angle of butane: [cff](hoomd3/cff/butane.py)
+- Metadynamics sampling of the dihedral angle of butane: [metadynamics](hoomd3/metad/butane.py)
+- Spline String sampling of a particle in an external potential: [spline-string](hoomd3/string/spline_string.py)
 
 ## OpenMM
 
