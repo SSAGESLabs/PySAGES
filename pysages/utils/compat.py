@@ -1,8 +1,6 @@
 # SPDX-License-Identifier: MIT
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
-import typing
-
 from importlib import import_module
 
 from jax.scipy import linalg
@@ -66,30 +64,12 @@ if _plum_version_tuple < (2, 0, 0):
 
     is_generic_subclass = issubclass
 
-elif _plum_version_tuple < (2, 2, 1):
-    _bt = import_module("beartype.door")
-    _pm = import_module("plum")
-
-    def dispatch_table(dispatch):
-        return dispatch.functions
-
-    def has_method(fn, T, index):
-        types_at_index = set()
-        for sig in fn.methods:
-            typ = sig.types[index]
-            if _pm.get_origin(typ) is _pm.Union:
-                types_at_index.update(_pm.get_args(typ))
-            else:
-                types_at_index.add(typ)
-        return T in types_at_index
-
-    def is_generic_subclass(A, B):
-        return _bt.TypeHint(A) <= _bt.TypeHint(B)
-
 else:
-    # Compatibility for plum >= 2.2.1
-    # https://github.com/beartype/plum/pull/94
     _bt = import_module("beartype.door")
+    if _plum_version_tuple < (2, 2, 1):
+        _typing = import_module("plum")
+    else:
+        _typing = import_module("typing")
 
     def dispatch_table(dispatch):
         return dispatch.functions
@@ -98,8 +78,8 @@ else:
         types_at_index = set()
         for sig in fn.methods:
             typ = sig.types[index]
-            if typing.get_origin(typ) is typing.Union:
-                types_at_index.update(typing.get_args(typ))
+            if _typing.get_origin(typ) is _typing.Union:
+                types_at_index.update(_typing.get_args(typ))
             else:
                 types_at_index.add(typ)
         return T in types_at_index
