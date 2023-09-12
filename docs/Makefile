@@ -19,3 +19,4 @@ help:
 %: Makefile
 	$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" -W --keep-going -b spelling &&\
 	$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" -W $(SPHINXOPTS) $(O)
+	find "$(BUILDDIR)" -name "*.html" -exec sed -i 's|\([^>]\)\(PySAGES Team\)|\1<a href="https://github.com/SSAGESLabs/PySAGES/blob/main/CONTRIBUTORS.md">\2</a>|g' {} \;
