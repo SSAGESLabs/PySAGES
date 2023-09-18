@@ -67,6 +67,7 @@ if _plum_version_tuple < (2, 0, 0):
 else:
     _bt = import_module("beartype.door")
     _typing = import_module("plum" if _plum_version_tuple < (2, 2, 1) else "typing")
+    _util = _typing.type if _plum_version_tuple < (2, 2, 1) else _typing
 
     def dispatch_table(dispatch):
         return dispatch.functions
@@ -75,8 +76,8 @@ else:
         types_at_index = set()
         for sig in fn.methods:
             typ = sig.types[index]
-            if _typing.get_origin(typ) is _typing.Union:
-                types_at_index.update(_typing.get_args(typ))
+            if _util.get_origin(typ) is _typing.Union:
+                types_at_index.update(_util.get_args(typ))
             else:
                 types_at_index.add(typ)
         return T in types_at_index
