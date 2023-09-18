@@ -12,7 +12,8 @@ Make sure you have [GNU make](https://www.gpu.org/software/make/) installed.
 You can build the documentation from you local copy of the PySAGES repository as follows:
 
 ```shell
-pip install -r docs/requirements.txt
+cd docs
+pip install -r requirements.txt
 make html
 ```
 

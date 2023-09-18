@@ -100,6 +100,7 @@ html_theme_options = {
 # # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
 html_css_files = [
+    "https://fonts.googleapis.com/css?family=Atkinson Hyperlegible|Montserrat",
     "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css",
     "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css",
     "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css",
