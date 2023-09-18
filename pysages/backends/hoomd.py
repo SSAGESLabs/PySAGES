@@ -61,11 +61,15 @@ if getattr(hoomd, "__version__", "").startswith("2."):
         context.integrator.cpp_integrator.removeHalfStepHook()
 
 else:
+    if hasattr(hoomd.dlext, "__version__"):
+        SamplerBase = DLExtSampler
 
-    class SamplerBase(DLExtSampler, md.HalfStepHook):
-        def __init__(self, sysview, update, location, mode):
-            md.HalfStepHook.__init__(self)
-            DLExtSampler.__init__(self, sysview, update, location, mode)
+    else:
+
+        class SamplerBase(DLExtSampler, md.HalfStepHook):
+            def __init__(self, sysview, update, location, mode):
+                md.HalfStepHook.__init__(self)
+                DLExtSampler.__init__(self, sysview, update, location, mode)
 
     def is_on_gpu(context):
         return not isinstance(context.device, hoomd.device.CPU)
