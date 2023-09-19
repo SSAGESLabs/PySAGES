@@ -8,7 +8,7 @@ import jax
 import openmm_dlext as dlext
 from jax import jit
 from jax import numpy as np
-from jax.dlpack import from_dlpack as asarray
+from jax.dlpack import from_dlpack
 from jax.lax import cond
 from openmm_dlext import ContextView, DeviceType, Force
 
@@ -60,15 +60,15 @@ def take_snapshot(sampling_context):
     context = sampling_context.context.context  # extra indirection for OpenMM
     context_view = sampling_context.view
 
-    positions = asarray(dlext.positions(context_view))
-    forces = asarray(dlext.forces(context_view))
-    ids = asarray(dlext.atom_ids(context_view))
+    positions = from_dlpack(dlext.positions(context_view))
+    forces = from_dlpack(dlext.forces(context_view))
+    ids = from_dlpack(dlext.atom_ids(context_view))
 
-    velocities = asarray(dlext.velocities(context_view))
+    velocities = from_dlpack(dlext.velocities(context_view))
     if is_on_gpu(context_view):
         vel_mass = velocities
     else:
-        inverse_masses = asarray(dlext.inverse_masses(context_view))
+        inverse_masses = from_dlpack(dlext.inverse_masses(context_view))
         vel_mass = (velocities, inverse_masses.reshape((-1, 1)))
 
     check_device_array(positions)  # currently, we only support `DeviceArray`s
@@ -126,29 +126,21 @@ def build_snapshot_methods(context, sampling_method):
 
 
 def build_helpers(context, sampling_method):
+    utils = importlib.import_module(".utils", package="pysages.backends")
+
     # Depending on the device being used we need to use either cupy or numpy
     # (or numba) to generate a view of jax's DeviceArrays
     if is_on_gpu(context):
-        cupy = importlib.import_module("cupy")
-        view = cupy.asarray
-
         restore_vm = _restore_vm
-
-        def sync_forces():
-            cupy.cuda.get_current_stream().synchronize()
+        sync_forces, view = utils.cupy_helpers()
 
         @jit
         def adapt(biases):
             return np.int64(2**32 * biases.T)
 
     else:
-        utils = importlib.import_module(".utils", package="pysages.backends")
-        view = utils.view
-
         adapt = identity
-
-        def sync_forces():
-            pass
+        view = utils.view
 
         def restore_vm(view, snapshot, prev_snapshot):
             # TODO: Check if we can omit modifying the masses
@@ -157,6 +149,9 @@ def build_helpers(context, sampling_method):
             masses = view(snapshot.vel_mass[1])
             velocities[:] = view(prev_snapshot.vel_mass[0])
             masses[:] = view(prev_snapshot.vel_mass[1])
+
+        def sync_forces():
+            pass
 
     def bias(snapshot, state, sync_backend):
         """Adds the computed bias to the forces."""

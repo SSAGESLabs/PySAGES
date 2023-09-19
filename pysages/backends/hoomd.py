@@ -20,7 +20,7 @@ from hoomd.dlext import (
 )
 from jax import jit
 from jax import numpy as np
-from jax.dlpack import from_dlpack as asarray
+from jax.dlpack import from_dlpack
 
 from pysages.backends.core import SamplingContext
 from pysages.backends.snapshot import (
@@ -61,11 +61,15 @@ if getattr(hoomd, "__version__", "").startswith("2."):
         context.integrator.cpp_integrator.removeHalfStepHook()
 
 else:
+    if hasattr(hoomd.dlext, "__version__"):
+        SamplerBase = DLExtSampler
 
-    class SamplerBase(DLExtSampler, md.HalfStepHook):
-        def __init__(self, sysview, update, location, mode):
-            md.HalfStepHook.__init__(self)
-            DLExtSampler.__init__(self, sysview, update, location, mode)
+    else:
+
+        class SamplerBase(DLExtSampler, md.HalfStepHook):
+            def __init__(self, sysview, update, location, mode):
+                md.HalfStepHook.__init__(self)
+                DLExtSampler.__init__(self, sysview, update, location, mode)
 
     def is_on_gpu(context):
         return not isinstance(context.device, hoomd.device.CPU)
@@ -125,11 +129,11 @@ class Sampler(SamplerBase):
 
     def _pack_snapshot(self, positions, vel_mass, forces, rtags, images):
         return Snapshot(
-            asarray(positions),
-            asarray(vel_mass),
-            asarray(forces),
-            asarray(rtags),
-            asarray(images),
+            from_dlpack(positions),
+            from_dlpack(vel_mass),
+            from_dlpack(forces),
+            from_dlpack(rtags),
+            from_dlpack(images),
             self.box,
             self.dt,
         )
@@ -149,11 +153,11 @@ else:
 def take_snapshot(sampling_context, location=default_location()):
     context = sampling_context.context
     sysview = sampling_context.view
-    positions = copy(asarray(positions_types(sysview, location, AccessMode.Read)))
-    vel_mass = copy(asarray(velocities_masses(sysview, location, AccessMode.Read)))
-    forces = copy(asarray(net_forces(sysview, location, AccessMode.ReadWrite)))
-    ids = copy(asarray(rtags(sysview, location, AccessMode.Read)))
-    imgs = copy(asarray(images(sysview, location, AccessMode.Read)))
+    positions = copy(from_dlpack(positions_types(sysview, location, AccessMode.Read)))
+    vel_mass = copy(from_dlpack(velocities_masses(sysview, location, AccessMode.Read)))
+    forces = copy(from_dlpack(net_forces(sysview, location, AccessMode.ReadWrite)))
+    ids = copy(from_dlpack(rtags(sysview, location, AccessMode.Read)))
+    imgs = copy(from_dlpack(images(sysview, location, AccessMode.Read)))
 
     check_device_array(positions)  # currently, we only support `DeviceArray`s
 
@@ -200,17 +204,14 @@ def build_snapshot_methods(sampling_method):
 
 
 def build_helpers(context, sampling_method):
+    utils = importlib.import_module(".utils", package="pysages.backends")
+
     # Depending on the device being used we need to use either cupy or numpy
     # (or numba) to generate a view of jax's DeviceArrays
     if is_on_gpu(context):
-        cupy = importlib.import_module("cupy")
-        view = cupy.asarray
-
-        def sync_forces():
-            cupy.cuda.get_current_stream().synchronize()
+        sync_forces, view = utils.cupy_helpers()
 
     else:
-        utils = importlib.import_module(".utils", package="pysages.backends")
         view = utils.view
 
         def sync_forces():

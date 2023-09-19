@@ -14,7 +14,7 @@ import jax
 from jax import jit
 from jax import numpy as np
 from jax import vmap
-from jax.dlpack import from_dlpack as asarray
+from jax.dlpack import from_dlpack
 from lammps import dlext
 from lammps.dlext import ExecutionSpace, FixDLExt, LAMMPSView, has_kokkos_cuda_enabled
 
@@ -84,16 +84,16 @@ class Sampler(FixDLExt):  # pylint: disable=R0902
         self.set_callback(update)
 
     def _partial_snapshot(self, include_masses: bool = False):
-        positions = asarray(dlext.positions(self.view, self.location))
-        types = asarray(dlext.types(self.view, self.location))
-        velocities = asarray(dlext.velocities(self.view, self.location))
-        forces = asarray(dlext.forces(self.view, self.location))
-        tags_map = asarray(dlext.tags_map(self.view, self.location))
-        imgs = asarray(dlext.images(self.view, self.location))
+        positions = from_dlpack(dlext.positions(self.view, self.location))
+        types = from_dlpack(dlext.types(self.view, self.location))
+        velocities = from_dlpack(dlext.velocities(self.view, self.location))
+        forces = from_dlpack(dlext.forces(self.view, self.location))
+        tags_map = from_dlpack(dlext.tags_map(self.view, self.location))
+        imgs = from_dlpack(dlext.images(self.view, self.location))
 
         masses = None
         if include_masses:
-            masses = asarray(dlext.masses(self.view, self.location))
+            masses = from_dlpack(dlext.masses(self.view, self.location))
         vel_mass = (velocities, (masses, types))
 
         return Snapshot(positions, vel_mass, forces, tags_map, imgs, None, None)
@@ -127,19 +127,15 @@ def build_helpers(context, sampling_method, on_gpu, restore_fn):
     """
     Builds helper methods used for restoring snapshots and biasing a simulation.
     """
+    utils = importlib.import_module(".utils", package="pysages.backends")
     dim = context.extract_setting("dimension")
 
     # Depending on the device being used we need to use either cupy or numpy
     # (or numba) to generate a view of jax's DeviceArrays
     if on_gpu:
-        cupy = importlib.import_module("cupy")
-        view = cupy.asarray
-
-        def sync_forces():
-            cupy.cuda.get_current_stream().synchronize()
+        sync_forces, view = utils.cupy_helpers()
 
     else:
-        utils = importlib.import_module(".utils", package="pysages.backends")
         view = utils.view
 
         def sync_forces():
