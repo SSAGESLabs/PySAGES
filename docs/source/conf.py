@@ -4,6 +4,8 @@
 # list see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
+from setuptools_scm import get_version
+
 # -- Path setup --------------------------------------------------------------
 
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -24,8 +26,7 @@ copyright = """
 author = "PySAGES Team (Pablo Zubieta, Ludwig Schneider, Gustavo Pérez-Lemus, et al.)"
 
 # The full version, including alpha/beta/rc tags
-release = "0.2.0"
-version = "0.2.0"
+release = version = get_version(root="../..")
 
 # -- General configuration ---------------------------------------------------
 
@@ -62,6 +63,7 @@ suppress_warnings = ["myst.header"]
 
 html_logo = "_static/pysages-bottom.svg"
 html_show_sphinx = False
+html_title = "PySAGES documentation"
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.

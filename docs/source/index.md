@@ -1,6 +1,6 @@
 <!--
-You can adapt this file completely to your liking, but it
-should at least contain the root ```{toctree}``` block.
+You can adapt this file completely to your liking, but it should contain
+the root ```{toctree}``` block.
 -->
 
 # Python Suite for Advanced General Ensemble Simulations
@@ -12,9 +12,9 @@ should at least contain the root ```{toctree}``` block.
 :padding: 0
 
 ```{grid-item}
-[![CI]](https://github.com/SSAGESLabs/PySAGES/actions/workflows/ci.yml) &nbsp;
-[![Docker CI]](https://github.com/SSAGESLabs/PySAGES/actions/workflows/docker-ci.yml) &nbsp;
-[![Trunk]](https://github.com/SSAGESLabs/PySAGES/actions/workflows/trunk.yml)
+[![CI Badge]](https://github.com/SSAGESLabs/PySAGES/actions/workflows/ci.yml)  &nbsp;
+[![Docker CI Badge]](https://github.com/SSAGESLabs/PySAGES/actions/workflows/docker-ci.yml)  &nbsp;
+[![Trunk Badge]](https://github.com/SSAGESLabs/PySAGES/actions/workflows/trunk.yml)
 ```
 ````
 
@@ -42,12 +42,12 @@ this [interactive introduction][Intro] with PySAGES. Even better, PySAGES alread
 an extensible framework to compute collective variables and to perform enhanced-sampling
 MD simulations to discover reaction pathways and estimate free energies. Most research
 objectives are achievable by using these implemented collective variables and methods.
-PySAGES currently supports automatically connecting these methods to [HOOMD-blue] and
-[OpenMM]. Both engines offer a python interface to the user and implement the simulation
-on GPUs for best performance. PySAGES interacts with both backends directly on the GPU
-memory; copying between GPU and host memory is not required. This approach allows biased
-simulations without slowing the backend simulation engines down. PySAGES still implements
-all methods and collective variables as pure python for access and modification.
+PySAGES currently supports automatically connecting these methods to [ASE], [HOOMD-blue],
+[LAMMPS], and [OpenMM]. PySAGES communicates with these backends without copying data
+between GPU and host memory, except for ASE, which does not support GPU calculations
+directly. This approach allows biased simulations without slowing the backend simulation
+engines down. PySAGES still implements all methods and collective variables in pure python
+for access and modification.
 
 ## Indices and tables
 
@@ -66,9 +66,13 @@ mpi
 package-pysages
 ```
 
-[CI]: https://github.com/SSAGESLabs/PySAGES/actions/workflows/ci.yml/badge.svg?branch=main
-[Docker CI]: https://github.com/SSAGESLabs/PySAGES/actions/workflows/docker-ci.yml/badge.svg?branch=main
-[Trunk]: https://github.com/SSAGESLabs/PySAGES/actions/workflows/trunk.yml/badge.svg?branch=main
+<!-- References -->
+
+[CI Badge]: https://github.com/SSAGESLabs/PySAGES/actions/workflows/ci.yml/badge.svg?branch=main
+[Docker CI Badge]: https://github.com/SSAGESLabs/PySAGES/actions/workflows/docker-ci.yml/badge.svg?branch=main
+[Trunk Badge]: https://github.com/SSAGESLabs/PySAGES/actions/workflows/trunk.yml/badge.svg?branch=main
 [Intro]: https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/examples/Advanced_Sampling_Introduction.ipynb
+[ASE]: https://wiki.fysik.dtu.dk/ase/index.html
 [HOOMD-blue]: https://glotzerlab.engin.umich.edu/hoomd-blue
+[LAMMPS]: https://www.lammps.org
 [OpenMM]: https://openmm.org
