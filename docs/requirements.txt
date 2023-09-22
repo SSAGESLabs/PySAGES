@@ -1,6 +1,7 @@
 furo
 jaxlib
 myst-parser
+setuptools-scm
 sphinx
 sphinx-copybutton
 sphinx-design
