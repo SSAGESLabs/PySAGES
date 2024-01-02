@@ -77,8 +77,8 @@ class CFFState(NamedTuple):
     nn: NNDada
         Bundle of the neural network parameters, and output scaling coefficients.
 
-    nstep: int
-        Count the number of times the method's update has been called.
+    ncalls: int
+        Counts the number of times the method's update has been called.
     """
 
     xi: JaxArray
@@ -93,7 +93,7 @@ class CFFState(NamedTuple):
     Wp_: JaxArray
     nn: NNData
     fnn: NNData
-    nstep: int
+    ncalls: int
 
     def __repr__(self):
         return repr("PySAGES " + type(self).__name__)
@@ -209,13 +209,13 @@ def _cff(method: CFF, snapshot, helpers):
         nn = NNData(ps, np.array(0.0), np.array(1.0))
         fnn = NNData(fps, np.zeros(dims), np.array(1.0))
 
-        return CFFState(xi, bias, hist, histp, prob, fe, Fsum, force, Wp, Wp_, nn, fnn, 1)
+        return CFFState(xi, bias, hist, histp, prob, fe, Fsum, force, Wp, Wp_, nn, fnn, 0)
 
     def update(state, data):
         # During the intial stage, when there are not enough collected samples, use ABF
-        nstep = state.nstep
-        in_training_regime = nstep > 1 * train_freq
-        in_training_step = in_training_regime & (nstep % train_freq == 1)
+        ncalls = state.ncalls + 1
+        in_training_regime = ncalls > train_freq
+        in_training_step = in_training_regime & (ncalls % train_freq == 1)
         histp, fe, prob, nn, fnn = learn_free_energy(state, in_training_step)
         # Compute the collective variable and its jacobian
         xi, Jxi = cv(data)
@@ -232,9 +232,7 @@ def _cff(method: CFF, snapshot, helpers):
         force = estimate_force(PartialCFFState(xi, hist, Fsum, I_xi, fnn, in_training_regime))
         bias = (-Jxi.T @ force).reshape(state.bias.shape)
         #
-        return CFFState(
-            xi, bias, hist, histp, prob, fe, Fsum, force, Wp, state.Wp, nn, fnn, nstep + 1
-        )
+        return CFFState(xi, bias, hist, histp, prob, fe, Fsum, force, Wp, state.Wp, nn, fnn, ncalls)
 
     return snapshot, initialize, generalize(update, helpers)
 

@@ -66,8 +66,8 @@ class FUNNState(NamedTuple):
     nn: NNData
         Bundle of the neural network parameters, and output scaling coefficients.
 
-    nstep: int
-        Count the number of times the method's update has been called.
+    ncalls: int
+        Counts the number of times the method's update has been called.
     """
 
     xi: JaxArray
@@ -78,7 +78,7 @@ class FUNNState(NamedTuple):
     Wp: JaxArray
     Wp_: JaxArray
     nn: NNData
-    nstep: int
+    ncalls: int
 
     def __repr__(self):
         return repr("PySAGES " + type(self).__name__)
@@ -173,13 +173,13 @@ def _funn(method, snapshot, helpers):
         Wp = np.zeros(dims)
         Wp_ = np.zeros(dims)
         nn = NNData(ps, F, F)
-        return FUNNState(xi, bias, hist, Fsum, F, Wp, Wp_, nn, 1)
+        return FUNNState(xi, bias, hist, Fsum, F, Wp, Wp_, nn, 0)
 
     def update(state, data):
         # During the intial stage, when there are not enough collected samples, use ABF
-        nstep = state.nstep
-        in_training_regime = nstep > 2 * train_freq
-        in_training_step = in_training_regime & (nstep % train_freq == 1)
+        ncalls = state.ncalls + 1
+        in_training_regime = ncalls > 2 * train_freq
+        in_training_step = in_training_regime & (ncalls % train_freq == 1)
         # NN training
         nn = learn_free_energy_grad(state, in_training_step)
         # Compute the collective variable and its jacobian
@@ -198,7 +198,7 @@ def _funn(method, snapshot, helpers):
         )
         bias = (-Jxi.T @ F).reshape(state.bias.shape)
         #
-        return FUNNState(xi, bias, hist, Fsum, F, Wp, state.Wp, nn, state.nstep + 1)
+        return FUNNState(xi, bias, hist, Fsum, F, Wp, state.Wp, nn, state.ncalls)
 
     return snapshot, initialize, generalize(update, helpers)
 

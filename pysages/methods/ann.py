@@ -60,8 +60,8 @@ class ANNState(NamedTuple):
     nn: NNDada
         Bundle of the neural network parameters, and output scaling coefficients.
 
-    nstep: int
-        Count the number of times the method's update has been called.
+    ncalls: int
+        Counts the number of times the method's update has been called.
     """
 
     xi: JaxArray
@@ -70,7 +70,7 @@ class ANNState(NamedTuple):
     phi: JaxArray
     prob: JaxArray
     nn: NNData
-    nstep: int
+    ncalls: int
 
     def __repr__(self):
         return repr("PySAGES " + type(self).__name__)
@@ -148,13 +148,13 @@ def _ann(method: ANN, snapshot, helpers):
         phi = np.zeros(shape)
         prob = np.ones(shape)
         nn = NNData(ps, np.array(0.0), np.array(1.0))
-        return ANNState(xi, bias, hist, phi, prob, nn, 1)
+        return ANNState(xi, bias, hist, phi, prob, nn, 0)
 
     def update(state, data):
-        nstep = state.nstep
-        in_training_regime = nstep > train_freq
+        ncalls = state.ncalls + 1
+        in_training_regime = ncalls > train_freq
         # We only train every `train_freq` timesteps
-        in_training_step = in_training_regime & (nstep % train_freq == 1)
+        in_training_step = in_training_regime & (ncalls % train_freq == 1)
         hist, phi, prob, nn = learn_free_energy(state, in_training_step)
         # Compute the collective variable and its jacobian
         xi, Jxi = cv(data)
@@ -163,7 +163,7 @@ def _ann(method: ANN, snapshot, helpers):
         F = estimate_force(xi, I_xi, nn, in_training_regime)
         bias = np.reshape(-Jxi.T @ F, state.bias.shape)
         #
-        return ANNState(xi, bias, hist, phi, prob, nn, nstep + 1)
+        return ANNState(xi, bias, hist, phi, prob, nn, ncalls)
 
     return snapshot, initialize, generalize(update, helpers)
 

@@ -34,6 +34,7 @@ class HarmonicBiasState(NamedTuple):
 
     xi: JaxArray
     bias: JaxArray
+    ncalls: int
 
     def __repr__(self):
         return repr("PySAGES" + type(self).__name__)
@@ -118,7 +119,7 @@ def _harmonic_bias(method, snapshot, helpers):
     def initialize():
         xi, _ = cv(helpers.query(snapshot))
         bias = np.zeros((natoms, helpers.dimensionality()))
-        return HarmonicBiasState(xi, bias)
+        return HarmonicBiasState(xi, bias, 0)
 
     def update(state, data):
         xi, Jxi = cv(data)
@@ -126,6 +127,6 @@ def _harmonic_bias(method, snapshot, helpers):
         bias = -Jxi.T @ forces.flatten()
         bias = bias.reshape(state.bias.shape)
 
-        return HarmonicBiasState(xi, bias)
+        return HarmonicBiasState(xi, bias, state.ncalls + 1)
 
     return snapshot, initialize, generalize(update, helpers)
