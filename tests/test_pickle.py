@@ -4,6 +4,7 @@ import tempfile
 
 import dill as pickle
 import numpy as np
+import test_simulations.abf as abf_example
 
 import pysages
 import pysages.colvars
@@ -167,10 +168,9 @@ def test_pickle_colvars():
 
 
 def test_pickle_results():
-    with open("tests/test_abf_result.pickle", "rb") as f:
-        test_result = pickle.load(f)
-
     with tempfile.NamedTemporaryFile() as tmp_pickle:
+        test_result = abf_example.run_simulation(10, write_output=False)
+
         pickle.dump(test_result, tmp_pickle)
         tmp_pickle.flush()
 
