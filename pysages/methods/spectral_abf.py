@@ -66,8 +66,8 @@ class SpectralABFState(NamedTuple):
         Object that holds the coefficients of the basis functions
         approximation to the free energy.
 
-    nstep: int
-        Count the number of times the method's update has been called.
+    ncalls: int
+        Counts the number of times the method's update has been called.
     """
 
     xi: JaxArray
@@ -78,7 +78,7 @@ class SpectralABFState(NamedTuple):
     Wp: JaxArray
     Wp_: JaxArray
     fun: Fun
-    nstep: int
+    ncalls: int
 
     def __repr__(self):
         return repr("PySAGES " + type(self).__name__)
@@ -168,13 +168,13 @@ def _spectral_abf(method, snapshot, helpers):
         Wp = np.zeros(dims)
         Wp_ = np.zeros(dims)
         fun = fit(Fsum)
-        return SpectralABFState(xi, bias, hist, Fsum, force, Wp, Wp_, fun, 1)
+        return SpectralABFState(xi, bias, hist, Fsum, force, Wp, Wp_, fun, 0)
 
     def update(state, data):
         # During the intial stage use ABF
-        nstep = state.nstep
-        in_fitting_regime = nstep > fit_threshold
-        in_fitting_step = in_fitting_regime & (nstep % fit_freq == 1)
+        ncalls = state.ncalls + 1
+        in_fitting_regime = ncalls > fit_threshold
+        in_fitting_step = in_fitting_regime & (ncalls % fit_freq == 1)
         # Fit forces
         fun = fit_forces(state, in_fitting_step)
         # Compute the collective variable and its jacobian
@@ -194,7 +194,7 @@ def _spectral_abf(method, snapshot, helpers):
         )
         bias = np.reshape(-Jxi.T @ force, state.bias.shape)
         #
-        return SpectralABFState(xi, bias, hist, Fsum, force, Wp, state.Wp, fun, state.nstep + 1)
+        return SpectralABFState(xi, bias, hist, Fsum, force, Wp, state.Wp, fun, state.ncalls)
 
     return snapshot, initialize, generalize(update, helpers)
 

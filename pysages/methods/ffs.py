@@ -24,6 +24,7 @@ from pysages.utils import dispatch
 class FFSState(NamedTuple):
     xi: JaxArray
     bias: Optional[JaxArray]
+    ncalls: int
 
     def __repr__(self):
         return repr("PySAGES " + type(self).__name__)
@@ -210,11 +211,11 @@ def _ffs(method, snapshot, helpers):
     # initialize method
     def initialize():
         xi = cv(helpers.query(snapshot))
-        return FFSState(xi, None)
+        return FFSState(xi, None, 0)
 
     def update(state, data):
         xi = cv(data)
-        return FFSState(xi, None)
+        return FFSState(xi, None, state.ncalls + 1)
 
     return snapshot, initialize, generalize(update, helpers)
 

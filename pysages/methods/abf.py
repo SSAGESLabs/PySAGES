@@ -57,6 +57,9 @@ class ABFState(NamedTuple):
 
     Wp_: JaxArray (CV shape)
         Product of W matrix and momenta matrix for the previous step.
+
+    ncalls: int
+        Counts the number of times the method's update has been called.
     """
 
     xi: JaxArray
@@ -66,6 +69,7 @@ class ABFState(NamedTuple):
     force: JaxArray
     Wp: JaxArray
     Wp_: JaxArray
+    ncalls: int
 
     def __repr__(self):
         return repr("PySAGES " + type(self).__name__)
@@ -174,7 +178,7 @@ def _abf(method, snapshot, helpers):
         force = np.zeros(dims)
         Wp = np.zeros(dims)
         Wp_ = np.zeros(dims)
-        return ABFState(xi, bias, hist, Fsum, force, Wp, Wp_)
+        return ABFState(xi, bias, hist, Fsum, force, Wp, Wp_, 0)
 
     def update(state, data):
         """
@@ -213,7 +217,7 @@ def _abf(method, snapshot, helpers):
         force = estimate_force(xi, I_xi, Fsum, hist).reshape(dims)
         bias = np.reshape(-Jxi.T @ force, state.bias.shape)
 
-        return ABFState(xi, bias, hist, Fsum, force, Wp, state.Wp)
+        return ABFState(xi, bias, hist, Fsum, force, Wp, state.Wp, state.ncalls + 1)
 
     return snapshot, initialize, generalize(update, helpers)
 

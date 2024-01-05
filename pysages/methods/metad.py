@@ -52,7 +52,7 @@ class MetadynamicsState(NamedTuple):
     idx: int
         Index of the next Gaussian to be deposited.
 
-    nstep: int
+    ncalls: int
         Counts the number of times `method.update` has been called.
     """
 
@@ -64,7 +64,7 @@ class MetadynamicsState(NamedTuple):
     grid_potential: Optional[JaxArray]
     grid_gradient: Optional[JaxArray]
     idx: int
-    nstep: int
+    ncalls: int
 
     def __repr__(self):
         return repr("PySAGES" + type(self).__name__)
@@ -189,8 +189,8 @@ def _metadynamics(method, snapshot, helpers):
         xi, Jxi = cv(data)
 
         # Deposit Gaussian depending on the stride
-        nstep = state.nstep
-        in_deposition_step = (nstep > 0) & (nstep % stride == 0)
+        ncalls = state.ncalls + 1
+        in_deposition_step = (ncalls > 1) & (ncalls % stride == 1)
         partial_state = deposit_gaussian(xi, state, in_deposition_step)
 
         # Evaluate gradient of biasing potential (or generalized force)
@@ -200,7 +200,7 @@ def _metadynamics(method, snapshot, helpers):
         bias = -Jxi.T @ generalized_force.flatten()
         bias = bias.reshape(state.bias.shape)
 
-        return MetadynamicsState(xi, bias, *partial_state[1:-1], nstep + 1)
+        return MetadynamicsState(xi, bias, *partial_state[1:-1], ncalls)
 
     return snapshot, initialize, generalize(update, helpers, jit_compile=True)
 
@@ -290,7 +290,6 @@ def build_bias_grad_evaluator(method: Metadynamics):
         periods = get_periods(method.cvs)
         evaluate_bias_grad = jit(lambda pstate: grad(sum_of_gaussians)(*pstate[:4], periods))
     else:
-
         if restraints:
 
             def ob_force(pstate):  # out-of-bounds force
