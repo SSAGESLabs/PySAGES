@@ -55,23 +55,6 @@ class CellList:
         self.buffer_size_cell = buffer_size_cell
         return None
     
-    def get_cell_ids(self, pos: jax.Array) -> jax.Array:
-        """
-        Get cell ids for each particle in pos matrix.
-
-        Args:
-            pos (jax.Array): Array of particle positions (N, 3)
-
-        Returns:
-            jax.Array: Array of cell ids for each particle (N, ). Also sets the cell_idx attribute.
-        """
-        self.cell_idx = np.zeros(pos.shape[0], dtype=np.int32)
-        self.cell_idx = _get_cell_ids(pos, self.cell_cut, self.cell_edge)
-        
-        if self.buffer_size_cell is None: # can be set manually if needed
-            self.buffer_size_cell = np.int32(np.ceil(pos.shape[0]//self.cell_num * 1.5)) # set the size of the nl list per cell to 50% larger than the average number of particles per cell
-        return self.cell_idx
-    
     def _get_neighbor_ids(self, idx: int) -> jax.Array:  
         """
         Get neighbor ids for a single particle.
@@ -170,6 +153,23 @@ class CellList:
 
         return n_ids
     
+    def initiate(self, pos: jax.Array) -> None:
+        """
+        Initialize the cell list.
+
+        Args:
+            pos (jax.Array): Array of particle positions (N, 3)
+
+        Returns:
+            None
+        """
+        if self.buffer_size_cell is None: # can be set manually if needed
+            self.buffer_size_cell = np.int32(np.ceil(pos.shape[0]//self.cell_num * 1.5)) # set the size of the nl list per cell to 50% larger than the average number of particles per cell
+        # get the cell ids
+        self.cell_idx = np.zeros(pos.shape[0], dtype=np.int32)
+        self.cell_idx = _get_cell_ids(pos, self.cell_cut, self.cell_edge)
+        return None
+    
     def update(self, pos: jax.Array) -> None:
         """
         Update the cell list.
@@ -180,6 +180,6 @@ class CellList:
         Returns:
             None
         """
-        # update the cell ids by calling get_cell_ids
-        self.get_cell_ids(pos)
+        # update the cell ids by calling _get_cell_ids
+        self.cell_idx = _get_cell_ids(pos, self.cell_cut, self.cell_edge)
         return None
