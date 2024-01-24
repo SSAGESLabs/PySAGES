@@ -1,5 +1,4 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2020-2022: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 """
@@ -14,26 +13,26 @@ The gradient of the neural network model with respect to the CVs is then used
 as biasing force for the simulation.
 """
 
+import numbers
 from functools import partial
-from typing import NamedTuple
 
-from jax import grad, jit, numpy as np, vmap
+from jax import grad, jit
+from jax import numpy as np
+from jax import vmap
 from jax.lax import cond
 
-from pysages.approxfun import compute_mesh, scale as _scale
+from pysages.approxfun import compute_mesh
+from pysages.approxfun import scale as _scale
 from pysages.grids import build_indexer
 from pysages.methods.core import NNSamplingMethod, Result, generalize
+from pysages.methods.utils import numpyfy_vals
 from pysages.ml.models import MLP
 from pysages.ml.objectives import L2Regularization
 from pysages.ml.optimizers import LevenbergMarquardt
-from pysages.ml.training import (
-    NNData,
-    build_fitting_function,
-    normalize,
-    convolve,
-)
+from pysages.ml.training import NNData, build_fitting_function, convolve, normalize
 from pysages.ml.utils import blackman_kernel, pack, unpack
-from pysages.utils import Int, JaxArray, dispatch
+from pysages.typing import JaxArray, NamedTuple
+from pysages.utils import dispatch
 
 
 class ANNState(NamedTuple):
@@ -61,8 +60,8 @@ class ANNState(NamedTuple):
     nn: NNDada
         Bundle of the neural network parameters, and output scaling coefficients.
 
-    nstep: int
-        Count the number of times the method's update has been called.
+    ncalls: int
+        Counts the number of times the method's update has been called.
     """
 
     xi: JaxArray
@@ -71,7 +70,7 @@ class ANNState(NamedTuple):
     phi: JaxArray
     prob: JaxArray
     nn: NNData
-    nstep: Int
+    ncalls: int
 
     def __repr__(self):
         return repr("PySAGES " + type(self).__name__)
@@ -107,6 +106,9 @@ class ANN(NNSamplingMethod):
     snapshot_flags = {"positions", "indices"}
 
     def __init__(self, cvs, grid, topology, kT, **kwargs):
+        # kT must be unitless but consistent with the internal unit system of the backend
+        assert isinstance(kT, numbers.Real)
+
         super().__init__(cvs, grid, topology, **kwargs)
 
         self.kT = kT
@@ -141,18 +143,18 @@ def _ann(method: ANN, snapshot, helpers):
 
     def initialize():
         xi, _ = cv(helpers.query(snapshot))
-        bias = np.zeros((natoms, 3))
+        bias = np.zeros((natoms, helpers.dimensionality()))
         hist = np.zeros(shape, dtype=np.uint32)
         phi = np.zeros(shape)
         prob = np.ones(shape)
         nn = NNData(ps, np.array(0.0), np.array(1.0))
-        return ANNState(xi, bias, hist, phi, prob, nn, 1)
+        return ANNState(xi, bias, hist, phi, prob, nn, 0)
 
     def update(state, data):
-        nstep = state.nstep
-        in_training_regime = nstep > train_freq
+        ncalls = state.ncalls + 1
+        in_training_regime = ncalls > train_freq
         # We only train every `train_freq` timesteps
-        in_training_step = in_training_regime & (nstep % train_freq == 1)
+        in_training_step = in_training_regime & (ncalls % train_freq == 1)
         hist, phi, prob, nn = learn_free_energy(state, in_training_step)
         # Compute the collective variable and its jacobian
         xi, Jxi = cv(data)
@@ -161,7 +163,7 @@ def _ann(method: ANN, snapshot, helpers):
         F = estimate_force(xi, I_xi, nn, in_training_regime)
         bias = np.reshape(-Jxi.T @ F, state.bias.shape)
         #
-        return ANNState(xi, bias, hist, phi, prob, nn, nstep + 1)
+        return ANNState(xi, bias, hist, phi, prob, nn, ncalls)
 
     return snapshot, initialize, generalize(update, helpers)
 
@@ -288,8 +290,12 @@ def analyze(result: Result[ANN]):
     _, layout = unpack(model.parameters)
 
     def build_fes_fn(nn):
-        params = pack(nn.params, layout)
-        return jit(lambda x: nn.std * model.apply(params, x))
+        def fes_fn(x):
+            params = pack(nn.params, layout)
+            A = nn.std * model.apply(params, x) + nn.mean
+            return A.max() - A
+
+        return jit(fes_fn)
 
     def first_or_all(seq):
         return seq[0] if len(seq) == 1 else seq
@@ -301,14 +307,15 @@ def analyze(result: Result[ANN]):
 
     for s in states:
         histograms.append(s.hist)
-        free_energies.append(s.phi - s.phi.min())
+        free_energies.append(s.phi.max() - s.phi)
         nns.append(s.nn)
         fes_fns.append(build_fes_fn(s.nn))
 
-    return dict(
+    ana_result = dict(
         histogram=first_or_all(histograms),
         free_energy=first_or_all(free_energies),
         mesh=mesh,
         nn=first_or_all(nns),
         fes_fn=first_or_all(fes_fns),
     )
+    return numpyfy_vals(ana_result)

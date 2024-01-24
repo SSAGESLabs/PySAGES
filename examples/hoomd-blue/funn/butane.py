@@ -10,18 +10,16 @@ Adapted from [SSAGES](https://github.com/SSAGESproject/SSAGES).
 import argparse
 import sys
 import time
+from math import pi, sqrt
 
-import numpy as np
 import hoomd
 import hoomd.md
+import numpy as np
+
 import pysages
-
-from math import sqrt, pi
-
 from pysages import Grid
 from pysages.colvars import DihedralAngle
-from pysages.methods import CVRestraints, FUNN
-
+from pysages.methods import FUNN, CVRestraints
 
 # %%
 kT = 0.596161

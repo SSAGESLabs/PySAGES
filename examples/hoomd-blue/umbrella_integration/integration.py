@@ -1,18 +1,17 @@
 #!/usr/bin/env python3
-import sys
 import argparse
 import importlib
-import numpy as np
-import matplotlib.pyplot as plt
+import sys
 
 import hoomd
-import hoomd.md as md
 import hoomd.dlext
+import hoomd.md as md
+import matplotlib.pyplot as plt
+import numpy as np
 
 import pysages
 from pysages.colvars import Component
-from pysages.methods import UmbrellaIntegration, SerialExecutor
-
+from pysages.methods import HarmonicBias, SerialExecutor, UmbrellaIntegration
 
 params = {"A": 0.5, "w": 0.2, "p": 2}
 
@@ -139,7 +138,8 @@ def main(argv):
     cvs = [Component([0], 0)]
 
     centers = list(np.linspace(args.start_path, args.end_path, args.replicas))
-    method = UmbrellaIntegration(cvs, args.k_spring, centers, args.log_period, args.log_delay)
+    biasers = [HarmonicBias(cvs, args.k_spring, c) for c in centers]
+    method = UmbrellaIntegration(biasers, args.log_period, args.log_delay)
 
     context_args = {"mpi_enabled": args.mpi}
 

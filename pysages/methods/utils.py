@@ -1,5 +1,4 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 """
@@ -8,7 +7,10 @@ Collection of helpful classes for methods.
 This includes callback functor objects (callable classes).
 """
 
+import copy
 from concurrent.futures import Executor, Future
+
+import numpy
 from jax import numpy as np
 from plum import Dispatcher
 
@@ -75,7 +77,7 @@ class HistogramLogger:
         self.period = period
         self.counter = 0
         self.offset = offset
-        self.data = []
+        self.data = None
 
     def __call__(self, snapshot, state, timestep):
         """
@@ -83,7 +85,11 @@ class HistogramLogger:
         """
         self.counter += 1
         if self.counter > self.offset and self.counter % self.period == 0:
-            self.data.append(state.xi[0])
+            xi = state.xi[0]
+            if self.data is None:
+                self.data = copy.copy(xi)
+            else:
+                self.data = np.vstack((self.data, xi))
 
     def get_histograms(self, **kwargs):
         """
@@ -114,7 +120,10 @@ class HistogramLogger:
         Reset internal state.
         """
         self.counter = 0
-        self.data = []
+        self.data = None
+
+    def numpyfy(self):
+        self.data = numpy.asarray(self.data)
 
 
 # NOTE: for OpenMM; issue #16 on openmm-dlext should be resolved for this to work properly.
@@ -173,3 +182,35 @@ def listify(arg, replicas, name, dtype):
         return arg
 
     return [dtype(arg) for i in range(replicas)]
+
+
+def numpyfy_vals(dictionary: dict, numpy_only: bool = False):
+    """
+    Iterate all keys of the dictionary and convert every possible value into a numpy array.
+    We recommend to pickle final analyzed results are numpyfying
+    with `numpy_only=True` to avoid pickling issues.
+
+    Strings and numpy arrays, that would result in `dtype == object` are not converted.
+
+    Parameters
+    ----------
+
+    dictionary: dict
+        Input dictionary, which keys are attempted to be converted to numpy arrays.
+    numpy_only: bool
+        If true, any not simple numpy array object is excluded from the results.
+    Returns
+    -------
+
+    dict: The same dictionary, but keys are preferably numpy arrays.
+    """
+
+    new_dict = {}
+    for key in dictionary:
+        if not numpy_only:
+            new_dict[key] = dictionary[key]
+        if isinstance(dictionary[key], str):
+            numpy_array = numpy.asarray(dictionary[key])
+            if numpy_array.dtype != numpy.dtype("O"):
+                new_dict[key] = numpy_array
+    return new_dict

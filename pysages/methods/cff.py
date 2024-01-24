@@ -1,5 +1,4 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 """
@@ -12,24 +11,27 @@ estimates. It can be seen as a generalization of ANN and FUNN sampling methods t
 two neural networks to approximate the free energy and its derivatives.
 """
 
+import numbers
 from functools import partial
-from typing import NamedTuple, Tuple
 
-from jax import jit, numpy as np, vmap
+from jax import jit
+from jax import numpy as np
+from jax import vmap
 from jax.lax import cond
-from jax.scipy import linalg
 
-from pysages.approxfun import compute_mesh, scale as _scale
+from pysages.approxfun import compute_mesh
+from pysages.approxfun import scale as _scale
 from pysages.grids import build_indexer
 from pysages.methods.core import NNSamplingMethod, Result, generalize
 from pysages.methods.restraints import apply_restraints
+from pysages.methods.utils import numpyfy_vals
 from pysages.ml.models import MLP
-from pysages.ml.objectives import Sobolev1SSE, L2Regularization
+from pysages.ml.objectives import L2Regularization, Sobolev1SSE
 from pysages.ml.optimizers import LevenbergMarquardt
 from pysages.ml.training import NNData, build_fitting_function, convolve, normalize
 from pysages.ml.utils import blackman_kernel, pack, unpack
-from pysages.utils import Bool, Int, JaxArray, dispatch
-
+from pysages.typing import JaxArray, NamedTuple, Tuple
+from pysages.utils import dispatch, solve_pos_def
 
 # Aliases
 f32 = np.float32
@@ -75,8 +77,8 @@ class CFFState(NamedTuple):
     nn: NNDada
         Bundle of the neural network parameters, and output scaling coefficients.
 
-    nstep: int
-        Count the number of times the method's update has been called.
+    ncalls: int
+        Counts the number of times the method's update has been called.
     """
 
     xi: JaxArray
@@ -91,7 +93,7 @@ class CFFState(NamedTuple):
     Wp_: JaxArray
     nn: NNData
     fnn: NNData
-    nstep: Int
+    ncalls: int
 
     def __repr__(self):
         return repr("PySAGES " + type(self).__name__)
@@ -103,7 +105,7 @@ class PartialCFFState(NamedTuple):
     Fsum: JaxArray
     ind: Tuple
     fnn: NNData
-    pred: Bool
+    pred: bool
 
 
 class CFF(NNSamplingMethod):
@@ -125,6 +127,9 @@ class CFF(NNSamplingMethod):
     topology: Tuple[int]
         Defines the architecture of the neural network
         (number of nodes of each hidden layer).
+
+    kT: float
+        Value of `kT` in the same units as the backend internal energy units.
 
     N: Optional[int] = 500
         Threshold parameter before accounting for the full average of the
@@ -148,7 +153,11 @@ class CFF(NNSamplingMethod):
     snapshot_flags = {"positions", "indices", "momenta"}
 
     def __init__(self, cvs, grid, topology, kT, **kwargs):
+        # kT must be unitless but consistent with the internal unit system of the backend
+        assert isinstance(kT, numbers.Real)
+
         super().__init__(cvs, grid, topology, **kwargs)
+
         self.kT = kT
         self.N = np.asarray(self.kwargs.get("N", 500))
         self.train_freq = self.kwargs.get("train_freq", 5000)
@@ -188,7 +197,7 @@ def _cff(method: CFF, snapshot, helpers):
         gshape = grid.shape if dims > 1 else (*grid.shape, 1)
 
         xi, _ = cv(helpers.query(snapshot))
-        bias = np.zeros((natoms, 3))
+        bias = np.zeros((natoms, helpers.dimensionality()))
         hist = np.zeros(gshape, dtype=np.uint32)
         histp = np.zeros(gshape, dtype=np.uint32)
         prob = np.zeros(gshape)
@@ -197,22 +206,22 @@ def _cff(method: CFF, snapshot, helpers):
         force = np.zeros(dims)
         Wp = np.zeros(dims)
         Wp_ = np.zeros(dims)
-        nn = NNData(ps, np.zeros(dims), np.array(1.0))
+        nn = NNData(ps, np.array(0.0), np.array(1.0))
         fnn = NNData(fps, np.zeros(dims), np.array(1.0))
 
-        return CFFState(xi, bias, hist, histp, prob, fe, Fsum, force, Wp, Wp_, nn, fnn, 1)
+        return CFFState(xi, bias, hist, histp, prob, fe, Fsum, force, Wp, Wp_, nn, fnn, 0)
 
     def update(state, data):
         # During the intial stage, when there are not enough collected samples, use ABF
-        nstep = state.nstep
-        in_training_regime = nstep > 1 * train_freq
-        in_training_step = in_training_regime & (nstep % train_freq == 1)
+        ncalls = state.ncalls + 1
+        in_training_regime = ncalls > train_freq
+        in_training_step = in_training_regime & (ncalls % train_freq == 1)
         histp, fe, prob, nn, fnn = learn_free_energy(state, in_training_step)
         # Compute the collective variable and its jacobian
         xi, Jxi = cv(data)
         #
         p = data.momenta
-        Wp = linalg.solve(Jxi @ Jxi.T, Jxi @ p, sym_pos="sym")
+        Wp = solve_pos_def(Jxi @ Jxi.T, Jxi @ p)
         dWp_dt = (1.5 * Wp - 2.0 * state.Wp + 0.5 * state.Wp_) / dt
         #
         I_xi = get_grid_index(xi)
@@ -223,9 +232,7 @@ def _cff(method: CFF, snapshot, helpers):
         force = estimate_force(PartialCFFState(xi, hist, Fsum, I_xi, fnn, in_training_regime))
         bias = (-Jxi.T @ force).reshape(state.bias.shape)
         #
-        return CFFState(
-            xi, bias, hist, histp, prob, fe, Fsum, force, Wp, state.Wp, nn, fnn, nstep + 1
-        )
+        return CFFState(xi, bias, hist, histp, prob, fe, Fsum, force, Wp, state.Wp, nn, fnn, ncalls)
 
     return snapshot, initialize, generalize(update, helpers)
 
@@ -316,7 +323,7 @@ def build_force_estimator(method: CFF):
         return fnn.std * fmodel.apply(fparams, f32(x)).flatten() + fnn.mean
 
     def _estimate_force(state):
-        return cond(state.pred, average_force, predict_force, state)
+        return cond(state.pred, predict_force, average_force, state)
 
     if method.restraints is None:
         estimate_force = _estimate_force
@@ -370,30 +377,19 @@ def analyze(result: Result[CFF]):
     _, layout = unpack(model.parameters)
 
     def average_forces(hist, Fsum):
-        hist = np.expand_dims(hist, hist.ndim)
-        return Fsum / np.maximum(hist, 1)
+        shape = (*Fsum.shape[:-1], 1)
+        return Fsum / np.maximum(hist.reshape(shape), 1)
 
     def build_fes_fn(nn):
-        params = pack(nn.params, layout)
-        return jit(lambda x: nn.std * model.apply(params, x))
+        def fes_fn(x):
+            params = pack(nn.params, layout)
+            A = nn.std * model.apply(params, x) + nn.mean
+            return A.max() - A
 
-    if len(states) == 1:
-        hist = states[0].hist
-        mean_force = average_forces(hist, states[0].Fsum)
-        fes_fn = build_fes_fn(states[0].nn)
+        return jit(fes_fn)
 
-        return dict(
-            histogram=hist,
-            mean_force=mean_force,
-            free_energy=states[0].fe,
-            mesh=mesh,
-            nn=states[0].nn,
-            fnn=states[0].fnn,
-            fes_fn=fes_fn,
-        )
-
-    # For multiple-replicas runs we return a list heights and functions
-    # (one for each replica)
+    def first_or_all(seq):
+        return seq[0] if len(seq) == 1 else seq
 
     histograms = []
     mean_forces = []
@@ -405,17 +401,18 @@ def analyze(result: Result[CFF]):
     for s in states:
         histograms.append(s.hist)
         mean_forces.append(average_forces(s.hist, s.Fsum))
-        free_energies.append(s.fe)
+        free_energies.append(s.fe.max() - s.fe)
         nns.append(s.nn)
         fnns.append(s.fnn)
         fes_fns.append(build_fes_fn(s.nn))
 
-    return dict(
-        histogram=histograms,
-        mean_force=mean_forces,
-        free_energy=free_energies,
+    ana_result = dict(
+        histogram=first_or_all(histograms),
+        mean_force=first_or_all(mean_forces),
+        free_energy=first_or_all(free_energies),
         mesh=mesh,
-        nn=nns,
-        fnn=fnns,
-        fes_fn=fes_fns,
+        nn=first_or_all(nns),
+        fnn=first_or_all(fnns),
+        fes_fn=first_or_all(fes_fns),
     )
+    return numpyfy_vals(ana_result)

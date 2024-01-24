@@ -1,5 +1,4 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 """
@@ -14,11 +13,9 @@ simulation, which is done from the continuous approximation to the generalized m
 provided by the basis functions expansion.
 """
 
-from typing import NamedTuple, Tuple
-
-from jax import jit, numpy as np
+from jax import jit
+from jax import numpy as np
 from jax.lax import cond
-from jax.scipy.linalg import solve
 
 from pysages.approxfun import (
     Fun,
@@ -31,7 +28,9 @@ from pysages.approxfun import (
 from pysages.grids import Chebyshev, Grid, build_indexer, convert
 from pysages.methods.core import GriddedSamplingMethod, Result, generalize
 from pysages.methods.restraints import apply_restraints
-from pysages.utils import Bool, Int, JaxArray, dispatch
+from pysages.methods.utils import numpyfy_vals
+from pysages.typing import JaxArray, NamedTuple, Tuple
+from pysages.utils import dispatch, solve_pos_def
 
 
 class SpectralABFState(NamedTuple):
@@ -64,11 +63,11 @@ class SpectralABFState(NamedTuple):
         The value of `Wp` for the previous integration step.
 
     fun: Fun
-        Object that holds the coeffients of the basis functions
+        Object that holds the coefficients of the basis functions
         approximation to the free energy.
 
-    nstep: int
-        Count the number of times the method's update has been called.
+    ncalls: int
+        Counts the number of times the method's update has been called.
     """
 
     xi: JaxArray
@@ -79,7 +78,7 @@ class SpectralABFState(NamedTuple):
     Wp: JaxArray
     Wp_: JaxArray
     fun: Fun
-    nstep: Int
+    ncalls: int
 
     def __repr__(self):
         return repr("PySAGES " + type(self).__name__)
@@ -91,7 +90,7 @@ class PartialSpectralABFState(NamedTuple):
     Fsum: JaxArray
     ind: Tuple
     fun: Fun
-    pred: Bool
+    pred: bool
 
 
 class SpectralABF(GriddedSamplingMethod):
@@ -162,27 +161,27 @@ def _spectral_abf(method, snapshot, helpers):
 
     def initialize():
         xi, _ = cv(helpers.query(snapshot))
-        bias = np.zeros((natoms, 3))
+        bias = np.zeros((natoms, helpers.dimensionality()))
         hist = np.zeros(grid.shape, dtype=np.uint32)
         Fsum = np.zeros((*grid.shape, dims))
         force = np.zeros(dims)
         Wp = np.zeros(dims)
         Wp_ = np.zeros(dims)
         fun = fit(Fsum)
-        return SpectralABFState(xi, bias, hist, Fsum, force, Wp, Wp_, fun, 1)
+        return SpectralABFState(xi, bias, hist, Fsum, force, Wp, Wp_, fun, 0)
 
     def update(state, data):
         # During the intial stage use ABF
-        nstep = state.nstep
-        in_fitting_regime = nstep > fit_threshold
-        in_fitting_step = in_fitting_regime & (nstep % fit_freq == 1)
+        ncalls = state.ncalls + 1
+        in_fitting_regime = ncalls > fit_threshold
+        in_fitting_step = in_fitting_regime & (ncalls % fit_freq == 1)
         # Fit forces
         fun = fit_forces(state, in_fitting_step)
         # Compute the collective variable and its jacobian
         xi, Jxi = cv(data)
         #
         p = data.momenta
-        Wp = solve(Jxi @ Jxi.T, Jxi @ p, sym_pos="sym")
+        Wp = solve_pos_def(Jxi @ Jxi.T, Jxi @ p)
         # Second order backward finite difference
         dWp_dt = (1.5 * Wp - 2.0 * state.Wp + 0.5 * state.Wp_) / dt
         #
@@ -195,7 +194,7 @@ def _spectral_abf(method, snapshot, helpers):
         )
         bias = np.reshape(-Jxi.T @ force, state.bias.shape)
         #
-        return SpectralABFState(xi, bias, hist, Fsum, force, Wp, state.Wp, fun, state.nstep + 1)
+        return SpectralABFState(xi, bias, hist, Fsum, force, Wp, state.Wp, fun, state.ncalls)
 
     return snapshot, initialize, generalize(update, helpers)
 
@@ -203,7 +202,7 @@ def _spectral_abf(method, snapshot, helpers):
 def build_free_energy_fitter(method: SpectralABF, fit):
     """
     Returns a function that given a `SpectralABFState` performs a least squares fit of the
-    generalized average forces for finding the coeffients of a basis functions expansion
+    generalized average forces for finding the coefficients of a basis functions expansion
     of the free energy.
     """
 
@@ -224,7 +223,7 @@ def build_free_energy_fitter(method: SpectralABF, fit):
 @dispatch
 def build_force_estimator(method: SpectralABF):
     """
-    Returns a function that given the coeffients of basis functions expansion and a CV
+    Returns a function that given the coefficients of basis functions expansion and a CV
     value, evaluates the function approximation to the gradient of the free energy.
     """
     N = method.N
@@ -323,7 +322,7 @@ def analyze(result: Result[SpectralABF]):
         funs.append(s.fun)
         fes_fns.append(fes_fn)
 
-    return dict(
+    ana_result = dict(
         histogram=first_or_all(hists),
         mean_force=first_or_all(mean_forces),
         free_energy=first_or_all(free_energies),
@@ -331,3 +330,4 @@ def analyze(result: Result[SpectralABF]):
         fun=first_or_all(funs),
         fes_fn=first_or_all(fes_fns),
     )
+    return numpyfy_vals(ana_result)

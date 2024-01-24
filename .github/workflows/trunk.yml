@@ -1,0 +1,23 @@
+name: trunk
+
+on:
+  push:
+    branches:
+      - main
+      - trunk-merge/**
+  pull_request:
+    branches:
+      - main
+  # Allows you (and trunk) to run this workflow
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  trunk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Trunk Check
+        uses: trunk-io/trunk-action@v1

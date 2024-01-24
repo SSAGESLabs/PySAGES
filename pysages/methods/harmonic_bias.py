@@ -1,5 +1,4 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 """
@@ -15,38 +14,38 @@ The Hamiltonian is amended with a term
 biases the simulations around the collective variable :math:`\\xi_0`.
 """
 
-from typing import NamedTuple
-
 from jax import numpy as np
 
-from pysages.methods.core import SamplingMethod, default_getstate, generalize
-from pysages.utils import JaxArray
+from pysages.methods.bias import Bias
+from pysages.methods.core import generalize
+from pysages.typing import JaxArray, NamedTuple
 
 
 class HarmonicBiasState(NamedTuple):
     """
     Description of a state biased by a harmonic potential for a CV.
 
-    bias: JaxArray
-        Array with harmonic biasing forces for each particle in the simulation.
     xi: JaxArray
         Collective variable value of the last simulation step.
-    """
 
     bias: JaxArray
+        Array with harmonic biasing forces for each particle in the simulation.
+    """
+
     xi: JaxArray
+    bias: JaxArray
+    ncalls: int
 
     def __repr__(self):
         return repr("PySAGES" + type(self).__name__)
 
 
-class HarmonicBias(SamplingMethod):
+class HarmonicBias(Bias):
     """
     Harmonic bias method class.
     """
 
-    __special_args__ = {"kspring", "center"}
-    snapshot_flags = {"positions", "indices"}
+    __special_args__ = Bias.__special_args__.union({"kspring"})
 
     def __init__(self, cvs, kspring, center, **kwargs):
         """
@@ -59,15 +58,13 @@ class HarmonicBias(SamplingMethod):
         center:
             An array of length `N` representing the minimum of the harmonic biasing potential.
         """
-        super().__init__(cvs, **kwargs)
+        super().__init__(cvs, center, **kwargs)
         self.cv_dimension = len(cvs)
         self.kspring = kspring
-        self.center = center
 
     def __getstate__(self):
-        state, kwargs = default_getstate(self)
+        state, kwargs = super().__getstate__()
         state["kspring"] = self._kspring
-        state["center"] = self._center
         return state, kwargs
 
     @property
@@ -109,27 +106,6 @@ class HarmonicBias(SamplingMethod):
             self._kspring = np.identity(N) * kspring
         return self._kspring
 
-    @property
-    def center(self):
-        """
-        Retrieve current center of the collective variable.
-        """
-        return self._center
-
-    @center.setter
-    def center(self, center):
-        """
-        Set the center of the collective variable to a new position.
-        """
-        center = np.asarray(center)
-        if center.shape == ():
-            center = center.reshape(1)
-        if len(center.shape) != 1 or center.shape[0] != self.cv_dimension:
-            raise RuntimeError(
-                f"Invalid center shape expected {self.cv_dimension} got {center.shape}."
-            )
-        self._center = center
-
     def build(self, snapshot, helpers, *args, **kwargs):
         return _harmonic_bias(self, snapshot, helpers)
 
@@ -141,8 +117,9 @@ def _harmonic_bias(method, snapshot, helpers):
     natoms = np.size(snapshot.positions, 0)
 
     def initialize():
-        bias = np.zeros((natoms, 3))
-        return HarmonicBiasState(bias, None)
+        xi, _ = cv(helpers.query(snapshot))
+        bias = np.zeros((natoms, helpers.dimensionality()))
+        return HarmonicBiasState(xi, bias, 0)
 
     def update(state, data):
         xi, Jxi = cv(data)
@@ -150,6 +127,6 @@ def _harmonic_bias(method, snapshot, helpers):
         bias = -Jxi.T @ forces.flatten()
         bias = bias.reshape(state.bias.shape)
 
-        return HarmonicBiasState(bias, xi)
+        return HarmonicBiasState(xi, bias, state.ncalls + 1)
 
     return snapshot, initialize, generalize(update, helpers)

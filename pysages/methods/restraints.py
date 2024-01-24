@@ -1,16 +1,14 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 """
 Building blocks for specifying restraints on collective variables.
 """
 
-from typing import NamedTuple
-
 from jax import numpy as np
 
-from pysages.utils import JaxArray, dispatch
+from pysages.typing import JaxArray, NamedTuple
+from pysages.utils import dispatch
 
 
 class CVRestraints(NamedTuple):

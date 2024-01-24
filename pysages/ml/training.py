@@ -1,15 +1,12 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
-
-from typing import NamedTuple
 
 from jax import numpy as np
 from jax.lax import while_loop
 from jax.scipy import signal
 
 from pysages.ml.optimizers import build
-from pysages.utils import JaxArray
+from pysages.typing import JaxArray, NamedTuple
 
 
 class NNData(NamedTuple):

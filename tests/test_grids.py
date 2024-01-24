@@ -1,16 +1,9 @@
-from jax.numpy import pi, uint32 as UInt32
-from pysages.grids import (
-    Chebyshev,
-    Grid,
-    Periodic,
-    Regular,
-    build_indexer,
-    convert,
-)
-
 import jax.numpy as np
 import pytest
+from jax.numpy import pi
+from jax.numpy import uint32 as UInt32
 
+from pysages.grids import Chebyshev, Grid, Periodic, Regular, build_indexer, convert
 
 lower_1d = (-pi,)
 upper_1d = (pi,)

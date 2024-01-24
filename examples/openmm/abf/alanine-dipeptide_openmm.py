@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 
 
+import matplotlib.pyplot as plt
+import numpy
+
+import pysages
+
 # %%
 from pysages.colvars import DihedralAngle
 from pysages.methods import ABF
 from pysages.utils import try_import
-import matplotlib.pyplot as plt
-import numpy
-import pysages
 
 openmm = try_import("openmm", "simtk.openmm")
 unit = try_import("openmm.unit", "simtk.unit")
@@ -21,7 +23,7 @@ adp_pdb = "../../inputs/alanine-dipeptide/adp-explicit.pdb"
 T = 298.15 * unit.kelvin
 dt = 2.0 * unit.femtoseconds
 
-# %%
+
 def generate_simulation(pdb_filename=adp_pdb, T=T, dt=dt):
     pdb = app.PDBFile(pdb_filename)
 
@@ -105,13 +107,17 @@ def save_energy_forces(result):
     numpy.savetxt("Forces.csv", numpy.hstack([grid, forces.reshape(-1, grid.shape[1])]))
 
 
+def post_run_action(**kwargs):
+    kwargs.get("context").saveState("final.xml")
+
+
 # %%
 def main():
     cvs = [DihedralAngle((4, 6, 8, 14)), DihedralAngle((6, 8, 14, 16))]
     grid = pysages.Grid(lower=(-pi, -pi), upper=(pi, pi), shape=(32, 32), periodic=True)
     method = ABF(cvs, grid)
 
-    raw_result = pysages.run(method, generate_simulation, 25)
+    raw_result = pysages.run(method, generate_simulation, 25, post_run_action=post_run_action)
     result = pysages.analyze(raw_result, topology=(14,))
 
     plot_energy(result)

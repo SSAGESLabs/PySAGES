@@ -1,7 +1,8 @@
 import sys
-import numpy as np
+
 import gsd
 import gsd.hoomd
+import numpy as np
 
 
 class System:
@@ -19,7 +20,7 @@ def post_process_pos(snapshot):
 
 def get_snap(system):
     L = system.L
-    snapshot = gsd.hoomd.Snapshot()
+    snapshot = gsd.hoomd.Frame()
     snapshot.configuration.box = [L, L, L, 0, 0, 0]
 
     snapshot.particles.N = N = system.N
@@ -47,7 +48,7 @@ def main(argv):
     snap = get_snap(system)
     snap = post_process_pos(snap)
     snap.particles.validate()
-    with gsd.hoomd.open("start.gsd", "wb") as f:
+    with gsd.hoomd.open("start.gsd", "w") as f:
         f.append(snap)
 
 
