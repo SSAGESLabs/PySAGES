@@ -1,18 +1,19 @@
-name: CI tests with docker container
+name: Docker CI
 
 on:
   push:
     branches:
       - main
+      - trunk-merge/**
     paths-ignore:
-      - 'README.md'
-      - 'docs/*'
+      - "README.md"
+      - "docs/*"
   pull_request:
     branches:
       - main
     paths-ignore:
-      - 'README.md'
-      - 'docs/*'
+      - "README.md"
+      - "docs/*"
 
   workflow_dispatch:
 
@@ -21,17 +22,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       - name: Build and export
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v3
         with:
           context: .
           tags: pysages:latest
           outputs: type=docker,dest=/tmp/pysages.tar
       - name: Upload artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: pysages
           path: /tmp/pysages.tar
@@ -39,31 +40,31 @@ jobs:
 
   forward-flux-sampling:
     runs-on: ubuntu-latest
-    container:
-      image: ssages/pysages-openmm
-      options: --user root --privileged
+    needs: build
     steps:
-      - uses: actions/checkout@v3
-      - name: Install pysages and dependecies
-        env:
-          JAX_PIP_URL: https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
-        run: |
-          pip install --upgrade "jax[cuda]" -f "${{ env.JAX_PIP_URL }}"
-          pip install .
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: pysages
+          path: /tmp
       - name: Load and run test
         run: |
-          cd examples/openmm
-          python3 forward_flux_sampling.py \
-            --cv-start=80 --cv-distance=2 --window-number=2 --sampling-steps=50 --replicas=5
+          SCRIPT="cd PySAGES/examples/openmm &&"
+          SCRIPT="${SCRIPT} python3 forward_flux_sampling.py "
+          SCRIPT="${SCRIPT} --cv-start=80 --cv-distance=2 --window-number=2 --sampling-steps=50 --replicas=5"
+          docker load --input /tmp/pysages.tar
+          docker run -t pysages bash -c "${SCRIPT}"
 
   abf-alanine-dipeptide-openmm:
     runs-on: ubuntu-latest
     needs: build
     steps:
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       - name: Download artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: pysages
           path: /tmp
@@ -77,9 +78,9 @@ jobs:
     needs: build
     steps:
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       - name: Download artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: pysages
           path: /tmp
@@ -95,9 +96,9 @@ jobs:
     needs: build
     steps:
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       - name: Download artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: pysages
           path: /tmp
@@ -111,9 +112,9 @@ jobs:
     needs: build
     steps:
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       - name: Download artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: pysages
           path: /tmp
@@ -143,9 +144,9 @@ jobs:
     needs: build
     steps:
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       - name: Download artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: pysages
           path: /tmp
@@ -158,21 +159,57 @@ jobs:
           docker load --input /tmp/pysages.tar
           docker run --privileged -t pysages bash -c "${SCRIPT}"
 
+  cv-pucker-openmm-unbiased:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: pysages
+          path: /tmp
+      - name: Load and run test
+        run: |
+          docker load --input /tmp/pysages.tar
+          docker run -t pysages bash -c "cd PySAGES/examples/openmm/cv_pucker && python3 ./unbiased.py && python3 ./check_pucker.py"
+
+  alanine-dipeptide-string:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: pysages
+          path: /tmp
+      - name: Load and run test
+        run: |
+          SCRIPT="cd PySAGES/examples/openmm/string &&"
+          SCRIPT="${SCRIPT} mpirun --allow-run-as-root --oversubscribe -n 6"
+          SCRIPT="${SCRIPT} python3 -m mpi4py.futures"
+          SCRIPT="${SCRIPT} integration.py --replicas=5 --string-steps=2 --time-steps=1000 --mpi"
+          docker load --input /tmp/pysages.tar
+          docker run --privileged -t pysages bash -c "${SCRIPT}"
+
   openmm-nacl-metad-displacement:
     runs-on: ubuntu-latest
     needs: build
     steps:
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       - name: Download artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: pysages
           path: /tmp
       - name: Load and run test
         run: |
           SCRIPT="cd PySAGES/examples/openmm/metad/nacl &&"
-          SCRIPT="${SCRIPT} python3 nacl-displacement.py --use-grids=1 --time-steps=500"
+          SCRIPT="${SCRIPT} python3 nacl-displacement.py --time-steps=500"
           docker load --input /tmp/pysages.tar
           docker run -v/tmp:/tmp -t pysages bash -c "${SCRIPT}"
 
@@ -181,9 +218,9 @@ jobs:
     needs: build
     steps:
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       - name: Download artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: pysages
           path: /tmp
@@ -197,9 +234,9 @@ jobs:
     needs: build
     steps:
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       - name: Download artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: pysages
           path: /tmp
@@ -215,9 +252,9 @@ jobs:
     needs: build
     steps:
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       - name: Download artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: pysages
           path: /tmp
@@ -233,9 +270,9 @@ jobs:
     needs: build
     steps:
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       - name: Download artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: pysages
           path: /tmp
@@ -244,7 +281,7 @@ jobs:
           docker load --input /tmp/pysages.tar
           docker run -v/tmp:/tmp -t pysages bash -c "cd PySAGES/examples/hoomd-blue/harmonic_bias/ && ./run.sh && mv hist.pdf /tmp/"
       - name: Upload artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: harmonic-hist.pdf
           path: /tmp/hist.pdf
@@ -255,9 +292,9 @@ jobs:
     needs: build
     steps:
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       - name: Download artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: pysages
           path: /tmp
@@ -271,9 +308,9 @@ jobs:
     needs: build
     steps:
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       - name: Download artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: pysages
           path: /tmp
@@ -282,9 +319,31 @@ jobs:
           docker load --input /tmp/pysages.tar
           docker run -v /tmp:/tmp -t pysages bash -c "cd PySAGES/examples/hoomd-blue/umbrella_integration && python3 ./gen_gsd.py && python3 integration.py --replicas=5 --time-steps=1000 && mkdir /tmp/plots && mv *.pdf /tmp/plots/"
       - name: Upload artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: umbrella-integration-plots
+          path: /tmp/plots
+          retention-days: 1
+
+  improved-string-hoomd:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: pysages
+          path: /tmp
+      - name: Load and run test
+        run: |
+          docker load --input /tmp/pysages.tar
+          docker run -v /tmp:/tmp -t pysages bash -c "cd PySAGES/examples/hoomd-blue/string && python3 ./gen_gsd.py && python3 spline_string.py --replicas=5 --time-steps=1000 --log-delay=0 --string-steps=2 && mkdir /tmp/plots && mv *.pdf /tmp/plots/"
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: spline-string-plots
           path: /tmp/plots
           retention-days: 1
 
@@ -293,9 +352,9 @@ jobs:
     needs: build
     steps:
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       - name: Download artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: pysages
           path: /tmp
@@ -310,7 +369,7 @@ jobs:
           docker load --input /tmp/pysages.tar
           docker run -v /tmp:/tmp -t pysages bash -c "${SCRIPT}"
       - name: Upload artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: umbrella-integration-mpi-plots
           path: /tmp/plots

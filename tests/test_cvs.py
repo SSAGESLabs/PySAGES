@@ -1,11 +1,8 @@
-from typing import NamedTuple
-
 from jax import numpy as np
 
 from pysages.colvars import Distance
 from pysages.colvars.core import build
-from pysages.utils import JaxArray
-
+from pysages.typing import JaxArray, NamedTuple
 
 POSITIONS = np.array(
     [

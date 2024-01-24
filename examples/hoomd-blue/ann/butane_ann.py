@@ -9,20 +9,17 @@ ANN simulation of a butane molecule in HOOMD-blue and PySAGES.
 import argparse
 import sys
 import time
+from math import pi, sqrt
 
-import numpy as np
 import hoomd
 import hoomd.md
+import matplotlib.pyplot as plt
+import numpy as np
+
 import pysages
-
-from math import sqrt, pi
-
 from pysages import Grid
 from pysages.colvars import DihedralAngle
 from pysages.methods import ANN
-
-import matplotlib.pyplot as plt
-
 
 # %%
 kT = 0.596161
@@ -276,9 +273,8 @@ def main(argv=[]):
 
     method = ANN(cvs, grid, topology, kT)
 
-    timesteps = args.time_steps
     tic = time.perf_counter()
-    raw_result = pysages.run(method, generate_context, timesteps)
+    raw_result = pysages.run(method, generate_context, args.time_steps)
     toc = time.perf_counter()
     print(f"Completed the simulation in {toc - tic:0.4f} seconds.")
 
@@ -287,7 +283,6 @@ def main(argv=[]):
 
     mesh = result["mesh"]
     A = result["free_energy"]
-    A = A.max() - A
 
     fig, ax = plt.subplots()
 
@@ -300,7 +295,7 @@ def main(argv=[]):
 
     # write free energy to file
     dih_vs_A = np.stack([mesh[:, 0], A[:, 0]], axis=1)
-    np.savetxt("butane-fe.dat", dih_vs_A, header='"dih" "Free energy"')
+    np.savetxt("butane-fe.dat", dih_vs_A, header='"Dihedral angle" "Free energy"')
 
     return result["free_energy"]
 

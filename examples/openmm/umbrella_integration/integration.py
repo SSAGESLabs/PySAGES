@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 
-import sys
 import argparse
 import importlib
+import sys
+
 import numpy as np
 
-from pysages.colvars import DihedralAngle
-from pysages.methods import UmbrellaIntegration, SerialExecutor
-from pysages.utils import try_import
-
 import pysages
+from pysages.colvars import DihedralAngle
+from pysages.methods import SerialExecutor, UmbrellaIntegration
+from pysages.utils import try_import
 
 openmm = try_import("openmm", "simtk.openmm")
 unit = try_import("openmm.unit", "simtk.unit")
@@ -69,6 +69,10 @@ def get_executor(args):
     return SerialExecutor()
 
 
+def post_run_action(**kwargs):
+    kwargs.get("context").saveState(f"final_{kwargs.get('replica_num')}.xml")
+
+
 def main(argv):
     args = get_args(argv)
 
@@ -83,6 +87,7 @@ def main(argv):
         generate_simulation,
         args.time_steps,
         executor=get_executor(args),
+        post_run_action=post_run_action,
     )
     result = pysages.analyze(raw_result)
     print(result)

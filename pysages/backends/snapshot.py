@@ -1,24 +1,16 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
-from typing import Callable, NamedTuple, Optional, Tuple, Union
+from jax import jit
+from jax import numpy as np
 
-from jax import jit, numpy as np
-from jaxlib.xla_extension import DeviceArray as JaxArray
+from pysages.typing import Callable, JaxArray, NamedTuple, Optional, Tuple, Union
+from pysages.utils import copy, dispatch
 
-from pysages.utils import copy, dispatch, identity
+AbstractBox = NamedTuple("AbstractBox", [("H", JaxArray), ("origin", JaxArray)])
 
 
-class Box(
-    NamedTuple(
-        "Box",
-        [
-            ("H", JaxArray),
-            ("origin", JaxArray),
-        ],
-    )
-):
+class Box(AbstractBox):
     """
     Simulation box information (origin and transform matrix).
     """
@@ -57,6 +49,7 @@ class SnapshotMethods(NamedTuple):
 
 class HelperMethods(NamedTuple):
     query: Callable
+    dimensionality: Callable[[], int]
 
 
 @dispatch(precedence=1)

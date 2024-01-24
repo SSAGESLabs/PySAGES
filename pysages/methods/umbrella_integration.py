@@ -1,5 +1,4 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 """
@@ -15,12 +14,23 @@ However, the method is not very accurate and it is preferred that more advanced 
 """
 
 from copy import deepcopy
-from typing import Callable, Optional, Union
 
-import plum
-from pysages.methods.core import Result, SamplingMethod, _run
+from pysages.methods.core import (
+    ReplicaResult,
+    Result,
+    SamplingMethod,
+    _run_replica,
+    get_method,
+)
 from pysages.methods.harmonic_bias import HarmonicBias
-from pysages.methods.utils import HistogramLogger, listify, SerialExecutor
+from pysages.methods.utils import (
+    HistogramLogger,
+    SerialExecutor,
+    listify,
+    methods_dispatch,
+    numpyfy_vals,
+)
+from pysages.typing import Callable, Optional, Union
 from pysages.utils import dispatch
 
 
@@ -34,7 +44,10 @@ class UmbrellaIntegration(SamplingMethod):
     Note that this is not very accurate and usually requires more sophisticated analysis on top.
     """
 
-    @plum.dispatch
+    submethods = []
+    histograms = []
+
+    @methods_dispatch
     def __init__(
         self,
         cvs,
@@ -72,7 +85,7 @@ class UmbrellaIntegration(SamplingMethod):
         self.submethods = [HarmonicBias(cvs, k, c) for (k, c) in zip(ksprings, centers)]
         self.histograms = [HistogramLogger(p, o) for (p, o) in zip(periods, offsets)]
 
-    @plum.dispatch
+    @methods_dispatch
     def __init__(  # noqa: F811 # pylint: disable=C0116,E0102
         self,
         biasers: list,
@@ -98,84 +111,110 @@ class UmbrellaIntegration(SamplingMethod):
         self.submethods = biasers
         self.histograms = [HistogramLogger(p, o) for (p, o) in zip(periods, offsets)]
 
+    def __getstate__(self):
+        return (self.submethods, self.histograms)
+
+    def __setstate__(self, state):
+        biasers, histograms = state
+        self.__init__(biasers, 1)
+        self.histograms = histograms
+
     # We delegate the sampling work to HarmonicBias
     # (or possibly other methods in the future)
     def build(self):  # pylint: disable=arguments-differ
         pass
 
 
-@dispatch
+@dispatch(precedence=1)
 def run(  # pylint: disable=arguments-differ
-    method: UmbrellaIntegration,
+    method_or_result: Union[UmbrellaIntegration, Result[UmbrellaIntegration]],
     context_generator: Callable,
     timesteps: Union[int, float],
-    context_args: Optional[dict] = None,
+    context_args: dict = {},
     post_run_action: Optional[Callable] = None,
     executor=SerialExecutor(),
+    executor_shutdown: bool = True,
     **kwargs
 ):
-    """
-    Implementation of the serial execution of umbrella integration with up to linear
-    order (ignoring second order terms with covariance matrix) as described in
-    J. Chem. Phys. 131, 034109 (2009); https://doi.org/10.1063/1.3175798 (equation 13).
-    Higher order approximations can be implemented by the user using the provided
-    covariance matrix.
+    # """
+    # Implementation of the execution of umbrella integration with up to linear
+    # order (ignoring second order terms with covariance matrix) as described in
+    # J. Chem. Phys. 131, 034109 (2009); https://doi.org/10.1063/1.3175798 (equation 13).
+    # Higher order approximations can be implemented by the user using the provided
+    # covariance matrix.
 
-    Arguments
-    ---------
-    context_generator: Callable
-        User defined function that sets up a simulation context with the backend.
-        Must return an instance of `hoomd.conext.SimulationContext` for HOOMD-blue and
-        `openmm.Context` for OpenMM.
-        The function gets `context_args` unpacked for additional user args.
-        For each replica along the path, the argument `replica_num` in [0, ..., N-1]
-        is set in the `context_generator` to load the appropriate initial condition.
+    # Arguments
+    # ---------
+    # context_generator: Callable
+    #     User defined function that sets up a simulation context with the backend.
+    #     Must return an instance of `hoomd.conext.SimulationContext` for HOOMD-blue and
+    #     `openmm.Context` for OpenMM.
+    #     The function gets `context_args` unpacked for additional user args.
+    #     For each replica along the path, the argument `replica_num` in [0, ..., N-1]
+    #     is set in the `context_generator` to load the appropriate initial condition.
 
-    timesteps: int
-        Number of timesteps the simulation is running.
+    # timesteps: int
+    #     Number of timesteps the simulation is running.
 
-    context_args: Optional[dict] = None
-        Arguments to pass down to `context_generator` to setup the simulation context.
+    # context_args: dict = {}
+    #     Arguments to pass down to `context_generator` to setup the simulation context.
 
-    kwargs:
-        Passed to the backend run function as additional user arguments.
+    # kwargs:
+    #     Passed to the backend run function as additional user arguments.
 
-    post_run_action: Optional[Callable] = None
-        Callable function that enables actions after the run execution of PySAGES.
-        Actions are executed inside the generated context.
-        Example uses for this include writing a final configuration file.
-        This function gets `context_args` unpacked just like `context_generator`.
+    # post_run_action: Optional[Callable] = None
+    #     Callable function that enables actions after the run execution of PySAGES.
+    #     Actions are executed inside the generated context.
+    #     Example uses for this include writing a final configuration file.
+    #     This function gets `context_args` unpacked just like `context_generator`.
 
-    * Note:
-        This method does not accept a user defined callback.
-    """
+    # **Note**: This method does not accept a user defined callback.
+    # """
+    method = get_method(method_or_result)
     timesteps = int(timesteps)
-    context_args = {} if context_args is None else context_args
 
-    def submit_work(executor, method, context_args, callback):
+    def submit_work(executor, method_or_result, context_args, callback):
         return executor.submit(
-            _run,
-            method,
+            _run_replica,
+            method_or_result,
             context_generator,
             timesteps,
             context_args,
-            callback,
+            *callback,
             post_run_action,
             **kwargs
         )
 
     futures = []
-    with executor as ex:
-        for rep, submethod in enumerate(method.submethods):
-            local_context_args = deepcopy(context_args)
-            local_context_args["replica_num"] = rep
-            callback = method.histograms[rep]
-            futures.append(submit_work(ex, submethod, local_context_args, callback))
+    for n in range(len(method.submethods)):
+        replica_context_args = deepcopy(context_args)
+        replica_context_args["replica_num"] = n
+        submethod_or_result, callback = _pack_args(method_or_result, n)
+        futures.append(submit_work(executor, submethod_or_result, replica_context_args, callback))
+
     results = [future.result() for future in futures]
     states = [r.states for r in results]
     callbacks = [r.callbacks for r in results]
+    snapshots = [r.snapshots for r in results]
 
-    return Result(method, states, callbacks)
+    if executor_shutdown:
+        executor.shutdown()
+
+    return Result(method, states, callbacks, snapshots)
+
+
+@dispatch
+def _pack_args(method: UmbrellaIntegration, n: int):
+    return method.submethods[n], (method.histograms[n],)
+
+
+@dispatch
+def _pack_args(  # noqa: F811 # pylint: disable=C0116,E0102
+    result: Result[UmbrellaIntegration], n: int
+):
+    method = result.method
+    submethod, callback = method.submethods[n], method.histograms[n]
+    return ReplicaResult(submethod, result.states[n], callback, result.snapshots[n]), ()
 
 
 @dispatch
@@ -208,7 +247,10 @@ def analyze(result: Result[UmbrellaIntegration]):
         if i > 0:
             free_energy.append(integrate(free_energy, mean_forces, centers, i))
 
-    return dict(
+    for callback in result.callbacks:
+        callback.numpyfy()
+
+    ana_result = dict(
         ksprings=ksprings,
         centers=centers,
         histograms=result.callbacks,
@@ -216,3 +258,4 @@ def analyze(result: Result[UmbrellaIntegration]):
         mean_forces=mean_forces,
         free_energy=free_energy,
     )
+    return numpyfy_vals(ana_result)

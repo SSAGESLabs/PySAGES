@@ -1,5 +1,4 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-# Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 """
@@ -13,27 +12,22 @@ which can be integrated to yield the free energy.
 
 The implementation of the adaptive biasing force method here closely follows
 https://doi.org/10.1063/1.2829861. One important difference is that the time
-derivative of the product :math:`W\\cdot p` (equation 9 of reference) is approximated by a
-second order backward finite difference in the simulation time step.
+derivative of the product :math:`W\\cdot p` (equation 9 of reference) is
+approximated by a second order backward finite difference in the simulation
+time step.
 """
 
-from functools import partial
-from typing import NamedTuple
-
-from jax import jit, numpy as np, vmap
+from jax import jit
+from jax import numpy as np
 from jax.lax import cond
-from jax.scipy import linalg
 
-from pysages.approxfun.core import compute_mesh, scale as _scale
 from pysages.grids import build_indexer
+from pysages.methods.analysis import GradientLearning, _analyze
 from pysages.methods.core import GriddedSamplingMethod, Result, generalize
 from pysages.methods.restraints import apply_restraints
-from pysages.ml.models import MLP
-from pysages.ml.objectives import GradientsSSE, L2Regularization
-from pysages.ml.optimizers import LevenbergMarquardt
-from pysages.ml.training import NNData, build_fitting_function, convolve
-from pysages.ml.utils import blackman_kernel, pack, unpack
-from pysages.utils import JaxArray, dispatch
+from pysages.methods.utils import numpyfy_vals
+from pysages.typing import JaxArray, NamedTuple
+from pysages.utils import dispatch, solve_pos_def
 
 
 class ABFState(NamedTuple):
@@ -46,7 +40,7 @@ class ABFState(NamedTuple):
     xi: JaxArray (CV shape)
         Last collective variable recorded in the simulation.
 
-    bias: JaxArray (Nparticles, 3)
+    bias: JaxArray (Nparticles, d)
         Array with biasing forces for each particle.
 
     hist: JaxArray (grid.shape)
@@ -63,6 +57,9 @@ class ABFState(NamedTuple):
 
     Wp_: JaxArray (CV shape)
         Product of W matrix and momenta matrix for the previous step.
+
+    ncalls: int
+        Counts the number of times the method's update has been called.
     """
 
     xi: JaxArray
@@ -72,6 +69,7 @@ class ABFState(NamedTuple):
     force: JaxArray
     Wp: JaxArray
     Wp_: JaxArray
+    ncalls: int
 
     def __repr__(self):
         return repr("PySAGES " + type(self).__name__)
@@ -94,8 +92,8 @@ class ABF(GriddedSamplingMethod):
         Set of user selected collective variable.
 
     grid: Grid
-        Specifies the collective variables domain and number of bins for discretizing
-        the CV space along each CV dimension.
+        Specifies the collective variables domain and number of bins for
+        discretizing the CV space along each CV dimension.
 
     N: Optional[int] = 500
         Threshold parameter before accounting for the full average
@@ -165,7 +163,8 @@ def _abf(method, snapshot, helpers):
 
     def initialize():
         """
-        Internal function that generates the first ABFstate with correctly shaped JaxArrays.
+        Internal function that generates the first ABFState
+        with correctly shaped JaxArrays.
 
         Returns
         -------
@@ -173,13 +172,13 @@ def _abf(method, snapshot, helpers):
             Initialized State
         """
         xi, _ = cv(helpers.query(snapshot))
-        bias = np.zeros((natoms, 3))
+        bias = np.zeros((natoms, helpers.dimensionality()))
         hist = np.zeros(grid.shape, dtype=np.uint32)
         Fsum = np.zeros((*grid.shape, dims))
         force = np.zeros(dims)
         Wp = np.zeros(dims)
         Wp_ = np.zeros(dims)
-        return ABFState(xi, bias, hist, Fsum, force, Wp, Wp_)
+        return ABFState(xi, bias, hist, Fsum, force, Wp, Wp_, 0)
 
     def update(state, data):
         """
@@ -206,7 +205,7 @@ def _abf(method, snapshot, helpers):
         # (both seem to have the same performance).
         # Another option to benchmark against is
         # Wp = linalg.tensorsolve(Jxi @ Jxi.T, Jxi @ p)
-        Wp = linalg.solve(Jxi @ Jxi.T, Jxi @ p, sym_pos="sym")
+        Wp = solve_pos_def(Jxi @ Jxi.T, Jxi @ p)
         # Second order backward finite difference
         dWp_dt = (1.5 * Wp - 2.0 * state.Wp + 0.5 * state.Wp_) / dt
 
@@ -218,7 +217,7 @@ def _abf(method, snapshot, helpers):
         force = estimate_force(xi, I_xi, Fsum, hist).reshape(dims)
         bias = np.reshape(-Jxi.T @ force, state.bias.shape)
 
-        return ABFState(xi, bias, hist, Fsum, force, Wp, state.Wp)
+        return ABFState(xi, bias, hist, Fsum, force, Wp, state.Wp, state.ncalls + 1)
 
     return snapshot, initialize, generalize(update, helpers)
 
@@ -258,7 +257,7 @@ def build_force_estimator(method: ABF):
 def analyze(result: Result[ABF], **kwargs):
     """
     Computes the free energy from the result of an `ABF` run.
-    Integrates the forces using Sobolev approximation of functions by gradient learning.
+    Integrates the forces via a gradient learning strategy.
 
     Parameters
     ----------
@@ -266,13 +265,15 @@ def analyze(result: Result[ABF], **kwargs):
     result: Result[ABF]:
         Result bundle containing method, final ABF state, and callback.
 
-    topology: Optional[Tuple[int]] = (4, 4)
-        Defines the architecture of the neural network (number of nodes of each hidden layer).
+    topology: Optional[Tuple[int]] = (8, 8)
+        Defines the architecture of the neural network
+        (number of nodes in each hidden layer).
 
     Returns
     -------
 
-    dict: A dictionary with the following keys:
+    dict:
+        A dictionary with the following keys:
 
         histogram: JaxArray
             Histogram for the states visited during the method.
@@ -287,57 +288,13 @@ def analyze(result: Result[ABF], **kwargs):
             Grid used in the method.
 
         fes_fn: Callable[[JaxArray], JaxArray]
-            Function that allows to interpolate the free energy in the CV domain defined
-            by the grid.
+            Function that allows to interpolate the free energy in the
+            CV domain defined by the grid.
+
+    NOTE:
+    For multiple-replicas runs we return a list (one item per-replica)
+    for each attribute.
     """
-    topology = kwargs.get("topology", (4, 4))
-    method = result.method
-    state = result.states[0]
-    grid = method.grid
-    inputs = (compute_mesh(grid) + 1) * grid.size / 2 + grid.lower
-
-    model = MLP(grid.shape.size, 1, topology, transform=partial(_scale, grid=grid))
-    optimizer = LevenbergMarquardt(loss=GradientsSSE(), max_iters=2500, reg=L2Regularization(1e-3))
-    fit = build_fitting_function(model, optimizer)
-
-    @vmap
-    def smooth(data):
-        boundary = "wrap" if grid.is_periodic else "edge"
-        kernel = np.float32(blackman_kernel(grid.shape.size, 7))
-        return convolve(data.T, kernel, boundary=boundary).T
-
-    def train(nn, data):
-        axes = tuple(range(data.ndim - 1))
-        std = data.std(axis=axes).max()
-        reference = np.float64(smooth(np.float32(data / std)))
-        params = fit(nn.params, inputs, reference).params
-        return NNData(params, nn.mean, std / reference.std(axis=axes).max())
-
-    def build_fes_fn(state):
-        hist = np.expand_dims(state.hist, state.hist.ndim)
-        F = state.Fsum / np.maximum(hist, 1)
-
-        ps, layout = unpack(model.parameters)
-        nn = train(NNData(ps, 0.0, 1.0), F)
-
-        def fes_fn(x):
-            params = pack(nn.params, layout)
-            A = nn.std * model.apply(params, x) + nn.mean
-            return A.max() - A
-
-        return jit(fes_fn)
-
-    def average_forces(state):
-        Fsum = state.Fsum
-        shape = (*Fsum.shape[:-1], 1)
-        return Fsum / np.maximum(state.hist.reshape(shape), 1)
-
-    fes_fn = build_fes_fn(state)
-
-    return dict(
-        histogram=state.hist,
-        mean_force=average_forces(state),
-        free_energy=fes_fn(inputs).reshape(grid.shape),
-        mesh=inputs,
-        fes_fn=fes_fn,
-    )
+    topology = kwargs.get("topology", (8, 8))
+    _result = _analyze(result, GradientLearning(), topology)
+    return numpyfy_vals(_result)

@@ -1,5 +1,4 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 # flake8: noqa F401
@@ -60,18 +59,21 @@ re-implements :py:meth:`umbrella_integration.UmbrellaIntegration.run`
 to sample multiple replicas along a path to estimate free energy differences.
 """
 
-from .core import SamplingMethod
-
 from .abf import ABF
 from .ann import ANN
+from .bias import Bias
 from .cff import CFF
+from .core import SamplingMethod
 from .ffs import FFS
 from .funn import FUNN
 from .harmonic_bias import HarmonicBias
-from .umbrella_integration import UmbrellaIntegration
 from .metad import Metadynamics
 from .pbmetad import ParallelBiasMetadynamics
+from .restraints import CVRestraints
 from .spectral_abf import SpectralABF
+from .spline_string import SplineString
+from .umbrella_integration import UmbrellaIntegration
+from .unbiased import Unbiased
 from .utils import (
     HistogramLogger,
     MetaDLogger,
@@ -79,6 +81,3 @@ from .utils import (
     SerialExecutor,
     methods_dispatch,
 )
-from .restraints import CVRestraints
-from .unbiased import Unbiased
-from .bias import Bias

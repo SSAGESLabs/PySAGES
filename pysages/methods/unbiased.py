@@ -1,5 +1,4 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 """
@@ -8,15 +7,12 @@ Unbiased simulation method method.
 This method does not alter the original simulation.
 It allows unbiased simulations with the PySAGES framework.
 
-A common use case is to record collective variables in unbiased simulations via the Histogram logger.
+A common use case is to record collective variables in unbiased
+simulations via the Histogram logger.
 """
 
-from typing import NamedTuple
-
-from jax import numpy as np
-
 from pysages.methods.core import SamplingMethod, generalize
-from pysages.utils import JaxArray
+from pysages.typing import JaxArray, NamedTuple, Optional
 
 
 class UnbiasedState(NamedTuple):
@@ -26,12 +22,16 @@ class UnbiasedState(NamedTuple):
     xi: JaxArray
         Collective variable value of the last simulation step.
 
-    bias: JaxArray
-        Array with zero biasing force in the simulation.
+    bias: Optional[JaxArray]
+        Either None or an array with all entries equal to zero.
+
+    ncalls: int
+        Counts the number of times the method's update has been called.
     """
 
     xi: JaxArray
-    bias: JaxArray
+    bias: Optional[JaxArray]
+    ncalls: int
 
     def __repr__(self):
         return repr("PySAGES" + type(self).__name__)
@@ -63,14 +63,13 @@ class Unbiased(SamplingMethod):
 
 def _unbias(method, snapshot, helpers):
     cv = method.cv
-    natoms = np.size(snapshot.positions, 0)
 
     def initialize():
         xi = cv(helpers.query(snapshot))
-        return UnbiasedState(xi, None)
+        return UnbiasedState(xi, None, 0)
 
     def update(state, data):
         xi = cv(data)
-        return UnbiasedState(xi, None)
+        return UnbiasedState(xi, None, state.ncalls + 1)
 
     return snapshot, initialize, generalize(update, helpers)

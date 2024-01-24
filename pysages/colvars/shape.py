@@ -1,5 +1,4 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 """
@@ -9,7 +8,7 @@ Collective Variables that are calculated from the shape of group of atoms.
 import jax.numpy as np
 from jax.numpy import linalg
 
-from pysages.colvars.core import CollectiveVariable, AxisCV
+from pysages.colvars.core import AxisCV, CollectiveVariable
 
 
 class RadiusOfGyration(CollectiveVariable):
@@ -42,12 +41,12 @@ def radius_of_gyration(positions):
 
     Parameters
     ----------
-    positions: DeviceArray
+    positions: jax.Array
         Array of particle positions used to calculate the radius of gyration.
 
     Returns
     -------
-    DeviceArray
+    jax.Array
         Radius of gyration vector
     """
     group_length = positions.shape[0]
@@ -64,14 +63,14 @@ def weighted_radius_of_gyration(positions, weights):
 
     Parameters
     ----------
-    positions: DeviceArray
+    positions: jax.Array
         Array of particle positions used to calculate the radius of gyration.
-    weights: DeviceArray
+    weights: jax.Array
         Array of weights for the positions.
 
     Returns
     -------
-    DeviceArray
+    jax.Array
         Weighted radius of gyration vector
     """
     group_length = positions.shape[0]
@@ -118,12 +117,12 @@ def gyration_tensor(positions):
 
     Parameters
     ----------
-    positions: DeviceArray
+    positions: jax.Array
         Points in space that are equally weighted to calculate the gyration tensor.
 
     Returns
     -------
-    DeviceArray
+    jax.Array
         Gyration tensor
     """
     group_length = positions.shape[0]
@@ -139,14 +138,14 @@ def weighted_gyration_tensor(positions, weights):
 
     Parameters
     ----------
-    positions: DeviceArray
+    positions: jax.Array
         Points in space that are weighted by `weight` to calculate the gyration tensor.
-    weights: DeviceArray
+    weights: jax.Array
         Weights for the points in space e.g. particle masses
 
     Returns
     -------
-    DeviceArray
+    jax.Array
         Gyration tensor
     """
     group_length = positions.shape[0]
@@ -165,12 +164,12 @@ def principal_moments(positions):
 
     Parameters
     ----------
-    positions: DeviceArray
+    positions: jax.Array
         Points in space that are equally weighted to calculate the gyration tensor.
 
     Returns
     -------
-    DeviceArray
+    jax.Array
         Eigenvalues of the gyration tensor
     """
     return linalg.eigvalsh(gyration_tensor(positions))
@@ -211,7 +210,7 @@ def asphericity(positions):
 
     Parameters
     ----------
-    positions: DeviceArray
+    positions: jax.Array
         Points in space that are equally weighted to calculate the principal moments.
 
     Returns
@@ -235,7 +234,23 @@ class Acylindricity(CollectiveVariable):
 
     group_length: Optional[int]
         Specify if a fixed group length is expected.
+
+    axes: str
+        Axis combination around which the particles are symmetric.
+        Options are: xy, yz, xz
     """
+
+    symmetry_axes = {"xy": (1, 2), "yz": (2, 3), "xz": (1, 3)}
+
+    def __init__(self, indices, axes="xy", group_length=None):
+        axes = "".join(sorted(axes.lower()))
+        if axes not in self.symmetry_axes:
+            error_msg = f"Invalid acylindrity axes specification {axes}."
+            error_msg += f" Valid options are: {tuple(self.symmetry_axes.keys())}."
+            raise RuntimeError(error_msg)
+
+        super().__init__(indices, group_length)
+        self.axes = axes
 
     @property
     def function(self):
@@ -245,28 +260,33 @@ class Acylindricity(CollectiveVariable):
         Callable
             See `pysages.colvars.shape.acylindricity` for details.
         """
-        return acylindricity
+        return lambda rs: acylindricity(rs, self.symmetry_axes[self.axes])
 
 
-def acylindricity(positions):
+def acylindricity(positions, axes):
     r"""
     Calculate the Acylindricity from a group of atoms.
-    It is defined as :math:`\lambda_2 - \lambda_1`,
-    where :math:`\lambda_i` specifies the principal moments of the group of atoms.
+    It is defined as :math:`\lambda_k - \lambda_j`,
+    where :math:`\lambda_i` specifies the principal moments of the group of atoms,
+    and `j` and `k` are the axes around which the particles are symmetric.
 
     See `pysages.colvars.shape.principal_moments` for details.
 
     Parameters
     ----------
-    positions: DeviceArray
+    positions: jax.Array
         Points in space that are equally weighted to calculate the principal moments from.
+
+    axes: Tuple[int, int]
+        Indices of the axes around which the particles are symmetric.
 
     Returns
     -------
     float
         Acylindricity
     """
-    lambda1, lambda2, _ = principal_moments(positions)
+    lambdas = principal_moments(positions)
+    lambda1, lambda2 = [lambdas[i] for i in axes]
     return lambda2 - lambda1
 
 
@@ -310,7 +330,7 @@ def shape_anisotropy(positions):
 
     Parameters
     ----------
-    positions: DeviceArray
+    positions: jax.Array
         Points in space that are equally weighted to calculate the principal moments from.
 
     Returns

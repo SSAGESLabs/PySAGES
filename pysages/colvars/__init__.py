@@ -1,5 +1,4 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 # pylint: disable=unused-import,relative-beyond-top-level
@@ -11,26 +10,22 @@ PySAGES tries to support a variety common collective variables, but it is easy t
 PySAGES with your own.
 """
 
-from .angles import (
-    Angle,
-    DihedralAngle,
-)
-
+from .angles import Angle, DihedralAngle
+from .coordinates import Component, Displacement, Distance
 from .shape import (
-    RadiusOfGyration,
-    PrincipalMoment,
-    Asphericity,
     Acylindricity,
+    Asphericity,
+    PrincipalMoment,
+    RadiusOfGyration,
     ShapeAnisotropy,
 )
+from .utils import get_periods, wrap
 
-from .coordinates import (
-    Component,
-    Distance,
-    Displacement,
-)
+# Conditionally export GeM if both `jax_md` and `jaxopt` are available
+try:
+    import jax_md
+    import jaxopt
 
-from .utils import (
-    get_periods,
-    wrap,
-)
+    from .patterns import GeM
+except ImportError:
+    pass

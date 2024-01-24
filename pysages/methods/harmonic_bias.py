@@ -1,5 +1,4 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 """
@@ -15,27 +14,27 @@ The Hamiltonian is amended with a term
 biases the simulations around the collective variable :math:`\\xi_0`.
 """
 
-from typing import NamedTuple
-
 from jax import numpy as np
 
-from pysages.methods.core import generalize
 from pysages.methods.bias import Bias
-from pysages.utils import JaxArray
+from pysages.methods.core import generalize
+from pysages.typing import JaxArray, NamedTuple
 
 
 class HarmonicBiasState(NamedTuple):
     """
     Description of a state biased by a harmonic potential for a CV.
 
-    bias: JaxArray
-        Array with harmonic biasing forces for each particle in the simulation.
     xi: JaxArray
         Collective variable value of the last simulation step.
-    """
 
     bias: JaxArray
+        Array with harmonic biasing forces for each particle in the simulation.
+    """
+
     xi: JaxArray
+    bias: JaxArray
+    ncalls: int
 
     def __repr__(self):
         return repr("PySAGES" + type(self).__name__)
@@ -118,8 +117,9 @@ def _harmonic_bias(method, snapshot, helpers):
     natoms = np.size(snapshot.positions, 0)
 
     def initialize():
-        bias = np.zeros((natoms, 3))
-        return HarmonicBiasState(bias, None)
+        xi, _ = cv(helpers.query(snapshot))
+        bias = np.zeros((natoms, helpers.dimensionality()))
+        return HarmonicBiasState(xi, bias, 0)
 
     def update(state, data):
         xi, Jxi = cv(data)
@@ -127,6 +127,6 @@ def _harmonic_bias(method, snapshot, helpers):
         bias = -Jxi.T @ forces.flatten()
         bias = bias.reshape(state.bias.shape)
 
-        return HarmonicBiasState(bias, xi)
+        return HarmonicBiasState(xi, bias, state.ncalls + 1)
 
     return snapshot, initialize, generalize(update, helpers)

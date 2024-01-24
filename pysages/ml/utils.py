@@ -1,15 +1,14 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
-from typing import NamedTuple
-
-from jax import numpy as np, random, tree_flatten, vmap
+from jax import numpy as np
+from jax import random, vmap
 from jax.numpy.linalg import norm
-from jax.tree_util import PyTreeDef
+from jax.tree_util import PyTreeDef, tree_flatten
 from numpy import cumsum
 from plum import Dispatcher
 
+from pysages.typing import NamedTuple
 
 # Dispatcher for the `ml` submodule
 dispatch = Dispatcher()
@@ -64,7 +63,7 @@ def pack(params, layout):
     previously flatten with `unpack`.
     """
     structure, shapes, separators = layout
-    partition = params.split(separators)
+    partition = np.split(params, separators)
     ps = [p.reshape(s) for (p, s) in zip(partition, shapes)]
     return structure.unflatten(ps)
 

@@ -1,5 +1,4 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2020-2021: PySAGES contributors
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 """
@@ -9,7 +8,7 @@ Collective Variables that are computed from the Cartesian coordinates.
 from jax import numpy as np
 from jax.numpy import linalg
 
-from pysages.colvars.core import TwoPointCV, AxisCV, multicomponent
+from pysages.colvars.core import AxisCV, TwoPointCV, multicomponent
 
 
 def barycenter(positions):
@@ -18,12 +17,12 @@ def barycenter(positions):
 
     Parameters
     ----------
-    positions : DeviceArray
+    positions : jax.Array
         Array containing the positions of the points for which to compute the barycenter.
 
     Returns
     -------
-    barycenter : DeviceArray
+    barycenter : jax.Array
         3D array with the barycenter coordinates.
     """
     return np.sum(positions, axis=0) / positions.shape[0]
@@ -35,14 +34,14 @@ def weighted_barycenter(positions, weights):
 
     Parameters
     ----------
-    positions : DeviceArray
+    positions : jax.Array
         Array containing the positions of the points for which to compute the barycenter.
-    weights : DeviceArray
+    weights : jax.Array
         Array containing the weights to be used when computing the barycenter.
 
     Returns
     -------
-    weighted_barycenter : DeviceArray
+    weighted_barycenter : jax.Array
         3D array with the weighted barycenter coordinates.
     """
     group_length = positions.shape[0]
@@ -96,9 +95,9 @@ def distance(r1, r2):
 
     Parameters
     ----------
-    r1: DeviceArray
+    r1: jax.Array
         Array containing the position in space of the first point or group of points.
-    r2: DeviceArray
+    r2: jax.Array
         Array containing the position in space of the second point or group of points.
 
     Returns
@@ -135,14 +134,14 @@ def displacement(r1, r2):
 
     Parameters
     ----------
-    r1: DeviceArray
+    r1: jax.Array
         Array containing the position in space of the first point or group of points.
-    r2: DeviceArray
+    r2: jax.Array
         Array containing the position in space of the second point or group of points.
 
     Returns
     -------
-    displacement: DeviceArray
+    displacement: jax.Array
         Displacement between the two points.
     """
 

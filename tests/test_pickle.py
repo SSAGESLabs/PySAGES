@@ -1,11 +1,33 @@
-import pickle
-import pysages
-import pysages.methods
-import pysages.colvars
+import importlib
 import inspect
+import tempfile
+
+import dill as pickle
 import numpy as np
+import test_simulations.abf as abf_example
+
+import pysages
+import pysages.colvars
+import pysages.methods
 
 pi = np.pi
+
+
+def build_neighbor_list(box_size, positions, r_cutoff, capacity_multiplier):
+    """Helper function to generate a jax-md neighbor list"""
+    jmd = importlib.import_module("jax_md")
+
+    displacement_fn, _ = jmd.space.periodic(box_size)
+    neighbor_list_fn = jmd.partition.neighbor_list(
+        displacement_fn,
+        box_size,
+        r_cutoff,
+        capacity_multiplier=capacity_multiplier,
+        format=jmd.partition.NeighborListFormat.Dense,
+    )
+    neighbors = neighbor_list_fn.allocate(positions)
+
+    return neighbors
 
 
 METHODS_ARGS = {
@@ -82,6 +104,12 @@ METHODS_ARGS = {
     "SerialExecutor": {},
     "CVRestraints": {"lower": (-pi, -pi), "upper": (pi, pi), "kl": (0.0, 1.0), "ku": (1.0, 0.0)},
     "Bias": {"cvs": [pysages.colvars.Component([0], 0)], "center": 0.7},
+    "SplineString": {
+        "cvs": [pysages.colvars.Component([0], 0)],
+        "ksprings": 15.0,
+        "centers": [0.0, 0.7],
+        "hist_periods": 10,
+    },
 }
 
 
@@ -113,6 +141,23 @@ COLVAR_ARGS = {
     "Component": {"indices": [0, 1, 2, 3], "axis": 0},
     "Distance": {"indices": [0, 1]},
     "Displacement": {"indices": [[0], [1]]},
+    "GeM": {
+        "indices": np.arange(20),
+        "reference_positions": np.array(
+            [[1.0, 1.0, 1.0], [-1.0, -1.0, 1.0], [-1.0, 1.0, -1.0], [1.0, -1.0, -1.0]]
+        ),
+        "box": 2 * np.eye(3),
+        "number_of_rotations": 20,
+        "number_of_opt_it": 10,
+        "standard_deviation": 0.125,
+        "mesh_size": 30,
+        "nbrs": None,
+        # Disable build_neighbor_list until jax_md stabilizes
+        # "nbrs": build_neighbor_list(
+        #     2.0, positions=np.random.randn(20, 3), r_cutoff=1.5, capacity_multiplier=1.0
+        # ),
+        "fractional_coords": True,
+    },
 }
 
 
@@ -131,3 +176,18 @@ def test_pickle_colvars():
             except Exception as error:
                 print(key)
                 raise error
+
+
+def test_pickle_results():
+    with tempfile.NamedTemporaryFile() as tmp_pickle:
+        test_result = abf_example.run_simulation(10, write_output=False)
+
+        pickle.dump(test_result, tmp_pickle)
+        tmp_pickle.flush()
+
+        tmp_result = pickle.load(open(tmp_pickle.name, "rb"))
+
+        assert np.all(test_result.states[0].xi == tmp_result.states[0].xi).item()
+        assert np.all(test_result.states[0].bias == tmp_result.states[0].bias).item()
+        assert np.all(test_result.states[0].hist == tmp_result.states[0].hist).item()
+        assert np.all(test_result.states[0].Fsum == tmp_result.states[0].Fsum).item()
