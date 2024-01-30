@@ -36,7 +36,7 @@ class Grid:
     size: JaxArray
 
     @classmethod
-    def __infer_type_parameter__(cls, *args, **kwargs):
+    def __infer_type_parameter__(cls, *_, **kwargs):
         return Periodic if kwargs.get("periodic", False) else Regular
 
     def __init__(self, lower, upper, shape, **kwargs):
@@ -49,7 +49,7 @@ class Grid:
         self.size = self.upper - self.lower
 
     def __check_init_invariants__(self, **kwargs):
-        T = type(self).type_parameter
+        T = type(self).type_parameter  # pylint: disable=E1101
         if not (issubclass(type(T), type) and issubclass(T, GridType)):
             raise TypeError("Type parameter must be a subclass of GridType.")
         if len(kwargs) > 1 or (len(kwargs) == 1 and "periodic" not in kwargs):
@@ -64,13 +64,13 @@ class Grid:
             raise ValueError("Incompatible type parameter and keyword argument")
 
     def __repr__(self):
-        T = type(self).type_parameter
+        T = type(self).type_parameter  # pylint: disable=E1101
         P = "" if T is Regular else f"[{T.__name__}]"
         return f"Grid{P} ({' x '.join(map(str, self.shape))})"
 
     @property
     def is_periodic(self):
-        return type(self).type_parameter is Periodic
+        return type(self).type_parameter is Periodic  # pylint: disable=E1101
 
 
 @dispatch
@@ -118,7 +118,7 @@ def build_indexer(grid: Grid):
         h = grid.size / grid.shape
         idx = (x.flatten() - grid.lower) // h
         idx = np.where((idx < 0) | (idx > grid.shape), grid.shape, idx)
-        return (*np.flip(np.uint32(idx)),)
+        return (*np.uint32(idx),)
 
     return jit(get_index)
 
@@ -135,7 +135,7 @@ def build_indexer(grid: Grid[Periodic]):  # noqa: F811 # pylint: disable=C0116,E
         h = grid.size / grid.shape
         idx = (x.flatten() - grid.lower) // h
         idx = idx % grid.shape
-        return (*np.flip(np.uint32(idx)),)
+        return (*np.uint32(idx),)
 
     return jit(get_index)
 
@@ -153,7 +153,7 @@ def build_indexer(grid: Grid[Chebyshev]):  # noqa: F811 # pylint: disable=C0116,
         x = 2 * (grid.lower - x.flatten()) / grid.size + 1
         idx = (grid.shape * np.arccos(x)) // np.pi
         idx = np.nan_to_num(idx, nan=grid.shape)
-        return (*np.flip(np.uint32(idx)),)
+        return (*np.uint32(idx),)
 
     return jit(get_index)
 

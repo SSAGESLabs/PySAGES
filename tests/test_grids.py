@@ -88,5 +88,5 @@ def test_grid_indexing():
     # Indexing 2D
     x_lo_up = np.array([-pi, 1])
     x_up_lo_out = np.array([pi, -2])
-    assert get_index_2d(x_lo_up) == (UInt32(32), UInt32(0))
-    assert get_index_2d(x_up_lo_out) == (UInt32(32), UInt32(64))
+    assert get_index_2d(x_lo_up) == (UInt32(0), UInt32(32))
+    assert get_index_2d(x_up_lo_out) == (UInt32(64), UInt32(32))

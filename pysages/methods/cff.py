@@ -21,7 +21,7 @@ from jax.lax import cond
 
 from pysages.approxfun import compute_mesh
 from pysages.approxfun import scale as _scale
-from pysages.grids import build_indexer
+from pysages.grids import build_indexer, grid_transposer
 from pysages.methods.core import NNSamplingMethod, Result, generalize
 from pysages.methods.restraints import apply_restraints
 from pysages.methods.utils import numpyfy_vals
@@ -395,21 +395,26 @@ def analyze(result: Result[CFF]):
     fnns = []
     fes_fns = []
 
+    # We transpose the data for convenience when plotting
+    transpose = grid_transposer(grid)
+    d = mesh.shape[-1]
+
     for s in states:
-        histograms.append(s.hist)
-        mean_forces.append(average_forces(s.hist, s.Fsum))
-        free_energies.append(s.fe.max() - s.fe)
+        histograms.append(transpose(s.hist))
+        mean_forces.append(transpose(average_forces(s.hist, s.Fsum)))
+        free_energies.append(transpose(s.fe.max() - s.fe))
         nns.append(s.nn)
         fnns.append(s.fnn)
         fes_fns.append(build_fes_fn(s.nn))
 
-    ana_result = dict(
-        histogram=first_or_all(histograms),
-        mean_force=first_or_all(mean_forces),
-        free_energy=first_or_all(free_energies),
-        mesh=mesh,
-        nn=first_or_all(nns),
-        fnn=first_or_all(fnns),
-        fes_fn=first_or_all(fes_fns),
-    )
+    ana_result = {
+        "histogram": first_or_all(histograms),
+        "mean_force": first_or_all(mean_forces),
+        "free_energy": first_or_all(free_energies),
+        "mesh": transpose(mesh).reshape(-1, d).squeeze(),
+        "nn": first_or_all(nns),
+        "fnn": first_or_all(fnns),
+        "fes_fn": first_or_all(fes_fns),
+    }
+
     return numpyfy_vals(ana_result)

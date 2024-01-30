@@ -25,7 +25,7 @@ from pysages.approxfun import (
     build_grad_evaluator,
     compute_mesh,
 )
-from pysages.grids import Chebyshev, Grid, build_indexer, convert
+from pysages.grids import Chebyshev, Grid, build_indexer, convert, grid_transposer
 from pysages.methods.core import GriddedSamplingMethod, Result, generalize
 from pysages.methods.restraints import apply_restraints
 from pysages.methods.utils import numpyfy_vals
@@ -316,21 +316,25 @@ def analyze(result: Result[SpectralABF]):
     funs = []
     fes_fns = []
 
+    # We transpose the data for convenience when plotting
+    transpose = grid_transposer(grid)
+    d = mesh.shape[-1]
+
     for s in states:
         fes_fn = build_fes_fn(s.fun)
-        hists.append(s.hist)
-        mean_forces.append(average_forces(s.hist, s.Fsum))
-        free_energies.append(fes_fn(mesh).reshape(grid.shape))
+        hists.append(transpose(s.hist))
+        mean_forces.append(transpose(average_forces(s.hist, s.Fsum)))
+        free_energies.append(transpose(fes_fn(mesh)))
         funs.append(s.fun)
         fes_fns.append(fes_fn)
 
-    ana_result = dict(
-        histogram=first_or_all(hists),
-        mean_force=first_or_all(mean_forces),
-        free_energy=first_or_all(free_energies),
-        mesh=mesh,
-        fun=first_or_all(funs),
-        fes_fn=first_or_all(fes_fns),
-    )
+    ana_result = {
+        "histogram": first_or_all(hists),
+        "mean_force": first_or_all(mean_forces),
+        "free_energy": first_or_all(free_energies),
+        "mesh": transpose(mesh).reshape(-1, d).squeeze(),
+        "fun": first_or_all(funs),
+        "fes_fn": first_or_all(fes_fns),
+    }
 
     return numpyfy_vals(ana_result)

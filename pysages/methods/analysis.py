@@ -14,6 +14,7 @@ from jax import vmap
 
 from pysages.approxfun import compute_mesh
 from pysages.approxfun import scale as _scale
+from pysages.grids import grid_transposer
 from pysages.methods.core import Result
 from pysages.ml.models import MLP
 from pysages.ml.objectives import GradientsSSE, L2Regularization
@@ -154,11 +155,15 @@ def _analyze(result: Result, strategy: GradientLearning, topology):
     free_energies = []
     fes_fns = []
 
+    # We transpose the data for convenience when plotting
+    transpose = grid_transposer(grid)
+    d = mesh.shape[-1]
+
     for state in states:
         fes_fn = build_fes_fn(state)
-        hists.append(state.hist)
-        mean_forces.append(average_forces(state.hist, state.Fsum))
-        free_energies.append(fes_fn(mesh).reshape(grid.shape))
+        hists.append(transpose(state.hist))
+        mean_forces.append(transpose(average_forces(state.hist, state.Fsum)))
+        free_energies.append(transpose(fes_fn(mesh)))
         fes_fns.append(fes_fn)
 
     return {
@@ -166,5 +171,5 @@ def _analyze(result: Result, strategy: GradientLearning, topology):
         "mean_force": first_or_all(mean_forces),
         "free_energy": first_or_all(free_energies),
         "fes_fn": first_or_all(fes_fns),
-        "mesh": mesh,
+        "mesh": transpose(mesh).reshape(-1, d).squeeze(),
     }
