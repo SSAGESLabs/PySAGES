@@ -194,7 +194,7 @@ def _spectral_abf(method, snapshot, helpers):
         )
         bias = np.reshape(-Jxi.T @ force, state.bias.shape)
         #
-        return SpectralABFState(xi, bias, hist, Fsum, force, Wp, state.Wp, fun, state.ncalls)
+        return SpectralABFState(xi, bias, hist, Fsum, force, Wp, state.Wp, fun, ncalls)
 
     return snapshot, initialize, generalize(update, helpers)
 

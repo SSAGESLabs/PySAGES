@@ -198,7 +198,7 @@ def _funn(method, snapshot, helpers):
         )
         bias = (-Jxi.T @ F).reshape(state.bias.shape)
         #
-        return FUNNState(xi, bias, hist, Fsum, F, Wp, state.Wp, nn, state.ncalls)
+        return FUNNState(xi, bias, hist, Fsum, F, Wp, state.Wp, nn, ncalls)
 
     return snapshot, initialize, generalize(update, helpers)
 
