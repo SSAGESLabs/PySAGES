@@ -194,7 +194,7 @@ def _spectral_abf(method, snapshot, helpers):
         )
         bias = np.reshape(-Jxi.T @ force, state.bias.shape)
         #
-        return SpectralABFState(xi, bias, hist, Fsum, force, Wp, state.Wp, fun, state.ncalls)
+        return SpectralABFState(xi, bias, hist, Fsum, force, Wp, state.Wp, fun, ncalls)
 
     return snapshot, initialize, generalize(update, helpers)
 
@@ -228,6 +228,7 @@ def build_force_estimator(method: SpectralABF):
     """
     N = method.N
     grid = method.grid
+    dims = grid.shape.size
     model = method.model
     get_grad = build_grad_evaluator(model)
 
@@ -242,17 +243,17 @@ def build_force_estimator(method: SpectralABF):
         return cond(state.pred, interpolate_force, average_force, state)
 
     if method.restraints is None:
-        estimate_force = _estimate_force
+        ob_force = jit(lambda state: np.zeros(dims))
     else:
         lo, hi, kl, kh = method.restraints
 
-        def restraints_force(state):
+        def ob_force(state):
             xi = state.xi.reshape(grid.shape.size)
             return apply_restraints(lo, hi, kl, kh, xi)
 
-        def estimate_force(state):
-            ob = np.any(np.array(state.ind) == grid.shape)  # Out of bounds condition
-            return cond(ob, restraints_force, _estimate_force, state)
+    def estimate_force(state):
+        ob = np.any(np.array(state.ind) == grid.shape)  # Out of bounds condition
+        return cond(ob, ob_force, _estimate_force, state)
 
     return estimate_force
 
@@ -303,7 +304,11 @@ def analyze(result: Result[SpectralABF]):
         return Fsum / np.maximum(hist, 1)
 
     def build_fes_fn(fun):
-        return jit(lambda x: evaluate(fun, x))
+        def fes_fn(x):
+            A = evaluate(fun, x)
+            return A.max() - A
+
+        return jit(fes_fn)
 
     def first_or_all(seq):
         return seq[0] if len(seq) == 1 else seq
@@ -318,7 +323,7 @@ def analyze(result: Result[SpectralABF]):
         fes_fn = build_fes_fn(s.fun)
         hists.append(s.hist)
         mean_forces.append(average_forces(s.hist, s.Fsum))
-        free_energies.append(fes_fn(mesh))
+        free_energies.append(fes_fn(mesh).reshape(grid.shape))
         funs.append(s.fun)
         fes_fns.append(fes_fn)
 
@@ -330,4 +335,5 @@ def analyze(result: Result[SpectralABF]):
         fun=first_or_all(funs),
         fes_fn=first_or_all(fes_fns),
     )
+
     return numpyfy_vals(ana_result)
