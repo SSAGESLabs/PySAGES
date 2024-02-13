@@ -12,6 +12,7 @@ Methods available in PySAGES
    pysages.methods.ffs.FFS
    pysages.methods.funn.FUNN
    pysages.methods.metad.Metadynamics
+   pysages.methods.pbmetad.ParallelBiasMetadynamics
    pysages.methods.umbrella_integration.UmbrellaIntegration
    pysages.methods.harmonic_bias.HarmonicBias
    pysages.methods.spline_string.SplineString
@@ -41,6 +42,7 @@ Abstract base classes
    module-pysages-methods-funn
    module-pysages-methods-harmonic_bias
    module-pysages-methods-metad
+   module-pysages-methods-pbmetad
    module-pysages-methods-umbrella
    module-pysages-methods-string
    module-pysages-methods-utils

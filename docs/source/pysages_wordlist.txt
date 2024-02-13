@@ -52,6 +52,7 @@ Metaclass
 metad
 metadynamics
 Metadynamics
+ParallelBiasMetadynamics
 metapotential
 monocyclic
 multi

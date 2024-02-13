@@ -109,13 +109,14 @@ def compute_mesh(grid: Grid):
     """
     Returns a dense mesh with the same shape as `grid`, but on the hypercube
     [-1, 1]ⁿ, where `n` is the dimensionality of `grid`.
+    For parallelbias, only the diagonal elements are returned.
     """
     h = 2 / grid.shape
     o = -1 + h / 2
 
     nodes = o + h * np.hstack([np.arange(i).reshape(-1, 1) for i in grid.shape])
 
-    return _compute_mesh(nodes)
+    return nodes if grid.parallelbias else _compute_mesh(nodes)
 
 
 @dispatch
@@ -123,6 +124,7 @@ def compute_mesh(grid: Grid[Chebyshev]):  # noqa: F811 # pylint: disable=C0116,E
     """
     Returns a Chebyshev-distributed dense mesh with the same shape as `grid`,
     but on the hypercube [-1, 1]ⁿ, where n is the dimensionality of `grid`.
+    For parallelbias, only the diagonal elements are returned.
     """
 
     def transform(n):
@@ -130,7 +132,7 @@ def compute_mesh(grid: Grid[Chebyshev]):  # noqa: F811 # pylint: disable=C0116,E
 
     nodes = np.hstack([transform(i)(np.arange(i).reshape(-1, 1)) for i in grid.shape])
 
-    return _compute_mesh(nodes)
+    return nodes if grid.parallelbias else _compute_mesh(nodes)
 
 
 def _compute_mesh(nodes):

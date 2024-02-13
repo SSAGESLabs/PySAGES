@@ -68,6 +68,7 @@ from .ffs import FFS
 from .funn import FUNN
 from .harmonic_bias import HarmonicBias
 from .metad import Metadynamics
+from .pbmetad import ParallelBiasMetadynamics
 from .restraints import CVRestraints
 from .spectral_abf import SpectralABF
 from .spline_string import SplineString
