@@ -8,7 +8,7 @@ from jax import numpy as np
 from plum import Union, parametric
 
 from pysages.typing import JaxArray
-from pysages.utils import dispatch, is_generic_subclass
+from pysages.utils import dispatch, is_generic_subclass, prod
 
 
 class GridType:
@@ -156,3 +156,23 @@ def build_indexer(grid: Grid[Chebyshev]):  # noqa: F811 # pylint: disable=C0116,
         return (*np.flip(np.uint32(idx)),)
 
     return jit(get_index)
+
+
+def grid_transposer(grid):
+    """
+    Returns a function that transposes arrays mapped to a `Grid`.
+
+    The result function takes an array, reshapes it to match the grid dimensions,
+    transposes it along the first axes. The first axes are assumed to correspond to the
+    axes of the grid.
+    """
+    d = len(grid.shape)
+    shape = (*grid.shape,)
+    axes = (*reversed(range(d)),)
+    n = grid.shape.prod().item()
+
+    def transpose(array: JaxArray):
+        m = prod(array.shape) // n
+        return array.reshape(*shape, m).transpose(*axes, d).squeeze()
+
+    return transpose
