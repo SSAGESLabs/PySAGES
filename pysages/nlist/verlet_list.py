@@ -13,11 +13,14 @@ def _get_dist(i: jax.Array, j: jax.Array, box_size: jax.Array) -> np.float32:
             np.float32: Distance between particles i and j (scalar)
         """
         dx = i[0] - j[0]
-        dx = np.where(dx > box_size[0]/2, dx - box_size[0], dx)
+        dx = np.where(dx >  box_size[0]/2, dx - box_size[0], dx)
+        dx = np.where(dx < -box_size[0]/2, dx + box_size[0], dx)
         dy = i[1] - j[1]
-        dy = np.where(dy > box_size[1]/2, dy - box_size[1], dy)
+        dy = np.where(dy >  box_size[1]/2, dy - box_size[1], dy)
+        dy = np.where(dy < -box_size[1]/2, dy + box_size[1], dy)
         dz = i[2] - j[2]
-        dz = np.where(dz > box_size[2]/2, dz - box_size[2], dz)
+        dz = np.where(dz >  box_size[2]/2, dz - box_size[2], dz)
+        dz = np.where(dz < -box_size[2]/2, dz + box_size[2], dz)
         return np.sqrt(dx**2 + dy**2 + dz**2)
 
 def _pairwise_dist(pos: jax.Array, ref: jax.Array, box_size: jax.Array) -> jax.Array:
