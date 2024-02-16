@@ -13,8 +13,9 @@ from .compat import (
     dispatch_table,
     has_method,
     is_generic_subclass,
+    prod,
     solve_pos_def,
     try_import,
 )
-from .core import ToCPU, copy, dispatch, eps, gaussian, identity, only_or_identity
+from .core import ToCPU, copy, dispatch, eps, first_or_all, gaussian, identity
 from .transformations import quaternion_from_euler, quaternion_matrix

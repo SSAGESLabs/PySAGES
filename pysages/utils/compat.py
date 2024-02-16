@@ -5,7 +5,11 @@ from importlib import import_module
 
 from jax.scipy import linalg
 
-from pysages._compat import _jax_version_tuple, _plum_version_tuple
+from pysages._compat import (
+    _jax_version_tuple,
+    _plum_version_tuple,
+    _python_version_tuple,
+)
 
 # Compatibility utils
 
@@ -15,6 +19,21 @@ def try_import(new_name, old_name):
         return import_module(new_name)
     except ModuleNotFoundError:
         return import_module(old_name)
+
+
+if _python_version_tuple >= (3, 8):
+    prod = import_module("math").prod
+else:
+
+    def prod(iterable, start=1):
+        """
+        Calculate the product of all the elements in the input iterable.
+        When the iterable is empty, return the start value (1 by default).
+        """
+        result = start
+        for x in iterable:
+            result *= x
+        return result
 
 
 # Compatibility for jax >=0.4.1
