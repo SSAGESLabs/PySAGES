@@ -47,7 +47,7 @@ def _is_neighbor(dist: jax.Array, cutoff: float) -> jax.Array:
     Returns:
         jax.Array: Array of bools indicating whether a particle is a neighbor of the reference particle (N, )
     """
-    return dist <= cutoff
+    return dist < cutoff
 
 def get_neighbor_ids(pos: jax.Array, cutoff: float, box_size: jax.Array, sparse: bool = False, mask_self: bool = False) -> jax.Array:
     """
