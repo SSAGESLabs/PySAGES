@@ -32,7 +32,7 @@ from pysages.ml.optimizers import LevenbergMarquardt
 from pysages.ml.training import NNData, build_fitting_function, convolve, normalize
 from pysages.ml.utils import blackman_kernel, pack, unpack
 from pysages.typing import JaxArray, NamedTuple
-from pysages.utils import dispatch
+from pysages.utils import dispatch, first_or_all
 
 
 class ANNState(NamedTuple):
@@ -296,9 +296,6 @@ def analyze(result: Result[ANN]):
             return A.max() - A
 
         return jit(fes_fn)
-
-    def first_or_all(seq):
-        return seq[0] if len(seq) == 1 else seq
 
     histograms = []
     free_energies = []

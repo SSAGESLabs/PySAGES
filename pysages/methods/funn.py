@@ -34,7 +34,7 @@ from pysages.ml.optimizers import LevenbergMarquardt
 from pysages.ml.training import NNData, build_fitting_function, convolve, normalize
 from pysages.ml.utils import blackman_kernel, pack, unpack
 from pysages.typing import JaxArray, NamedTuple, Tuple
-from pysages.utils import dispatch, only_or_identity, solve_pos_def
+from pysages.utils import dispatch, first_or_all, solve_pos_def
 
 
 class FUNNState(NamedTuple):
@@ -332,5 +332,5 @@ def analyze(result: Result[FUNN], **kwargs):
     """
     topology = kwargs.get("topology", result.method.topology)
     _result = _analyze(result, GradientLearning(), topology)
-    _result["nn"] = only_or_identity([state.nn for state in result.states])
+    _result["nn"] = first_or_all([state.nn for state in result.states])
     return numpyfy_vals(_result)

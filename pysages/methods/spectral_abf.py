@@ -30,7 +30,7 @@ from pysages.methods.core import GriddedSamplingMethod, Result, generalize
 from pysages.methods.restraints import apply_restraints
 from pysages.methods.utils import numpyfy_vals
 from pysages.typing import JaxArray, NamedTuple, Tuple
-from pysages.utils import dispatch, solve_pos_def
+from pysages.utils import dispatch, first_or_all, solve_pos_def
 
 
 class SpectralABFState(NamedTuple):
@@ -309,9 +309,6 @@ def analyze(result: Result[SpectralABF]):
             return A.max() - A
 
         return jit(fes_fn)
-
-    def first_or_all(seq):
-        return seq[0] if len(seq) == 1 else seq
 
     hists = []
     mean_forces = []

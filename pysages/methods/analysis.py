@@ -20,7 +20,7 @@ from pysages.ml.objectives import GradientsSSE, L2Regularization
 from pysages.ml.optimizers import LevenbergMarquardt
 from pysages.ml.training import NNData, build_fitting_function, convolve
 from pysages.ml.utils import blackman_kernel, pack, unpack
-from pysages.utils import dispatch, only_or_identity
+from pysages.utils import dispatch, first_or_all
 
 
 class AnalysisStrategy:
@@ -162,9 +162,9 @@ def _analyze(result: Result, strategy: GradientLearning, topology):
         fes_fns.append(fes_fn)
 
     return {
-        "histogram": only_or_identity(hists),
-        "mean_force": only_or_identity(mean_forces),
-        "free_energy": only_or_identity(free_energies),
-        "fes_fn": only_or_identity(fes_fns),
+        "histogram": first_or_all(hists),
+        "mean_force": first_or_all(mean_forces),
+        "free_energy": first_or_all(free_energies),
+        "fes_fn": first_or_all(fes_fns),
         "mesh": mesh,
     }

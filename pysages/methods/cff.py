@@ -31,7 +31,7 @@ from pysages.ml.optimizers import LevenbergMarquardt
 from pysages.ml.training import NNData, build_fitting_function, convolve, normalize
 from pysages.ml.utils import blackman_kernel, pack, unpack
 from pysages.typing import JaxArray, NamedTuple, Tuple
-from pysages.utils import dispatch, solve_pos_def
+from pysages.utils import dispatch, first_or_all, solve_pos_def
 
 # Aliases
 f32 = np.float32
@@ -387,9 +387,6 @@ def analyze(result: Result[CFF]):
             return A.max() - A
 
         return jit(fes_fn)
-
-    def first_or_all(seq):
-        return seq[0] if len(seq) == 1 else seq
 
     histograms = []
     mean_forces = []
