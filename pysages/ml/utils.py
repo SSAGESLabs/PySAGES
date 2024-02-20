@@ -9,6 +9,7 @@ from numpy import cumsum
 from plum import Dispatcher
 
 from pysages.typing import NamedTuple
+from pysages.utils import prod
 
 # Dispatcher for the `ml` submodule
 dispatch = Dispatcher()
@@ -34,13 +35,6 @@ def rng_key(seed=0, n=2):
     for _ in range(n):
         key, _ = random.split(key)
     return key
-
-
-def prod(xs):
-    y = 1
-    for x in xs:
-        y *= x
-    return y
 
 
 # %% Models

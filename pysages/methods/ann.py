@@ -23,7 +23,7 @@ from jax.lax import cond
 
 from pysages.approxfun import compute_mesh
 from pysages.approxfun import scale as _scale
-from pysages.grids import build_indexer
+from pysages.grids import build_indexer, grid_transposer
 from pysages.methods.core import NNSamplingMethod, Result, generalize
 from pysages.methods.utils import numpyfy_vals
 from pysages.ml.models import MLP
@@ -32,7 +32,7 @@ from pysages.ml.optimizers import LevenbergMarquardt
 from pysages.ml.training import NNData, build_fitting_function, convolve, normalize
 from pysages.ml.utils import blackman_kernel, pack, unpack
 from pysages.typing import JaxArray, NamedTuple
-from pysages.utils import dispatch
+from pysages.utils import dispatch, first_or_all
 
 
 class ANNState(NamedTuple):
@@ -297,25 +297,27 @@ def analyze(result: Result[ANN]):
 
         return jit(fes_fn)
 
-    def first_or_all(seq):
-        return seq[0] if len(seq) == 1 else seq
-
     histograms = []
     free_energies = []
     nns = []
     fes_fns = []
 
+    # We transpose the data for convenience when plotting
+    transpose = grid_transposer(grid)
+    d = mesh.shape[-1]
+
     for s in states:
-        histograms.append(s.hist)
-        free_energies.append(s.phi.max() - s.phi)
+        histograms.append(transpose(s.hist))
+        free_energies.append(transpose(s.phi.max() - s.phi))
         nns.append(s.nn)
         fes_fns.append(build_fes_fn(s.nn))
 
-    ana_result = dict(
-        histogram=first_or_all(histograms),
-        free_energy=first_or_all(free_energies),
-        mesh=mesh,
-        nn=first_or_all(nns),
-        fes_fn=first_or_all(fes_fns),
-    )
+    ana_result = {
+        "histogram": first_or_all(histograms),
+        "free_energy": first_or_all(free_energies),
+        "mesh": transpose(mesh).reshape(-1, d).squeeze(),
+        "nn": first_or_all(nns),
+        "fes_fn": first_or_all(fes_fns),
+    }
+
     return numpyfy_vals(ana_result)

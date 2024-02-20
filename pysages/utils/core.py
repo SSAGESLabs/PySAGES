@@ -46,7 +46,7 @@ def identity(x):
     return x
 
 
-def only_or_identity(seq):
+def first_or_all(seq):
     """
     Returns the only element of a sequence `seq` if its length is one,
     otherwise returns `seq` itself.
