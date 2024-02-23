@@ -21,7 +21,8 @@ import dill as pickle
 
 from pysages.methods import Metadynamics
 from pysages.methods.core import GriddedSamplingMethod, Result
-from pysages.utils import dispatch
+from pysages.typing import Callable
+from pysages.utils import dispatch, identity
 
 
 def load(filename) -> Result:
@@ -40,9 +41,7 @@ def load(filename) -> Result:
     **Notes:**
 
     This function attempts to recover from deserialization errors related to missing
-    `ncalls` attributes, assuming there is only one state in the file. Older
-    multiple-replica simulations (e.g., `UmbrellaSampling`, `SplineString`) cannot be
-    recovered using this method.
+    `ncalls` attributes.
     """
     with open(filename, "rb") as io:
         bytestring = io.read()
@@ -54,18 +53,39 @@ def load(filename) -> Result:
         if "ncalls" not in getattr(e, "message", repr(e)):
             raise e
 
-        # We know that states preceed callbacks and we assume there's only one state.
-        # Unfortunately, mutiple replica simulations can not be recovered this way, this
-        # includes UmbrellaSampling and SplineString for which a different workaround
-        # would be needed.
-        boundary = b"t\x94\x81\x94a\x8c\tcallbacks\x94]\x94"
-        i = bytestring.find(boundary)
-        # We add a zero as the number of ncalls and adjust it later
-        bytestring = bytestring[:i] + b"K\x00" + bytestring[i:]
+        # We know that states preceed callbacks so we try to find all tuples of values
+        # corresponding to each state.
+        j = bytestring.find(b"\x8c\x06states\x94")
+        k = bytestring.find(b"\x8c\tcallbacks\x94")
+        boundary = b"t\x94\x81\x94"
+
+        marks = []
+        while True:
+            i = j
+            j = bytestring.find(boundary, i + 1, k)
+            if j == -1:
+                marks.append((i, len(bytestring)))
+                break
+            marks.append((i, j))
+
+        # We set `ncalls` as zero and adjust it later
+        first = marks[0]
+        last = marks.pop()
+        slices = [
+            bytestring[: first[0]],
+            *(bytestring[i:j] + b"K\x00" for (i, j) in marks),
+            bytestring[last[0] :],  # noqa: E203
+        ]
+        bytestring = b"".join(slices)
+
         # Try to deserialize again
         result = pickle.loads(bytestring)
 
-        return _estimate_ncalls(result.method, result)
+        # Update results with `ncalls` estimates for each state
+        update = _ncalls_estimator(result.method)
+        result.states = [update(state) for state in result.states]
+
+        return result
 
 
 def save(result: Result, filename) -> None:
@@ -89,22 +109,24 @@ def save(result: Result, filename) -> None:
 
 
 @dispatch
-def _estimate_ncalls(_, result) -> Result:
+def _ncalls_estimator(_) -> Callable:
     # Fallback case. We leave ncalls as zero.
-    return result
+    return identity
 
 
 @dispatch
-def _estimate_ncalls(_: Metadynamics, result) -> Result:
-    state = result.states[0]
-    ncalls = state.idx  # use the number of gaussians deposited as proxy
-    result.states[0] = state._replace(ncalls=ncalls)
-    return result
+def _ncalls_estimator(_: Metadynamics) -> Callable:
+    def update(state):
+        ncalls = state.idx  # use the number of gaussians deposited as proxy
+        return state._replace(ncalls=ncalls)
+
+    return update
 
 
 @dispatch
-def _estimate_ncalls(_: GriddedSamplingMethod, result) -> Result:
-    state = result.states[0]
-    ncalls = state.hist.sum().item()  # use the histograms total count as proxy
-    result.states[0] = state._replace(ncalls=ncalls)
-    return result
+def _ncalls_estimator(_: GriddedSamplingMethod) -> Callable:
+    def update(state):
+        ncalls = state.hist.sum().item()  # use the histograms total count as proxy
+        return state._replace(ncalls=ncalls)
+
+    return update
