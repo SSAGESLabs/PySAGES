@@ -6,12 +6,14 @@ Funnel Adaptive Biasing Force (Funnel_ABF) sampling method.
 Funnel_ABF partitions the collective variable space into bins determined by a user
 provided grid, and keeps a tabulation of the number of visits to each bin
 as well as the sum of generalized forces experienced by the system at each
-configuration bin in the presence of a restraining potential. These provide an estimate for the mean 
-generalized force removing the effect of the restraint potential on the CV, which can be integrated 
+configuration bin in the presence of a restraining potential. These provide an estimate for the mean
+generalized force removing the effect of the restraint potential on the CV, which can be integrated
 to yield the free energy.
 
-The implementation of the adaptive biasing force method here closely follows 
-Kulhánek, P.; Bouchal, T.; Durník, I.; Štěpán, J.; Fuxreiter, M.; Mones, L.; Petřek, M.; Střelcová, Z. PMFLib - A Toolkit for Free Energy Calculations; https://pmflib.ncbr.muni.cz, 2018.
+The implementation of the adaptive biasing force method here closely follows
+Kulhánek, P.; Bouchal, T.; Durník, I.; Štěpán, J.;
+Fuxreiter, M.; Mones, L.; Petřek, M.; Střelcová, Z.
+PMFLib - A Toolkit for Free Energy Calculations; https://pmflib.ncbr.muni.cz, 2018.
 """
 
 from functools import partial
@@ -20,14 +22,14 @@ from typing import NamedTuple
 from jax import jit
 from jax import numpy as np
 from jax import vmap
-from jax.numpy import linalg
 from jax.lax import cond
-from jax.scipy import linalg as lg
+from jax.numpy import linalg
 
 from pysages.approxfun.core import compute_mesh
 from pysages.approxfun.core import scale as _scale
 from pysages.grids import build_indexer
-from pysages.methods.analysis import GradientLearning, _analyze
+
+# from pysages.methods.analysis import GradientLearning, _analyze
 from pysages.methods.core import GriddedSamplingMethod, Result, generalize
 from pysages.methods.restraints import apply_restraints
 from pysages.methods.utils import numpyfy_vals
@@ -37,7 +39,9 @@ from pysages.ml.optimizers import LevenbergMarquardt
 from pysages.ml.training import NNData, build_fitting_function, convolve, normalize
 from pysages.ml.utils import blackman_kernel, pack, unpack
 from pysages.typing import JaxArray, NamedTuple
-from pysages.utils import dispatch, solve_pos_def
+from pysages.utils import dispatch
+
+# from jax.scipy import linalg as lg
 
 
 class FABFState(NamedTuple):
@@ -141,7 +145,7 @@ class Funnel_ABF(GriddedSamplingMethod):
 
         Tuple `(snapshot, initialize, update)` to run ABF simulations.
         """
-        self.ext_force = self.kwargs.get("ext_force", lambda rs: funnel_force(rs))
+        self.ext_force = self.kwargs.get("ext_force", None)
         return _abf(self, snapshot, helpers)
 
 
@@ -330,11 +334,11 @@ def analyze(result: Result[Funnel_ABF], **kwargs):
             by the grid.
 
         fes_corr: Callable[[JaxArray], JaxArray]
-            Function that allows to interpolate the free energy without restraints in the CV domain defined
-            by the grid.
+            Function that allows to interpolate the free energy without restraints in the
+            CV domain defined by the grid.
         fes_rst: Callable[[JaxArray], JaxArray]
-            Function that allows to interpolate the free energy of the restraint in the CV domain defined
-            by the grid.
+            Function that allows to interpolate the free energy of the restraint in the
+            CV domain defined by the grid.
     """
     topology = kwargs.get("topology", (4, 4))
     method = result.method

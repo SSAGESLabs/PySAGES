@@ -5,7 +5,7 @@ import jax.numpy as np
 from jax import grad, jit
 from jax.numpy import linalg
 
-from pysages.colvars.funnels import center, periodic, kabsch
+from pysages.colvars.funnels import center, kabsch, periodic
 
 
 def y_function(x, Z_0, Zcc, R):
@@ -52,7 +52,7 @@ def funnel(x, A, B, Zcc, Z_0, R, k, k_cv, cv_min, cv_max):
     B_r = B
     norm_eje = linalg.norm(B_r - A_r)
     eje = (B_r - A_r) / norm_eje
-    Z_pos = Zcc * eje
+    #    Z_pos = Zcc * eje
     x_fit = x - A_r
     proj = np.dot(x_fit, eje)
     return np.where(
@@ -67,7 +67,7 @@ def proj_funnel(x, A, B, Zcc, Z_0, R, k, k_cv, cv_min, cv_max):
     B_r = B
     norm_eje = linalg.norm(B_r - A_r)
     eje = (B_r - A_r) / norm_eje
-    Z_pos = Zcc * eje
+    #    Z_pos = Zcc * eje
     x_fit = x - A_r
     proj = np.dot(x_fit, eje)
     perp = x_fit - proj * eje

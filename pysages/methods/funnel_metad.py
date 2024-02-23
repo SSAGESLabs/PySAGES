@@ -156,7 +156,8 @@ class Funnel_Metadynamics(GriddedSamplingMethod):
         self.kB = kwargs.get("kB", None)
 
     def build(self, snapshot, helpers, *args, **kwargs):
-        self.external_force = self.kwargs.get("external_force", lambda rs: funnel_force(rs))
+        #        self.external_force=self.kwargs.get("external_force",lambda rs:funnel_force(rs))
+        self.external_force = self.kwargs.get("external_force", None)
         return _metadynamics(self, snapshot, helpers)
 
 
