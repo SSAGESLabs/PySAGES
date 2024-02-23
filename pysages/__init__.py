@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
-# flake8: noqa F401
+# flake8: noqa E402,F401
 
 """
 PySAGES: Python Suite for Advanced General Ensemble Simulations
@@ -58,18 +58,15 @@ def _config_jax():
 _set_cuda_visible_devices()
 _config_jax()
 
-
-from . import backends, colvars, methods  # noqa: E402, F401
-from ._version import version as __version__  # noqa: E402, F401
-from ._version import version_tuple as __version_tuple__  # noqa: E402, F401
-from .backends import supported_backends  # noqa: E402, F401
-from .grids import Chebyshev, Grid  # noqa: E402, F401
-from .methods import (  # noqa: E402, F401
-    CVRestraints,
-    ReplicasConfiguration,
-    SerialExecutor,
-)
-from .utils import dispatch, dispatch_table  # noqa: E402, F401
+# pylint: disable=C0413
+from . import backends, colvars, methods
+from ._version import version as __version__
+from ._version import version_tuple as __version_tuple__
+from .backends import supported_backends
+from .grids import Chebyshev, Grid
+from .methods import CVRestraints, ReplicasConfiguration, SerialExecutor
+from .serialization import load, save
+from .utils import dispatch, dispatch_table
 
 run = dispatch_table(dispatch)["run"]
 analyze = dispatch_table(dispatch)["analyze"]
@@ -81,4 +78,4 @@ del jax
 del os
 del _config_jax
 del _set_cuda_visible_devices
-del _version
+del _version  # pylint: disable=E0602

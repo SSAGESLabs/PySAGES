@@ -1,5 +1,6 @@
 import importlib
 import inspect
+import pathlib
 import tempfile
 
 import dill as pickle
@@ -168,9 +169,9 @@ def test_pickle_colvars():
 
 
 def test_pickle_results():
-    with tempfile.NamedTemporaryFile() as tmp_pickle:
-        test_result = abf_example.run_simulation(10, write_output=False)
+    test_result = abf_example.run_simulation(10, write_output=False)
 
+    with tempfile.NamedTemporaryFile() as tmp_pickle:
         pickle.dump(test_result, tmp_pickle)
         tmp_pickle.flush()
 
@@ -180,3 +181,14 @@ def test_pickle_results():
         assert np.all(test_result.states[0].bias == tmp_result.states[0].bias).item()
         assert np.all(test_result.states[0].hist == tmp_result.states[0].hist).item()
         assert np.all(test_result.states[0].Fsum == tmp_result.states[0].Fsum).item()
+
+    tmp_file = pathlib.Path(".tmp_test_pickle")
+    pysages.save(test_result, tmp_file)
+    tmp_result = pysages.load(tmp_file.name)
+
+    assert np.all(test_result.states[0].xi == tmp_result.states[0].xi).item()
+    assert np.all(test_result.states[0].bias == tmp_result.states[0].bias).item()
+    assert np.all(test_result.states[0].hist == tmp_result.states[0].hist).item()
+    assert np.all(test_result.states[0].Fsum == tmp_result.states[0].Fsum).item()
+
+    tmp_file.unlink()
