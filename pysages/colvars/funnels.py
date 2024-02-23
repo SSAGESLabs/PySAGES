@@ -4,7 +4,8 @@ import jax.numpy as np
 from jax.numpy import linalg
 
 from pysages.colvars.coordinates import barycenter, weighted_barycenter
-from pysages.colvars.core import AxisCV, CollectiveVariable, TwoPointCV
+from pysages.colvars.core import CollectiveVariable
+
 
 def fitted_positions(positions, references, weights):
     if weights is None:
@@ -18,6 +19,7 @@ def fitted_positions(positions, references, weights):
         fit_pos = positions * weights - pos_b
         fit_ref = references * weights - ref_b
     return fit_pos, fit_ref
+
 
 def kabsch(P0, Q0, weights):
     """
