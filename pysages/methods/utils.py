@@ -171,7 +171,7 @@ class MetaDLogger:
 
 class Funnel_MetadLogger:
     """
-    Logs the state of the funnel_cv the perpendicular cv and other parameters in Funnel_Metadynamics.
+    Logs the state of the funnel_cv and other parameters in Funnel_Metadynamics.
     Parameters
     ----------
     hills_file:
