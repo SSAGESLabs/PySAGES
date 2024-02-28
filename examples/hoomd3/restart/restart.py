@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-import pickle
-
 import hoomd
 import hoomd.dlext
 import hoomd.md
@@ -114,15 +112,12 @@ def main():
     ]
     plot(hist_list, target_hist, (-Lmax / 2, Lmax / 2), 2)
 
-    # Dump the pickle file for restart. This is the standard way to
-    # save a system's information to perform a restart in a new run.
-    with open("restart.pickle", "wb") as f:
-        pickle.dump(state, f)
+    # Save the system's information to perform a restart in a new run.
+    pysages.save(state, "restart.pkl")
 
     # Load the restart file. This is how to run a pysages run from a
     # previously stored state.
-    with open("restart.pickle", "rb") as f:
-        state = pickle.load(f)
+    state = pysages.load("restart.pkl")
 
     # When restarting, run the system using the same generate_context function!
     state = pysages.run(state, generate_context, int(1e4))

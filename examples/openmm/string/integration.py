@@ -2,7 +2,6 @@
 import argparse
 import importlib
 import os
-import pickle
 import shutil
 import sys
 
@@ -81,7 +80,7 @@ def get_args(argv):
     parser = argparse.ArgumentParser(
         description="Example script to run the spline (improved) string method"
     )
-    for (name, short, T, val, doc) in available_args:
+    for name, short, T, val, doc in available_args:
         parser.add_argument("--" + name, "-" + short, type=T, default=T(val), help=doc)
     parser.add_argument("--mpi", action="store_true", help="Use MPI executor")
     args = parser.parse_args(argv)
@@ -121,11 +120,12 @@ def plot_energy(result):
     s = np.linspace(0, 1, len(result["point_convergence"]))
     free_energy = np.asarray(result["free_energy"])
     offset = np.min(free_energy)
-    ax.plot(s, free_energy - offset, "o-", color="teal")
 
+    ax.plot(s, free_energy - offset, "o-", color="teal")
     ax2.plot(s, result["point_convergence"], color="maroon")
 
     fig.savefig("energy.pdf", transparent=True, bbox_inches="tight", pad_inches=0)
+    return fig
 
 
 def plot_path(result):
@@ -178,8 +178,7 @@ def main(argv):
     plot_path(result)
     plot_energy(result)
 
-    with open("result.pkl", "wb") as file_handle:
-        pickle.dump(result, file_handle)
+    pysages.save(result, "result.pkl")
 
 
 if __name__ == "__main__":
