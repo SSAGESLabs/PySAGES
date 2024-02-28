@@ -216,7 +216,7 @@ def _cff(method: CFF, snapshot, helpers):
         ncalls = state.ncalls + 1
         in_training_regime = ncalls > train_freq
         in_training_step = in_training_regime & (ncalls % train_freq == 1)
-        histp, fe, prob, nn, fnn = learn_free_energy(state, in_training_step)
+        histp, prob, fe, nn, fnn = learn_free_energy(state, in_training_step)
         # Compute the collective variable and its jacobian
         xi, Jxi = cv(data)
         #
@@ -281,7 +281,7 @@ def build_free_energy_learner(method: CFF):
         return NNData(params, nn.mean, s), NNData(fparams, f_mean, s)
 
     def skip_learning(state):
-        return state.hist, state.fe, state.prob, state.nn, state.fnn
+        return state.histp, state.prob, state.fe, state.nn, state.fnn
 
     def learn_free_energy(state):
         prob = state.prob + state.histp * np.exp(state.fe / kT)
@@ -294,7 +294,7 @@ def build_free_energy_learner(method: CFF):
         fe = nn.std * model.apply(params, inputs).reshape(fe.shape)
         fe = fe - fe.min()
 
-        return histp, fe, prob, nn, fnn
+        return histp, prob, fe, nn, fnn
 
     def _learn_free_energy(state, in_training_step):
         return cond(in_training_step, learn_free_energy, skip_learning, state)
