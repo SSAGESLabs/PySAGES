@@ -136,7 +136,7 @@ class SpectralABF(GriddedSamplingMethod):
         self.grid = self.grid if self.grid.is_periodic else convert(self.grid, Grid[Chebyshev])
         self.model = SpectralGradientFit(self.grid)
 
-    def build(self, snapshot, helpers):
+    def build(self, snapshot, helpers, *_args, **_kwargs):
         """
         Returns the `initialize` and `update` functions for the sampling method.
         """
@@ -199,7 +199,7 @@ def _spectral_abf(method, snapshot, helpers):
     return snapshot, initialize, generalize(update, helpers)
 
 
-def build_free_energy_fitter(method: SpectralABF, fit):
+def build_free_energy_fitter(_method: SpectralABF, fit):
     """
     Returns a function that given a `SpectralABFState` performs a least squares fit of the
     generalized average forces for finding the coefficients of a basis functions expansion
@@ -293,7 +293,6 @@ def analyze(result: Result[SpectralABF]):
     For multiple-replicas runs we return a list (one item per-replica) for each attribute.
     """
     method = result.method
-    states = result.states
 
     grid = method.grid
     mesh = (compute_mesh(grid) + 1) * grid.size / 2 + grid.lower
@@ -320,7 +319,7 @@ def analyze(result: Result[SpectralABF]):
     transpose = grid_transposer(grid)
     d = mesh.shape[-1]
 
-    for s in states:
+    for s in result.states:
         fes_fn = build_fes_fn(s.fun)
         hists.append(transpose(s.hist))
         mean_forces.append(transpose(average_forces(s.hist, s.Fsum)))
