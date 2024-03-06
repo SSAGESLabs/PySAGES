@@ -111,7 +111,7 @@ def take_snapshot(simulation, forces=None):
     a = atoms.cell[0]
     b = atoms.cell[1]
     c = atoms.cell[2]
-    H = ((a[0], b[0], c[0]), (a[1], b[1], c[1]), (a[2], b[2], c[2]))
+    H = ((a[0], a[1], a[2]), (b[0], b[1], b[2]), (c[0], c[1], c[2]))
     origin = (0.0, 0.0, 0.0)
     dt = simulation.dt
 
