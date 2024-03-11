@@ -136,9 +136,10 @@ class Pattern:
                         self._neighborhood_distances,
                         width) * squared_dist
                 ) / (
-                            2 * (self.standard_deviation ** 2) * np.sum(
-                                self._switching_function(
-                                    self._neighborhood_distances, width))
+                    2 * (self.standard_deviation ** 2) * np.sum(
+                        self._switching_function(
+                            self._neighborhood_distances, width)
+                    )
                 )
             )
         else:
