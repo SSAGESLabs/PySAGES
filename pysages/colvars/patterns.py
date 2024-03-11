@@ -67,7 +67,7 @@ class Pattern:
         self.number_of_added_sites = number_of_added_sites
         if self.number_of_added_sites > 0:
             if width_of_switch_func is None:
-                self.width_of_switch_func = self.standard_deviation/2
+                self.width_of_switch_func = self.standard_deviation / 2
             else:
                 self.width_of_switch_func = width_of_switch_func
 
@@ -99,7 +99,7 @@ class Pattern:
         if self.number_of_added_sites > 0:
             ids_of_neighbors_2nd_shell = ids_of_neighbors[
                 -self.number_of_added_sites:]
-            self.shell_distance = self.scale_for_radial_distance*np.mean(
+            self.shell_distance = self.scale_for_radial_distance * np.mean(
                 distances[ids_of_neighbors_2nd_shell])
             self._neighborhood_distances = distances[ids_of_neighbors]
 
@@ -120,7 +120,7 @@ class Pattern:
         self._orig_neighbor_coords = positions_of_all_nbrs[ids_of_neighbors]
 
     def _switching_function(self, distance, width):
-        result = 0.5*lax.erfc(
+        result = 0.5 * lax.erfc(
             (distance - self.shell_distance) / width)
         return result
 
@@ -131,12 +131,12 @@ class Pattern:
             width = self.width_of_switch_func
             squared_dist = row_sum(r**2)
             return np.exp(
-                -np.sum(
-                        self._switching_function(
-                            self._neighborhood_distances,
-                            width)*squared_dist
+                - np.sum(
+                    self._switching_function(
+                        self._neighborhood_distances,
+                        width) * squared_dist
                 ) / (
-                            2*(self.standard_deviation**2)*np.sum(
+                            2 * (self.standard_deviation ** 2) * np.sum(
                                 self._switching_function(
                                     self._neighborhood_distances, width))
                 )
@@ -144,7 +144,7 @@ class Pattern:
         else:
             return np.prod(
                 gaussian(1,
-                         self.standard_deviation*np.sqrt(
+                         self.standard_deviation * np.sqrt(
                              len(self.reference)), r))
 
     def rotate_reference(self, random_euler_point):
