@@ -83,6 +83,11 @@ class Sampler(FixDLExt):  # pylint: disable=R0902
 
         self.set_callback(update)
 
+        def virial_from_method(virial):
+            #virial = sampling_method.get_virial()
+
+        self.set_virial_callback(virial_from_method)
+
     def _partial_snapshot(self, include_masses: bool = False):
         positions = from_dlpack(dlext.positions(self.view, self.location))
         types = from_dlpack(dlext.types(self.view, self.location))
