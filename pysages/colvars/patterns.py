@@ -27,7 +27,7 @@ def func_to_optimise(Q, modified_pattern, local_pattern):
 # Main class implementing the GeM CV
 class Pattern:
     """
-    For determining nearest neighbors,
+    For determining the nearest neighbors,
     [JAX MD](https://jax-md.readthedocs.io/en/main/jax_md.partition.html)
     neighborlist library is utilized. This requires the user
     to define the indices of all the atoms in the system and a JAX MD
@@ -350,14 +350,14 @@ class GeM(CollectiveVariable):
     an atomic or a molecular site is described in
     [Martelli2018](https://journals.aps.org/prb/abstract/10.1103/PhysRevB.97.064105).
 
-    Given a pattern, the algorithm is returning an average score (from 0 to 1),
+    Given a pattern, the algorithm returns an average score (from 0 to 1),
     denoting how closely the atomic neighbors resemble the reference.
 
-    For determining nearest neighbors,
+    For determining the nearest neighbors,
     [JAX MD](https://jax-md.readthedocs.io/en/main/jax_md.partition.html)
     neighborlist library is utilized. This requires the user
     to define the indices of all the atoms in the system and a JAX MD
-    neighbor list callable for updating the state.
+    neighbor list which is callable for updating the state.
 
     Matching a neighborhood to the pattern is an optimization process.
     Based on the number of initial rotations of the reference structure
@@ -378,11 +378,11 @@ class GeM(CollectiveVariable):
     box: JaxArray
             Definition of the simulation box.
     number_of_rotations: integer
-            Number of initial rotated structures for the optimization study.
-    number_of_opt_it: iteger
-            Number of iterations for gradient descent.
+            A number of initial rotated structures for the optimization study.
+    number_of_opt_it: integer
+            A number of iterations for gradient descent.
     standard_deviation: float
-            Parameter that controls the spread of the Gaussian function.
+            A parameter that controls the spread of the Gaussian function.
     mesh_size: integer
             Defines the size of the angular grid from which we draw
             random Euler angles.
@@ -392,8 +392,11 @@ class GeM(CollectiveVariable):
             Set to True if NPT simulation is considered and the box size
             changes; use periodic_general for constructing the neighborlist.
     number_of_added_sites: int
-            Specify additional sites to the main reference for the continuous
-            calculation (skip if the continuous LoM is not needed).
+            Specify the number of additional sites to the main reference for the continuous
+            calculation (skip if the continuous LoM is not needed). The additional atoms should 
+            already be added to the reference (reference_positions). 
+            In other words, the reference should have elements corresponding to the original reference and 
+            additional coordinates representing the extra atoms.
     width_of_switch_func: float
             Width of the switching function for the continuous score function.
     scale_for_radial_distance: float
