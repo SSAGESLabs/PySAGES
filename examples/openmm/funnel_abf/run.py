@@ -182,7 +182,7 @@ ngauss = timesteps // stride + 1
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-methodo = Funnel_ABF(cvs, grid=grid, N=1000, ext_force=funnel_force)
+methodo = Funnel_ABF(cvs, grid=grid, N=1000, ext_force=funnel_force, restraints=restraints)
 funnel_file = "funnel.dat"
 callback = Funnel_Logger(funnel_file, 10)
 sampling_context = SamplingContext(methodo, generate_simulation, callback)
