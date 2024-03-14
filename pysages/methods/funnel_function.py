@@ -57,8 +57,8 @@ def funnel(x, A, B, Zcc, Z_0, R, k, k_cv, cv_min, cv_max):
     proj = np.dot(x_fit, eje)
     return np.where(
         proj < Zcc,
-        cone(x_fit, eje, Zcc, Z_0, R, k) + borderL(x_fit, eje, k_cv, cv_min),
-        cylinder(x_fit, eje, R, k) + borderU(x_fit, eje, k_cv, cv_max),
+        cone(x_fit, eje, Zcc, Z_0, R, k) + borderL(x_fit, eje, k_cv, cv_min) + borderU(x_fit, eje, k_cv, cv_max),
+        cylinder(x_fit, eje, R, k) + borderU(x_fit, eje, k_cv, cv_max) + borderL(x_fit, eje, k_cv, cv_max),
     )
 
 
