@@ -12,8 +12,12 @@ from jaxopt import GradientDescent as minimize
 
 from pysages.colvars.core import CollectiveVariable
 from pysages.utils import (
-    gaussian, row_sum, quaternion_from_euler,
-    quaternion_matrix)
+    gaussian,
+    identity,
+    quaternion_from_euler,
+    quaternion_matrix,
+    row_sum,
+)
 
 
 def rotate_pattern_with_quaternions(rot_q, pattern):
@@ -46,9 +50,8 @@ class Pattern:
         mesh_size,
         number_of_added_sites=0,
         width_of_switch_func=None,
-        scale_for_radial_distance=None
+        scale_for_radial_distance=None,
     ):
-
         self.characteristic_distance = characteristic_distance
         self.reference = reference
         self.neighborlist = neighborlist
@@ -76,15 +79,15 @@ class Pattern:
             else:
                 self.scale_for_radial_distance = scale_for_radial_distance
 
+        self._neighborhood = []
+
     def comp_pair_distance_squared(self, pos1):
-        displacement_fn, shift_fn = space.periodic(np.diag(self.simulation_box))
+        displacement_fn, _ = space.periodic(np.diag(self.simulation_box))
         mic_vector = displacement_fn(self.centre_j_coords, pos1)
         mic_norm = linalg.norm(mic_vector)
         return mic_norm, mic_vector
 
     def _generate_neighborhood(self):
-        self._neighborhood = []
-
         positions_of_all_nbrs = self.positions[self.neighborlist.idx[self.centre_j_id]]
         distances, mic_vectors = vmap(self.comp_pair_distance_squared)(positions_of_all_nbrs)
         # remove the same atom from the neighborhood
@@ -96,11 +99,12 @@ class Pattern:
 
         ids_of_neighbors = np.argsort(distances)[: len(self.reference)]
 
-        if self.number_of_added_sites > 0:
-            ids_of_neighbors_2nd_shell = ids_of_neighbors[
-                -self.number_of_added_sites:]
+        n_added_sites = self.number_of_added_sites
+        if n_added_sites > 0:
+            ids_of_neighbors_2nd_shell = ids_of_neighbors[-n_added_sites:]
             self.shell_distance = self.scale_for_radial_distance * np.mean(
-                distances[ids_of_neighbors_2nd_shell])
+                distances[ids_of_neighbors_2nd_shell]
+            )
             self._neighborhood_distances = distances[ids_of_neighbors]
 
         coordinates = mic_vectors[ids_of_neighbors] + self.centre_j_coords
@@ -120,33 +124,20 @@ class Pattern:
         self._orig_neighbor_coords = positions_of_all_nbrs[ids_of_neighbors]
 
     def _switching_function(self, distance, width):
-        result = 0.5 * lax.erfc(
-            (distance - self.shell_distance) / width)
+        result = 0.5 * lax.erfc((distance - self.shell_distance) / width)
         return result
 
     def compute_score(self, optim_reference):
         r = self._neighbor_coords - optim_reference
+        std = self.standard_deviation
 
         if self.number_of_added_sites != 0:
             width = self.width_of_switch_func
             squared_dist = row_sum(r**2)
-            return np.exp(
-                - np.sum(
-                    self._switching_function(
-                        self._neighborhood_distances,
-                        width) * squared_dist
-                ) / (
-                    2 * (self.standard_deviation ** 2) * np.sum(
-                        self._switching_function(
-                            self._neighborhood_distances, width)
-                    )
-                )
-            )
-        else:
-            return np.prod(
-                gaussian(1,
-                         self.standard_deviation * np.sqrt(
-                             len(self.reference)), r))
+            x = self._switching_function(self._neighborhood_distances, width)
+            return np.exp(-np.sum(x * squared_dist) / (2 * (std**2) * np.sum(x)))
+
+        return np.prod(gaussian(1, std * np.sqrt(len(self.reference)), r))
 
     def rotate_reference(self, random_euler_point):
         # Perform rotation of the reference pattern;
@@ -196,7 +187,7 @@ class Pattern:
         _, indices = lax.scan(
             lambda _, sites: (
                 None,
-                lax.cond(np.sum(sites) == 1, lambda s: s, lambda s: np.zeros_like(s), sites),
+                lax.cond(np.sum(sites) == 1, identity, np.zeros_like, sites),
             ),
             None,
             close_sites,
@@ -207,11 +198,10 @@ class Pattern:
         return settled_neighbor_indices
 
     def driver_match(self, number_of_rotations, number_of_opt_steps, num):
-
         self._generate_neighborhood()
 
-        """Step2: Scale the reference so that the spread matches
-        with the current local pattern"""
+        # STEP 2:
+        # Scale the reference so that the spread matches with the current local pattern.
         local_distance = 0.0
         reference_distance = 0.0
         for n_index, neighbor in enumerate(self._neighborhood):
@@ -220,17 +210,18 @@ class Pattern:
 
         self.reference *= np.sqrt(local_distance / reference_distance)
 
-        """Step3: mesh-loop -> Define angles in reduced Euler domain,
-        and for each rotate, resort and score the pattern
-
-        The implementation below follows the article Martelli et al. 2018
-
-
-        (a) Randomly with uniform probability pick a point in the Euler domain,
-        (b) Rotate the reference
-        (c) Resort the local pattern and assign the closest reference sites,
-        (d) Perform the optimisation step (conjugate gradient),
-        and (e) store the score with (f) the final settled status"""
+        # STEP 3:
+        #
+        # mesh-loop -> Define angles in reduced Euler domain, and for each rotate,
+        # resort and score the pattern.
+        #
+        # The implementation below follows the article Martelli et al. 2018
+        #
+        # (a) Randomly with uniform probability pick a point in the Euler domain,
+        # (b) Rotate the reference
+        # (c) Resort the local pattern and assign the closest reference sites,
+        # (d) Perform the optimisation step (conjugate gradient), and
+        # (e) store the score with (f) the final settled status
 
         def get_all_scores(newkey, euler_point):
             # b. Rotate the reference pattern
@@ -239,8 +230,7 @@ class Pattern:
             # and assign ids to the closest reference sites
             newkey, newsubkey = random.split(random.PRNGKey(newkey))
             reshuffled_reference, random_indices = self.resort(rotated_reference, newsubkey)
-            # d. Find the best rotation that aligns the settled sites
-            # in both patterns;
+            # d. Find the best rotation that aligns the settled sites in both patterns.
             # Here, ‘optimal’ or ‘best’ is in terms of least squares errors
             solver = minimize(fun=func_to_optimise, maxiter=number_of_opt_steps)
             # We are fixing the initial guess for the quaternions;
@@ -266,7 +256,7 @@ class Pattern:
 
         # a. Randomly pick a point in the Euler domain
 
-        key, subkey = random.split(random.PRNGKey(num))
+        _, subkey = random.split(random.PRNGKey(num))
         mesh_size = self.mesh_size
         grid_dimension = np.pi / mesh_size
         euler_angles = np.arange(
@@ -305,14 +295,13 @@ class Pattern:
 
 
 def calculate_lom(all_positions: np.array, neighborlist, simulation_box, params):
-
     if params.fractional_coords:
         update_neighborlist = neighborlist.update(np.divide(all_positions, np.diag(simulation_box)))
     else:
         update_neighborlist = neighborlist.update(all_positions)
 
-    """Step1: Move the reference and
-    local patterns so that their centers coincide with the origin"""
+    # STEP 1:
+    # Move the reference and local patterns so that their centers coincide with the origin.
 
     reference_positions = params.reference_positions.at[:].set(
         params.reference_positions - np.mean(params.reference_positions, axis=0)
@@ -332,7 +321,7 @@ def calculate_lom(all_positions: np.array, neighborlist, simulation_box, params)
             params.mesh_size,
             params.number_of_added_sites,
             params.width_of_switch_func,
-            params.scale_for_radial_distance
+            params.scale_for_radial_distance,
         ).driver_match(
             params.number_of_rotations,
             params.number_of_opt_it,
@@ -393,10 +382,10 @@ class GeM(CollectiveVariable):
             changes; use periodic_general for constructing the neighborlist.
     number_of_added_sites: int
             Specify the number of additional sites to the main reference for the continuous
-            calculation (skip if the continuous LoM is not needed). The additional atoms should 
-            already be added to the reference (reference_positions). 
-            In other words, the reference should have elements corresponding to the original reference and 
-            additional coordinates representing the extra atoms.
+            calculation (skip if the continuous LoM is not needed). The additional atoms should
+            already be added to the reference (reference_positions).
+            In other words, the reference should have elements corresponding to the
+            original reference and additional coordinates representing the extra atoms.
     width_of_switch_func: float
             Width of the switching function for the continuous score function.
     scale_for_radial_distance: float
@@ -422,7 +411,7 @@ class GeM(CollectiveVariable):
         fractional_coords,
         number_of_added_sites=0,
         width_of_switch_func=None,
-        scale_for_radial_distance=None
+        scale_for_radial_distance=None,
     ):
         super().__init__(indices, group_length=None)
 
