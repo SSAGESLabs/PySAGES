@@ -40,6 +40,7 @@ class Pattern:
 
     def __init__(
         self,
+        positions,
         simulation_box,
         fractional_coords,
         reference,
@@ -59,10 +60,11 @@ class Pattern:
         self.centre_j_id = centre_j_id
         # This is added to handle neighborlists with fractional coordinates
         # (needed for NPT simulations)
-        if fractional_coords:
-            self.positions = self.neighborlist.reference_position * np.diag(self.simulation_box)
-        else:
-            self.positions = self.neighborlist.reference_position
+        # if fractional_coords:
+        #     self.positions = self.neighborlist.reference_position * np.diag(self.simulation_box)
+        # else:
+        #     self.positions = self.neighborlist.reference_position
+        self.positions = positions
         self.centre_j_coords = self.positions[self.centre_j_id]
         self.standard_deviation = standard_deviation
         self.mesh_size = mesh_size
@@ -311,6 +313,7 @@ def calculate_lom(all_positions: np.array, neighborlist, simulation_box, params)
     seed = np.int64(time.process_time() * 1e5)
     optimal_results = vmap(
         lambda i: Pattern(
+            all_positions,
             params.box,
             params.fractional_coords,
             reference_positions,
