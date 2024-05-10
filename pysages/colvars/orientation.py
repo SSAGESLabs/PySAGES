@@ -14,7 +14,6 @@ eRMSD also only requires the knowledge of C2, C4 and C6 for each base.
 """
 
 from jax import numpy as np
-from jax.numpy import linalg
 
 from pysages.colvars.core import CollectiveVariable, multicomponent
 

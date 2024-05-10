@@ -13,17 +13,22 @@ def calc_lcs(coords):
     """
     Calculate local coordinates system
 
-    Calculate origin position and xyz orthonormal vectors in the six-member rings
+    Calculate origin position and xyz orthonormal vectors
+    in the six-member rings
 
     Parameters
     ----------
     coords : (3, n, 3) numpy array
-        (3,n,3) numpy array with positions of C2,C4 and C6 atoms for pyrimidines (C,U,T) and C2,C6,C4 for purines (A,G) (axis 0) relative to n nucleobases (axis 1). xyz coordinates in axis 2.
+        positions of C2,C4 and C6 atoms for pyrimidines (C,U,T)
+        and C2,C6,C4 for purines (A,G) (axis 0)
+        relative to n nucleobases (axis 1).
+        xyz coordinates in axis 2.
 
     Returns
     -------
     lcs : (n,3,3) numpy array
-        x y z vectors defining a local coordinate system in the geometrical center of the nucleobase
+        x y z vectors defining a local coordinate system
+        in the geometrical center of the nucleobase
     origo : (n,3) numpy array
         origin  of local coordinate systems
     """
@@ -54,7 +59,10 @@ def calc_3dmat(coords, cutoff):
     Parameters
     ----------
     coords : (3, n,3) numpy array
-        (3, n,3) numpy array with positions of C2,C4 and C6 atoms for pyrimidines (C,U,T) and C2,C6,C4 for purines (A,G) (axis 0) relative to n nucleobases (axis 1). xyz coordinates in axis 2.
+        positions of C2,C4 and C6 atoms for pyrimidines (C,U,T)
+        and C2,C6,C4 for purines (A,G) (axis 0)
+        relative to n nucleobases (axis 1).
+        xyz coordinates in axis 2.
 
     cutoff : float
        ellipsoidal cutoff
