@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import pdb
 
 import barnaba as bb
 import numpy as np

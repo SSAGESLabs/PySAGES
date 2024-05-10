@@ -14,10 +14,8 @@ eRMSD also only requires the knowledge of C2, C4 and C6 for each base.
 """
 
 from jax import numpy as np
-from jax.experimental import host_callback
 from jax.numpy import linalg
 
-from pysages.colvars.coordinates import barycenter
 from pysages.colvars.core import CollectiveVariable, multicomponent
 
 
@@ -130,7 +128,7 @@ def g_vector(lcs, origins, cutoff, a, b):
     :math:`\gamma = \pi/\tilde{r}_\mathrm{cutoff}`
 
     :math:`\mathbf{G}(\tilde{\mathbf{r}})=
-    \begin{pmatrix} 
+    \begin{pmatrix}
     \sin(\gamma |\tilde{r}|)\frac{\tilde{r}_x}{|\tilde{r}|}\\
     \sin(\gamma |\tilde{r}|)\frac{\tilde{r}_y}{|\tilde{r}|}\\
     \sin(\gamma |\tilde{r}|)\frac{\tilde{r}_z}{|\tilde{r}|}\\

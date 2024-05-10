@@ -8,7 +8,7 @@ from openmm import unit
 import pysages
 from pysages.colvars.coordinates import Component
 from pysages.colvars.orientation import ERMSD
-from pysages.methods import HistogramLogger, Unbiased, abf
+from pysages.methods import HistogramLogger, Unbiased
 
 step_size = 2 * unit.femtosecond
 nsteps = 100
