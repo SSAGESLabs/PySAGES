@@ -83,12 +83,16 @@ def calc_3dmat(coords, cutoff):
 
 def calc_gmat(coords, cutoff):
     """
-    Calculate G-vectors for each pair of bases within ellipsoidal cutoff distance
+    Calculate G-vectors for each pair of bases
+    within ellipsoidal cutoff distance
 
     Parameters
     ----------
     coords : (3,n,3) numpy array
-        (3,n,3) numpy array with positions of C2,C4 and C6 atoms for pyrimidines (C,U,T) and C2,C6,C4 for purines (A,G) (axis 0) relative to n nucleobases (axis 1). xyz coordinates in axis 2.
+        positions of C2,C4 and C6 atoms for pyrimidines (C,U,T)
+        and C2,C6,C4 for purines (A,G) (axis 0)
+        relative to n nucleobases (axis 1)
+        xyz coordinates in axis 2.
 
     cutoff : float
         ellipsoidal cutoff
@@ -96,7 +100,8 @@ def calc_gmat(coords, cutoff):
     Returns
     -------
     dotp : (n,n,4) numpy array
-        G coordinates for each pair. For pairs outside the cutoff the coordinates are (0,0,0,0)
+        G coordinates for each pair.
+        For pairs outside the cutoff the coordinates are (0,0,0,0)
     """
 
     ll = coords.shape[1]
