@@ -6,7 +6,6 @@ import openmm.app as app
 from openmm import unit
 
 import pysages
-from pysages.colvars.coordinates import Component
 from pysages.colvars.orientation import ERMSD, ERMSDCG
 from pysages.methods import HistogramLogger, Unbiased
 
