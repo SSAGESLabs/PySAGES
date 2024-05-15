@@ -13,7 +13,7 @@ from pysages.methods import HistogramLogger, Unbiased
 step_size = 2 * unit.femtosecond
 nsteps = 100
 
-pdb = app.PDBFile("../../inputs/GAGA.box_0mM.pdb")
+pdb = app.PDBFile("../../../inputs/GAGA.box_0mM.pdb")
 C246_indices = []
 for i, res in enumerate(pdb.topology.residues()):
     C246_residue = dict.fromkeys(["C2", "C4", "C6"])

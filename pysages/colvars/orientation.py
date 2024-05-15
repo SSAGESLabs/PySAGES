@@ -13,6 +13,7 @@ eRMSD also only requires the knowledge of C2, C4 and C6 for each base.
 
 """
 
+import jax
 from jax import numpy as np
 
 from pysages.colvars.core import CollectiveVariable, multicomponent
@@ -34,7 +35,7 @@ class ERMSD(CollectiveVariable):
     Parameters
     ------------
     indices: list[int].
-        Must be a list of indices with dimension (n_residues*3,).
+        Must be a list of indices with dimension (n_nucleotides*3,).
         The order is tricky,
         for Purines (A, G) the order in the tuple should be C2, C6, C4;
         for Pyrimidines (U, C) the order in the tuple should be C2, C4, C6.
@@ -42,7 +43,7 @@ class ERMSD(CollectiveVariable):
         Please make sure the order is correct,
         otherwise the results will be wrong.
     references: list[tuple(float)]
-        Must be a list of tuple of floats, with dimension (n_residues*3, 3)
+        Must be a list of tuple of floats, with dimension (n_nucleotides*3, 3)
         The last dimension is the x,y,z of the
         cartesian coordinates of the reference position of the C2/C4/C6 atoms,
         with the same order as the indices.
@@ -66,7 +67,7 @@ class ERMSD(CollectiveVariable):
         return lambda r: ermsd(r, self.references, self.cutoff, self.a, self.b)
 
 
-def local_coordinates(rs):
+def calc_local_reference_systems(rs):
     """
     calculate the local coordinate system for eRMSD calculation:
     origin and orthogonal x/y/z axis in the six membered rings.
@@ -77,26 +78,19 @@ def local_coordinates(rs):
 
     Parameters
     ----------
-    rs: (n_residues*3, 3) array
+    rs: (n_nucleotides, 3, 3) array
         positions of C2/4/6 atoms of every bases. The last dimension is x/y/z.
         The order is C2, C6, C4 for A/G and C2, C4, C6 for U/C.
 
     Returns
     ----------
-    lcs: (n_residues, 3, 3) array
+    local_reference_systems: (n_nucleotides, 3, 3) array
         x, y, z unit vectors of each base
 
-    origins: (n_residues, 3) array
+    origins: (n_nucleotides, 3) array
         origins (center of geometry) of the six membered rings of each base
 
     """
-    n_sites, n_xyz = rs.shape
-    assert n_xyz == 3, f"the number of coordinate dimension is {n_xyz}" " but should be 3!"
-    assert n_sites % 3 == 0, (
-        f"Please make sure the indices are in dimension " f" 3 * n_residues! Now it's {n_sites}."
-    )
-    n_residues = int(n_sites / 3)
-    rs = rs.reshape(n_residues, 3, n_xyz)
     origins = np.average(rs, axis=1)
     # Cog->C2 (x axis)
     x = rs[:, 0] - origins
@@ -107,13 +101,14 @@ def local_coordinates(rs):
     z = np.cross(x_hat, cog_2nd_atom, axis=1)
     z_hat = np.einsum("ij,i->ij", z, 1 / np.linalg.norm(z, axis=-1))
 
-    y_hat = np.cross(z_hat, x_hat, axis=1)
-    lcs = np.stack((x_hat, y_hat, z_hat), axis=1)
+    y = np.cross(z_hat, x_hat, axis=1)
+    y_hat = np.einsum("ij,i->ij", y, 1 / np.linalg.norm(y, axis=1))
+    local_reference_systems = np.stack((x_hat, y_hat, z_hat), axis=1)
 
-    return lcs, origins
+    return local_reference_systems, origins
 
 
-def g_vector(lcs, origins, cutoff, a, b):
+def g_vector(local_reference_systems, origins, cutoff, a, b):
     r"""
     Calculate the smoothing function :math:`G(\tilde{r})`
     based on local coordinates and origins for eRMSD calculations
@@ -136,9 +131,9 @@ def g_vector(lcs, origins, cutoff, a, b):
 
     Parameters
     -----------
-    lcs: (n_residues, 3, 3) array
+    local_reference_systems: (n_nucleotides, 3, 3) array
         arrays of coordinates of the xyz unit vectors
-    origins: (n_residues, 3) array
+    origins: (n_nucleotides, 3) array
         arrays of origins
     cutoff: float
         unitless cutoff for eRMSD
@@ -149,7 +144,7 @@ def g_vector(lcs, origins, cutoff, a, b):
 
     Returns
     ---------
-    G: (n_residues, n_residues, 4) array
+    G: (n_nucleotides, n_nucleotides, 4) array
 
     """
     pairs = origins[:, np.newaxis] - origins[np.newaxis, :]
@@ -157,10 +152,11 @@ def g_vector(lcs, origins, cutoff, a, b):
     # pairs[i, j] corresponds to origins[i] - origins[j]
     # which is vector base_j -> base_i.
     # Thus this needs to be evaluated in the ref system of base j
-    # dimension (n_residues, n_residues, 3)
+    # dimension (n_nucleotides, n_nucleotides, 3)
 
-    r = np.einsum("ijk,jlk->ijl", pairs, lcs)
-    # the dot product between vector pairs[i, j, k] and vector lcs[j, 0, k]
+    r = np.einsum("ijk,jlk->ijl", pairs, local_reference_systems)
+    # the dot product between vector pairs[i, j, k]
+    # and vector local_reference_systems[j, 0, k]
     # gives x values in the local reference system etc.
 
     # we need to introduce an anisotropic reduction
@@ -170,6 +166,7 @@ def g_vector(lcs, origins, cutoff, a, b):
     gamma = np.pi / cutoff
     inverse_r_tilde_norm = np.where(r_tilde_norm != 0, 1 / r_tilde_norm, 0)
     G123 = np.einsum("ijk,ij->ijk", r_tilde, np.sin(gamma * r_tilde_norm) * inverse_r_tilde_norm)
+    # jax.debug.print("G123[0]={x}", x=G123[0][1])
     G4 = 1 + np.cos(gamma * r_tilde_norm)
     G = np.concatenate((G123, np.expand_dims(G4, axis=-1)), axis=-1)
     G = np.einsum(
@@ -179,7 +176,39 @@ def g_vector(lcs, origins, cutoff, a, b):
     return G
 
 
-def ermsd(rs, reference, cutoff, a, b):
+def reshape_coordinates(rs, reference):
+    """
+    reshape the coordinates so that they have easier dimensions to work with.
+    In pysages, we have been concatenating the nucleotides
+    with sites in each base.
+    E.g [ C2, C4, C6, C2, C6, C4] for a 2nt RNA with sequence: UA.
+    we want to reshape the coordinates so that it's
+    [[C2, C4, C6], [C2, C6, C4]]
+
+    Parameters
+    -------------
+    rs: (n_nucleotides*3, 3) array
+    reference: (n_nucleotides*3, 3) array
+
+    Returns
+    -------------
+    rs: (n_nucleotides, 3, 3) array
+    reference: (n_nucleotides, 3, 3) array
+    """
+    n_sites, n_xyz = rs.shape
+    n_sites_per_base = 3
+    assert n_xyz == 3, f"the number of coordinate dimension is {n_xyz}" " but should be 3!"
+    assert n_sites % n_sites_per_base == 0, (
+        f"Please make sure the indices are in dimension " f" 3 * n_nucleotides! Now it's {n_sites}."
+    )
+    n_nucleotides = int(n_sites / n_sites_per_base)
+    rs = rs.reshape(n_nucleotides, n_sites_per_base, n_xyz)
+    reference = reference.reshape(n_nucleotides, n_sites_per_base, n_xyz)
+
+    return rs, reference
+
+
+def ermsd_core(rs, reference, cutoff, a, b):
     r"""
     compute the eRMSD given the current snapshots and the reference coordinates
     Mathematical details can be found in
@@ -197,14 +226,230 @@ def ermsd(rs, reference, cutoff, a, b):
     Parameters
     ----------
     rs:
-        (n_residues*3, 3) array, positions of the selected C2/4/6 atoms
+        (n_nucleotides, 3, 3) array, positions of the selected C2/4/6 atoms
     reference:
-        (n_residues*3, 3) array, reference positions
+        (n_nucleotides, 3, 3) array, reference positions
+
+    Return
+    -----------
+    eRMSD: float
+        value of the eRMSD
     """
-    lcs, origins = local_coordinates(rs)
-    lcs_ref, origins_ref = local_coordinates(reference)
+    system_and_origins = calc_local_reference_systems(rs)
+    local_reference_systems, origins = system_and_origins
+    system_and_origins_ref = calc_local_reference_systems(reference)
+    local_reference_systems_ref, origins_ref = system_and_origins_ref
     N_res = origins.shape[0]
-    Gs = g_vector(lcs, origins, cutoff, a, b)
-    Gs_ref = g_vector(lcs_ref, origins_ref, cutoff, a, b)
+    Gs = g_vector(local_reference_systems, origins, cutoff, a, b)
+    Gs_ref = g_vector(local_reference_systems_ref, origins_ref, cutoff, a, b)
+    # jax.debug.print("Gs_ref[0]={x}", x=Gs_ref[0][1])
+    # jax.debug.print("Gs[0]={x}", x=Gs[0][1])
 
     return np.sqrt(np.sum((Gs - Gs_ref) ** 2) / N_res)
+
+
+def ermsd(rs, reference, cutoff, a, b):
+    """
+    compute the eRMSD between the current snapshot and the reference
+
+    Parameters
+    ----------
+    rs:
+        (n_nucleotides*3, 3) array, positions of the selected C2/4/6 atoms
+    reference:
+        (n_nucleotides*3, 3) array, reference positions
+
+    Return
+    -----------
+    eRMSD: float
+        value of the eRMSD
+    """
+    rs, reference = reshape_coordinates(rs, reference)
+    # jax.debug.print("reference[0][0] = {x}", x=reference[0][0])
+    return ermsd_core(rs, reference, cutoff, a, b)
+
+
+@multicomponent
+class ERMSDCG(CollectiveVariable):
+    """
+    Use a reference to calculate the eRMSD of
+    a set of Coarse-grained RNA structures.
+    Mathematical details can be found in
+    [S. Bottaro, F. Di Palma,
+    and G. Bussi, NAR, 2014](https://doi.org/10.1093/nar/gku972)
+
+    To use this method, we assume the model has access to 3 sites in the base.
+    The method will use the ideal base geometry to reconstruct C2/C4/C6
+    that's needed for eRMSD.
+    The known base sites are assumed to be RACER-like mapping:
+        A: C8, N6, C2
+        U: C6, O4, O2
+        G: C8, O6, N2
+        C: C6, N4, O2
+    Will refer to these mapped sites as B1/B2/B3
+
+    Parameters
+    ------------
+    indices: list[int].
+        Must be a list of indices with dimension (n_nucleotides*3,).
+        The order is tricky.
+        A: C8, N6, C2
+        U: C6, O4, O2
+        G: C8, O6, N2
+        C: C6, N4, O2
+        Please make sure the order is correct,
+        otherwise the results will be wrong.
+    reference: list[tuple(float)]
+        Must be a list of tuple of floats, with dimension (n_nucleotides*3, 3)
+        The last dimension is the x,y,z of the
+        cartesian coordinates of the reference position of the selected sites
+        with the same order as the indices.
+    sequence: list[int]
+        a list of int with length=n_nucleotides, each element is 0 (A) or 1 (U)
+        or 2 (G) or 3 (C)
+    local_coordinates: (4,3,2) array
+        Must be a list of tuple of floats, with dimension (4, 3, 2)
+        Local coordinates of [C2, C6, C4] (A/G) or [C2, C4, C6] (U/C).
+        The reference system is given by this:
+            x-axis is unit vector, pointing from the center of B1/B2/B3 to B1
+            z-axis is cross-product between B1->B2, B1->B3, normalized
+            y-axis is cross-product between z-axis and x-axis.
+        The axis 0 of the local_coordinates is A/U/G/C.
+        The axis 1 is [C2, C6, C4] (A/G) or [C2, C4, C6] (U/C).
+        The axis 2 is coefficient for x-axis and y-axis.
+        (Coefficient for z-axis is 0
+        because sites in the base share the same plane)
+        The default value is local coordinates
+        from RACER like mapping B1/B2/B3
+        to SPQR type of mapping. Notice the unit is in nm.
+    cutoff: float
+        unitless cutoff. Default is 2.4
+    a: float
+        re-scaling scale in x and y direction. Default is 0.5 (nm).
+    b: float
+        re-scaling scale in z direction. Default is 0.3 (nm).
+    """
+
+    def __init__(
+        self,
+        indices,
+        reference,
+        sequence,
+        local_coordinates=[
+            [[-0.13330213, -0.17624756], [-0.08571738, 0.04998090], [0.07950155, -0.12108613]],
+            [[-0.02531174, -0.12248801], [-0.02364693, 0.12390224], [0.18112799, 0.00000000]],
+            [[-0.11675696, -0.13722271], [-0.04096668, 0.09599266], [0.10131323, -0.09833056]],
+            [[-0.02672240, -0.11887174], [-0.02546797, 0.11382767], [0.18153044, 0.00000000]],
+        ],
+        cutoff=2.4,
+        a=0.5,
+        b=0.3,
+    ):
+        super().__init__(indices)
+        self.reference = np.asarray(reference)
+        self.sequence = np.asarray(sequence)
+        self.local_coordinates = np.asarray(local_coordinates)
+        self.cutoff = cutoff
+        self.a = a
+        self.b = b
+
+    @property
+    def function(self):
+        return lambda r: ermsd_cg(
+            r, self.reference, self.sequence, self.local_coordinates, self.cutoff, self.a, self.b
+        )
+
+
+def infer_base_coordinates(local_reference_systems, origins, sequence, local_coordinates):
+    """
+    Infer the coordinates of C2/C4/C6 based on the local reference system
+    These are needed for eRMSD calculation.
+
+    Parameters
+    ------------
+    rs: (n_nucleotides, 3, 3) array
+        current coordinates of selected sites of the base
+    sequence: (n_nucleotides, ) array
+        an array of int with length=n_nucleotides,
+        each element is 0 (A) or 1 (U) or 2 (G) or 3 (C)
+    local_coordinates: (4,3,2) array
+        Must be a list of tuple of floats, with dimension (4, 3, 2)
+        Local coordinates of [C2, C6, C4] (A/G) or [C2, C4, C6] (U/C).
+        The reference system is given by this:
+            x-axis is unit vector, pointing from the center of B1/B2/B3 to B1
+            z-axis is cross-product between B1->B2, B1->B3, normalized
+            y-axis is cross-product between z-axis and x-axis.
+        The axis 0 of the local_coordinates is A/U/G/C
+        The axis 1 is [C2, C6, C4] (A/G) or [C2, C4, C6] (U/C).
+        The axis 2 is coefficient for x-axis and y-axis.
+        (coefficient for z-axis is 0
+        because sites in the base share the same plane)
+        The default value is local coordinates
+        from RACER like mapping B1/B2/B3
+        to SPQR type of mapping.
+
+    Return
+    -------------
+    C246_coords: (n_nucleotides, 3, 3) array
+        coordinates of C2/4/6 in correct orders, ready for eRMSD calculation
+    """
+    n_2d = 2
+    # only need x_hat and y_hat to infer C2/4/6
+    # because they are in the base plane
+
+    C246_coords = np.einsum(
+        "jlk,jml->jmk", local_reference_systems[:, :n_2d, :], local_coordinates[sequence]
+    )
+    C246_coords += origins[:, np.newaxis, :]
+
+    return C246_coords
+
+
+def ermsd_cg(rs, reference, sequence, local_coordinates, cutoff, a, b):
+    """
+    coarse-grained version of eRMSD which pass in different base sites
+    other than the default C2/4/6 used by eRMSD.
+    Thus we first need to infer the positions of C2/4/6 using rigid
+    ideal base references and then do standard eRMSD calculations.
+
+    Parameters
+    ------------
+    rs: (n_nucleotides*3, 3) array
+        current snapshots of selected sites
+    reference: (n_nucleotides*3, 3) array
+        reference of the selected sites
+        The last dimension is the x,y,z of the
+        cartesian coordinates of the reference position of the C2/C4/C6 atoms,
+        with the same order as the indices.
+    sequence: list[int]
+        a list of int with length=n_nucleotides, each element is 0 (A) or 1 (U)
+        or 2 (G) or 3 (C)
+    local_coordinates: (4,3,2) array
+        Must be a list of tuple of floats, with dimension (4, 3, 2)
+        Local coordinates of [C2, C6, C4] (A/G) or [C2, C4, C6] (U/C).
+    cutoff: float
+        unitless cutoff. Default is 2.4
+    a: float
+        re-scaling scale in x and y direction. Default is 0.5 (nm).
+    b: float
+        re-scaling scale in z direction. Default is 0.3 (nm).
+    """
+    rs, reference = reshape_coordinates(rs, reference)
+    system_and_origins = calc_local_reference_systems(rs)
+    local_reference_systems, origins = system_and_origins
+    # notice that the function calc_local_reference_systems
+    # exactly works for different mappings
+    # please note that these lcs are very different from lcs in eRMSD
+    # simply because the input sites are chosen differently.
+    system_and_origins_ref = calc_local_reference_systems(reference)
+    local_reference_systems_ref, origins_ref = system_and_origins_ref
+
+    # infer C2/4/6
+    C246_coords = infer_base_coordinates(
+        local_reference_systems, origins, sequence, local_coordinates
+    )
+    C246_coords_ref = infer_base_coordinates(
+        local_reference_systems_ref, origins_ref, sequence, local_coordinates
+    )
+    # jax.debug.print("C246_coords_ref[0] = {x}", x=C246_coords_ref[0])
+    return ermsd_core(C246_coords, C246_coords_ref, cutoff, a, b)
