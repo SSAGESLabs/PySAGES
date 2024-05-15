@@ -20,6 +20,7 @@ Collective Variables available in PySAGES
    pysages.colvars.coordinates.Distance
 
    pysages.colvars.orientation.ERMSD
+   pysages.colvars.orientation.ERMSDCG
 
 Abstract base classes
 

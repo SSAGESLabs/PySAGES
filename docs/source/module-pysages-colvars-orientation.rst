@@ -6,6 +6,7 @@ Orientation as collective variables
 .. autosummary::
 
    pysages.colvars.orientation.ERMSD
+   pysages.colvars.orientation.ERMSDCG
 
 .. rubric:: Details
 
