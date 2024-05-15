@@ -3,7 +3,6 @@
 # github.com/srnas/barnaba
 
 import numpy as np
-from scipy.spatial import distance
 
 ermsd_cg = np.loadtxt("ermsd_cg.txt")
 ermsd_aa = np.loadtxt("ermsd.txt")
