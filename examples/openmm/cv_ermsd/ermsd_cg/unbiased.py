@@ -94,12 +94,12 @@ def main():
         ERMSD(C246_indices_ordered, reference, cutoff=3.2),
     ]
 
-    method = Unbiased(cvs)
+    method = Unbiased(cvs, jit_compile=False)
     callback = HistogramLogger(1)
 
     raw_result = pysages.run(method, generate_simulation, nsteps, callback)
     np.savetxt("ermsd_cg.txt", raw_result.callbacks[0].data[:, :1])
-    np.savetxt("ermsd.txt", raw_result.callbacks[0].data[:, 1:])
+    np.savetxt("ermsd.txt", raw_result.callbacks[0].data[:, 1:2])
 
 
 if __name__ == "__main__":

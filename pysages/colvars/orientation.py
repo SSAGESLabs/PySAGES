@@ -165,7 +165,6 @@ def g_vector(local_reference_systems, origins, cutoff, a, b):
     gamma = np.pi / cutoff
     inverse_r_tilde_norm = np.where(r_tilde_norm != 0, 1 / r_tilde_norm, 0)
     G123 = np.einsum("ijk,ij->ijk", r_tilde, np.sin(gamma * r_tilde_norm) * inverse_r_tilde_norm)
-    # jax.debug.print("G123[0]={x}", x=G123[0][1])
     G4 = 1 + np.cos(gamma * r_tilde_norm)
     G = np.concatenate((G123, np.expand_dims(G4, axis=-1)), axis=-1)
     G = np.einsum(
@@ -241,8 +240,6 @@ def ermsd_core(rs, reference, cutoff, a, b):
     N_res = origins.shape[0]
     Gs = g_vector(local_reference_systems, origins, cutoff, a, b)
     Gs_ref = g_vector(local_reference_systems_ref, origins_ref, cutoff, a, b)
-    # jax.debug.print("Gs_ref[0]={x}", x=Gs_ref[0][1])
-    # jax.debug.print("Gs[0]={x}", x=Gs[0][1])
 
     return np.sqrt(np.sum((Gs - Gs_ref) ** 2) / N_res)
 
@@ -264,7 +261,6 @@ def ermsd(rs, reference, cutoff, a, b):
         value of the eRMSD
     """
     rs, reference = reshape_coordinates(rs, reference)
-    # jax.debug.print("reference[0][0] = {x}", x=reference[0][0])
     return ermsd_core(rs, reference, cutoff, a, b)
 
 
@@ -306,8 +302,8 @@ class ERMSDCG(CollectiveVariable):
     sequence: list[int]
         a list of int with length=n_nucleotides, each element is 0 (A) or 1 (U)
         or 2 (G) or 3 (C)
-    local_coordinates: (4,3,2) array
-        Must be a list of tuple of floats, with dimension (4, 3, 2)
+    local_coordinates: (4,3,3) array
+        Must be a list of tuple of floats, with dimension (4, 3, 3)
         Local coordinates of [C2, C6, C4] (A/G) or [C2, C4, C6] (U/C).
         The reference system is given by this:
             x-axis is unit vector, pointing from the center of B1/B2/B3 to B1
@@ -315,7 +311,7 @@ class ERMSDCG(CollectiveVariable):
             y-axis is cross-product between z-axis and x-axis.
         The axis 0 of the local_coordinates is A/U/G/C.
         The axis 1 is [C2, C6, C4] (A/G) or [C2, C4, C6] (U/C).
-        The axis 2 is coefficient for x-axis and y-axis.
+        The axis 2 is coefficient for x-axis, y-axis and z-axis
         (Coefficient for z-axis is 0
         because sites in the base share the same plane)
         The default value is local coordinates
@@ -335,10 +331,26 @@ class ERMSDCG(CollectiveVariable):
         reference,
         sequence,
         local_coordinates=[
-            [[-0.13330213, -0.17624756], [-0.08571738, 0.04998090], [0.07950155, -0.12108613]],
-            [[-0.02531174, -0.12248801], [-0.02364693, 0.12390224], [0.18112799, 0.00000000]],
-            [[-0.11675696, -0.13722271], [-0.04096668, 0.09599266], [0.10131323, -0.09833056]],
-            [[-0.02672240, -0.11887174], [-0.02546797, 0.11382767], [0.18153044, 0.00000000]],
+            [
+                [-0.1333021, -0.1762476, -0.0000001],
+                [-0.0857174, 0.0499809, -0.0000033],
+                [0.0795015, -0.1210861, -0.0001387],
+            ],
+            [
+                [-0.0253117, -0.1224880, 0.0003341],
+                [-0.0236469, 0.1239022, -0.0006548],
+                [0.1811280, 0.0000000, -0.0000000],
+            ],
+            [
+                [-0.1167570, -0.1372227, -0.0002264],
+                [-0.0409667, 0.0959927, -0.0012938],
+                [0.1013132, -0.0983306, 0.0005419],
+            ],
+            [
+                [-0.0267224, -0.1188717, 0.0004939],
+                [-0.0254680, 0.1138277, 0.0008671],
+                [0.1815304, -0.0000000, -0.0000000],
+            ],
         ],
         cutoff=2.4,
         a=0.5,
@@ -380,9 +392,9 @@ def infer_base_coordinates(local_reference_systems, origins, sequence, local_coo
             y-axis is cross-product between z-axis and x-axis.
         The axis 0 of the local_coordinates is A/U/G/C
         The axis 1 is [C2, C6, C4] (A/G) or [C2, C4, C6] (U/C).
-        The axis 2 is coefficient for x-axis and y-axis.
-        (coefficient for z-axis is 0
-        because sites in the base share the same plane)
+        The axis 2 is coefficient for x-axis, y-axis and z-axis
+        (coefficient for z-axis is close to 0
+        because sites in the base are almost in the same plane)
         The default value is local coordinates
         from RACER like mapping B1/B2/B3
         to SPQR type of mapping.
@@ -392,12 +404,9 @@ def infer_base_coordinates(local_reference_systems, origins, sequence, local_coo
     C246_coords: (n_nucleotides, 3, 3) array
         coordinates of C2/4/6 in correct orders, ready for eRMSD calculation
     """
-    n_2d = 2
-    # only need x_hat and y_hat to infer C2/4/6
-    # because they are in the base plane
 
     C246_coords = np.einsum(
-        "jlk,jml->jmk", local_reference_systems[:, :n_2d, :], local_coordinates[sequence]
+        "jlk,jml->jmk", local_reference_systems[:, :, :], local_coordinates[sequence]
     )
     C246_coords += origins[:, np.newaxis, :]
 
@@ -450,5 +459,4 @@ def ermsd_cg(rs, reference, sequence, local_coordinates, cutoff, a, b):
     C246_coords_ref = infer_base_coordinates(
         local_reference_systems_ref, origins_ref, sequence, local_coordinates
     )
-    # jax.debug.print("C246_coords_ref[0] = {x}", x=C246_coords_ref[0])
     return ermsd_core(C246_coords, C246_coords_ref, cutoff, a, b)
