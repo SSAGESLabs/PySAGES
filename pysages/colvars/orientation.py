@@ -5,7 +5,7 @@
 Collective variable for orientations describe the orientation measures
 of particles in the simulations with respect to a reference
 
-RMSD describes distances between three-dimensional structuresa.
+RMSD describes distances between three-dimensional structures.
 
 eRMSD describes distances between three-dimensional
 RNA structures. The standard RMSD is not accurate enough for distinguish
@@ -33,23 +33,30 @@ def fitted_positions(positions, weights):
 def kabsch(P, Q):
     """
     Using the Kabsch algorithm with two sets of paired point P and Q, centered
-    around the centroid. Each vector set is represented as an NxD
+    around the centroid. Each vector set is represented as an N x D
     matrix, where D is the the dimension of the space.
+
     The algorithm works in three steps:
-    - a centroid translation of P and Q (assumed done before this function
-      call)
-    - the computation of a covariance matrix C
-    - computation of the optimal rotation matrix U
+
+    1. a centroid translation of P and Q
+    (assumed done before this function call)
+    2. the computation of a covariance matrix C
+    3. computation of the optimal rotation matrix U
+
     For more info see http://en.wikipedia.org/wiki/Kabsch_algorithm
+
+
     Parameters
     ----------
-    P : array
+    P: array
         (N,D) matrix, where N is points and D is dimension.
-    Q : array
+    Q: array
         (N,D) matrix, where N is points and D is dimension.
+
+
     Returns
     -------
-    U : matrix
+    U: matrix
         Rotation matrix (D,D)
     """
     # Computation of the covariance matrix
@@ -68,7 +75,7 @@ def kabsch(P, Q):
 
 def rmsd_kabsch(r1: np.ndarray, Q: np.ndarray, w_0: Optional[np.ndarray]):
     """
-    Calculate the rmsd respect to a reference using rotation matrix.
+    Calculate the RMSD respect to a reference using rotation matrix.
 
     Parameters
     ----------
@@ -375,10 +382,10 @@ class ERMSDCG(CollectiveVariable):
     The method will use the ideal base geometry to reconstruct C2/C4/C6
     that's needed for eRMSD.
     The known base sites are assumed to be RACER-like mapping:
-        A: C8, N6, C2
-        U: C6, O4, O2
-        G: C8, O6, N2
-        C: C6, N4, O2
+    A: C8, N6, C2
+    U: C6, O4, O2
+    G: C8, O6, N2
+    C: C6, N4, O2
     Will refer to these mapped sites as B1/B2/B3
 
     Parameters
@@ -404,9 +411,9 @@ class ERMSDCG(CollectiveVariable):
         Must be a list of tuple of floats, with dimension (4, 3, 3)
         Local coordinates of [C2, C6, C4] (A/G) or [C2, C4, C6] (U/C).
         The reference system is given by this:
-            x-axis is unit vector, pointing from the center of B1/B2/B3 to B1
-            z-axis is cross-product between B1->B2, B1->B3, normalized
-            y-axis is cross-product between z-axis and x-axis.
+        x-axis is unit vector, pointing from the center of B1/B2/B3 to B1
+        z-axis is cross-product between B1->B2, B1->B3, normalized
+        y-axis is cross-product between z-axis and x-axis.
         The axis 0 of the local_coordinates is A/U/G/C.
         The axis 1 is [C2, C6, C4] (A/G) or [C2, C4, C6] (U/C).
         The axis 2 is coefficient for x-axis, y-axis and z-axis
@@ -485,9 +492,9 @@ def infer_base_coordinates(local_reference_systems, origins, sequence, local_coo
         Must be a list of tuple of floats, with dimension (4, 3, 2)
         Local coordinates of [C2, C6, C4] (A/G) or [C2, C4, C6] (U/C).
         The reference system is given by this:
-            x-axis is unit vector, pointing from the center of B1/B2/B3 to B1
-            z-axis is cross-product between B1->B2, B1->B3, normalized
-            y-axis is cross-product between z-axis and x-axis.
+        x-axis is unit vector, pointing from the center of B1/B2/B3 to B1
+        z-axis is cross-product between B1->B2, B1->B3, normalized
+        y-axis is cross-product between z-axis and x-axis.
         The axis 0 of the local_coordinates is A/U/G/C
         The axis 1 is [C2, C6, C4] (A/G) or [C2, C4, C6] (U/C).
         The axis 2 is coefficient for x-axis, y-axis and z-axis

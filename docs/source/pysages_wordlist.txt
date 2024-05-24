@@ -84,6 +84,8 @@ xy
 xz
 yz
 eRMSD
+RMSD
+Kabsch
 Bottaro
 Palma
 Bussi
