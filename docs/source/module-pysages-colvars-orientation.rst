@@ -5,6 +5,7 @@ Orientation as collective variables
 
 .. autosummary::
 
+   pysages.colvars.orientation.RMSD_Kabsch
    pysages.colvars.orientation.ERMSD
    pysages.colvars.orientation.ERMSDCG
 
