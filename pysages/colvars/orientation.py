@@ -20,7 +20,7 @@ from typing import Optional
 from jax import numpy as np
 from jax.numpy import linalg
 
-from pysages.colvars.coordinates import barycenter, weighted_barycenter
+from pysages.colvars.coordinates import weighted_barycenter
 from pysages.colvars.core import CollectiveVariable, multicomponent
 
 
