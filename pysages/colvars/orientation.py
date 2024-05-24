@@ -5,6 +5,8 @@
 Collective variable for orientations describe the orientation measures
 of particles in the simulations with respect to a reference
 
+RMSD describes distances between three-dimensional structuresa.
+
 eRMSD describes distances between three-dimensional
 RNA structures. The standard RMSD is not accurate enough for distinguish
 RNA 3D structures. eRMSD provides a way to measuring the difference in
@@ -13,9 +15,105 @@ eRMSD also only requires the knowledge of C2, C4 and C6 for each base.
 
 """
 
-from jax import numpy as np
+from typing import Optional
 
+from jax import numpy as np
+from jax.numpy import linalg
+
+from pysages.colvars.coordinates import barycenter, weighted_barycenter
 from pysages.colvars.core import CollectiveVariable, multicomponent
+
+
+def fitted_positions(positions, weights):
+    if weights is None:
+        pos_b = barycenter(positions)
+    else:
+        pos_b = weighted_barycenter(positions, weights)
+    fit_pos = np.add(positions, -pos_b)
+    return fit_pos
+
+
+def kabsch(P, Q):
+    """
+    Using the Kabsch algorithm with two sets of paired point P and Q, centered
+    around the centroid. Each vector set is represented as an NxD
+    matrix, where D is the the dimension of the space.
+    The algorithm works in three steps:
+    - a centroid translation of P and Q (assumed done before this function
+      call)
+    - the computation of a covariance matrix C
+    - computation of the optimal rotation matrix U
+    For more info see http://en.wikipedia.org/wiki/Kabsch_algorithm
+    Parameters
+    ----------
+    P : array
+        (N,D) matrix, where N is points and D is dimension.
+    Q : array
+        (N,D) matrix, where N is points and D is dimension.
+    Returns
+    -------
+    U : matrix
+        Rotation matrix (D,D)
+    """
+    # Computation of the covariance matrix
+    C = np.dot(np.transpose(P), Q)
+
+    # Computation of the optimal rotation matrix
+    V, S, W = linalg.svd(C, full_matrices=False)
+    dh = linalg.det(V) * linalg.det(W)
+    S = S.at[-1].multiply(np.sign(dh))
+    V = V.at[:, -1].multiply(np.sign(dh))
+    # Create Rotation matrix U
+    U = np.dot(V, W)
+
+    return U
+
+
+def rmsd_kabsch(r1: np.ndarray, Q: np.ndarray, w_0: Optional[np.ndarray]):
+    """
+    Calculate the rmsd respect to a reference using rotation matrix.
+
+    Parameters
+    ----------
+    r1: np.ndarray
+        Atomic positions.
+    Q: np.ndarray
+        Cartesian coordinates of the reference position of the atoms.
+    w_0: np.ndarray
+        Weights of the selected atom positions
+    """
+    P = fitted_positions(r1, w_0)
+    U = kabsch(P, Q)
+    optimal_P = np.dot(P, U.T)
+    error = np.sqrt(np.sum(np.square(optimal_P - Q)) / P.shape[0])
+    return error
+
+
+class RMSD_Kabsch(CollectiveVariable):
+    """
+    Use a reference to calculate the RMSD of a set of atoms.
+    For more info see http://en.wikipedia.org/wiki/Kabsch_algorithm.
+
+    Parameters
+    ----------
+    indices: list[int], list[tuple(int)]
+       Select atom groups via indices.
+    references: list[tuple(float)]
+       Cartesian coordinates of the reference position of the atoms in indices.
+       The coordinates must match the ones of the atoms used in indices.
+    """
+
+    def __init__(self, indices, references, weights=None):
+        if weights is not None and len(indices) != len(weights):
+            raise RuntimeError("Indices and weights must be of the same length")
+        super().__init__(indices)
+        self.references = np.asarray(references)
+        self.weights = np.asarray(weights)
+        self.Q = fitted_positions(self.references, self.weights)
+
+    @property
+    def function(self):
+        return lambda r: rmsd_kabsch(r, self.Q, self.weights)
 
 
 @multicomponent
