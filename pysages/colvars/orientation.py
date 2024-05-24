@@ -25,10 +25,7 @@ from pysages.colvars.core import CollectiveVariable, multicomponent
 
 
 def fitted_positions(positions, weights):
-    if weights is None:
-        pos_b = barycenter(positions)
-    else:
-        pos_b = weighted_barycenter(positions, weights)
+    pos_b = weighted_barycenter(positions, weights)
     fit_pos = np.add(positions, -pos_b)
     return fit_pos
 
@@ -84,7 +81,7 @@ def rmsd_kabsch(r1: np.ndarray, Q: np.ndarray, w_0: Optional[np.ndarray]):
     """
     P = fitted_positions(r1, w_0)
     U = kabsch(P, Q)
-    optimal_P = np.dot(P, U.T)
+    optimal_P = np.dot(P, U)
     error = np.sqrt(np.sum(np.square(optimal_P - Q)) / P.shape[0])
     return error
 
@@ -108,7 +105,10 @@ class RMSD_Kabsch(CollectiveVariable):
             raise RuntimeError("Indices and weights must be of the same length")
         super().__init__(indices)
         self.references = np.asarray(references)
-        self.weights = np.asarray(weights)
+        if weights is None:
+            self.weights = np.ones(len(indices)) / len(indices)
+        else:
+            self.weights = np.asarray(weights)
         self.Q = fitted_positions(self.references, self.weights)
 
     @property
