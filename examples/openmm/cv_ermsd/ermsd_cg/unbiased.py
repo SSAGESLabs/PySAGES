@@ -94,7 +94,7 @@ def main():
         ERMSD(C246_indices_ordered, reference, cutoff=3.2),
     ]
 
-    method = Unbiased(cvs, jit_compile=False)
+    method = Unbiased(cvs)
     callback = HistogramLogger(1)
 
     raw_result = pysages.run(method, generate_simulation, nsteps, callback)
