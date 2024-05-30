@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from pysages.colvars.orientation import RMSD_Kabsch
+from pysages.colvars.orientation import RMSD
 
 
 @pytest.mark.parametrize(
@@ -18,7 +18,7 @@ def test_rmsd(f1, f2, rmsd_expected):
     base = np.loadtxt(f1, dtype=str)[:, 6:9].astype(float)
     reference = np.loadtxt(f2, dtype=str)[:, 6:9].astype(float)
     indices = np.arange(len(base))
-    rmsd_kabsch = RMSD_Kabsch(indices, reference)
+    rmsd_kabsch = RMSD(indices, reference)
     rmsd_calculated = rmsd_kabsch.function(base)
     rmsd_expected = rmsd_expected
     assert np.allclose(

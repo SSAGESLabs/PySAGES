@@ -15,7 +15,7 @@ eRMSD also only requires the knowledge of C2, C4 and C6 for each base.
 
 """
 
-from typing import Optional
+from typing import Callable, Optional
 
 from jax import numpy as np
 from jax.numpy import linalg
@@ -73,7 +73,7 @@ def kabsch(P, Q):
     return U
 
 
-def rmsd_kabsch(r1: np.ndarray, Q: np.ndarray, w_0: Optional[np.ndarray]):
+def rmsd(r1: np.ndarray, Q: np.ndarray, w_0: Optional[np.ndarray], optimal_rotation: Callable):
     """
     Calculate the RMSD respect to a reference using rotation matrix.
 
@@ -85,15 +85,17 @@ def rmsd_kabsch(r1: np.ndarray, Q: np.ndarray, w_0: Optional[np.ndarray]):
         Cartesian coordinates of the reference position of the atoms.
     w_0: np.ndarray
         Weights of the selected atom positions
+    optimal_rotation: Callable
+        functions for the optimal rotation for aligning two positions
     """
     P = fitted_positions(r1, w_0)
-    U = kabsch(P, Q)
+    U = optimal_rotation(P, Q)
     optimal_P = np.dot(P, U)
     error = np.sqrt(np.sum(np.square(optimal_P - Q)) / P.shape[0])
     return error
 
 
-class RMSD_Kabsch(CollectiveVariable):
+class RMSD(CollectiveVariable):
     """
     Use a reference to calculate the RMSD of a set of atoms.
     For more info see http://en.wikipedia.org/wiki/Kabsch_algorithm.
@@ -107,7 +109,7 @@ class RMSD_Kabsch(CollectiveVariable):
        The coordinates must match the ones of the atoms used in indices.
     """
 
-    def __init__(self, indices, references, weights=None):
+    def __init__(self, indices, references, weights=None, optimal_rotation: Callable = kabsch):
         if weights is not None and len(indices) != len(weights):
             raise RuntimeError("Indices and weights must be of the same length")
         super().__init__(indices)
@@ -117,10 +119,11 @@ class RMSD_Kabsch(CollectiveVariable):
         else:
             self.weights = np.asarray(weights)
         self.Q = fitted_positions(self.references, self.weights)
+        self.optimal_rotation = optimal_rotation
 
     @property
     def function(self):
-        return lambda r: rmsd_kabsch(r, self.Q, self.weights)
+        return lambda r: rmsd(r, self.Q, self.weights, self.optimal_rotation)
 
 
 @multicomponent
