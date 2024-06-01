@@ -17,7 +17,6 @@ eRMSD also only requires the knowledge of C2, C4 and C6 for each base.
 
 from typing import Callable, Optional
 
-import jax
 from jax import numpy as np
 from jax.numpy import linalg
 
