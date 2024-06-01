@@ -109,7 +109,10 @@ else:
     def has_method(fn, T, index):
         types_at_index = set()
         for sig in fn.methods:
-            typ = sig.types[index]
+            if _plum_version_tuple < (2, 3, 0):
+                typ = sig.types[index]
+            else:
+                typ = sig.signature.types[index]
             if _util.get_origin(typ) is _typing.Union:
                 types_at_index.update(_util.get_args(typ))
             else:
