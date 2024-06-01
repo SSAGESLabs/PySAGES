@@ -17,6 +17,7 @@ eRMSD also only requires the knowledge of C2, C4 and C6 for each base.
 
 from typing import Callable, Optional
 
+import jax
 from jax import numpy as np
 from jax.numpy import linalg
 
@@ -266,6 +267,12 @@ def g_vector(local_reference_systems, origins, cutoff, a, b):
     # and vector local_reference_systems[j, 0, k]
     # gives x values in the local reference system etc.
 
+    # prevent the derivatives from diverging
+    # because of the 0,0,0 self-contact entry
+    N = r.shape[0]
+    mask_val = 10.0  # this will ensure that r_tilde_norm > cutoff
+    r = r.at[np.arange(N), np.arange(N)].set(np.array([mask_val, mask_val, mask_val]))
+
     # we need to introduce an anisotropic reduction
     r_tilde = np.einsum("ijk,k->ijk", r, np.array([1 / a, 1 / a, 1 / b]))
 
@@ -275,11 +282,11 @@ def g_vector(local_reference_systems, origins, cutoff, a, b):
     G123 = np.einsum("ijk,ij->ijk", r_tilde, np.sin(gamma * r_tilde_norm) * inverse_r_tilde_norm)
     G4 = 1 + np.cos(gamma * r_tilde_norm)
     G = np.concatenate((G123, np.expand_dims(G4, axis=-1)), axis=-1)
-    G = np.einsum(
+    G_end = np.einsum(
         "ijk,ij->ijk", G, np.heaviside(cutoff - r_tilde_norm, np.zeros(r_tilde_norm.shape)) / gamma
     )
 
-    return G
+    return G_end
 
 
 def reshape_coordinates(rs, reference):
@@ -348,8 +355,8 @@ def ermsd_core(rs, reference, cutoff, a, b):
     N_res = origins.shape[0]
     Gs = g_vector(local_reference_systems, origins, cutoff, a, b)
     Gs_ref = g_vector(local_reference_systems_ref, origins_ref, cutoff, a, b)
-
-    return np.sqrt(np.sum((Gs - Gs_ref) ** 2) / N_res)
+    ermsd_hot = np.sqrt(np.sum(np.square(Gs - Gs_ref)) / N_res)
+    return ermsd_hot
 
 
 def ermsd(rs, reference, cutoff, a, b):
