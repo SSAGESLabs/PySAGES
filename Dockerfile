@@ -3,7 +3,7 @@ FROM ssages/pysages-openmm
 WORKDIR /
 
 RUN python -m pip install --upgrade pip
-RUN python -m pip install ase dill gsd matplotlib "pyparsing<3"
+RUN python -m pip install ase dill "gsd<3.3" matplotlib "pyparsing<3"
 
 # Install JAX and JAX-based libraries
 RUN python -m pip install --upgrade "jax[cuda]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
