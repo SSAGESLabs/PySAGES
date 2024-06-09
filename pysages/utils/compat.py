@@ -36,6 +36,21 @@ else:
         return result
 
 
+# Compatibility for jax >=0.4.27
+
+# https://github.com/google/jax/blob/main/CHANGELOG.md#jax-0427-may-7-2024
+
+if _jax_version_tuple < (0, 4, 27):
+
+    def device_platform(array):
+        return array.device().platform
+
+else:
+
+    def device_platform(array):
+        return next(iter(array.devices())).platform
+
+
 # Compatibility for jax >=0.4.1
 
 # https://github.com/google/jax/releases/tag/jax-v0.4.1
