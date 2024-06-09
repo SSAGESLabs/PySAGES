@@ -103,16 +103,20 @@ else:
     _typing = import_module("plum" if _plum_version_tuple < (2, 2, 1) else "typing")
     _util = _typing.type if _plum_version_tuple < (2, 2, 1) else _typing
 
+    if _plum_version_tuple < (2, 3, 0):
+        def _signature_types(sig):
+            return sig.types
+    else:
+        def _signature_types(sig):
+            return sig.signature.types
+
     def dispatch_table(dispatch):
         return dispatch.functions
 
     def has_method(fn, T, index):
         types_at_index = set()
         for sig in fn.methods:
-            if _plum_version_tuple < (2, 3, 0):
-                typ = sig.types[index]
-            else:
-                typ = sig.signature.types[index]
+            typ = _signature_types(sig)[index]
             if _util.get_origin(typ) is _typing.Union:
                 types_at_index.update(_util.get_args(typ))
             else:
