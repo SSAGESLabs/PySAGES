@@ -10,6 +10,7 @@ Miscellaneous utils for working with PySAGES.
 
 from .compat import (
     check_device_array,
+    device_platform,
     dispatch_table,
     has_method,
     is_generic_subclass,

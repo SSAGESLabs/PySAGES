@@ -32,7 +32,7 @@ jobs:
       - name: Install python dependecies
         run: |
           python -m pip install --upgrade pip
-          pip install ase dill "dm-haiku<0.0.11" "e3nn-jax!=0.20.4" "jax<=0.4.15" "jaxlib<=0.4.15" "jax-md>=0.2.7" jaxopt pytest matplotlib
+          pip install ase dill "dm-haiku<0.0.11" "e3nn-jax!=0.20.4" "jax<=0.4.15" "jaxlib<=0.4.15" "jax-md>=0.2.7" jaxopt pytest matplotlib "scipy<1.13"
 
       - name: Install pysages
         run: pip install .
