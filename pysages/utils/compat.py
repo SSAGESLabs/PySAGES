@@ -104,9 +104,12 @@ else:
     _util = _typing.type if _plum_version_tuple < (2, 2, 1) else _typing
 
     if _plum_version_tuple < (2, 3, 0):
+
         def _signature_types(sig):
             return sig.types
+
     else:
+
         def _signature_types(sig):
             return sig.signature.types
 
