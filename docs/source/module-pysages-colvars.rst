@@ -19,6 +19,9 @@ Collective Variables available in PySAGES
    pysages.colvars.coordinates.Component
    pysages.colvars.coordinates.Distance
 
+   pysages.colvars.orientation.ERMSD
+   pysages.colvars.orientation.ERMSDCG
+
 Abstract base classes
 
 .. autosummary::
@@ -37,6 +40,7 @@ Abstract base classes
    module-pysages-colvars-shape
    module-pysages-colvars-coordinates
    module-pysages-colvars-core
+   module-pysages-colvars-orientation
 
 .. automodule:: pysages.colvars
     :synopsis: Python classes for collective variables.
