@@ -128,6 +128,56 @@ def dihedral_angle(p1, p2, p3, p4):
     return np.arctan2(np.dot(np.cross(r, s), q), np.dot(r, s) * linalg.norm(q))
 
 
+class VectorAngle(FourPointCV):
+    """
+    Compute the angle formed by two vectors (four points).
+    Notice that the two vectors are defined as p1->p2, p3->p4.
+    """
+
+    @property
+    def function(self):
+        """
+        Returns
+        --------
+        Functions that calculates the angle value from a simulation snapshot.
+        """
+        return vector_angle
+
+
+def vector_angle(p1, p2, p3, p4):
+    r"""
+    Calculates angle between two vectors (4 points) in space.
+
+    Takes 4 positions in space and calculates the angle between them.
+
+    :math:`\vec{q} = \vec{p}_2 - \vec{p}_1`
+
+    :math:`\vec{r} = \vec{p}_4 - \vec{p}_3`
+
+    :math:`\theta = \arctan(|\vec{q} \times \vec{r}|, \vec{q} \cdot \vec{r})`
+
+    Parameters
+    ----------
+    p1: jax.Array
+       :math:`\vec{p}_1` 3D vector in space
+    p2: jax.Array
+       :math:`\vec{p}_2` 3D vector in space
+    p3: jax.Array
+       :math:`\vec{p}_3` 3D vector in space
+    p4: jax.Array
+       :math:`\vec{p}_3` 3D vector in space
+
+    Returns
+    -------
+    float
+       :math:`\theta`
+    """
+
+    q = p2 - p1
+    r = p4 - p3
+    return np.arctan2(linalg.norm(np.cross(q, r)), np.dot(q, r))
+
+
 @multicomponent
 class RingPuckeringCoordinates(CollectiveVariable):
     """
