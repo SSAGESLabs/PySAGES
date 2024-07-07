@@ -9,7 +9,6 @@ from scipy.spatial import distance as sd
 import pysages
 from pysages import Grid
 from pysages.colvars.contacts import NativeContactFraction
-from pysages.colvars.coordinates import Component
 from pysages.methods import ABF, HistogramLogger
 
 step_size = 2 * unit.femtosecond
