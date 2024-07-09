@@ -34,7 +34,7 @@ class NativeContactFraction(CollectiveVariable):
     ------------
     indices: list[int]
         List of the indices of the atoms of interests.
-        indices should be equal to np.unique(contact_pairs)
+        indices should be equal to unique(contact_pairs)
     contact_pairs: list[tuple(int)]
         List of pairs of indices of atoms (list of contacts) to be considered.
         The overall shape should be (n_contacts, 2).
