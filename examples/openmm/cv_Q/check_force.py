@@ -22,7 +22,7 @@ for i, residue in enumerate(pdb.topology.residues()):
 rna_pos = positions.astype("float")[np.asarray(rna_indices)]
 contact_matrix = sd.squareform(sd.pdist(rna_pos)) < contact_cutoff
 contacts = np.transpose(np.nonzero(contact_matrix))
-rna_id_contacts = np.array([[rna_indices[i], rna_indices[j]] for i, j in contacts])
+rna_id_contacts = np.array([[rna_indices[i], rna_indices[j]] for i, j in contacts if i != j])
 indices = np.unique(rna_id_contacts)
 references = positions.astype("float")[np.asarray(indices)]
 ncf = NativeContactFraction(indices, rna_id_contacts, references)

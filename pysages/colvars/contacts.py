@@ -57,6 +57,9 @@ class NativeContactFraction(CollectiveVariable):
         assert all(
             indices == np.unique(contact_pairs)
         ), "contact pairs should contain and only contain index from indices"
+        assert not np.any(
+            contact_pairs[:, 0] == contact_pairs[:, 1]
+        ), "contact pairs contain self-self interaction"
         self.contact_pairs = remap_indices(contact_pairs, indices)
 
         self.references = np.asarray(references)
@@ -98,13 +101,22 @@ def native_contact_fraction(r, contact_pairs, references, gamma, lambda_d):
 
     """
     # Calculate pairwise distances
-    distances = np.linalg.norm(r[:, None, :] - r[None, :, :], axis=-1)
-    reference_distances = np.linalg.norm(references[:, None, :] - references[None, :, :], axis=-1)
+    distance_matrix = r[:, None, :] - r[None, :, :]
+    N = distance_matrix.shape[0]
+    diagonal_indices = np.arange(N), np.arange(N)
+    mask_val = 100  # mask trick to avoid divergence
+    mask_array = np.array([mask_val, mask_val, mask_val])
+    distance_matrix = distance_matrix.at[diagonal_indices].set(mask_array)
+    distances = np.linalg.norm(distance_matrix, axis=-1)
 
-    # Calculate Q
-    diff = distances - lambda_d * reference_distances
-    Q_matrix = 1 / (1 + np.exp(gamma * diff))
-    Q_contribution = Q_matrix[contact_pairs[:, 0], contact_pairs[:, 1]]
+    reference_distance_matrix = references[:, None, :] - references[None, :, :]
+    reference_distance_matrix = reference_distance_matrix.at[diagonal_indices].set(mask_array)
+    reference_distances = np.linalg.norm(reference_distance_matrix, axis=-1)
+
+    distances_contacts = distances[contact_pairs[:, 0], contact_pairs[:, 1]]
+    reference_distances_contacts = reference_distances[contact_pairs[:, 0], contact_pairs[:, 1]]
+    diff = distances_contacts - lambda_d * reference_distances_contacts
+    Q_contribution = 1 / (1 + np.exp(gamma * diff))
 
     N_contacts = contact_pairs.shape[0]
 
