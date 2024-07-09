@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import jax
 import numpy as np
 import openmm.app as app
 from jax import grad
@@ -8,7 +7,6 @@ from openmm import unit
 from scipy.spatial import distance as sd
 
 from pysages.colvars.contacts import NativeContactFraction
-from pysages.colvars.orientation import ERMSD, RMSD
 
 contact_cutoff = 0.5  # nm
 
