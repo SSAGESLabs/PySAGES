@@ -205,7 +205,7 @@ jobs:
       - name: Load and run test
         run: |
           docker load --input /tmp/pysages.tar
-          docker run -t pysages bash -c "cd PySAGES/examples/openmm/cv_Q && python3 ./abf.py && python3 ./check_q.py && python3 ./check_force.py"
+          docker run -t pysages bash -c "cd PySAGES/examples/openmm/cv_Q && python3 ./abf.py && python3 ./check_Q.py && python3 ./check_force.py"
 
   alanine-dipeptide-string:
     runs-on: ubuntu-latest
