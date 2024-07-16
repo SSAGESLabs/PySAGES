@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+from itertools import product
+
+import networkx as nx
 import numpy as np
 import openmm as mm
 import openmm.app as app
@@ -11,6 +14,69 @@ from pysages import Grid
 from pysages.colvars.contacts import NativeContactFraction
 from pysages.methods import ABF, HistogramLogger
 
+AUGC = ["A", "U", "G", "C"]
+
+
+def init_graph(top):
+    graph = nx.Graph()
+    rna_indices = []
+    full_id2rna_heavy_id = {}
+    index = 0
+    for atom in top.atoms():
+        if atom.residue.name in AUGC and atom.element.name != "hydrogen":
+            graph.add_node(index, name=atom.name, resid=atom.residue.index)
+            full_id2rna_heavy_id[atom.index] = index
+            rna_indices.append(atom.index)
+            index += 1
+
+    for bond in top.bonds():
+        if (
+            bond.atom1.residue.name in AUGC
+            and bond.atom1.element.name != "hydrogen"
+            and bond.atom2.residue.name in AUGC
+            and bond.atom2.element.name != "hydrogen"
+        ):
+            graph.add_edge(
+                full_id2rna_heavy_id[bond.atom1.index], full_id2rna_heavy_id[bond.atom2.index]
+            )
+
+    return graph, rna_indices
+
+
+def gen_dihedral_indices(graph):
+    dihedral_indices = []
+    for n1, n2 in nx.edge_dfs(graph):
+        neibor1 = list(graph.adj[n1])
+        neibor1.remove(n2)
+        # we want to exclude neightbor n2
+        # because we are trying to construct a dihedral pre-n1-n2-post,
+        # and we don't want pre is the same as n2
+        neibor2 = list(graph.adj[n2])
+        neibor2.remove(n1)
+        for pre, post in product(neibor1, neibor2):
+            if pre != post:  # exlucde ring dihedrals
+                dihedral_indices.append([pre, n1, n2, post])
+    return dihedral_indices
+
+
+def calc_include_ij(graph, dihedral_indices):
+    """
+    calculate all the atom pairs that are connected by 1 or 2 or 3 bonds.
+    Those pairs can't be included in the native contacts
+    return a matrix for all the atoms in the graph:
+        True means we can include the pair
+        False means we should exclude the pair
+    """
+    n_atoms = len(graph)
+    exclude_ij = np.full((n_atoms, n_atoms), False)
+    for dihedral in dihedral_indices:
+        indices = np.array(np.meshgrid(dihedral, dihedral)).T.reshape(-1, 2)
+        i, j = indices[:, 0], indices[:, 1]
+        exclude_ij[i, j] = True
+
+    return ~exclude_ij
+
+
 step_size = 2 * unit.femtosecond
 nsteps = 100
 
@@ -18,17 +84,17 @@ contact_cutoff = 0.5  # nanometer
 
 pdb = app.PDBFile("../../inputs/GAGA.box_0mM.pdb")
 positions = pdb.getPositions(asNumpy=True).value_in_unit(unit.nanometer)
-rna_indices = []
-for i, residue in enumerate(pdb.topology.residues()):
-    if residue.name in ["A", "U", "G", "C"]:
-        for atom in residue.atoms():
-            if atom.element.name != "hydrogen":
-                rna_indices.append(atom.index)
+
+rna_graph, rna_indices = init_graph(pdb.topology)
+dihedral_indices = gen_dihedral_indices(rna_graph)
+include_ij = calc_include_ij(rna_graph, dihedral_indices)
 
 rna_pos = positions.astype("float")[np.asarray(rna_indices)]
 contact_matrix = sd.squareform(sd.pdist(rna_pos)) < contact_cutoff
 contacts = np.transpose(np.nonzero(contact_matrix))
-rna_id_contacts = np.array([[rna_indices[i], rna_indices[j]] for i, j in contacts if i != j])
+rna_id_contacts = np.array(
+    [[rna_indices[i], rna_indices[j]] for i, j in contacts if i != j and include_ij[i, j]]
+)
 # notice that we need to get rid of self-self contact!
 indices = np.unique(rna_id_contacts)
 references = positions.astype("float")[np.asarray(indices)]
