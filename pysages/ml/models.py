@@ -5,11 +5,11 @@ from dataclasses import dataclass
 from itertools import chain
 
 from jax import numpy as np
-from jax.nn.initializers import variance_scaling
+from jax import random
 
-from pysages.ml.utils import dispatch, rng_key
+from pysages.ml.utils import dispatch, rng_key, uniform_scaling
 from pysages.typing import Callable, JaxArray, Optional
-from pysages.utils import try_import
+from pysages.utils import identity, try_import
 
 stax = try_import("jax.example_libraries.stax", "jax.experimental.stax")
 
@@ -27,14 +27,16 @@ class Model:
 
 @dataclass
 class MLPBase(Model):
+    """
+    Multilayer-perceptron network base class. Provides a convenience constructor.
+    """
+
     def __init__(self, indim, layers, seed):
         # Build initialization and application functions for the network
         init, apply = stax.serial(*layers)
         # Randomly initialize network parameters with seed
         _, parameters = init(rng_key(seed), (-1, indim))
-        #
-        self.parameters = parameters
-        self.apply = apply
+        super().__init__(parameters, apply)
 
 
 @dataclass
@@ -80,14 +82,14 @@ class MLP(MLPBase):
 @dataclass
 class Siren(MLPBase):
     """
-    Siren network as decribed in [1]
+    Sinusoidal Representation Network as decribed in [1]
 
     [1] Sitzmann, V., Martel, J., Bergman, A., Lindell, D., and Wetzstein, G. "Implicit
     neural representations with periodic activation functions." Advances in Neural
     Information Processing Systems 33 (2020).
     """
 
-    def __init__(self, indim, outdim, topology, omega=1.0, transform=None, seed=0):
+    def __init__(self, indim, outdim, topology, omega_0=16, omega=1, transform=None, seed=0):
         """
         Arguments
         ---------
@@ -101,7 +103,7 @@ class Siren(MLPBase):
         topology: Tuple
             Defines the structure of the inner layers for the network.
 
-        omega:
+        omega_0:
             Weight distribution factor ω₀ for the first layer (as described in [1]).
 
         transform: Optional[Callable]
@@ -112,18 +114,52 @@ class Siren(MLPBase):
         """
 
         tlayer = build_transform_layer(transform)
-        # Weight initialization for Sirens
-        pdf_in = variance_scaling(1.0 / 3, "fan_in", "uniform")
-        pdf = variance_scaling(2.0 / omega**2, "fan_in", "uniform")
-        # Sine activation function
-        σ_in = stax.elementwise(lambda x: np.sin(omega * x))
-        σ = stax.elementwise(lambda x: np.sin(x))
+        # Weight initialization for the first layer of Sirens
+        pdf_0 = uniform_scaling(1.0, "fan_in", scale_transform=identity)
         # Build layers
-        layer_in = [stax.Flatten, *tlayer, stax.Dense(topology[0], pdf_in), σ_in]
-        layers = list(chain.from_iterable((stax.Dense(i, pdf), σ) for i in topology[1:]))
-        layers = layer_in + layers + [stax.Dense(outdim, pdf)]
+        layers_0 = [stax.Flatten, *tlayer, SirenLayer(topology[0], omega_0, pdf_0)]
+        layers = [SirenLayer(i, omega) for i in topology[1:]]
+        layers = layers_0 + layers + [SirenLayer(outdim, omega, is_linear=True)]
         #
         super().__init__(indim, layers, seed)
+
+
+def SirenLayer(
+    out_dim,
+    omega,
+    W_init: Optional[Callable] = None,
+    b_init: Optional[Callable] = None,
+    is_linear: bool = False,
+):
+    """
+    Constructor function for a dense (fully-connected) layer for Sinusoidal Representation
+    Networks. Similar to `jax.example_libraries.stax.Dense`.
+    """
+
+    if W_init is None:
+        W_init = uniform_scaling(6.0 / omega**2, "fan_in")
+
+    if b_init is None:
+        b_init = uniform_scaling(1.0, "fan_in", bias_like=True)
+
+    if is_linear:
+        σ = identity(lambda x, omega: x)
+    else:
+        σ = identity(lambda x, omega: np.sin(omega * x))
+
+    def init(rng, input_shape):
+        k1, k2 = random.split(rng)
+        inner_shape = (input_shape[-1], out_dim)
+        output_shape = input_shape[:-1] + (out_dim,)
+        W, b = W_init(k1, inner_shape), b_init(k2, inner_shape)
+        return output_shape, (W, b)
+
+    def apply(params, inputs, **_):
+        # NOTE: experiment with having omega in params
+        W, b = params
+        return σ(np.dot(inputs, W) + b, omega)
+
+    return init, apply
 
 
 @dispatch

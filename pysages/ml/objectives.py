@@ -22,15 +22,11 @@ class Loss:
     Abstract base class for all losses.
     """
 
-    pass
-
 
 class GradientsLoss(Loss):
     """
     Abstract base class for gradient-based losses.
     """
-
-    pass
 
 
 class Sobolev1Loss(Loss):
@@ -38,15 +34,11 @@ class Sobolev1Loss(Loss):
     Abstract base class for losses that depend on both target values and gradients.
     """
 
-    pass
-
 
 class SSE(Loss):
     """
     Sum-of-Squared-Errors Loss.
     """
-
-    pass
 
 
 class GradientsSSE(GradientsLoss):
@@ -54,15 +46,11 @@ class GradientsSSE(GradientsLoss):
     Sum-of-Squared-Gradient-Errors Loss.
     """
 
-    pass
-
 
 class Sobolev1SSE(Sobolev1Loss):
     """
     Sum-of-Squared-Errors and Squared-Gradient-Errors Loss.
     """
-
-    pass
 
 
 # Regularizers
@@ -71,14 +59,12 @@ class Regularizer:
     Abstract base class for all regularizers.
     """
 
-    pass
-
 
 # On Python >= 3.9 NamedTuple cannot be used directly as superclass
-L2Regularization = NamedTuple("L2Regularization", [("coeff", float)])
+L2RegularizationBase = NamedTuple("L2Regularization", [("coeff", float)])
 
 
-class L2Regularization(Regularizer, L2Regularization):
+class L2Regularization(Regularizer, L2RegularizationBase):
     """
     L2-norm regularization.
 
@@ -92,11 +78,9 @@ class VarRegularization(Regularizer):
     Weights-variance regularization.
     """
 
-    pass
-
 
 @dispatch.abstract
-def build_objective_function(model, loss, reg):
+def build_objective_function(model, loss, reg):  # pylint: disable=W0613
     """
     Given a model, loss and regularizer, it builds an objective function that takes
     a set of parameters, input and reference values for the model, and returns the
@@ -106,6 +90,7 @@ def build_objective_function(model, loss, reg):
 
 @dispatch
 def build_objective_function(model, loss: Loss, reg: Regularizer):
+    # pylint: disable=C0116,E0102
     cost = build_cost_function(loss, reg)
 
     def objective(params, inputs, reference):
@@ -118,7 +103,8 @@ def build_objective_function(model, loss: Loss, reg: Regularizer):
 
 
 @dispatch
-def build_objective_function(model, loss: GradientsSSE, reg: Regularizer):
+def build_objective_function(model, _loss: GradientsSSE, reg: Regularizer):
+    # pylint: disable=C0116,E0102
     apply = grad(lambda p, x: model.apply(p, x.reshape(1, -1)).sum(), argnums=1)
     cost = build_cost_function(SSE(), reg)
 
@@ -134,6 +120,7 @@ def build_objective_function(model, loss: GradientsSSE, reg: Regularizer):
 
 @dispatch
 def build_objective_function(model, loss: Sobolev1Loss, reg: Regularizer):
+    # pylint: disable=C0116,E0102
     apply = value_and_grad(lambda p, x: model.apply(p, x.reshape(1, -1)).sum(), argnums=1)
     cost = build_cost_function(loss, reg)
 
@@ -151,7 +138,7 @@ def build_objective_function(model, loss: Sobolev1Loss, reg: Regularizer):
 
 
 @dispatch.abstract
-def build_cost_function(loss, reg):
+def build_cost_function(loss, reg):  # pylint: disable=W0613
     """
     Given a loss and regularizer, it builds a regularized cost function that takes
     a set of model parameters and the error differences between such model's
@@ -160,7 +147,8 @@ def build_cost_function(loss, reg):
 
 
 @dispatch
-def build_cost_function(loss: Union[SSE, GradientsSSE], reg: L2Regularization):
+def build_cost_function(_loss: Union[SSE, GradientsSSE], reg: L2Regularization):
+    # pylint: disable=C0116,E0102
     r = reg.coeff
 
     def cost(errors, ps):
@@ -170,7 +158,9 @@ def build_cost_function(loss: Union[SSE, GradientsSSE], reg: L2Regularization):
 
 
 @dispatch
-def build_cost_function(loss: Union[SSE, GradientsSSE], reg: VarRegularization):
+def build_cost_function(_loss: Union[SSE, GradientsSSE], _reg: VarRegularization):
+    # pylint: disable=C0116,E0102
+
     def cost(errors, ps):
         # k = ps.size
         return (sum_squares(errors) + ps.var()) / 2
@@ -179,7 +169,8 @@ def build_cost_function(loss: Union[SSE, GradientsSSE], reg: VarRegularization):
 
 
 @dispatch
-def build_cost_function(loss: Sobolev1SSE, reg: L2Regularization):
+def build_cost_function(_loss: Sobolev1SSE, reg: L2Regularization):
+    # pylint: disable=C0116,E0102
     r = reg.coeff
 
     def cost(errors, ps):
@@ -190,7 +181,9 @@ def build_cost_function(loss: Sobolev1SSE, reg: L2Regularization):
 
 
 @dispatch
-def build_cost_function(loss: Sobolev1SSE, reg: VarRegularization):
+def build_cost_function(_loss: Sobolev1SSE, _reg: VarRegularization):
+    # pylint: disable=C0116,E0102
+
     def cost(errors, ps):
         # k = ps.size
         e, ge = errors
@@ -200,7 +193,7 @@ def build_cost_function(loss: Sobolev1SSE, reg: VarRegularization):
 
 
 @dispatch.abstract
-def build_error_function(model, loss):
+def build_error_function(model, loss):  # pylint: disable=W0613
     """
     Given a model and loss, it builds a function that computes the error
     differences between the model's predictions at each input value and some
@@ -209,7 +202,8 @@ def build_error_function(model, loss):
 
 
 @dispatch
-def build_error_function(model, loss: Loss):
+def build_error_function(model, _loss: Loss):
+    # pylint: disable=C0116,E0102
     _, layout = unpack(model.parameters)
 
     def error(ps, inputs, reference):
@@ -221,7 +215,8 @@ def build_error_function(model, loss: Loss):
 
 
 @dispatch
-def build_error_function(model, loss: GradientsLoss):
+def build_error_function(model, _loss: GradientsLoss):
+    # pylint: disable=C0116,E0102
     apply = grad(lambda p, x: model.apply(p, x.reshape(1, -1)).sum(), argnums=1)
     _, layout = unpack(model.parameters)
 
@@ -235,7 +230,8 @@ def build_error_function(model, loss: GradientsLoss):
 
 
 @dispatch
-def build_error_function(model, loss: Sobolev1Loss):
+def build_error_function(model, _loss: Sobolev1Loss):
+    # pylint: disable=C0116,E0102
     apply = value_and_grad(lambda p, x: model.apply(p, x.reshape(1, -1)).sum(), argnums=1)
     _, layout = unpack(model.parameters)
 
@@ -261,7 +257,7 @@ def build_split_cost_function(model, loss, reg):
 
 
 @dispatch.abstract
-def build_damped_hessian(loss, reg):
+def build_damped_hessian(loss, reg):  # pylint: disable=W0613
     """
     Returns a function that evaluates the damped hessian for the
     Levenberg-Marquardt optimizer, given a model's Jacobian `J` with respect
@@ -270,7 +266,8 @@ def build_damped_hessian(loss, reg):
 
 
 @dispatch
-def build_damped_hessian(loss: Loss, reg: L2Regularization):
+def build_damped_hessian(_loss: Loss, reg: L2Regularization):
+    # pylint: disable=C0116,E0102
     r = reg.coeff
 
     def dhessian(J, mu):
@@ -282,7 +279,9 @@ def build_damped_hessian(loss: Loss, reg: L2Regularization):
 
 
 @dispatch
-def build_damped_hessian(loss: Loss, reg: VarRegularization):
+def build_damped_hessian(_loss: Loss, _reg: VarRegularization):
+    # pylint: disable=C0116,E0102
+
     def dhessian(J, mu):
         H = J.T @ J
         k = H.shape[0]
@@ -293,7 +292,8 @@ def build_damped_hessian(loss: Loss, reg: VarRegularization):
 
 
 @dispatch
-def build_damped_hessian(loss: Sobolev1Loss, reg: L2Regularization):
+def build_damped_hessian(_loss: Sobolev1Loss, reg: L2Regularization):
+    # pylint: disable=C0116,E0102
     r = reg.coeff
 
     def dhessian(jacs, mu):
@@ -306,7 +306,9 @@ def build_damped_hessian(loss: Sobolev1Loss, reg: L2Regularization):
 
 
 @dispatch
-def build_damped_hessian(loss: Sobolev1Loss, reg: VarRegularization):
+def build_damped_hessian(_loss: Sobolev1Loss, _reg: VarRegularization):
+    # pylint: disable=C0116,E0102
+
     def dhessian(jacs, mu):
         J, gJ = jacs
         H = J.T @ J + gJ.T @ gJ
@@ -318,7 +320,7 @@ def build_damped_hessian(loss: Sobolev1Loss, reg: VarRegularization):
 
 
 @dispatch.abstract
-def build_jac_err_prod(loss, reg):
+def build_jac_err_prod(loss, reg):  # pylint: disable=W0613
     """
     Returns a function that evaluates the product of a model's Jacobian `J` with
     respect to its parameters, and error differences `e`. Used within the
@@ -327,7 +329,8 @@ def build_jac_err_prod(loss, reg):
 
 
 @dispatch
-def build_jac_err_prod(loss: Loss, reg: L2Regularization):
+def build_jac_err_prod(_loss: Loss, reg: L2Regularization):
+    # pylint: disable=C0116,E0102
     r = reg.coeff
 
     def jep(J, e, ps):
@@ -337,7 +340,9 @@ def build_jac_err_prod(loss: Loss, reg: L2Regularization):
 
 
 @dispatch
-def build_jac_err_prod(loss: Loss, reg: VarRegularization):
+def build_jac_err_prod(_loss: Loss, _reg: VarRegularization):
+    # pylint: disable=C0116,E0102
+
     def jep(J, e, ps):
         k = ps.size
         return J.T @ e + (1 - 1 / k) / k * (ps - ps.mean())
@@ -346,7 +351,8 @@ def build_jac_err_prod(loss: Loss, reg: VarRegularization):
 
 
 @dispatch
-def build_jac_err_prod(loss: Sobolev1Loss, reg: L2Regularization):
+def build_jac_err_prod(_loss: Sobolev1Loss, reg: L2Regularization):
+    # pylint: disable=C0116,E0102
     r = reg.coeff
 
     def jep(jacs, errors, ps):
@@ -358,7 +364,9 @@ def build_jac_err_prod(loss: Sobolev1Loss, reg: L2Regularization):
 
 
 @dispatch
-def build_jac_err_prod(loss: Sobolev1Loss, reg: VarRegularization):
+def build_jac_err_prod(_loss: Sobolev1Loss, _reg: VarRegularization):
+    # pylint: disable=C0116,E0102
+
     def jep(jacs, errors, ps):
         k = ps.size
         J, gJ = jacs
