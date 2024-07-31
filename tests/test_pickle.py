@@ -82,6 +82,12 @@ METHODS_ARGS = {
         "cvs": [pysages.colvars.Component([0], 0), pysages.colvars.Component([0], 1)],
         "grid": pysages.Grid(lower=(1, 1), upper=(5, 5), shape=(32, 32)),
     },
+    "Sirens": {
+        "cvs": [pysages.colvars.Component([0], 0), pysages.colvars.Component([0], 1)],
+        "grid": pysages.Grid(lower=(1, 1), upper=(5, 5), shape=(32, 32)),
+        "topology": (14,),
+        "mode": "abf",
+    },
     "HistogramLogger": {
         "period": 1,
         "offset": 1,
