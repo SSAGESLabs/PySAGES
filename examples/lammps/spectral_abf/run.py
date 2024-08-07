@@ -10,6 +10,7 @@ command line, or call `get_args(["-h"])` if the module was loaded interactively.
 # %%
 import argparse
 import sys
+
 import numpy
 from lammps import lammps
 
@@ -17,6 +18,7 @@ import pysages
 from pysages.backends import SamplingContext
 from pysages.colvars import DihedralAngle
 from pysages.methods import HistogramLogger, SpectralABF
+
 
 # %%
 def generate_context(args="", script="adp.lmp", store_freq=1):
@@ -39,9 +41,7 @@ def get_args(argv):
         ("kokkos", "k", bool, True, "Whether to use Kokkos acceleration"),
         ("log-steps", "l", int, 2e3, "Number of simulation steps for logging"),
     ]
-    parser = argparse.ArgumentParser(
-        description="Example script to run pysages with lammps"
-    )
+    parser = argparse.ArgumentParser(description="Example script to run pysages with lammps")
 
     for name, short, T, val, doc in available_args:
         if T is bool:
@@ -49,9 +49,7 @@ def get_args(argv):
             parser.add_argument("--" + name, "-" + short, action=action, help=doc)
         else:
             convert = (lambda x: int(float(x))) if T is int else T
-            parser.add_argument(
-                "--" + name, "-" + short, type=convert, default=T(val), help=doc
-            )
+            parser.add_argument("--" + name, "-" + short, type=convert, default=T(val), help=doc)
 
     return parser.parse_args(argv)
 
@@ -77,9 +75,6 @@ def main(argv):
     )
     method = SpectralABF(cvs, grid)
     callback = HistogramLogger(args.log_steps)
-    sampling_context = SamplingContext(
-        method, generate_context, callback=callback, context_args=context_args
-    )
     raw_result = pysages.run(
         method,
         generate_context,
