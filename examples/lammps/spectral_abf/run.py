@@ -15,7 +15,6 @@ import numpy
 from lammps import lammps
 
 import pysages
-from pysages.backends import SamplingContext
 from pysages.colvars import DihedralAngle
 from pysages.methods import HistogramLogger, SpectralABF
 
