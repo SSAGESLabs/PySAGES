@@ -10,7 +10,7 @@ pair_style      lj/cut/coul/cut 10.0
 pair_modify     mix arithmetic
 
 kspace_style    none
-read_data       example.input
+read_data       adp.input
 
 
 velocity all create 300 3
