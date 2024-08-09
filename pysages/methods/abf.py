@@ -103,6 +103,11 @@ class ABF(GriddedSamplingMethod):
         If provided, indicate that harmonic restraints will be applied when any
         collective variable lies outside the box from `restraints.lower` to
         `restraints.upper`.
+
+    use_np_pinv: Optional[Bool] = False
+        If set to True, the Wp will be calculated using np.linalg.pinv(Jxi.T)@p
+        rather than solve_pos_def(Jxi @ Jxi.T, Jxi @ p).
+        This is computationally more expensive but numerically more stable.
     """
 
     snapshot_flags = {"positions", "indices", "momenta"}
@@ -110,6 +115,7 @@ class ABF(GriddedSamplingMethod):
     def __init__(self, cvs, grid, **kwargs):
         super().__init__(cvs, grid, **kwargs)
         self.N = np.asarray(self.kwargs.get("N", 500))
+        self.use_np_pinv = self.kwargs.get("use_np_pinv", False)
 
     def build(self, snapshot, helpers, *args, **kwargs):
         """
@@ -201,11 +207,16 @@ def _abf(method, snapshot, helpers):
         xi, Jxi = cv(data)
 
         p = data.momenta
+        use_np_pinv = data.use_np_pinv
+
         # The following could equivalently be computed as `linalg.pinv(Jxi.T) @ p`
         # (both seem to have the same performance).
         # Another option to benchmark against is
         # Wp = linalg.tensorsolve(Jxi @ Jxi.T, Jxi @ p)
-        Wp = solve_pos_def(Jxi @ Jxi.T, Jxi @ p)
+        if use_np_pinv:
+            Wp = np.linalg.pinv(Jxi.T) @ p
+        else:
+            Wp = solve_pos_def(Jxi @ Jxi.T, Jxi @ p)
         # Second order backward finite difference
         dWp_dt = (1.5 * Wp - 2.0 * state.Wp + 0.5 * state.Wp_) / dt
 
