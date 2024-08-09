@@ -21,7 +21,7 @@ from jax import numpy as np
 from jax.numpy import linalg
 
 from pysages.colvars.coordinates import weighted_barycenter
-from pysages.colvars.core import CollectiveVariable, multicomponent
+from pysages.colvars.core import CollectiveVariable
 
 
 def fitted_positions(positions, weights):
