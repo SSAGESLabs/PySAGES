@@ -56,7 +56,7 @@ class VectorAngle(FourPointCV):
         --------
         Functions that calculates the angle value from a simulation snapshot.
         """
-        return vector_angle
+        return angle
 
 
 def angle(p1, p2, p3, p4):
