@@ -9,7 +9,7 @@ for folding of proteins or nucleic acids
 """
 from jax import numpy as np
 
-from pysages.colvars.core import CollectiveVariable, multicomponent
+from pysages.colvars.core import CollectiveVariable
 
 
 def remap_indices(contacts, sorted_unique_indices):
@@ -25,7 +25,6 @@ def remap_indices(contacts, sorted_unique_indices):
     return remapped_contacts
 
 
-@multicomponent
 class NativeContactFraction(CollectiveVariable):
     """
     Calculate the native contact fraction Q.

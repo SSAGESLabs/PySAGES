@@ -126,7 +126,6 @@ class RMSD(CollectiveVariable):
         return lambda r: rmsd(r, self.Q, self.weights, self.optimal_rotation)
 
 
-@multicomponent
 class ERMSD(CollectiveVariable):
     """
     Use a reference to calculate the eRMSD of a set of RNA structures.
@@ -378,7 +377,6 @@ def ermsd(rs, reference, cutoff, a, b):
     return ermsd_core(rs, reference, cutoff, a, b)
 
 
-@multicomponent
 class ERMSDCG(CollectiveVariable):
     """
     Use a reference to calculate the eRMSD of
