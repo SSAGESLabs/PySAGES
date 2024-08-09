@@ -105,8 +105,9 @@ class ABF(GriddedSamplingMethod):
         `restraints.upper`.
 
     use_np_pinv: Optional[Bool] = False
-        If set to True, the Wp will be calculated using np.linalg.pinv(Jxi.T)@p
-        rather than solve_pos_def(Jxi @ Jxi.T, Jxi @ p).
+        If set to True, the product W times momentum p
+        will be calculated using pseudo-inverse from numpy
+        rather than using the solving function from scipy
         This is computationally more expensive but numerically more stable.
     """
 

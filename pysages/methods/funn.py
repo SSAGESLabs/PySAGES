@@ -126,6 +126,12 @@ class FUNN(NNSamplingMethod):
         If provided, indicate that harmonic restraints will be applied when any
         collective variable lies outside the box from `restraints.lower` to
         `restraints.upper`.
+
+    use_np_pinv: Optional[Bool] = False
+        If set to True, the product W times momentum p
+        will be calculated using pseudo-inverse from numpy
+        rather than using the solving function from scipy
+        This is computationally more expensive but numerically more stable.
     """
 
     snapshot_flags = {"positions", "indices", "momenta"}
@@ -142,6 +148,7 @@ class FUNN(NNSamplingMethod):
         self.model = MLP(dims, dims, topology, transform=scale)
         default_optimizer = LevenbergMarquardt(reg=L2Regularization(1e-6))
         self.optimizer = kwargs.get("optimizer", default_optimizer)
+        self.use_np_pinv = self.kwargs.get("use_np_pinv", False)
 
     def build(self, snapshot, helpers):
         return _funn(self, snapshot, helpers)
@@ -151,6 +158,7 @@ def _funn(method, snapshot, helpers):
     cv = method.cv
     grid = method.grid
     train_freq = method.train_freq
+    use_np_pinv = method.use_np_pinv
 
     dt = snapshot.dt
     dims = grid.shape.size
@@ -186,7 +194,10 @@ def _funn(method, snapshot, helpers):
         xi, Jxi = cv(data)
         #
         p = data.momenta
-        Wp = solve_pos_def(Jxi @ Jxi.T, Jxi @ p)
+        if use_np_pinv:
+            Wp = np.linalg.pinv(Jxi.T) @ p
+        else:
+            Wp = solve_pos_def(Jxi @ Jxi.T, Jxi @ p)
         dWp_dt = (1.5 * Wp - 2.0 * state.Wp + 0.5 * state.Wp_) / dt
         #
         I_xi = get_grid_index(xi)

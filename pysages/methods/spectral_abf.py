@@ -124,6 +124,12 @@ class SpectralABF(GriddedSamplingMethod):
         If provided, indicate that harmonic restraints will be applied when any
         collective variable lies outside the box from `restraints.lower` to
         `restraints.upper`.
+
+    use_np_pinv: Optional[Bool] = False
+        If set to True, the product W times momentum p
+        will be calculated using pseudo-inverse from numpy
+        rather than using the solving function from scipy
+        This is computationally more expensive but numerically more stable.
     """
 
     snapshot_flags = {"positions", "indices", "momenta"}
@@ -135,6 +141,7 @@ class SpectralABF(GriddedSamplingMethod):
         self.fit_threshold = self.kwargs.get("fit_threshold", 500)
         self.grid = self.grid if self.grid.is_periodic else convert(self.grid, Grid[Chebyshev])
         self.model = SpectralGradientFit(self.grid)
+        self.use_np_pinv = self.kwargs.get("use_np_pinv", False)
 
     def build(self, snapshot, helpers, *_args, **_kwargs):
         """
@@ -148,6 +155,7 @@ def _spectral_abf(method, snapshot, helpers):
     grid = method.grid
     fit_freq = method.fit_freq
     fit_threshold = method.fit_threshold
+    use_np_pinv = method.use_np_pinv
 
     dt = snapshot.dt
     dims = grid.shape.size
@@ -181,7 +189,10 @@ def _spectral_abf(method, snapshot, helpers):
         xi, Jxi = cv(data)
         #
         p = data.momenta
-        Wp = solve_pos_def(Jxi @ Jxi.T, Jxi @ p)
+        if use_np_pinv:
+            Wp = np.linalg.pinv(Jxi.T) @ p
+        else:
+            Wp = solve_pos_def(Jxi @ Jxi.T, Jxi @ p)
         # Second order backward finite difference
         dWp_dt = (1.5 * Wp - 2.0 * state.Wp + 0.5 * state.Wp_) / dt
         #

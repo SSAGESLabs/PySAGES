@@ -146,6 +146,12 @@ class Sirens(NNSamplingMethod):
         If provided, indicate that harmonic restraints will be applied when any
         collective variable lies outside the box from `restraints.lower` to
         `restraints.upper`.
+
+    use_np_pinv: Optional[Bool] = False
+        If set to True, the product W times momentum p
+        will be calculated using pseudo-inverse from numpy
+        rather than using the solving function from scipy
+        This is computationally more expensive but numerically more stable.
     """
 
     snapshot_flags = {"positions", "indices", "momenta"}
@@ -172,6 +178,7 @@ class Sirens(NNSamplingMethod):
         scale = partial(_scale, grid=grid)
         self.model = Siren(dims, 1, topology, transform=scale)
         self.optimizer = optimizer
+        self.use_np_pinv = self.kwargs.get("use_np_pinv", False)
 
     def __check_init_invariants__(self, mode, kT, optimizer):
         if mode not in ("abf", "cff"):
@@ -196,6 +203,7 @@ def _sirens(method: Sirens, snapshot, helpers):
     cv = method.cv
     grid = method.grid
     train_freq = method.train_freq
+    use_np_pinv = method.use_np_pinv
     dt = snapshot.dt
 
     # Neural network paramters
@@ -244,7 +252,10 @@ def _sirens(method: Sirens, snapshot, helpers):
         xi, Jxi = cv(data)
         #
         p = data.momenta
-        Wp = solve_pos_def(Jxi @ Jxi.T, Jxi @ p)
+        if use_np_pinv:
+            Wp = np.linalg.pinv(Jxi.T) @ p
+        else:
+            Wp = solve_pos_def(Jxi @ Jxi.T, Jxi @ p)
         dWp_dt = (1.5 * Wp - 2.0 * state.Wp + 0.5 * state.Wp_) / dt
         #
         I_xi = get_grid_index(xi)
