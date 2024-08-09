@@ -100,7 +100,7 @@ def main(argv):
     xedges = (xedges[1:] + xedges[:-1]) / 2
     yedges = (yedges[1:] + yedges[:-1]) / 2
     mesh = numpy.dstack(numpy.meshgrid(xedges, yedges)).reshape(-1, 2)
-    numpy.savetxt("hist-fromlogger.dat", numpy.hstack([mesh, histo.reshape(-1, 1)]))
+    numpy.savetxt("hist-from-logger.dat", numpy.hstack([mesh, histo.reshape(-1, 1)]))
 
 
 if __name__ == "__main__":
