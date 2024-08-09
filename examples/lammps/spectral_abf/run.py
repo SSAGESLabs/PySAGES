@@ -88,8 +88,8 @@ def main(argv):
     A = fes_fn(mesh)
     hist = result["histogram"]
     A = A.reshape(32, 32)
-    numpy.savetxt("FES-3ns.dat", numpy.hstack([mesh, A.reshape(-1, 1)]))
-    numpy.savetxt("hist-3ns.dat", numpy.hstack([mesh, hist.reshape(-1, 1)]))
+    numpy.savetxt("FES.dat", numpy.hstack([mesh, A.reshape(-1, 1)]))
+    numpy.savetxt("hist.dat", numpy.hstack([mesh, hist.reshape(-1, 1)]))
     bins = 50
     histo, xedges, yedges = numpy.histogram2d(
         callback.data[:, 0],
