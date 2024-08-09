@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-
 import matplotlib.pyplot as plt
 import numpy
 
@@ -115,7 +114,7 @@ def post_run_action(**kwargs):
 def main():
     cvs = [DihedralAngle((4, 6, 8, 14)), DihedralAngle((6, 8, 14, 16))]
     grid = pysages.Grid(lower=(-pi, -pi), upper=(pi, pi), shape=(32, 32), periodic=True)
-    method = ABF(cvs, grid)
+    method = ABF(cvs, grid, use_np_pinv=True)
 
     raw_result = pysages.run(method, generate_simulation, 25, post_run_action=post_run_action)
     result = pysages.analyze(raw_result, topology=(14,))

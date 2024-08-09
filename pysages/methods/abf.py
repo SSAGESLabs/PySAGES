@@ -160,6 +160,7 @@ def _abf(method, snapshot, helpers):
     """
     cv = method.cv
     grid = method.grid
+    use_np_pinv = method.use_np_pinv
 
     dt = snapshot.dt
     dims = grid.shape.size
@@ -207,7 +208,6 @@ def _abf(method, snapshot, helpers):
         xi, Jxi = cv(data)
 
         p = data.momenta
-        use_np_pinv = data.use_np_pinv
 
         # The following could equivalently be computed as `linalg.pinv(Jxi.T) @ p`
         # (both seem to have the same performance).
