@@ -13,11 +13,12 @@ from pysages.colvars.core import CollectiveVariable
 
 
 def remap_indices(contacts, sorted_unique_indices):
-    # create the mapping from old indices to new indices
+    # Generate the mapping by using argsort on sorted_unique_indices
     old_indices = np.array(sorted_unique_indices)
-    new_indices = np.arange(len(sorted_unique_indices))
-    index_mapping = np.zeros(old_indices.max() + 1, dtype=new_indices.dtype)
-    index_mapping = index_mapping.at[old_indices].set(new_indices)
+    new_indices = np.argsort(old_indices)
+
+    index_mapping = np.zeros(old_indices[-1] + 1, dtype=int)
+    index_mapping.at[old_indices].set(new_indices)
 
     contacts = np.array(contacts)
     remapped_contacts = index_mapping[contacts]
