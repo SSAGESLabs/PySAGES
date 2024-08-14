@@ -27,15 +27,11 @@ def convolve(data, kernel, boundary="edge"):
     depending on the size of the kernel, and chooses a padding mode depending
     on whether the boundaries are periodic or not.
     """
-
-    def half(n):
-        return n // 2
-
     n = kernel.ndim
     if n == 1:
-        padding = half(kernel.size - 1)
+        padding = (kernel.size - 1) // 2
     else:
-        padding = tuple((half(s - 1), half(s - 1)) for s in kernel.shape)
+        padding = [((s - 1) // 2, (s - 1) // 2) for s in kernel.shape]
 
     def pad(slice):
         return np.pad(slice, padding, mode=boundary)
