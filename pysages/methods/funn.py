@@ -34,7 +34,7 @@ from pysages.ml.optimizers import LevenbergMarquardt
 from pysages.ml.training import NNData, build_fitting_function, convolve, normalize
 from pysages.ml.utils import blackman_kernel, pack, unpack
 from pysages.typing import JaxArray, NamedTuple, Tuple
-from pysages.utils import dispatch, first_or_all, solve_pos_def
+from pysages.utils import dispatch, first_or_all, linear_solver
 
 
 class FUNNState(NamedTuple):
@@ -127,10 +127,9 @@ class FUNN(NNSamplingMethod):
         collective variable lies outside the box from `restraints.lower` to
         `restraints.upper`.
 
-    use_np_pinv: Optional[Bool] = False
-        If set to True, the product W times momentum p
-        will be calculated using pseudo-inverse from numpy
-        rather than using the solving function from scipy
+    use_pinv: Optional[Bool] = False
+        If set to True, the product `W @ p` will be estimated using
+        `np.linalg.pinv` rather than using the `scipy.linalg.solve` function.
         This is computationally more expensive but numerically more stable.
     """
 
@@ -148,7 +147,7 @@ class FUNN(NNSamplingMethod):
         self.model = MLP(dims, dims, topology, transform=scale)
         default_optimizer = LevenbergMarquardt(reg=L2Regularization(1e-6))
         self.optimizer = kwargs.get("optimizer", default_optimizer)
-        self.use_np_pinv = self.kwargs.get("use_np_pinv", False)
+        self.use_pinv = self.kwargs.get("use_pinv", False)
 
     def build(self, snapshot, helpers):
         return _funn(self, snapshot, helpers)
@@ -158,7 +157,6 @@ def _funn(method, snapshot, helpers):
     cv = method.cv
     grid = method.grid
     train_freq = method.train_freq
-    use_np_pinv = method.use_np_pinv
 
     dt = snapshot.dt
     dims = grid.shape.size
@@ -168,6 +166,7 @@ def _funn(method, snapshot, helpers):
     ps, _ = unpack(method.model.parameters)
 
     # Helper methods
+    tsolve = linear_solver(method.use_pinv)
     get_grid_index = build_indexer(grid)
     learn_free_energy_grad = build_free_energy_grad_learner(method)
     estimate_free_energy_grad = build_force_estimator(method)
@@ -194,10 +193,7 @@ def _funn(method, snapshot, helpers):
         xi, Jxi = cv(data)
         #
         p = data.momenta
-        if use_np_pinv:
-            Wp = np.linalg.pinv(Jxi.T) @ p
-        else:
-            Wp = solve_pos_def(Jxi @ Jxi.T, Jxi @ p)
+        Wp = tsolve(Jxi, p)
         dWp_dt = (1.5 * Wp - 2.0 * state.Wp + 0.5 * state.Wp_) / dt
         #
         I_xi = get_grid_index(xi)

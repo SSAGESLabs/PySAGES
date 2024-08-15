@@ -27,7 +27,7 @@ from pysages.methods.core import GriddedSamplingMethod, Result, generalize
 from pysages.methods.restraints import apply_restraints
 from pysages.methods.utils import numpyfy_vals
 from pysages.typing import JaxArray, NamedTuple
-from pysages.utils import dispatch, solve_pos_def
+from pysages.utils import dispatch, linear_solver
 
 
 class ABFState(NamedTuple):
@@ -104,10 +104,9 @@ class ABF(GriddedSamplingMethod):
         collective variable lies outside the box from `restraints.lower` to
         `restraints.upper`.
 
-    use_np_pinv: Optional[Bool] = False
-        If set to True, the product W times momentum p
-        will be calculated using pseudo-inverse from numpy
-        rather than using the solving function from scipy
+    use_pinv: Optional[Bool] = False
+        If set to True, the product `W @ p` will be estimated using
+        `np.linalg.pinv` rather than using the `scipy.linalg.solve` function.
         This is computationally more expensive but numerically more stable.
     """
 
@@ -116,7 +115,7 @@ class ABF(GriddedSamplingMethod):
     def __init__(self, cvs, grid, **kwargs):
         super().__init__(cvs, grid, **kwargs)
         self.N = np.asarray(self.kwargs.get("N", 500))
-        self.use_np_pinv = self.kwargs.get("use_np_pinv", False)
+        self.use_pinv = self.kwargs.get("use_pinv", False)
 
     def build(self, snapshot, helpers, *args, **kwargs):
         """
@@ -161,11 +160,11 @@ def _abf(method, snapshot, helpers):
     """
     cv = method.cv
     grid = method.grid
-    use_np_pinv = method.use_np_pinv
 
     dt = snapshot.dt
     dims = grid.shape.size
     natoms = np.size(snapshot.positions, 0)
+    tsolve = linear_solver(method.use_pinv)
     get_grid_index = build_indexer(grid)
     estimate_force = build_force_estimator(method)
 
@@ -209,15 +208,7 @@ def _abf(method, snapshot, helpers):
         xi, Jxi = cv(data)
 
         p = data.momenta
-
-        # The following could equivalently be computed as `linalg.pinv(Jxi.T) @ p`
-        # (both seem to have the same performance).
-        # Another option to benchmark against is
-        # Wp = linalg.tensorsolve(Jxi @ Jxi.T, Jxi @ p)
-        if use_np_pinv:
-            Wp = np.linalg.pinv(Jxi.T) @ p
-        else:
-            Wp = solve_pos_def(Jxi @ Jxi.T, Jxi @ p)
+        Wp = tsolve(Jxi, p)
         # Second order backward finite difference
         dWp_dt = (1.5 * Wp - 2.0 * state.Wp + 0.5 * state.Wp_) / dt
 

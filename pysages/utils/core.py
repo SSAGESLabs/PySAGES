@@ -8,6 +8,7 @@ from jax import numpy as np
 from plum import Dispatcher
 
 from pysages.typing import JaxArray, Scalar
+from pysages.utils.compat import solve_pos_def
 
 # PySAGES main dispatcher
 dispatch = Dispatcher()
@@ -70,3 +71,24 @@ def gaussian(a, sigma, x):
     N-dimensional origin-centered gaussian with height `a` and standard deviation `sigma`.
     """
     return a * np.exp(-row_sum((x / sigma) ** 2) / 2)
+
+
+def linear_solver(use_pinv: bool):
+    """
+    Returns a function that solves the linear system `A.T @ X = B` for `X`.
+    When `use_pinv == True`, `numpy.linalg.pinv` is used rather than `scipy.linalg.solve`
+    (this is computationally more expensive but numerically more stable).
+    """
+    if method.use_pinv:
+
+        # This is numerically more robust
+        def tsolve(A, B):
+            return np.linalg.pinv(A.T) @ B
+
+    else:
+
+        # Another option to benchmark against is `linalg.tensorsolve(A @ A.T, A @ B)`
+        def tsolve(A, B):
+            return solve_pos_def(A @ A.T, A @ B)
+
+    return tsolve

@@ -30,7 +30,7 @@ from pysages.methods.core import GriddedSamplingMethod, Result, generalize
 from pysages.methods.restraints import apply_restraints
 from pysages.methods.utils import numpyfy_vals
 from pysages.typing import JaxArray, NamedTuple, Tuple
-from pysages.utils import dispatch, first_or_all, solve_pos_def
+from pysages.utils import dispatch, first_or_all, linear_solver
 
 
 class SpectralABFState(NamedTuple):
@@ -125,10 +125,9 @@ class SpectralABF(GriddedSamplingMethod):
         collective variable lies outside the box from `restraints.lower` to
         `restraints.upper`.
 
-    use_np_pinv: Optional[Bool] = False
-        If set to True, the product W times momentum p
-        will be calculated using pseudo-inverse from numpy
-        rather than using the solving function from scipy
+    use_pinv: Optional[Bool] = False
+        If set to True, the product `W @ p` will be estimated using
+        `np.linalg.pinv` rather than using the `scipy.linalg.solve` function.
         This is computationally more expensive but numerically more stable.
     """
 
@@ -141,7 +140,7 @@ class SpectralABF(GriddedSamplingMethod):
         self.fit_threshold = self.kwargs.get("fit_threshold", 500)
         self.grid = self.grid if self.grid.is_periodic else convert(self.grid, Grid[Chebyshev])
         self.model = SpectralGradientFit(self.grid)
-        self.use_np_pinv = self.kwargs.get("use_np_pinv", False)
+        self.use_pinv = self.kwargs.get("use_pinv", False)
 
     def build(self, snapshot, helpers, *_args, **_kwargs):
         """
@@ -155,13 +154,13 @@ def _spectral_abf(method, snapshot, helpers):
     grid = method.grid
     fit_freq = method.fit_freq
     fit_threshold = method.fit_threshold
-    use_np_pinv = method.use_np_pinv
 
     dt = snapshot.dt
     dims = grid.shape.size
     natoms = np.size(snapshot.positions, 0)
 
     # Helper methods
+    tsolve = linear_solver(method.use_pinv)
     get_grid_index = build_indexer(grid)
     fit = build_fitter(method.model)
     fit_forces = build_free_energy_fitter(method, fit)
@@ -189,10 +188,7 @@ def _spectral_abf(method, snapshot, helpers):
         xi, Jxi = cv(data)
         #
         p = data.momenta
-        if use_np_pinv:
-            Wp = np.linalg.pinv(Jxi.T) @ p
-        else:
-            Wp = solve_pos_def(Jxi @ Jxi.T, Jxi @ p)
+        Wp = tsolve(Jxi, p)
         # Second order backward finite difference
         dWp_dt = (1.5 * Wp - 2.0 * state.Wp + 0.5 * state.Wp_) / dt
         #
