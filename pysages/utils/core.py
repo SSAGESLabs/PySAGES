@@ -80,13 +80,11 @@ def linear_solver(use_pinv: bool):
     (this is computationally more expensive but numerically more stable).
     """
     if use_pinv:
-
         # This is numerically more robust
         def tsolve(A, B):
             return np.linalg.pinv(A.T) @ B
 
     else:
-
         # Another option to benchmark against is `linalg.tensorsolve(A @ A.T, A @ B)`
         def tsolve(A, B):
             return solve_pos_def(A @ A.T, A @ B)
