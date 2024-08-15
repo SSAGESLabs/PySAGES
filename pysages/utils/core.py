@@ -79,7 +79,7 @@ def linear_solver(use_pinv: bool):
     When `use_pinv == True`, `numpy.linalg.pinv` is used rather than `scipy.linalg.solve`
     (this is computationally more expensive but numerically more stable).
     """
-    if method.use_pinv:
+    if use_pinv:
 
         # This is numerically more robust
         def tsolve(A, B):
