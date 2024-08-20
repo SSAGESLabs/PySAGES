@@ -104,40 +104,39 @@ def scale(x, grid: Grid):
     return (x - grid.lower) * 2 / grid.size - 1
 
 
+def compute_mesh(grid):
+    """
+    Returns a dense mesh with the same shape as `grid`, but on the hypercube [-1, 1]ⁿ,
+    where `n` is the dimensionality of `grid`. The resulting mesh is Chebyshev-distributed
+    if `grid: Grid[Chebyshev]`, or uniformly-distributed otherwise.
+    """
+
+    def generate_axis(n):
+        transform = _generate_transform(grid, n)
+        return transform(np.arange(n))
+
+    return cartesian_product(*(generate_axis(i) for i in grid.shape))
+
+
 @dispatch
-def compute_mesh(grid: Grid):
-    """
-    Returns a dense mesh with the same shape as `grid`, but on the hypercube
-    [-1, 1]ⁿ, where `n` is the dimensionality of `grid`.
-    """
-    h = 2 / grid.shape
-    o = -1 + h / 2
-
-    nodes = o + h * np.hstack([np.arange(i).reshape(-1, 1) for i in grid.shape])
-
-    return _compute_mesh(nodes)
+def _generate_transform(_: Grid, n):
+    return vmap(lambda k: -1 + (2 * k + 1) / n)
 
 
 @dispatch
-def compute_mesh(grid: Grid[Chebyshev]):  # noqa: F811 # pylint: disable=C0116,E0102
+def _generate_transform(_: Grid[Chebyshev], n):  # noqa: F811 # pylint: disable=C0116,E0102
+    return vmap(lambda k: -np.cos((k + 1 / 2) * np.pi / n))
+
+
+def cartesian_product(*collections):
     """
-    Returns a Chebyshev-distributed dense mesh with the same shape as `grid`,
-    but on the hypercube [-1, 1]ⁿ, where n is the dimensionality of `grid`.
+    Given a set of `collections`, returns an array with their [Cartesian
+    Product](https://en.wikipedia.org/wiki/Cartesian_product).
     """
-
-    def transform(n):
-        return vmap(lambda k: -np.cos((k + 1 / 2) * np.pi / n))
-
-    nodes = np.hstack([transform(i)(np.arange(i).reshape(-1, 1)) for i in grid.shape])
-
-    return _compute_mesh(nodes)
-
-
-def _compute_mesh(nodes):
-    components = np.meshgrid(
-        *nodes.T,
-    )
-    return np.hstack([v.reshape(-1, 1) for v in components])
+    n = len(collections)
+    coordinates = np.array(np.meshgrid(*collections, indexing="ij"))
+    permutation = np.roll(np.arange(n + 1), -1)
+    return np.transpose(coordinates, permutation).reshape(-1, n)
 
 
 def vander_builder(grid, exponents):

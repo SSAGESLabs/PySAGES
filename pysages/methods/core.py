@@ -16,7 +16,15 @@ from pysages.grids import Grid, build_grid, get_info
 from pysages.methods.restraints import canonicalize
 from pysages.methods.utils import ReplicasConfiguration
 from pysages.typing import Callable, Optional, Union
-from pysages.utils import ToCPU, copy, dispatch, dispatch_table, has_method, identity
+from pysages.utils import (
+    ToCPU,
+    copy,
+    device_platform,
+    dispatch,
+    dispatch_table,
+    has_method,
+    identity,
+)
 
 #  Base Classes
 #  ============
@@ -392,7 +400,7 @@ def _run(  # noqa: F811 # pylint: disable=C0116,E0102
     context_args["context"] = sampling_context.context
     sampler = sampling_context.sampler
     prev_snapshot = result.snapshots
-    if sampler.state.xi.device().platform == "cpu":
+    if device_platform(sampler.state.xi) == "cpu":
         prev_snapshot = copy(prev_snapshot, ToCPU())
     sampler.restore(prev_snapshot)
     sampler.state = result.states

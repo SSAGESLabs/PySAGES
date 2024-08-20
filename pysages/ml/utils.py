@@ -3,12 +3,15 @@
 
 from jax import numpy as np
 from jax import random, vmap
+from jax._src.nn import initializers
+from jax.core import as_named_shape
 from jax.numpy.linalg import norm
 from jax.tree_util import PyTreeDef, tree_flatten
 from numpy import cumsum
 from plum import Dispatcher
 
 from pysages.typing import NamedTuple
+from pysages.utils import identity, prod
 
 # Dispatcher for the `ml` submodule
 dispatch = Dispatcher()
@@ -36,13 +39,6 @@ def rng_key(seed=0, n=2):
     return key
 
 
-def prod(xs):
-    y = 1
-    for x in xs:
-        y *= x
-    return y
-
-
 # %% Models
 def unpack(params):
     """
@@ -66,6 +62,43 @@ def pack(params, layout):
     partition = np.split(params, separators)
     ps = [p.reshape(s) for (p, s) in zip(partition, shapes)]
     return structure.unflatten(ps)
+
+
+def uniform_scaling(
+    scale, mode, in_axis=-2, out_axis=-1, dtype=np.float_, bias_like=False, scale_transform=np.sqrt
+):
+    """
+    Similar to `jax.nn.initializers.variance_scaling`, but the sampling distribution is
+    always uniform and the scaling can be transformed by `scale_transform` (defaults to
+    `jax.numpy.sqrt`). In addition, it also works for biases if `bias_like == True`.
+    """
+    # Local aliases
+    idem = identity
+    transform = scale_transform
+
+    if mode == "fan_in":
+        denominator = idem(lambda fan_in, fan_out: fan_in)
+    elif mode == "fan_out":
+        denominator = idem(lambda fan_in, fan_out: fan_out)
+    elif mode == "fan_avg":
+        denominator = idem(lambda fan_in, fan_out: (fan_in + fan_out) / 2)
+    else:
+        raise ValueError(f"invalid mode for variance scaling initializer: {mode}")
+
+    if bias_like:
+        trim_named_shape = idem(lambda named_shp, shp, axis: as_named_shape(shp[axis:]))
+    else:
+        trim_named_shape = idem(lambda named_shp, shp, axis: named_shp)
+
+    def init(key, shape, dtype=dtype):
+        args_named_shape = as_named_shape(shape)
+        named_shape = trim_named_shape(args_named_shape, shape, out_axis)
+        # pylint: disable-next=W0212
+        fan_in, fan_out = initializers._compute_fans(args_named_shape, in_axis, out_axis)
+        s = np.array(scale / denominator(fan_in, fan_out), dtype=dtype)
+        return random.uniform(key, named_shape, dtype, -1) * transform(s)
+
+    return init
 
 
 def number_of_weights(topology):

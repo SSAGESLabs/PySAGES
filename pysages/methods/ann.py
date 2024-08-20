@@ -23,7 +23,7 @@ from jax.lax import cond
 
 from pysages.approxfun import compute_mesh
 from pysages.approxfun import scale as _scale
-from pysages.grids import build_indexer
+from pysages.grids import build_indexer, grid_transposer
 from pysages.methods.core import NNSamplingMethod, Result, generalize
 from pysages.methods.utils import numpyfy_vals
 from pysages.ml.models import MLP
@@ -32,7 +32,7 @@ from pysages.ml.optimizers import LevenbergMarquardt
 from pysages.ml.training import NNData, build_fitting_function, convolve, normalize
 from pysages.ml.utils import blackman_kernel, pack, unpack
 from pysages.typing import JaxArray, NamedTuple
-from pysages.utils import dispatch
+from pysages.utils import dispatch, first_or_all
 
 
 class ANNState(NamedTuple):
@@ -120,7 +120,7 @@ class ANN(NNSamplingMethod):
         default_optimizer = LevenbergMarquardt(reg=L2Regularization(1e-6))
         self.optimizer = kwargs.get("optimizer", default_optimizer)
 
-    def build(self, snapshot, helpers):
+    def build(self, snapshot, helpers, *_args, **_kwargs):
         return _ann(self, snapshot, helpers)
 
 
@@ -155,7 +155,7 @@ def _ann(method: ANN, snapshot, helpers):
         in_training_regime = ncalls > train_freq
         # We only train every `train_freq` timesteps
         in_training_step = in_training_regime & (ncalls % train_freq == 1)
-        hist, phi, prob, nn = learn_free_energy(state, in_training_step)
+        hist, prob, phi, nn = learn_free_energy(state, in_training_step)
         # Compute the collective variable and its jacobian
         xi, Jxi = cv(data)
         I_xi = get_grid_index(xi)
@@ -208,10 +208,10 @@ def build_free_energy_learner(method: ANN):
         #
         hist = np.zeros_like(state.hist)
         #
-        return hist, phi, prob, nn
+        return hist, prob, phi, nn
 
     def skip_learning(state):
-        return state.hist, state.phi, state.prob, state.nn
+        return state.hist, state.prob, state.phi, state.nn
 
     def _learn_free_energy(state, in_training_step):
         return cond(in_training_step, learn_free_energy, skip_learning, state)
@@ -241,7 +241,7 @@ def build_force_estimator(method: ANN):
         params = pack(nn.params, layout)
         return nn.std * f64(model_grad(params, f32(x)).flatten())
 
-    def zero_force(data):
+    def zero_force(_data):
         return np.zeros(dims)
 
     def estimate_force(xi, I_xi, nn, in_training_regime):
@@ -282,7 +282,6 @@ def analyze(result: Result[ANN]):
     """
 
     method = result.method
-    states = result.states
 
     grid = method.grid
     mesh = (compute_mesh(grid) + 1) * grid.size / 2 + grid.lower
@@ -297,25 +296,27 @@ def analyze(result: Result[ANN]):
 
         return jit(fes_fn)
 
-    def first_or_all(seq):
-        return seq[0] if len(seq) == 1 else seq
-
     histograms = []
     free_energies = []
     nns = []
     fes_fns = []
 
-    for s in states:
-        histograms.append(s.hist)
-        free_energies.append(s.phi.max() - s.phi)
+    # We transpose the data for convenience when plotting
+    transpose = grid_transposer(grid)
+    d = mesh.shape[-1]
+
+    for s in result.states:
+        histograms.append(transpose(s.hist))
+        free_energies.append(transpose(s.phi.max() - s.phi))
         nns.append(s.nn)
         fes_fns.append(build_fes_fn(s.nn))
 
-    ana_result = dict(
-        histogram=first_or_all(histograms),
-        free_energy=first_or_all(free_energies),
-        mesh=mesh,
-        nn=first_or_all(nns),
-        fes_fn=first_or_all(fes_fns),
-    )
+    ana_result = {
+        "histogram": first_or_all(histograms),
+        "free_energy": first_or_all(free_energies),
+        "mesh": transpose(mesh).reshape(-1, d).squeeze(),
+        "nn": first_or_all(nns),
+        "fes_fn": first_or_all(fes_fns),
+    }
+
     return numpyfy_vals(ana_result)

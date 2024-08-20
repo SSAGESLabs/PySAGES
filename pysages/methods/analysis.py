@@ -14,13 +14,14 @@ from jax import vmap
 
 from pysages.approxfun import compute_mesh
 from pysages.approxfun import scale as _scale
+from pysages.grids import grid_transposer
 from pysages.methods.core import Result
 from pysages.ml.models import MLP
 from pysages.ml.objectives import GradientsSSE, L2Regularization
 from pysages.ml.optimizers import LevenbergMarquardt
 from pysages.ml.training import NNData, build_fitting_function, convolve
 from pysages.ml.utils import blackman_kernel, pack, unpack
-from pysages.utils import dispatch, only_or_identity
+from pysages.utils import dispatch, first_or_all
 
 
 class AnalysisStrategy:
@@ -154,17 +155,21 @@ def _analyze(result: Result, strategy: GradientLearning, topology):
     free_energies = []
     fes_fns = []
 
+    # We transpose the data for convenience when plotting
+    transpose = grid_transposer(grid)
+    d = mesh.shape[-1]
+
     for state in states:
         fes_fn = build_fes_fn(state)
-        hists.append(state.hist)
-        mean_forces.append(average_forces(state.hist, state.Fsum))
-        free_energies.append(fes_fn(mesh).reshape(grid.shape))
+        hists.append(transpose(state.hist))
+        mean_forces.append(transpose(average_forces(state.hist, state.Fsum)))
+        free_energies.append(transpose(fes_fn(mesh)))
         fes_fns.append(fes_fn)
 
     return {
-        "histogram": only_or_identity(hists),
-        "mean_force": only_or_identity(mean_forces),
-        "free_energy": only_or_identity(free_energies),
-        "fes_fn": only_or_identity(fes_fns),
-        "mesh": mesh,
+        "histogram": first_or_all(hists),
+        "mean_force": first_or_all(mean_forces),
+        "free_energy": first_or_all(free_energies),
+        "fes_fn": first_or_all(fes_fns),
+        "mesh": transpose(mesh).reshape(-1, d).squeeze(),
     }

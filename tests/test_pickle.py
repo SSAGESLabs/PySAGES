@@ -1,5 +1,6 @@
 import importlib
 import inspect
+import pathlib
 import tempfile
 
 import dill as pickle
@@ -80,6 +81,12 @@ METHODS_ARGS = {
     "SpectralABF": {
         "cvs": [pysages.colvars.Component([0], 0), pysages.colvars.Component([0], 1)],
         "grid": pysages.Grid(lower=(1, 1), upper=(5, 5), shape=(32, 32)),
+    },
+    "Sirens": {
+        "cvs": [pysages.colvars.Component([0], 0), pysages.colvars.Component([0], 1)],
+        "grid": pysages.Grid(lower=(1, 1), upper=(5, 5), shape=(32, 32)),
+        "topology": (14,),
+        "mode": "abf",
     },
     "HistogramLogger": {
         "period": 1,
@@ -168,9 +175,9 @@ def test_pickle_colvars():
 
 
 def test_pickle_results():
-    with tempfile.NamedTemporaryFile() as tmp_pickle:
-        test_result = abf_example.run_simulation(10, write_output=False)
+    test_result = abf_example.run_simulation(10, write_output=False)
 
+    with tempfile.NamedTemporaryFile() as tmp_pickle:
         pickle.dump(test_result, tmp_pickle)
         tmp_pickle.flush()
 
@@ -180,3 +187,14 @@ def test_pickle_results():
         assert np.all(test_result.states[0].bias == tmp_result.states[0].bias).item()
         assert np.all(test_result.states[0].hist == tmp_result.states[0].hist).item()
         assert np.all(test_result.states[0].Fsum == tmp_result.states[0].Fsum).item()
+
+    tmp_file = pathlib.Path(".tmp_test_pickle")
+    pysages.save(test_result, tmp_file)
+    tmp_result = pysages.load(tmp_file.name)
+
+    assert np.all(test_result.states[0].xi == tmp_result.states[0].xi).item()
+    assert np.all(test_result.states[0].bias == tmp_result.states[0].bias).item()
+    assert np.all(test_result.states[0].hist == tmp_result.states[0].hist).item()
+    assert np.all(test_result.states[0].Fsum == tmp_result.states[0].Fsum).item()
+
+    tmp_file.unlink()
