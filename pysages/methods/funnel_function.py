@@ -3,9 +3,8 @@ from functools import partial
 
 import jax.numpy as np
 from jax import grad, jit
-from jax.numpy import linalg
 
-from pysages.colvars.funnels import center, kabsch, periodic
+from pysages.colvars.funnels import perp_projection_mobile, projection_mobile
 
 
 def y_function(x, Z_0, Zcc, R):
@@ -13,65 +12,34 @@ def y_function(x, Z_0, Zcc, R):
     return m * x + Z_0
 
 
-def cone(x, eje, Zcc, Z_0, R, k):
-    x_coord = np.dot(x, eje)
-    proj = x_coord * eje
-    x_perp = x - proj
-    F = linalg.norm(x_perp) - y_function(x_coord, Z_0, Zcc, R)
+def cone(x, x_p, Zcc, Z_0, R, k):
+    F = x_p - y_function(x, Z_0, Zcc, R)
     return np.where(F < 0.0, 0.0, 0.5 * k * F * F)
 
 
-def cylinder(x, eje, R, k):
-    x_perp = x - np.dot(x, eje) * eje
-    F = linalg.norm(x_perp) - R
+def cylinder(x, R, k):
+    F = x - R
     return np.where(F < 0.0, 0.0, 0.5 * k * F * F)
 
 
-def borderU(x, eje, k, cv_max):
-    # x = lig_com-A
-    proj_restr = np.dot(x, eje)
-    B = proj_restr - cv_max  # upper limit
+def borderU(x, k, cv_max):
+    B = x - cv_max  # upper limit
     return np.where(B < 0.0, 0.0, 0.5 * k * B * B)
 
 
-def borderL(x, eje, k, cv_min):
-    # x = lig_com-A
-    proj = np.dot(x, eje)
-    B = proj - cv_min  # lower limit
+def borderL(x, k, cv_min):
+    B = x - cv_min  # lower limit
     return np.where(B > 0.0, 0.0, 0.5 * k * B * B)
 
 
-def rotation_lig(pos_lig, pos_ref, references, weights, com_ref):
-    com_prot = center(pos_ref, weights)
-    lig_rot = np.dot(pos_lig - com_prot, kabsch(pos_ref, references, weights))
-    return lig_rot + com_ref
-
-
-def funnel(x, A, B, Zcc, Z_0, R, k, k_cv, cv_min, cv_max):
-    A_r = A
-    B_r = B
-    norm_eje = linalg.norm(B_r - A_r)
-    eje = (B_r - A_r) / norm_eje
-    #    Z_pos = Zcc * eje
-    x_fit = x - A_r
-    proj = np.dot(x_fit, eje)
+def funnel(xi_par, xi_perp, Zcc, Z_0, R, k, k_cv, cv_min, cv_max):
     return np.where(
-        proj < Zcc,
-        cone(x_fit, eje, Zcc, Z_0, R, k) + borderL(x_fit, eje, k_cv, cv_min) + borderU(x_fit, eje, k_cv, cv_max),
-        cylinder(x_fit, eje, R, k) + borderU(x_fit, eje, k_cv, cv_max) + borderL(x_fit, eje, k_cv, cv_max),
+        xi_par < Zcc,
+        cone(xi_par, xi_perp, Zcc, Z_0, R, k)
+        + borderL(xi_par, k_cv, cv_min)
+        + borderU(xi_par, k_cv, cv_max),
+        cylinder(xi_perp, R, k) + borderU(xi_par, k_cv, cv_max) + borderL(xi_par, k_cv, cv_max),
     )
-
-
-def proj_funnel(x, A, B, Zcc, Z_0, R, k, k_cv, cv_min, cv_max):
-    A_r = A
-    B_r = B
-    norm_eje = linalg.norm(B_r - A_r)
-    eje = (B_r - A_r) / norm_eje
-    #    Z_pos = Zcc * eje
-    x_fit = x - A_r
-    proj = np.dot(x_fit, eje)
-    perp = x_fit - proj * eje
-    return linalg.norm(perp)
 
 
 def intermediate_funnel(
@@ -97,14 +65,30 @@ def intermediate_funnel(
     indices_anchor = np.array(indexes[2])
     pos_anchor = pos[ids[indices_anchor]]
     pos_protein = pos[ids[indices_protein]]
-    ligand_distances = periodic(pos[ids[indices_ligand]] - pos_anchor, np.asarray(box))
-    new_lig_pos = pos_anchor + ligand_distances
-    pos_ligand = center(new_lig_pos, weights_ligand)
-    pos_ref = center(np.asarray(references), weights_protein)
-    lig_rot = rotation_lig(
-        pos_ligand, pos_protein, np.asarray(references), weights_protein, pos_ref
+    pos_ligand = pos[ids[indices_ligand]]
+    xi_par = projection_mobile(
+        pos_ligand,
+        pos_protein,
+        pos_anchor,
+        np.asarray(references),
+        weights_ligand,
+        weights_protein,
+        np.asarray(A),
+        np.asarray(B),
+        np.asarray(box),
     )
-    return funnel(lig_rot, np.asarray(A), np.asarray(B), Zcc, Z_0, R, k, k_cv, cv_min, cv_max)
+    xi_perp = perp_projection_mobile(
+        pos_ligand,
+        pos_protein,
+        pos_anchor,
+        np.asarray(references),
+        weights_ligand,
+        weights_protein,
+        np.asarray(A),
+        np.asarray(B),
+        np.asarray(box),
+    )
+    return funnel(xi_par, xi_perp, Zcc, Z_0, R, k, k_cv, cv_min, cv_max)
 
 
 def log_funnel(
@@ -130,14 +114,19 @@ def log_funnel(
     indices_anchor = np.array(indexes[2])
     pos_anchor = pos[ids[indices_anchor]]
     pos_protein = pos[ids[indices_protein]]
-    ligand_distances = periodic(pos[ids[indices_ligand]] - pos_anchor, np.asarray(box))
-    new_lig_pos = pos_anchor + ligand_distances
-    pos_ligand = center(new_lig_pos, weights_ligand)
-    pos_ref = center(np.asarray(references), weights_protein)
-    lig_rot = rotation_lig(
-        pos_ligand, pos_protein, np.asarray(references), weights_protein, pos_ref
+    pos_ligand = pos[ids[indices_ligand]]
+    xi_perp = perp_projection_mobile(
+        pos_ligand,
+        pos_protein,
+        pos_anchor,
+        np.asarray(references),
+        weights_ligand,
+        weights_protein,
+        np.asarray(A),
+        np.asarray(B),
+        np.asarray(box),
     )
-    return proj_funnel(lig_rot, np.asarray(A), np.asarray(B), Zcc, Z_0, R, k, k_cv, cv_min, cv_max)
+    return xi_perp
 
 
 def external_funnel(
@@ -215,7 +204,6 @@ def get_funnel_force(
     w_ligand=None,
     w_protein=None,
 ):
-
     funnel_force = partial(
         external_funnel,
         indexes=indices_sys,
