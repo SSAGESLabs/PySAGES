@@ -157,13 +157,12 @@ def build_helpers(context, sampling_method):
         """Adds the computed bias to the forces."""
         if state.bias is None:
             return
-        biases = adapt(state.bias)
         # Forces may be computed asynchronously on the GPU, so we need to
         # synchronize them before applying the bias.
         sync_backend()
+        biases = adapt(state.bias)
         forces = view(snapshot.forces)
-        biases = view(biases.block_until_ready())
-        forces += biases
+        forces += view(biases.block_until_ready())
         sync_forces()
 
     def dimensionality():
