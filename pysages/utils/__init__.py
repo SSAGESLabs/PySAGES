@@ -18,5 +18,14 @@ from .compat import (
     solve_pos_def,
     try_import,
 )
-from .core import ToCPU, copy, dispatch, eps, first_or_all, gaussian, identity
+from .core import (
+    ToCPU,
+    copy,
+    dispatch,
+    eps,
+    first_or_all,
+    gaussian,
+    identity,
+    linear_solver,
+)
 from .transformations import quaternion_from_euler, quaternion_matrix

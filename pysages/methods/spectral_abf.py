@@ -30,7 +30,7 @@ from pysages.methods.core import GriddedSamplingMethod, Result, generalize
 from pysages.methods.restraints import apply_restraints
 from pysages.methods.utils import numpyfy_vals
 from pysages.typing import JaxArray, NamedTuple, Tuple
-from pysages.utils import dispatch, first_or_all, solve_pos_def
+from pysages.utils import dispatch, first_or_all, linear_solver
 
 
 class SpectralABFState(NamedTuple):
@@ -124,6 +124,11 @@ class SpectralABF(GriddedSamplingMethod):
         If provided, indicate that harmonic restraints will be applied when any
         collective variable lies outside the box from `restraints.lower` to
         `restraints.upper`.
+
+    use_pinv: Optional[Bool] = False
+        If set to True, the product `W @ p` will be estimated using
+        `np.linalg.pinv` rather than using the `scipy.linalg.solve` function.
+        This is computationally more expensive but numerically more stable.
     """
 
     snapshot_flags = {"positions", "indices", "momenta"}
@@ -135,6 +140,7 @@ class SpectralABF(GriddedSamplingMethod):
         self.fit_threshold = self.kwargs.get("fit_threshold", 500)
         self.grid = self.grid if self.grid.is_periodic else convert(self.grid, Grid[Chebyshev])
         self.model = SpectralGradientFit(self.grid)
+        self.use_pinv = self.kwargs.get("use_pinv", False)
 
     def build(self, snapshot, helpers, *_args, **_kwargs):
         """
@@ -154,6 +160,7 @@ def _spectral_abf(method, snapshot, helpers):
     natoms = np.size(snapshot.positions, 0)
 
     # Helper methods
+    tsolve = linear_solver(method.use_pinv)
     get_grid_index = build_indexer(grid)
     fit = build_fitter(method.model)
     fit_forces = build_free_energy_fitter(method, fit)
@@ -181,7 +188,7 @@ def _spectral_abf(method, snapshot, helpers):
         xi, Jxi = cv(data)
         #
         p = data.momenta
-        Wp = solve_pos_def(Jxi @ Jxi.T, Jxi @ p)
+        Wp = tsolve(Jxi, p)
         # Second order backward finite difference
         dWp_dt = (1.5 * Wp - 2.0 * state.Wp + 0.5 * state.Wp_) / dt
         #

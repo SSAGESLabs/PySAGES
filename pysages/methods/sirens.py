@@ -32,7 +32,7 @@ from pysages.ml.optimizers import LevenbergMarquardt
 from pysages.ml.training import NNData, build_fitting_function, convolve
 from pysages.ml.utils import blackman_kernel, pack, unpack
 from pysages.typing import JaxArray, NamedTuple, Tuple
-from pysages.utils import dispatch, first_or_all, solve_pos_def
+from pysages.utils import dispatch, first_or_all, linear_solver
 
 
 class SirensState(NamedTuple):  # pylint: disable=R0903
@@ -146,6 +146,11 @@ class Sirens(NNSamplingMethod):
         If provided, indicate that harmonic restraints will be applied when any
         collective variable lies outside the box from `restraints.lower` to
         `restraints.upper`.
+
+    use_pinv: Optional[Bool] = False
+        If set to True, the product `W @ p` will be estimated using
+        `np.linalg.pinv` rather than using the `scipy.linalg.solve` function.
+        This is computationally more expensive but numerically more stable.
     """
 
     snapshot_flags = {"positions", "indices", "momenta"}
@@ -172,6 +177,7 @@ class Sirens(NNSamplingMethod):
         scale = partial(_scale, grid=grid)
         self.model = Siren(dims, 1, topology, transform=scale)
         self.optimizer = optimizer
+        self.use_pinv = self.kwargs.get("use_pinv", False)
 
     def __check_init_invariants__(self, mode, kT, optimizer):
         if mode not in ("abf", "cff"):
@@ -202,6 +208,7 @@ def _sirens(method: Sirens, snapshot, helpers):
     ps, _ = unpack(method.model.parameters)
 
     # Helper methods
+    tsolve = linear_solver(method.use_pinv)
     get_grid_index = build_indexer(grid)
     learn_free_energy = build_free_energy_learner(method)
     estimate_force = build_force_estimator(method)
@@ -244,7 +251,7 @@ def _sirens(method: Sirens, snapshot, helpers):
         xi, Jxi = cv(data)
         #
         p = data.momenta
-        Wp = solve_pos_def(Jxi @ Jxi.T, Jxi @ p)
+        Wp = tsolve(Jxi, p)
         dWp_dt = (1.5 * Wp - 2.0 * state.Wp + 0.5 * state.Wp_) / dt
         #
         I_xi = get_grid_index(xi)
