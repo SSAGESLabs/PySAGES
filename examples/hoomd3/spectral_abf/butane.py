@@ -298,7 +298,6 @@ def main(argv=[]):
     mesh = result["mesh"]
     fes_fn = result["fes_fn"]
     A = fes_fn(mesh)
-    A = A.max() - A
 
     # plot the free energy
     fig, ax = plt.subplots()
