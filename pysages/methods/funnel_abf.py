@@ -232,7 +232,7 @@ def _abf(method, snapshot, helpers):
         hist = state.hist.at[I_xi].add(1)
         e_f, proj = ext_force(data)
         # Calculate the restraint contribution to the force
-        restr = Wp @ e_f.T.reshape(p.shape)
+        restr = Wp @ e_f.reshape(p.shape)
         # Remove the effect of the biasing force
         Fsum = state.Fsum.at[I_xi].add(dWp_dt + 0.5 * (force + state.force))
         Frestr = state.Frestr.at[I_xi].add(restr)
