@@ -48,9 +48,16 @@ class NativeContactFraction(CollectiveVariable):
         Smoothing parameter. Default is 50 nm^-1.
     lambda_d: float
         Scaling factor for the distances.
+    clip: bool
+        Clip the :math:`\gamma(r_{ij}-\lambda_d*r_{ij}^0)` by some value.
+        Default is False
+    clip_val: float
+        Default is 5.
     """
 
-    def __init__(self, indices, contact_pairs, references, gamma=50, lambda_d=1.5):
+    def __init__(
+        self, indices, contact_pairs, references, gamma=50, lambda_d=1.5, clip=False, clip_val=5
+    ):
         super().__init__(indices)
         indices = np.sort(np.asarray(indices))
         contact_pairs = np.asarray(contact_pairs)
@@ -65,15 +72,23 @@ class NativeContactFraction(CollectiveVariable):
         self.references = np.asarray(references)
         self.gamma = gamma
         self.lambda_d = lambda_d
+        self.clip = clip
+        self.clip_val = clip_val
 
     @property
     def function(self):
         return lambda r: native_contact_fraction(
-            r, self.contact_pairs, self.references, self.gamma, self.lambda_d
+            r,
+            self.contact_pairs,
+            self.references,
+            self.gamma,
+            self.lambda_d,
+            self.clip,
+            self.clip_val,
         )
 
 
-def native_contact_fraction(r, contact_pairs, references, gamma, lambda_d):
+def native_contact_fraction(r, contact_pairs, references, gamma, lambda_d, clip, clip_val):
     r"""
     Calculate the native contact fraction Q.
 
@@ -89,6 +104,9 @@ def native_contact_fraction(r, contact_pairs, references, gamma, lambda_d):
         Smoothing parameter.
     lambda_d: float
         Scaling factor for the distances.
+    clip: bool
+        Clip the :math:`\gamma(r_{ij}-\lambda_d*r_{ij}^0)` by some value.
+    clip_val: float
 
     Returns
     -------
@@ -97,8 +115,7 @@ def native_contact_fraction(r, contact_pairs, references, gamma, lambda_d):
 
     Mathematical details can be found in
     [Best, Mittal, JPCB, 2010](https://pubs.acs.org/doi/10.1021/jp102575b)
-    :math:`Q=\frac{1}{N_\mathrm{contacts}}\sum_{(i, j)} \frac{1}{1+\exp(\gamma(r_{ij}-r_{ij}^0))}`
-
+    :math:`Q=\frac{1}{N_\mathrm{contacts}}\sum_{(i, j)}\frac{1}{1+\exp(\gamma(r_{ij}-\lambda_d r_{ij}^0))}`
     """
     # Calculate pairwise distances
     distance_matrix = r[:, None, :] - r[None, :, :]
@@ -116,6 +133,8 @@ def native_contact_fraction(r, contact_pairs, references, gamma, lambda_d):
     distances_contacts = distances[contact_pairs[:, 0], contact_pairs[:, 1]]
     reference_distances_contacts = reference_distances[contact_pairs[:, 0], contact_pairs[:, 1]]
     diff = distances_contacts - lambda_d * reference_distances_contacts
+    if clip:
+        diff = np.clip(diff, None, clip_val)
     Q_contribution = 1 / (1 + np.exp(gamma * diff))
 
     N_contacts = contact_pairs.shape[0]

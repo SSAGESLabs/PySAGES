@@ -123,10 +123,10 @@ def generate_simulation():
 
 def main():
     cvs = [
-        NativeContactFraction(indices, rna_id_contacts, references),
+        NativeContactFraction(indices, rna_id_contacts, references, clip=True),
     ]
 
-    method = ABF(cvs, Grid(lower=(0,), upper=(1,), shape=(32,)))
+    method = ABF(cvs, Grid(lower=(0,), upper=(1,), shape=(32,)), use_pinv=True)
     callback = HistogramLogger(1)
 
     raw_result = pysages.run(method, generate_simulation, nsteps, callback)
