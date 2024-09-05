@@ -27,7 +27,7 @@ def remap_indices(contacts, sorted_unique_indices):
 
 
 class NativeContactFraction(CollectiveVariable):
-    """
+    r"""
     Calculate the native contact fraction Q.
 
     Parameters
@@ -115,7 +115,8 @@ def native_contact_fraction(r, contact_pairs, references, gamma, lambda_d, clip,
 
     Mathematical details can be found in
     [Best, Mittal, JPCB, 2010](https://pubs.acs.org/doi/10.1021/jp102575b)
-    :math:`Q=\frac{1}{N_\mathrm{contacts}}\sum_{(i, j)}\frac{1}{1+\exp(\gamma(r_{ij}-\lambda_d r_{ij}^0))}`
+    :math:`Q=\frac{1}{N_\mathrm{contacts}}\sum_{(i, j)}\\
+    \frac{1}{1+\exp(\gamma(r_{ij}-\lambda_d r_{ij}^0))}`
     """
     # Calculate pairwise distances
     distance_matrix = r[:, None, :] - r[None, :, :]
