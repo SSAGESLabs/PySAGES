@@ -91,6 +91,11 @@ class NativeContactFraction(CollectiveVariable):
 def native_contact_fraction(r, contact_pairs, references, gamma, lambda_d, clip, clip_val):
     r"""
     Calculate the native contact fraction Q.
+    Mathematical details can be found in
+    [Best, Mittal, JPCB, 2010](https://pubs.acs.org/doi/10.1021/jp102575b)
+
+    :math:`Q=\frac{1}{N_\mathrm{contacts}}\sum_{(i, j)} \
+    \frac{1}{1+\exp(\gamma(r_{ij}-\lambda_d r_{ij}^0))}`
 
     Parameters
     ----------
@@ -107,16 +112,14 @@ def native_contact_fraction(r, contact_pairs, references, gamma, lambda_d, clip,
     clip: bool
         Clip the :math:`\gamma(r_{ij}-\lambda_d*r_{ij}^0)` by some value.
     clip_val: float
+        clip value
 
     Returns
     -------
     Q: float
         Native contact fraction.
 
-    Mathematical details can be found in
-    [Best, Mittal, JPCB, 2010](https://pubs.acs.org/doi/10.1021/jp102575b)
-    :math:`Q=\frac{1}{N_\mathrm{contacts}}\sum_{(i, j)}\\
-    \frac{1}{1+\exp(\gamma(r_{ij}-\lambda_d r_{ij}^0))}`
+
     """
     # Calculate pairwise distances
     distance_matrix = r[:, None, :] - r[None, :, :]
