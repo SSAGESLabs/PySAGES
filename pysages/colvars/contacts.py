@@ -138,7 +138,7 @@ def native_contact_fraction(r, contact_pairs, references, gamma, lambda_d, clip,
     reference_distances_contacts = reference_distances[contact_pairs[:, 0], contact_pairs[:, 1]]
     diff = distances_contacts - lambda_d * reference_distances_contacts
     if clip:
-        diff = np.clip(diff, None, clip_val)
+        diff = np.clip(diff, None, clip_val / gamma)
     Q_contribution = 1 / (1 + np.exp(gamma * diff))
 
     N_contacts = contact_pairs.shape[0]
