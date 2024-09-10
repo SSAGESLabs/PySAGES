@@ -257,7 +257,7 @@ def get_args(argv):
         ("time-steps", "t", int, 5e5, "Number of simulation steps"),
     ]
     parser = argparse.ArgumentParser(description="Example script to run SpectralABF")
-    for (name, short, T, val, doc) in available_args:
+    for name, short, T, val, doc in available_args:
         parser.add_argument("--" + name, "-" + short, type=T, default=T(val), help=doc)
 
     return parser.parse_args(argv)
@@ -283,7 +283,6 @@ def main(argv=[]):
     mesh = result["mesh"]
     fes_fn = result["fes_fn"]
     A = fes_fn(mesh)
-    A = A.max() - A
 
     # plot the free energy
     fig, ax = plt.subplots()

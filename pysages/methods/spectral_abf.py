@@ -30,7 +30,7 @@ from pysages.methods.core import GriddedSamplingMethod, Result, generalize
 from pysages.methods.restraints import apply_restraints
 from pysages.methods.utils import numpyfy_vals
 from pysages.typing import JaxArray, NamedTuple, Tuple
-from pysages.utils import dispatch, first_or_all, solve_pos_def
+from pysages.utils import dispatch, first_or_all, linear_solver
 
 
 class SpectralABFState(NamedTuple):
@@ -124,6 +124,11 @@ class SpectralABF(GriddedSamplingMethod):
         If provided, indicate that harmonic restraints will be applied when any
         collective variable lies outside the box from `restraints.lower` to
         `restraints.upper`.
+
+    use_pinv: Optional[Bool] = False
+        If set to True, the product `W @ p` will be estimated using
+        `np.linalg.pinv` rather than using the `scipy.linalg.solve` function.
+        This is computationally more expensive but numerically more stable.
     """
 
     snapshot_flags = {"positions", "indices", "momenta"}
@@ -135,8 +140,9 @@ class SpectralABF(GriddedSamplingMethod):
         self.fit_threshold = self.kwargs.get("fit_threshold", 500)
         self.grid = self.grid if self.grid.is_periodic else convert(self.grid, Grid[Chebyshev])
         self.model = SpectralGradientFit(self.grid)
+        self.use_pinv = self.kwargs.get("use_pinv", False)
 
-    def build(self, snapshot, helpers):
+    def build(self, snapshot, helpers, *_args, **_kwargs):
         """
         Returns the `initialize` and `update` functions for the sampling method.
         """
@@ -154,6 +160,7 @@ def _spectral_abf(method, snapshot, helpers):
     natoms = np.size(snapshot.positions, 0)
 
     # Helper methods
+    tsolve = linear_solver(method.use_pinv)
     get_grid_index = build_indexer(grid)
     fit = build_fitter(method.model)
     fit_forces = build_free_energy_fitter(method, fit)
@@ -181,7 +188,7 @@ def _spectral_abf(method, snapshot, helpers):
         xi, Jxi = cv(data)
         #
         p = data.momenta
-        Wp = solve_pos_def(Jxi @ Jxi.T, Jxi @ p)
+        Wp = tsolve(Jxi, p)
         # Second order backward finite difference
         dWp_dt = (1.5 * Wp - 2.0 * state.Wp + 0.5 * state.Wp_) / dt
         #
@@ -199,7 +206,7 @@ def _spectral_abf(method, snapshot, helpers):
     return snapshot, initialize, generalize(update, helpers)
 
 
-def build_free_energy_fitter(method: SpectralABF, fit):
+def build_free_energy_fitter(_method: SpectralABF, fit):
     """
     Returns a function that given a `SpectralABFState` performs a least squares fit of the
     generalized average forces for finding the coefficients of a basis functions expansion
@@ -293,7 +300,6 @@ def analyze(result: Result[SpectralABF]):
     For multiple-replicas runs we return a list (one item per-replica) for each attribute.
     """
     method = result.method
-    states = result.states
 
     grid = method.grid
     mesh = (compute_mesh(grid) + 1) * grid.size / 2 + grid.lower
@@ -320,7 +326,7 @@ def analyze(result: Result[SpectralABF]):
     transpose = grid_transposer(grid)
     d = mesh.shape[-1]
 
-    for s in states:
+    for s in result.states:
         fes_fn = build_fes_fn(s.fun)
         hists.append(transpose(s.hist))
         mean_forces.append(transpose(average_forces(s.hist, s.Fsum)))

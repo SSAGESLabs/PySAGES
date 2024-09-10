@@ -30,6 +30,7 @@ from pysages.backends.snapshot import (
 from pysages.typing import Callable, Optional
 from pysages.utils import copy, identity
 
+kConversionFactors = {"real": 2390.0573615334906, "metal": 1.0364269e-4, "electron": 1.06657236}
 kDefaultLocation = dlext.kOnHost if not hasattr(ExecutionSpace, "kOnDevice") else dlext.kOnDevice
 
 
@@ -129,6 +130,8 @@ def build_helpers(context, sampling_method, on_gpu, restore_fn):
     """
     utils = importlib.import_module(".utils", package="pysages.backends")
     dim = context.extract_setting("dimension")
+    units = context.extract_global("units")
+    factor = kConversionFactors.get(units)
 
     # Depending on the device being used we need to use either cupy or numpy
     # (or numba) to generate a view of jax's DeviceArrays
@@ -141,6 +144,16 @@ def build_helpers(context, sampling_method, on_gpu, restore_fn):
         def sync_forces():
             pass
 
+    if factor is None:
+
+        def add_bias(forces, biases):
+            forces[:, :3] += biases
+
+    else:
+
+        def add_bias(forces, biases):
+            forces[:, :3] += factor * biases
+
     # TODO: check if this can be sped up.  # pylint: disable=W0511
     def bias(snapshot, state):
         """Adds the computed bias to the forces."""
@@ -148,7 +161,7 @@ def build_helpers(context, sampling_method, on_gpu, restore_fn):
             return
         forces = view(snapshot.forces)
         biases = view(state.bias.block_until_ready())
-        forces[:, :3] += biases
+        add_bias(forces, biases)
         sync_forces()
 
     snapshot_methods = build_snapshot_methods(sampling_method, on_gpu)

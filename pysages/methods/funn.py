@@ -34,7 +34,7 @@ from pysages.ml.optimizers import LevenbergMarquardt
 from pysages.ml.training import NNData, build_fitting_function, convolve, normalize
 from pysages.ml.utils import blackman_kernel, pack, unpack
 from pysages.typing import JaxArray, NamedTuple, Tuple
-from pysages.utils import dispatch, first_or_all, solve_pos_def
+from pysages.utils import dispatch, first_or_all, linear_solver
 
 
 class FUNNState(NamedTuple):
@@ -126,6 +126,11 @@ class FUNN(NNSamplingMethod):
         If provided, indicate that harmonic restraints will be applied when any
         collective variable lies outside the box from `restraints.lower` to
         `restraints.upper`.
+
+    use_pinv: Optional[Bool] = False
+        If set to True, the product `W @ p` will be estimated using
+        `np.linalg.pinv` rather than using the `scipy.linalg.solve` function.
+        This is computationally more expensive but numerically more stable.
     """
 
     snapshot_flags = {"positions", "indices", "momenta"}
@@ -142,6 +147,7 @@ class FUNN(NNSamplingMethod):
         self.model = MLP(dims, dims, topology, transform=scale)
         default_optimizer = LevenbergMarquardt(reg=L2Regularization(1e-6))
         self.optimizer = kwargs.get("optimizer", default_optimizer)
+        self.use_pinv = self.kwargs.get("use_pinv", False)
 
     def build(self, snapshot, helpers):
         return _funn(self, snapshot, helpers)
@@ -160,6 +166,7 @@ def _funn(method, snapshot, helpers):
     ps, _ = unpack(method.model.parameters)
 
     # Helper methods
+    tsolve = linear_solver(method.use_pinv)
     get_grid_index = build_indexer(grid)
     learn_free_energy_grad = build_free_energy_grad_learner(method)
     estimate_free_energy_grad = build_force_estimator(method)
@@ -186,7 +193,7 @@ def _funn(method, snapshot, helpers):
         xi, Jxi = cv(data)
         #
         p = data.momenta
-        Wp = solve_pos_def(Jxi @ Jxi.T, Jxi @ p)
+        Wp = tsolve(Jxi, p)
         dWp_dt = (1.5 * Wp - 2.0 * state.Wp + 0.5 * state.Wp_) / dt
         #
         I_xi = get_grid_index(xi)

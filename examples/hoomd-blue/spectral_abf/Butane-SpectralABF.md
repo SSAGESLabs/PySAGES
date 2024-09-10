@@ -6,7 +6,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.16.2
+      jupytext_version: 1.16.4
   kernelspec:
     display_name: Python 3
     language: python
@@ -386,7 +386,6 @@ A = result["free_energy"]
 # Alternatively:
 # fes_fn = result["fes_fn"]
 # A = fes_fn(mesh)
-A = A.max() - A
 ```
 
 ```python colab={"base_uri": "https://localhost:8080/", "height": 302} id="7_d_XfVLLkbI" outputId="e35db259-31f8-4a3b-b1fa-7e91a8a5c88a"
