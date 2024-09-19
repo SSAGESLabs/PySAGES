@@ -36,11 +36,24 @@ else:
         return result
 
 
-# Compatibility for jax >=0.4.27
+# Compatibility for jax >=0.4.22
 
-# https://github.com/google/jax/blob/main/CHANGELOG.md#jax-0427-may-7-2024
+# https://github.com/google/jax/blob/main/CHANGELOG.md#jax-0422-dec-13-2023
+if _jax_version_tuple < (0, 4, 22):
 
-if _jax_version_tuple < (0, 4, 27):
+    def unsafe_buffer_pointer(array):
+        return array.device_buffer.unsafe_buffer_pointer()
+
+else:
+
+    def unsafe_buffer_pointer(array):
+        return array.unsafe_buffer_pointer()
+
+
+# Compatibility for jax >=0.4.21
+
+# https://github.com/google/jax/blob/main/CHANGELOG.md#jax-0421-dec-4-2023
+if _jax_version_tuple < (0, 4, 21):
 
     def device_platform(array):
         return array.device().platform
