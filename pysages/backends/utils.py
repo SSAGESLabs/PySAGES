@@ -9,7 +9,7 @@ import numpy
 from numpy.ctypeslib import as_ctypes_type
 
 from pysages.typing import JaxArray
-from pysages.utils import dispatch
+from pysages.utils import dispatch, unsafe_buffer_pointer
 
 
 def cupy_helpers():
@@ -38,7 +38,7 @@ def view(array: JaxArray):
     # NOTE: We need a more general strategy to handle
     # `SharedDeviceArray`s and `GlobalDeviceArray`s.
     ptype = ctypes.POINTER(as_ctypes_type(array.dtype))
-    addr = array.device_buffer.unsafe_buffer_pointer()
+    addr = unsafe_buffer_pointer(array)
     ptr = ctypes.cast(ctypes.c_void_p(addr), ptype)
     return numba.carray(ptr, array.shape)
 

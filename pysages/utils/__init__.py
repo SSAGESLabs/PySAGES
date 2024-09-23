@@ -17,6 +17,7 @@ from .compat import (
     prod,
     solve_pos_def,
     try_import,
+    unsafe_buffer_pointer,
 )
 from .core import (
     ToCPU,
