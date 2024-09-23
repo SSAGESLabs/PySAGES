@@ -21,8 +21,6 @@ plugins:
 lint:
   enabled:
     - oxipng@9.1.2
-    - pylint@3.2.7
-    - ruff@0.6.5
     - yamllint@1.35.1
     - cspell@8.14.4
     - svgo@3.3.2
