@@ -36,6 +36,22 @@ else:
         return result
 
 
+# Compatibility for jax >=0.4.31
+
+# https://github.com/google/jax/blob/main/CHANGELOG.md#jax-0431-july-29-2024
+if _jax_version_tuple < (0, 4, 31):
+    _jax_core = import_module("jax.core")
+
+    def canonicalize_shape(shape):
+        return _jax_core.as_named_shape(shape)
+
+else:
+    _jax_core = import_module("jax._src.core")
+
+    def canonicalize_shape(shape):
+        return _jax_core.canonicalize_shape(shape)
+
+
 # Compatibility for jax >=0.4.22
 
 # https://github.com/google/jax/blob/main/CHANGELOG.md#jax-0422-dec-13-2023
