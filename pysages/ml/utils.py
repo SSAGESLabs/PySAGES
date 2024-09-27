@@ -4,7 +4,6 @@
 from jax import numpy as np
 from jax import random, vmap
 from jax._src.nn import initializers
-from jax.core import as_named_shape
 from jax.numpy.linalg import norm
 from jax.tree_util import PyTreeDef, tree_flatten
 from numpy import cumsum
@@ -12,6 +11,7 @@ from plum import Dispatcher
 
 from pysages.typing import NamedTuple
 from pysages.utils import identity, prod
+from pysages.utils.compat import canonicalize_shape
 
 # Dispatcher for the `ml` submodule
 dispatch = Dispatcher()
@@ -86,17 +86,17 @@ def uniform_scaling(
         raise ValueError(f"invalid mode for variance scaling initializer: {mode}")
 
     if bias_like:
-        trim_named_shape = idem(lambda named_shp, shp, axis: as_named_shape(shp[axis:]))
+        trim_shape = idem(lambda cshp, shp, axis: canonicalize_shape(shp[axis:]))
     else:
-        trim_named_shape = idem(lambda named_shp, shp, axis: named_shp)
+        trim_shape = idem(lambda cshp, shp, axis: cshp)
 
     def init(key, shape, dtype=dtype):
-        args_named_shape = as_named_shape(shape)
-        named_shape = trim_named_shape(args_named_shape, shape, out_axis)
+        canonical_shape = canonicalize_shape(shape)
+        shape = trim_shape(canonical_shape, shape, out_axis)
         # pylint: disable-next=W0212
-        fan_in, fan_out = initializers._compute_fans(args_named_shape, in_axis, out_axis)
+        fan_in, fan_out = initializers._compute_fans(canonical_shape, in_axis, out_axis)
         s = np.array(scale / denominator(fan_in, fan_out), dtype=dtype)
-        return random.uniform(key, named_shape, dtype, -1) * transform(s)
+        return random.uniform(key, shape, dtype, -1) * transform(s)
 
     return init
 
