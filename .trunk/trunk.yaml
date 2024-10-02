@@ -1,9 +1,9 @@
 version: 0.1
 runtimes:
   enabled:
-    - go@1.18.3
-    - node@16.14.2
-    - python@3.10.3
+    - go@1.19.5
+    - node@18.12.1
+    - python@3.10.8
 actions:
   enabled:
     - trunk-announce
@@ -12,28 +12,30 @@ actions:
     - trunk-fmt-pre-commit
     - trunk-check-pre-push
 cli:
-  version: 1.11.1
+  version: 1.22.5
 plugins:
   sources:
     - id: trunk
-      ref: v0.0.14
+      ref: v1.2.1
       uri: https://github.com/trunk-io/plugins
 lint:
   enabled:
-    - cspell@6.31.1
-    - svgo@3.0.2
-    - actionlint@1.6.25
-    - black@23.7.0
-    - flake8@6.0.0
+    - oxipng@9.1.2
+    - yamllint@1.35.1
+    - cspell@8.14.4
+    - svgo@3.3.2
+    - actionlint@1.7.1
+    - black@24.8.0
+    - flake8@7.1.1
     - git-diff-check@SYSTEM
-    - gitleaks@8.17.0
+    - gitleaks@8.19.2
     - hadolint@2.12.0
-    - isort@5.12.0
-    - markdownlint@0.35.0
-    - prettier@3.0.0
-    - shellcheck@0.9.0
-    - shfmt@3.5.0
-    - taplo@0.8.1
+    - isort@5.13.2
+    - markdownlint@0.41.0
+    - prettier@3.3.3
+    - shellcheck@0.10.0
+    - shfmt@3.6.0
+    - taplo@0.9.3
   ignore:
     - linters: [prettier]
       paths:

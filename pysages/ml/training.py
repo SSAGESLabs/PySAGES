@@ -31,7 +31,7 @@ def convolve(data, kernel, boundary="edge"):
     if n == 1:
         padding = (kernel.size - 1) // 2
     else:
-        padding = [tuple((s - 1) // 2 for _ in range(n)) for s in kernel.shape]
+        padding = [((s - 1) // 2, (s - 1) // 2) for s in kernel.shape]
 
     def pad(slice):
         return np.pad(slice, padding, mode=boundary)

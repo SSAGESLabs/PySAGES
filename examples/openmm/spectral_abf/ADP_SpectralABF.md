@@ -211,7 +211,6 @@ A = result["free_energy"]
 # mesh = result["mesh"]
 # fes_fn = result["fes_fn"]
 # A = fes_fn(mesh)
-A = A.max() - A
 A = A.reshape(grid.shape)
 ```
 
