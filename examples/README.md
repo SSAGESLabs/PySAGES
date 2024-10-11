@@ -62,7 +62,7 @@ Examples for Methods using OpenMM can be found in the subfolder [openmm](openmm)
 
 We have a Google Colab that shows how the MD engines and PySAGES can be installed together as a guide to install PySAGES.
 This notebook has a final step that sets up precompiled environments for all the other notebooks as well.
-[![Install Env](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/examples/Install_PySAGES_Environment.ipynb)
+[![Install Env](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/examples/Installing_a_PySAGES_Environment.ipynb)
 
 ## For Developers
 

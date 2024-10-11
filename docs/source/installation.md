@@ -42,4 +42,4 @@ and OpenMM can be built and installed in such an environment: [Install Notebook]
 
 <!-- References -->
 
-[Install Notebook]: https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/examples/Install_PySAGES_Environment.ipynb
+[Install Notebook]: https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/examples/Installing_a_PySAGES_Environment.ipynb

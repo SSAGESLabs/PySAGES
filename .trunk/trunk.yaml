@@ -40,7 +40,7 @@ lint:
     - linters: [prettier]
       paths:
         - examples/Advanced_Sampling_Introduction.md
-        - examples/Install_PySAGES_Environment.md
+        - examples/Installing_a_PySAGES_Environment.md
         - examples/openmm/Harmonic_Bias.md
         - examples/hoomd-blue/ann/Butane_ANN.md
         - examples/hoomd-blue/harmonic_bias/Harmonic_Bias.md
@@ -54,7 +54,7 @@ lint:
     - linters: [black]
       paths:
         - examples/Advanced_Sampling_Introduction.ipynb
-        - examples/Install_PySAGES_Environment.ipynb
+        - examples/Installing_a_PySAGES_Environment.ipynb
         - examples/openmm/Harmonic_Bias.ipynb
         - examples/hoomd-blue/ann/Butane_ANN.ipynb
         - examples/hoomd-blue/harmonic_bias/Harmonic_Bias.ipynb
