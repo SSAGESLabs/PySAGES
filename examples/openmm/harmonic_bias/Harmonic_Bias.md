@@ -16,8 +16,8 @@ jupyter:
 <!-- #region id="_UgEohXC8n0g" -->
 # Setting up the environment
 
-First, we set up our environment. We use an already compiled and packaged installation of OpenMM and the openmm-dlext plugin.
-We download it from Google Drive and make it visible to the running python process in this Colab instance.
+First, we set up our environment. We will be using a pre-compiled and packaged installation of OpenMM and the openmm-dlext plugin.
+It will be downloaded from Google Drive and made accessible to the Python process running in this Colab instance.
 <!-- #endregion -->
 
 ```bash id="3eTbKklCnyd_"
@@ -53,7 +53,7 @@ os.environ["LD_LIBRARY_PATH"] = "/usr/lib/x86_64-linux-gnu:" + os.environ["LD_LI
 <!-- #region id="lf2KeHt5_eFv" -->
 ## PySAGES
 
-The next step is to install PySAGES. We retrieve the latest version from GitHub and add its dependecies via `pip`.
+Next, we install PySAGES. The latest version is retrieved from GitHub and installed (along with its dependencies) using `pip`.
 <!-- #endregion -->
 
 ```python id="B-HB9CzioV5j"
@@ -95,12 +95,12 @@ import openmm.unit as unit
 
 T = 298.15 * unit.kelvin
 dt = 2.0 * unit.femtoseconds
-pdb_file = "adp-explicit.pdb"
+adp_pdb = "adp-explicit.pdb"
 
 
-def generate_simulation(filename=pdb_file, T=T, dt=dt, **kwargs):
+def generate_simulation(pdb_filename=adp_pdb, T=T, dt=dt, **kwargs):
     """
-    Generates a simulation context to which will attatch our sampling method.
+    Generates a simulation context to which will attach our sampling method.
     """
     pdb = app.PDBFile(pdb_filename)
 

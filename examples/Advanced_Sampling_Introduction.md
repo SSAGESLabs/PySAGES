@@ -29,8 +29,8 @@ The University of Chicago
 
 # Setting up the environment
 
-First, we set up our environment. We use an already compiled and packaged installation of HOOMD-blue and the hoomd-dlext plugin.
-We download it from Google Drive and make it visible to the running python process in this Colab instance.
+First, we set up our environment. We will be using a pre-compiled and packaged installation of HOOMD-blue and the hoomd-dlext plugin.
+It will be downloaded from Google Drive and made accessible to the Python process running in this Colab instance.
 
 <!-- #endregion -->
 
@@ -76,7 +76,7 @@ We'll also need some additional python dependencies
 
 ## PySAGES
 
-The next step is to install PySAGES. First, we need to install JAX. Fortunately, Colab already ships with JAX pre-installed (to learn how to install it you can look at the [JAX documentation](https://jax.readthedocs.io) for more details). To install PySAGES, we retrieve the latest version from GitHub and add its dependecies via `pip`.
+The next step is to install PySAGES. First, we need to install JAX. Fortunately, Colab already ships with JAX pre-installed (to learn how to install it you can look at the [JAX documentation](https://jax.readthedocs.io) for more details). To install PySAGES, we retrieve the latest version from GitHub and add its dependencies via `pip`.
 
 <!-- #endregion -->
 
@@ -106,7 +106,7 @@ Many systems have rugged free-energy landscapes, where different basins are divi
 
 - Protein folding
 - Protein-ligand binding
-- Liqid membrane fusion
+- Liquid membrane fusion
 <!-- #endregion -->
 
 <!-- #region id="mHOcKW-fXoK5" -->
@@ -189,7 +189,7 @@ $$p \propto e^{-\beta \Delta E} \ll 1$$
 
 Let's examine such a system via computer simulations.
 
-- fast to integration
+- fast to integrate
 - custom bond potential to shape the free-energy landscape
 
 $$P(r) = Ar^2 + A(1-e^{-r^2})\cos(r p \pi)$$
@@ -645,7 +645,7 @@ Can we bias simulations in these regions too, to improve sampling coverage?
 
 We want to find the free-energy profile along a given path in the space for collective variables. Usually, this path can be multidimensional.
 
-Example dihedral angles of Alanine Dipeptide. [PySAGES Alanine Dipentide examples](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/examples/openmm/Harmonic_Bias.ipynb)
+Example dihedral angles of Alanine Dipeptide. [PySAGES Alanine Dipeptide examples](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/examples/openmm/Harmonic_Bias.ipynb)
 
 <img src=https://cdn.ncbi.nlm.nih.gov/pmc/blobs/a1dd/4715807/e8dece12c024/nihms-706794-f0001.jpg width=500>
 
@@ -916,7 +916,7 @@ The normal component of the force $\Rightarrow \Delta V^\perp = 0$ is zero.
 General Idea:
 
 Move the string (path) along the perpendicular component $\Delta V^\perp$ at each discretized point $v_i = - \Delta V^\perp$. (Gradient descent)
-The parallel component would move the discretized point just along the path and end up in the minima.
+The parallel component would move the discretized point just along the path and end up in a minimum.
 
 Problem 1:
 
@@ -946,7 +946,7 @@ $\Rightarrow$ smooth path $\xi_0^s(t)$ with $\xi_0^s(t) = \xi(t_i)$.
 
 ### Improved string method
 
-Using the perpendicular component directly does not lead to good convergences.
+Using the perpendicular component directly does not lead to good convergence.
 Instead, we can use the improved string method.
 
 Iterate:
@@ -954,12 +954,10 @@ Iterate:
 1.  Calculate $\Delta V|_{t_i}$
 2.  Move string $\xi_0(t_i)$ += $\alpha \Delta V|_{t_i}$
 3.  Calculate spline $\xi_0^s(t)$
-4.  Re-parametrize the string points.
-    > Such that $|\xi*0^s(t_i) - \xi_0^s(t*{i+1})| = $const.
-    >
-    > - cancels out parallel force component
-    > - well-discretized string
-    > - requires a norm in $\xi$ space. For example $L^2$ norm in $\xi$ space.
+4.  Re-parametrize the string points such that $|\xi_0^s(t_i) - \xi_0^s(t_{i+1})| = const$.
+    - cancels out parallel force component
+    - well-discretized string
+    - requires a norm in $\xi$ space. For example $L^2$ norm in $\xi$ space.
 
 Stop iteration if converged and test $\Delta V^\perp = 0$.
 
@@ -971,7 +969,7 @@ With the converged path, calculate the free-energy profile using umbrella integr
 
 Let us define a committor probability.
 
-For a given point $r_i$ we can define the probability that a simulation started from this point ends in minima $B$ first before it moves through $B$.
+For a given point $r_i$ we can define the probability that a simulation started from this point ends in minimum $B$ first before it moves through $B$.
 $$\text{commitor probability B: } p_B(r_i)$$
 
 This is a probability since we can have multiple realizations of $r_i$ in momentum space (Maxwell-Boltzmann distribution). Each of these realizations has its path and we simulate them and measure if they arrive in $A$ or $B$ first.

@@ -148,7 +148,7 @@ cmake --build $BUILD_PATH --target install -j8 > /dev/null
 
 ## Building and Installing the HOOMD-dlext Plugin
 
-Now we can install the `dlext` plugin for HOOMD-blue. But, we need to get some dependecies first.
+Now we can install the `dlext` plugin for HOOMD-blue. But, we need to get some dependencies first.
 
 <!-- #endregion -->
 
@@ -191,7 +191,7 @@ import hoomd.dlext
 
 # Adding OpenMM Support
 
-Having previously set our the environment, we can now just simply install some required dependencies and build and install OpenMM.
+Having previously set up the environment, we can now just simply install some required dependencies and build and install OpenMM.
 
 Again, installing dependencies will be different depending on your operating system and python environment.
 <!-- #endregion -->
