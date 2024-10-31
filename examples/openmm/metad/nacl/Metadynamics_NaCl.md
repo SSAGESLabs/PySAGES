@@ -16,8 +16,8 @@ jupyter:
 <!-- #region id="_UgEohXC8n0g" -->
 # Setting up the environment
 
-First, we set up our environment. We use an already compiled and packaged installation of OpenMM and the openmm-dlext plugin.
-We download it from Google Drive and make it visible to the running python process in this Colab instance.
+First, we set up our environment. We will be using a pre-compiled and packaged installation of OpenMM and the openmm-dlext plugin.
+It will be downloaded from Google Drive and made accessible to the Python process running in this Colab instance.
 <!-- #endregion -->
 
 ```bash id="3eTbKklCnyd_"
@@ -53,7 +53,7 @@ os.environ["LD_LIBRARY_PATH"] = "/usr/lib/x86_64-linux-gnu:" + os.environ["LD_LI
 <!-- #region id="lf2KeHt5_eFv" -->
 ## PySAGES
 
-The next step is to install PySAGES. We retrieve the latest version from GitHub and add its dependecies via `pip`.
+Next, we install PySAGES. The latest version is retrieved from GitHub and installed (along with its dependencies) using `pip`.
 <!-- #endregion -->
 
 ```python id="B-HB9CzioV5j"
@@ -134,7 +134,7 @@ def generate_simulation(pdb_filename=nacl_pdb, T=T, dt=dt):
 
 <!-- #region id="3UrzENm_oo6U" -->
 
-Next, we load PySAGES and the relevant classes and methods for our problem
+Next, we import PySAGES and the necessary classes and methods for our simulation
 
 <!-- #endregion -->
 
@@ -186,7 +186,7 @@ method = Metadynamics(cvs, height, sigma, stride, ngauss, deltaT=deltaT, kB=kB, 
 
 <!-- #region id="Fz8BfU34pA_N" -->
 We now simulate the number of time steps set above.
-Make sure to run with GPU support, otherwise, it can take a very long time.
+For optimal performance, ensure that the simulation is executed with GPU acceleration. Otherwise, it may take a considerably longer time to complete.
 On the GPU this should run in around half an hour.
 <!-- #endregion -->
 

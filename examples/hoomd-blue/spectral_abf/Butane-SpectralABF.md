@@ -16,8 +16,8 @@ jupyter:
 <!-- #region id="T-Qkg9C9n7Cc" -->
 # Setting up the environment
 
-First, we set up our environment. We use an already compiled and packaged installation of HOOMD-blue and the hoomd-dlext plugin.
-We download it from Google Drive and make it visible to the running python process in this Colab instance.
+First, we set up our environment. We will be using a pre-compiled and packaged installation of HOOMD-blue and the hoomd-dlext plugin.
+It will be downloaded from Google Drive and made accessible to the Python process running in this Colab instance.
 <!-- #endregion -->
 
 ```bash id="3eTbKklCnyd_"
@@ -61,7 +61,7 @@ We'll also need some additional python dependencies
 <!-- #region id="we_mTkFioS6R" -->
 ## PySAGES
 
-The next step is to install PySAGES. We retrieve the latest version from GitHub and add its dependecies via `pip`.
+Next, we install PySAGES. The latest version is retrieved from GitHub and installed (along with its dependencies) using `pip`.
 <!-- #endregion -->
 
 ```python id="B-HB9CzioV5j"
@@ -81,7 +81,7 @@ cd /content/spectral-abf
 <!-- #region id="0W2ukJuuojAl" -->
 SpectralABF gradually learns a better approximation to the coefficients of a basis functions expansion of the free energy of a system, from the generalized mean forces in a similar fashion to the ABF sampling method.
 
-For this Colab, we are using butane as the example molecule.
+In this Colab notebook, we will use butane as an example system.
 <!-- #endregion -->
 
 ```python id="BBvC7Spoog82"
@@ -346,7 +346,7 @@ def generate_simulation(kT = kT, dt = dt, device = hoomd.device.auto_select(), s
 ```
 
 <!-- #region id="3UrzENm_oo6U" -->
-Next, we load PySAGES and the relevant classes and methods for our problem
+Next, we import PySAGES and the necessary classes and methods for our simulation
 <!-- #endregion -->
 
 ```python id="fpMg-o8WomAA"
@@ -372,8 +372,8 @@ method = SpectralABF(cvs, grid)
 ```
 
 <!-- #region id="Fz8BfU34pA_N" -->
-We now simulate $5\times10^5$ time steps.
-Make sure to run with GPU support, otherwise, it can take a very long time.
+We will now run a simulation for $5\times10^5$ time steps.
+For optimal performance, ensure that the simulation is executed with GPU acceleration. Otherwise, it may take a considerably longer time to complete.
 <!-- #endregion -->
 
 ```python colab={"base_uri": "https://localhost:8080/"} id="K951m4BbpUar" outputId="8005b8a9-2967-4eb9-f9db-e0dc0d523835"

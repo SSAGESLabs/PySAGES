@@ -16,8 +16,8 @@ jupyter:
 <!-- #region id="T-Qkg9C9n7Cc" -->
 # Setting up the environment
 
-First, we set up our environment. We use an already compiled and packaged installation of HOOMD-blue and the hoomd-dlext plugin.
-We download it from Google Drive and make it visible to the running python process in this Colab instance.
+First, we set up our environment. We will be using a pre-compiled and packaged installation of HOOMD-blue and the hoomd-dlext plugin.
+It will be downloaded from Google Drive and made accessible to the Python process running in this Colab instance.
 <!-- #endregion -->
 
 ```bash id="3eTbKklCnyd_"
@@ -61,7 +61,7 @@ We'll also need some additional python dependencies
 <!-- #region id="we_mTkFioS6R" -->
 ## PySAGES
 
-The next step is to install PySAGES. We retrieve the latest version from GitHub and add its dependecies via `pip`.
+Next, we install PySAGES. The latest version is retrieved from GitHub and installed (along with its dependencies) using `pip`.
 <!-- #endregion -->
 
 ```python id="B-HB9CzioV5j"
