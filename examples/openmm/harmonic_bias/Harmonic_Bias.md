@@ -95,12 +95,12 @@ import openmm.unit as unit
 
 T = 298.15 * unit.kelvin
 dt = 2.0 * unit.femtoseconds
-pdb_file = "adp-explicit.pdb"
+adp_pdb = "adp-explicit.pdb"
 
 
-def generate_simulation(filename=pdb_file, T=T, dt=dt, **kwargs):
+def generate_simulation(pdb_filename=adp_pdb, T=T, dt=dt, **kwargs):
     """
-    Generates a simulation context to which will attatch our sampling method.
+    Generates a simulation context to which will attach our sampling method.
     """
     pdb = app.PDBFile(pdb_filename)
 
