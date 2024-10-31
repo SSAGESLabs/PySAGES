@@ -13,77 +13,55 @@ jupyter:
     name: python3
 ---
 
-<!-- #region id="T-Qkg9C9n7Cc" -->
-
+<!-- #region id="_UgEohXC8n0g" -->
 # Setting up the environment
 
-First, we set up our environment. We use an already compiled and packaged installation of OpenMM and the DLExt plugin.
-We copy it from Google Drive and install PySAGES for it.
-
+First, we set up our environment. We use an already compiled and packaged installation of OpenMM and the openmm-dlext plugin.
+We download it from Google Drive and make it visible to the running python process in this Colab instance.
 <!-- #endregion -->
 
 ```bash id="3eTbKklCnyd_"
 
-BASE_URL="https://drive.google.com/u/0/uc?id=1hsKkKtdxZTVfHKgqVF6qV2e-4SShmhr7&export=download"
-wget -q --load-cookies /tmp/cookies.txt "$BASE_URL&confirm=$(wget -q --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate $BASE_URL -O- | sed -rn 's/.*confirm=(\w+).*/\1\n/p')" -O pysages-env.zip
-rm -rf /tmp/cookies.txt
+BASE_URL="https://drive.usercontent.google.com/download?id=1hsKkKtdxZTVfHKgqVF6qV2e-4SShmhr7"
+COOKIES="/tmp/cookies.txt"
+CONFIRMATION="$(wget -q --save-cookies $COOKIES --keep-session-cookies --no-check-certificate $BASE_URL -O- | sed -rn 's/.*confirm=(\w+).*/\1\n/p')"
+
+wget -q --load-cookies $COOKIES "$BASE_URL&confirm=$CONFIRMATION" -O pysages-env.zip
+rm -rf $COOKIES
 ```
 
-```python colab={"base_uri": "https://localhost:8080/"} id="KRPmkpd9n_NG" outputId="5e474d51-1c66-4d16-bab9-29747fd9d466"
+```python colab={"base_uri": "https://localhost:8080/"} id="25H3kl03wzJe" outputId="528d12be-8cc4-42d9-d460-692d46a0e662"
 %env PYSAGES_ENV=/env/pysages
 ```
 
-```bash id="J7OY5K9VoBBh"
+```bash id="CPkgxfj6w4te"
 
 mkdir -p $PYSAGES_ENV .
 unzip -qquo pysages-env.zip -d $PYSAGES_ENV
 ```
 
-```python id="EMAWp8VloIk4"
+```python id="JMO5fiRTxAWB"
 import os
 import sys
 
 ver = sys.version_info
 sys.path.append(os.environ["PYSAGES_ENV"] + "/lib/python" + str(ver.major) + "." + str(ver.minor) + "/site-packages/")
 
-os.environ["XLA_FLAGS"] = "--xla_gpu_strict_conv_algorithm_picker=false"
 os.environ["LD_LIBRARY_PATH"] = "/usr/lib/x86_64-linux-gnu:" + os.environ["LD_LIBRARY_PATH"]
 ```
 
-<!-- #region id="we_mTkFioS6R" -->
-
+<!-- #region id="lf2KeHt5_eFv" -->
 ## PySAGES
 
-The next step is to install PySAGES.
-First, we install the jaxlib version that matches the CUDA installation of this Colab setup. See the JAX documentation [here](https://github.com/google/jax) for more details.
-
+The next step is to install PySAGES. We retrieve the latest version from GitHub and add its dependecies via `pip`.
 <!-- #endregion -->
 
-```bash id="vK0RZtbroQWe"
-
-pip install -q --upgrade pip
-# Installs the wheel compatible with CUDA.
-pip install -q --upgrade "jax[cuda]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html &> /dev/null
-```
-
-<!-- #region id="wAtjM-IroYX8" -->
-
-Now we can finally install PySAGES. We clone the newest version from [here](https://github.com/SSAGESLabs/PySAGES) and build the remaining pure python dependencies and PySAGES itself.
-
-<!-- #endregion -->
-
-```bash id="B-HB9CzioV5j"
-
-rm -rf PySAGES
-git clone https://github.com/SSAGESLabs/PySAGES.git &> /dev/null
-cd PySAGES
-pip install -q . &> /dev/null
+```python id="B-HB9CzioV5j"
+!pip install -qq git+https://github.com/SSAGESLabs/PySAGES.git > /dev/null
 ```
 
 <!-- #region id="KBFVcG1FoeMq" -->
-
 # Metadynamics-biased simulations
-
 <!-- #endregion -->
 
 <!-- #region id="0W2ukJuuojAl" -->
@@ -98,28 +76,23 @@ For this Colab, we are using alanine peptide in vacuum as example system.
 ```bash id="fre3-LYso1hh"
 
 # Download pdb file with the initial configuration of our system
-PDB_URL="https://raw.githubusercontent.com/SSAGESLabs/PySAGES/main/examples/inputs/alanine-dipeptide/adp-vacuum.pdb"
-wget -q $PDB_URL
+wget -q https://raw.githubusercontent.com/SSAGESLabs/PySAGES/main/examples/inputs/alanine-dipeptide/adp-vacuum.pdb
 ```
 
 ```python id="BBvC7Spoog82"
-import numpy
-
-from pysages.utils import try_import
-
-openmm = try_import("openmm", "simtk.openmm")
-unit = try_import("openmm.unit", "simtk.unit")
-app = try_import("openmm.app", "simtk.openmm.app")
+import numpy as np
+import openmm
+import openmm.app as app
+import openmm.unit as unit
 
 
-pi = numpy.pi
-
+pi = np.pi
 T = 298.15 * unit.kelvin
 dt = 2.0 * unit.femtoseconds
 adp_pdb = "adp-vacuum.pdb"
 
 
-def generate_simulation(pdb_filename=adp_pdb, T=T, dt=dt):
+def generate_simulation(pdb_filename=adp_pdb, T=T, dt=dt, **kwargs):
     pdb = app.PDBFile(pdb_filename)
 
     ff = app.ForceField("amber99sb.xml")
@@ -158,15 +131,14 @@ Next, we load PySAGES and the relevant classes and methods for our problem
 <!-- #endregion -->
 
 ```python id="fpMg-o8WomAA"
+import pysages
+
 from pysages.grids import Grid
 from pysages.colvars import DihedralAngle
 from pysages.methods import Metadynamics
-
-import pysages
 ```
 
 <!-- #region id="LknkRvo1o4av" -->
-
 The next step is to define the collective variable (CV). In this case, we choose the so called $\phi$ and $\psi$ dihedral angles of alanine dipeptide.
 
 For this example we will use the well-tempered version without grids. But these options can be configured.
@@ -176,7 +148,6 @@ We set the initial height, standard deviation and deposition frequency `stride` 
 We also define a grid, which can be used as optional parameter to accelerate Metadynamics by approximating the biasing potential and its gradient by the closest value at the centers of the grid cells.
 
 _Note:_ when setting $\Delta T$ we need to also provide a value for $k_B$ that matches the internal units used by the backend.
-
 <!-- #endregion -->
 
 ```python id="B1Z8FWz0o7u_"
@@ -203,11 +174,9 @@ method = Metadynamics(cvs, height, sigma, stride, ngauss, deltaT=deltaT, kB=kB, 
 ```
 
 <!-- #region id="Fz8BfU34pA_N" -->
-
 We now simulate the number of time steps set above.
 Make sure to run with GPU support, otherwise, it can take a very long time.
 On the GPU this should run in around half an hour.
-
 <!-- #endregion -->
 
 ```python id="K951m4BbpUar"
@@ -215,11 +184,9 @@ run_result = pysages.run(method, generate_simulation, timesteps)
 ```
 
 <!-- #region id="PXBKUfK0p9T2" -->
-
 ## Analysis
 
 Let's plot the negative of the sum of gaussians accumulated. This will get close to the free energy surface for long enough simulations (larger than what is practical to run on Colab, but we should get close enough for illustration purposes here).
-
 <!-- #endregion -->
 
 ```python id="X69d1R7OpW4P"
@@ -228,14 +195,12 @@ from pysages.approxfun import compute_mesh
 ```
 
 <!-- #region id="6mrlIOfoszBJ" -->
-
 We are now going to gather the information for the heights, standard deviations and centers of the accumulated gaussians and build a function to evaluate their sum at any point of the collective variable space.
-
 <!-- #endregion -->
 
 ```python id="zJqvpbw8szxR"
 fe_result = pysages.analyze(run_result)
-metapotential = fe_result['metapotential']
+metapotential = fe_result["metapotential"]
 ```
 
 <!-- #region id="VfTQ5yeyxt8e" -->
@@ -257,9 +222,7 @@ A = A.reshape(plot_grid.shape)
 ```
 
 <!-- #region id="Kf_CMdih90Cd" -->
-
 And plot it.
-
 <!-- #endregion -->
 
 ```python colab={"base_uri": "https://localhost:8080/", "height": 461} id="3s9LL9apBMVb" outputId="55abf4e5-fef0-4faa-bf01-9719cbe8aa2b"
@@ -281,22 +244,17 @@ plt.show()
 ```
 
 <!-- #region id="a-LGmeZ_3_m-" -->
-
 Lastly, we plot the height of the gaussians as a function of time and observe that their height decreases at an exponential rate as expected for well-tempered metadynamics.
-
 <!-- #endregion -->
 
 ```python colab={"base_uri": "https://localhost:8080/", "height": 457} id="SI_fhUW9CGlP" outputId="5d32f99d-4911-44bb-9d89-69c3e6212cb7"
-_dt = dt #method.context[0].sampler.snapshot.dt
-ts = _dt * 1e-3 * numpy.arange(0, fe_result['heights'].size) * run_result.method.stride
+ts = dt * 1e-3 * np.arange(0, fe_result["heights"].size) * run_result.method.stride
 
 fig, ax = plt.subplots(dpi=120)
-ax.plot(ts, fe_result['heights'], "o", mfc="none", ms=4)
+
 ax.set_xlabel("time [ns]")
 ax.set_ylabel("height [kJ/mol]")
-plt.show()
-```
+ax.plot(ts, fe_result["heights"], "o", mfc="none", ms=4)
 
-```python id="R6rEuwWAZ8Qp"
-
+fig.show()
 ```
