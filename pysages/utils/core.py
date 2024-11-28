@@ -2,6 +2,7 @@
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 from copy import deepcopy
+from pathlib import Path
 
 import numpy
 from jax import numpy as np
@@ -45,6 +46,16 @@ def copy(x: JaxArray, _: ToCPU):  # noqa: F811 # pylint: disable=C0116,E0102
 
 def identity(x):
     return x
+
+
+@dispatch
+def is_file(path: Path):
+    return path.is_file()
+
+
+@dispatch
+def is_file(path: str):
+    return is_file(Path(path))
 
 
 def first_or_all(seq):

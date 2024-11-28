@@ -27,6 +27,7 @@ from .core import (
     first_or_all,
     gaussian,
     identity,
+    is_file,
     linear_solver,
 )
 from .transformations import quaternion_from_euler, quaternion_matrix
