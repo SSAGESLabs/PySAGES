@@ -68,17 +68,23 @@ def restore_vm(view, snapshot, prev_snapshot):
     vel_mass[:] = view(prev_snapshot.vel_mass)
 
 
-def restore(view, snapshot, prev_snapshot, restore_vm=restore_vm):
+# Fallback method for restoring particle ids
+def restore_ids(view, snapshot, prev_snapshot):
+    ids = view(snapshot.ids)
+    ids[:] = view(prev_snapshot.ids)
+
+
+def restore(view, snapshot, prev_snapshot, restore_vm=restore_vm, restore_ids=restore_ids):
     # Create a mutable view of the jax arrays
     positions = view(snapshot.positions)
     forces = view(snapshot.forces)
-    ids = view(snapshot.ids)
     # Overwrite the data
     positions[:] = view(prev_snapshot.positions)
     forces[:] = view(prev_snapshot.forces)
-    ids[:] = view(prev_snapshot.ids)
     # Special handling for velocities and masses
     restore_vm(view, snapshot, prev_snapshot)
+    # Special handling for particle ids
+    restore_ids(view, snapshot, prev_snapshot)
     # Overwrite images if the backend uses them
     if snapshot.images is not None:
         images = view(snapshot.images)

@@ -16,6 +16,7 @@ from hoomd.dlext import (
     net_forces,
     positions_types,
     rtags,
+    tags,
     velocities_masses,
 )
 from jax import jit
@@ -95,8 +96,8 @@ class Sampler(SamplerBase):
     def __init__(self, sysview, method_bundle, bias, callback: Callable, restore):
         initial_snapshot, initialize, method_update = method_bundle
 
-        def update(positions, vel_mass, rtags, images, forces, timestep):
-            snapshot = self._pack_snapshot(positions, vel_mass, forces, rtags, images)
+        def update(positions, vel_mass, tags, rtags, images, forces, timestep):
+            snapshot = self._pack_snapshot(positions, vel_mass, forces, rtags, tags, images)
             self.state = method_update(snapshot, self.state)
             self.bias(snapshot, self.state)
             if self.callback:
@@ -111,8 +112,8 @@ class Sampler(SamplerBase):
         self._restore = restore
 
     def restore(self, prev_snapshot):
-        def restore_callback(positions, vel_mass, rtags, images, forces, n):
-            snapshot = self._pack_snapshot(positions, vel_mass, forces, rtags, images)
+        def restore_callback(positions, vel_mass, tags, rtags, images, forces, n):
+            snapshot = self._pack_snapshot(positions, vel_mass, forces, rtags, tags, images)
             self._restore(snapshot, prev_snapshot)
 
         self.forward_data(restore_callback, default_location(), AccessMode.Overwrite, 0)
@@ -120,19 +121,22 @@ class Sampler(SamplerBase):
     def take_snapshot(self):
         container = []
 
-        def snapshot_callback(positions, vel_mass, rtags, images, forces, n):
-            snapshot = self._pack_snapshot(positions, vel_mass, forces, rtags, images)
+        def snapshot_callback(positions, vel_mass, tags, rtags, images, forces, n):
+            snapshot = self._pack_snapshot(positions, vel_mass, forces, rtags, tags, images)
             container.append(copy(snapshot))
 
         self.forward_data(snapshot_callback, default_location(), AccessMode.Read, 0)
         return container[0]
 
-    def _pack_snapshot(self, positions, vel_mass, forces, rtags, images):
+    def _pack_snapshot(self, positions, vel_mass, forces, rtags, tags, images):
         return Snapshot(
             from_dlpack(positions),
             from_dlpack(vel_mass),
             from_dlpack(forces),
-            from_dlpack(rtags),
+            (
+                from_dlpack(rtags),
+                from_dlpack(tags),
+            ),
             from_dlpack(images),
             self.box,
             self.dt,
@@ -156,7 +160,10 @@ def take_snapshot(sampling_context, location=default_location()):
     positions = copy(from_dlpack(positions_types(sysview, location, AccessMode.Read)))
     vel_mass = copy(from_dlpack(velocities_masses(sysview, location, AccessMode.Read)))
     forces = copy(from_dlpack(net_forces(sysview, location, AccessMode.ReadWrite)))
-    ids = copy(from_dlpack(rtags(sysview, location, AccessMode.Read)))
+    ids = (
+        copy(from_dlpack(rtags(sysview, location, AccessMode.Read))),
+        copy(from_dlpack(tags(sysview, location, AccessMode.Read))),
+    )
     imgs = copy(from_dlpack(images(sysview, location, AccessMode.Read)))
 
     check_device_array(positions)  # currently, we only support `DeviceArray`s
@@ -188,7 +195,7 @@ def build_snapshot_methods(sampling_method):
 
     @jit
     def indices(snapshot):
-        return snapshot.ids
+        return snapshot.ids[0]
 
     @jit
     def momenta(snapshot):
@@ -217,6 +224,12 @@ def build_helpers(context, sampling_method):
         def sync_forces():
             pass
 
+    def restore_ids(view, snapshot, prev_snapshot):
+        rtags = view(snapshot.ids[0])
+        tags = view(snapshot.ids[1])
+        rtags[:] = view(prev_snapshot.ids[0])
+        tags[:] = view(prev_snapshot.ids[1])
+
     def bias(snapshot, state, sync_backend):
         """Adds the computed bias to the forces."""
         # TODO: check if this can be JIT compiled with numba.
@@ -235,7 +248,7 @@ def build_helpers(context, sampling_method):
 
     snapshot_methods = build_snapshot_methods(sampling_method)
     flags = sampling_method.snapshot_flags
-    restore = partial(_restore, view)
+    restore = partial(_restore, view, restore_ids=restore_ids)
     helpers = HelperMethods(build_data_querier(snapshot_methods, flags), dimensionality)
 
     return helpers, restore, bias
