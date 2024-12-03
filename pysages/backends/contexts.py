@@ -6,7 +6,10 @@ This module defines "Context" classes for backends that do not provide a dedicat
 class to hold the simulation data.
 """
 
+from importlib import import_module
+
 from pysages.typing import Any, Callable, JaxArray, NamedTuple, Optional
+from pysages.utils import is_file
 
 JaxMDState = Any
 
@@ -58,3 +61,46 @@ class JaxMDContext(NamedTuple):
     step_fn: Callable[..., JaxMDContextState]
     box: JaxArray
     dt: float
+
+
+class QboxContextGenerator:
+    """
+    Provides an interface for setting up Qbox-backed simulations.
+
+    Arguments
+    ---------
+    launch_command: str
+        Specifies the command that will be used to run Qbox in interactive mode,
+        e.g. `qb` or `mpirun -n 4 qb`.
+
+    input_script: str
+        Path to the Qbox input script.
+
+    output_filename: Union[Path, str]
+        Name for the output file. It must not exist on the working directory.
+        Defaults to `qb.r`.
+    """
+
+    def __init__(self, launch_command, input_script, output_filename="qb.r"):
+        self.cmd = launch_command
+        self.script = input_script
+        self.logfile = output_filename
+
+    def __call__(self, **kwargs):
+        if not is_file(self.script):
+            raise FileNotFoundError(f"Unable to find or open {self.script}")
+
+        if is_file(self.logfile):
+            msg = f"Delete {self.logfile} or choose a different output file name"
+            raise FileExistsError(msg)
+
+        pexpect = import_module("pexpect")
+
+        qb = pexpect.spawn(self.cmd)
+        qb.logfile_read = open(self.logfile, "wb")
+        qb.expect(r"\[qbox\] ")
+
+        qb.sendline(self.script)
+        qb.expect(r"\[qbox\] ")
+
+        return qb
