@@ -45,14 +45,12 @@ class SamplingContext:
 
         self.context = context
         self.method = sampling_method
-        self.view = None
         self.run = None
 
         backend = import_module("." + self._backend_name, package="pysages.backends")
         self.sampler = backend.bind(self, callback, **kwargs)
 
-        # `self.view` and `self.run` *must* be set by the backend bind function.
-        assert self.view is not None
+        # `self.run` *must* be set by the backend bind function.
         assert self.run is not None
 
     @property

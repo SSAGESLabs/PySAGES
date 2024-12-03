@@ -7,21 +7,12 @@ from warnings import warn
 
 import hoomd
 from hoomd import md
-from hoomd.dlext import (
-    AccessLocation,
-    AccessMode,
-    DLExtSampler,
-    SystemView,
-    images,
-    net_forces,
-    positions_types,
-    rtags,
-    velocities_masses,
-)
+from hoomd.dlext import AccessLocation, AccessMode, DLExtSampler, SystemView
 from jax import jit
 from jax import numpy as np
 from jax.dlpack import from_dlpack
 
+from pysages.backends import snapshot as pbs
 from pysages.backends.core import SamplingContext
 from pysages.backends.snapshot import (
     Box,
@@ -30,9 +21,10 @@ from pysages.backends.snapshot import (
     SnapshotMethods,
     build_data_querier,
 )
-from pysages.backends.snapshot import restore as _restore
-from pysages.typing import Callable
-from pysages.utils import check_device_array, copy
+from pysages.typing import Callable, Optional
+from pysages.utils import copy
+
+SamplerBase = DLExtSampler
 
 # TODO: Figure out a way to automatically tie the lifetime of Sampler
 # objects to the contexts they bind to
@@ -40,7 +32,6 @@ CONTEXTS_SAMPLERS = {}
 
 
 if getattr(hoomd, "__version__", "").startswith("2."):
-    SamplerBase = DLExtSampler
 
     def is_on_gpu(context):
         return context.on_gpu()
@@ -61,10 +52,7 @@ if getattr(hoomd, "__version__", "").startswith("2."):
         context.integrator.cpp_integrator.removeHalfStepHook()
 
 else:
-    if hasattr(hoomd.dlext, "__version__"):
-        SamplerBase = DLExtSampler
-
-    else:
+    if not hasattr(hoomd.dlext, "__version__"):
 
         class SamplerBase(DLExtSampler, md.HalfStepHook):
             def __init__(self, sysview, update, location, mode):
@@ -91,54 +79,6 @@ else:
         context.operations.integrator.half_step_hook = None
 
 
-class Sampler(SamplerBase):
-    def __init__(self, sysview, method_bundle, bias, callback: Callable, restore):
-        initial_snapshot, initialize, method_update = method_bundle
-
-        def update(positions, vel_mass, rtags, images, forces, timestep):
-            snapshot = self._pack_snapshot(positions, vel_mass, forces, rtags, images)
-            self.state = method_update(snapshot, self.state)
-            self.bias(snapshot, self.state)
-            if self.callback:
-                self.callback(snapshot, self.state, timestep)
-
-        super().__init__(sysview, update, default_location(), AccessMode.Read)
-        self.state = initialize()
-        self.bias = bias
-        self.box = initial_snapshot.box
-        self.callback = callback
-        self.dt = initial_snapshot.dt
-        self._restore = restore
-
-    def restore(self, prev_snapshot):
-        def restore_callback(positions, vel_mass, rtags, images, forces, n):
-            snapshot = self._pack_snapshot(positions, vel_mass, forces, rtags, images)
-            self._restore(snapshot, prev_snapshot)
-
-        self.forward_data(restore_callback, default_location(), AccessMode.Overwrite, 0)
-
-    def take_snapshot(self):
-        container = []
-
-        def snapshot_callback(positions, vel_mass, rtags, images, forces, n):
-            snapshot = self._pack_snapshot(positions, vel_mass, forces, rtags, images)
-            container.append(copy(snapshot))
-
-        self.forward_data(snapshot_callback, default_location(), AccessMode.Read, 0)
-        return container[0]
-
-    def _pack_snapshot(self, positions, vel_mass, forces, rtags, images):
-        return Snapshot(
-            from_dlpack(positions),
-            from_dlpack(vel_mass),
-            from_dlpack(forces),
-            from_dlpack(rtags),
-            from_dlpack(images),
-            self.box,
-            self.dt,
-        )
-
-
 if hasattr(AccessLocation, "OnDevice"):
 
     def default_location():
@@ -150,28 +90,87 @@ else:
         return AccessLocation.OnHost
 
 
-def take_snapshot(sampling_context, location=default_location()):
-    context = sampling_context.context
-    sysview = sampling_context.view
-    positions = copy(from_dlpack(positions_types(sysview, location, AccessMode.Read)))
-    vel_mass = copy(from_dlpack(velocities_masses(sysview, location, AccessMode.Read)))
-    forces = copy(from_dlpack(net_forces(sysview, location, AccessMode.ReadWrite)))
-    ids = copy(from_dlpack(rtags(sysview, location, AccessMode.Read)))
-    imgs = copy(from_dlpack(images(sysview, location, AccessMode.Read)))
+class Sampler(SamplerBase):
+    """
+    HOOMD-blue HalfStepHook that connects PySAGES sampling methods to HOOMD-blue simulations.
 
-    check_device_array(positions)  # currently, we only support `DeviceArray`s
+    Parameters
+    ----------
 
-    box = sysview.particle_data.getGlobalBox()
-    L = box.getL()
-    xy = box.getTiltFactorXY()
-    xz = box.getTiltFactorXZ()
-    yz = box.getTiltFactorYZ()
-    lo = box.getLo()
-    H = ((L.x, xy * L.y, xz * L.z), (0.0, L.y, yz * L.z), (0.0, 0.0, L.z))
-    origin = (lo.x, lo.y, lo.z)
-    dt = get_integrator(context).dt
+    context: hoomd.Simulation
+        The HOOMD-blue simulation instance to which the PySAGES sampling machinery will be hooked.
 
-    return Snapshot(positions, vel_mass, forces, ids, imgs, Box(H, origin), dt)
+    sampling_method: pysages.methods.SamplingMethod
+        The sampling method used.
+
+    callbacks: Optional[Callback]
+        A callback. Some methods define one for logging, but it can also be user-defined.
+
+    location: hoomd.dlext.AccessLocation
+        Device where the simulation data will be retrieved.
+    """
+
+    def __init__(
+        self, context, sampling_method, callback: Optional[Callable], location=default_location()
+    ):
+        self.context = context
+        self.callback = callback
+        self.location = location
+        self.view = SystemView(get_system(context))
+
+        self.box = Box(*get_global_box(self.view))
+        self.dt = get_timestep(self.context)
+        self.update_box = lambda: self.box  # NOTE: extend for NPT simulations
+
+        super().__init__(self.view, self._update_callback, location, AccessMode.Read)
+
+        # Create initial snapshot and setup sampling method
+        snapshot = self.take_snapshot()  # sets `self.snapshot`
+        helpers, restore, bias = build_helpers(context, sampling_method)
+        _, initialize, method_update = sampling_method.build(snapshot, helpers)
+
+        # Initialize state and store method references
+        self.state = initialize()
+        self._restore = restore
+        self._method_update = method_update
+        self._bias = bias
+
+    def restore(self, prev_snapshot):
+        """Restore the simulation state from a previous snapshot."""
+        self.snapshot = prev_snapshot
+        self.forward_data(self._restore_callback, self.location, AccessMode.Overwrite, 0)
+
+    def take_snapshot(self):
+        """Take a snapshot of the current simulation state."""
+        self.forward_data(self._snapshot_callback, self.location, AccessMode.Read, 0)
+        return self.snapshot
+
+    def _pack_snapshot(self, positions, vel_mass, forces, rtags, images):
+        return Snapshot(
+            from_dlpack(positions),
+            from_dlpack(vel_mass),
+            from_dlpack(forces),
+            from_dlpack(rtags),
+            from_dlpack(images),
+            self.update_box(),
+            self.dt,
+        )
+
+    # NOTE: The order of the callbacks arguments do not match that of the `Snapshot` attributes
+    def _restore_callback(self, positions, vel_mass, rtags, images, forces, _):
+        snapshot = self._pack_snapshot(positions, vel_mass, forces, rtags, images)
+        self._restore(snapshot, self.snapshot)
+
+    def _snapshot_callback(self, positions, vel_mass, rtags, images, forces, _):
+        snapshot = self._pack_snapshot(positions, vel_mass, forces, rtags, images)
+        self.snapshot = copy(snapshot)
+
+    def _update_callback(self, positions, vel_mass, rtags, images, forces, timestep):
+        snapshot = self._pack_snapshot(positions, vel_mass, forces, rtags, images)
+        self.state = self._method_update(snapshot, self.state)
+        self._bias(snapshot, self.state, self.view.synchronize)
+        if self.callback:
+            self.callback(snapshot, self.state, timestep)
 
 
 def build_snapshot_methods(sampling_method):
@@ -235,29 +234,39 @@ def build_helpers(context, sampling_method):
 
     snapshot_methods = build_snapshot_methods(sampling_method)
     flags = sampling_method.snapshot_flags
-    restore = partial(_restore, view)
+    restore = partial(pbs.restore, view)
     helpers = HelperMethods(build_data_querier(snapshot_methods, flags), dimensionality)
 
     return helpers, restore, bias
 
 
+def get_global_box(system_view):
+    """Get the box and origin of a HOOMD-blue simulation."""
+    box = system_view.particle_data.getGlobalBox()
+    L = box.getL()
+    xy = box.getTiltFactorXY()
+    xz = box.getTiltFactorXZ()
+    yz = box.getTiltFactorYZ()
+    lo = box.getLo()
+    H = ((L.x, xy * L.y, xz * L.z), (0.0, L.y, yz * L.z), (0.0, 0.0, L.z))
+    origin = (lo.x, lo.y, lo.z)
+    return H, origin
+
+
+def get_timestep(context):
+    """Get the timestep of a HOOMD-blue simulation."""
+    return get_integrator(context).dt
+
+
 def bind(sampling_context: SamplingContext, callback: Callable, **kwargs):
     context = sampling_context.context
     sampling_method = sampling_context.method
-    sysview = SystemView(get_system(context))
-    sampling_context.view = sysview
-    sampling_context.run = get_run_method(context)
-    helpers, restore, bias = build_helpers(context, sampling_method)
 
-    with sysview:
-        snapshot = take_snapshot(sampling_context)
-
-    method_bundle = sampling_method.build(snapshot, helpers)
-    sync_and_bias = partial(bias, sync_backend=sysview.synchronize)
-    sampler = Sampler(sysview, method_bundle, sync_and_bias, callback, restore)
+    sampler = Sampler(context, sampling_method, callback)
     set_half_step_hook(context, sampler)
-
     CONTEXTS_SAMPLERS[context] = sampler
+
+    sampling_context.run = get_run_method(context)
 
     return sampler
 

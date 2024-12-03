@@ -23,27 +23,37 @@ from pysages.backends.snapshot import (
 from pysages.backends.snapshot import restore as _restore
 from pysages.backends.snapshot import restore_vm as _restore_vm
 from pysages.typing import Callable
-from pysages.utils import check_device_array, copy, try_import
+from pysages.utils import check_device_array, copy, identity, try_import
 
 openmm = try_import("openmm", "simtk.openmm")
 unit = try_import("openmm.unit", "simtk.unit")
 
 
 class Sampler:
-    def __init__(self, method_bundle, bias, callback: Callable, restore):
-        initial_snapshot, initialize, method_update = method_bundle
-        self.state = initialize()
-        self.bias = bias
+    def __init__(self, context, sampling_method, callback: Callable):
+        force = Force()
+        force.add_to(context)  # OpenMM will handle the lifetime of the force
+
+        self.context = context
+        self.view = force.view(context)
+
+        initial_snapshot = self._take_snapshot()
+        helpers, restore, bias = build_helpers(self.view, sampling_method)
+        bias = partial(bias, sync_backend=self.view.synchronize)
+        _, initialize, method_update = sampling_method.build(initial_snapshot, helpers)
+
         self.callback = callback
         self.snapshot = initial_snapshot
+        self.state = initialize()
         self._restore = restore
-        self._update = method_update
 
-    def update(self, timestep=0):
-        self.state = self._update(self.snapshot, self.state)
-        self.bias(self.snapshot, self.state)
-        if self.callback:
-            self.callback(self.snapshot, self.state, timestep)
+        def update(timestep=0):
+            self.state = method_update(self.snapshot, self.state)
+            bias(self.snapshot, self.state)
+            if self.callback:
+                self.callback(self.snapshot, self.state, timestep)
+
+        force.set_callback_in(context, update)
 
     def restore(self, prev_snapshot):
         self._restore(self.snapshot, prev_snapshot)
@@ -51,42 +61,37 @@ class Sampler:
     def take_snapshot(self):
         return copy(self.snapshot)
 
+    def _take_snapshot(self):
+        context = self.context
+        context_view = self.view
+
+        positions = from_dlpack(dlext.positions(context_view))
+        forces = from_dlpack(dlext.forces(context_view))
+        ids = from_dlpack(dlext.atom_ids(context_view))
+
+        velocities = from_dlpack(dlext.velocities(context_view))
+        if is_on_gpu(context_view):
+            vel_mass = velocities
+        else:
+            inverse_masses = from_dlpack(dlext.inverse_masses(context_view))
+            vel_mass = (velocities, inverse_masses.reshape((-1, 1)))
+
+        check_device_array(positions)  # currently, we only support `DeviceArray`s
+
+        box_vectors = context.getSystem().getDefaultPeriodicBoxVectors()
+        a = box_vectors[0].value_in_unit(unit.nanometer)
+        b = box_vectors[1].value_in_unit(unit.nanometer)
+        c = box_vectors[2].value_in_unit(unit.nanometer)
+        H = ((a[0], b[0], c[0]), (a[1], b[1], c[1]), (a[2], b[2], c[2]))
+        origin = (0.0, 0.0, 0.0)
+        dt = context.getIntegrator().getStepSize() / unit.picosecond
+
+        # OpenMM doesn't have images
+        return Snapshot(positions, vel_mass, forces, ids, None, Box(H, origin), dt)
+
 
 def is_on_gpu(view: ContextView):
     return view.device_type() == DeviceType.GPU
-
-
-def take_snapshot(sampling_context):
-    context = sampling_context.context.context  # extra indirection for OpenMM
-    context_view = sampling_context.view
-
-    positions = from_dlpack(dlext.positions(context_view))
-    forces = from_dlpack(dlext.forces(context_view))
-    ids = from_dlpack(dlext.atom_ids(context_view))
-
-    velocities = from_dlpack(dlext.velocities(context_view))
-    if is_on_gpu(context_view):
-        vel_mass = velocities
-    else:
-        inverse_masses = from_dlpack(dlext.inverse_masses(context_view))
-        vel_mass = (velocities, inverse_masses.reshape((-1, 1)))
-
-    check_device_array(positions)  # currently, we only support `DeviceArray`s
-
-    box_vectors = context.getSystem().getDefaultPeriodicBoxVectors()
-    a = box_vectors[0].value_in_unit(unit.nanometer)
-    b = box_vectors[1].value_in_unit(unit.nanometer)
-    c = box_vectors[2].value_in_unit(unit.nanometer)
-    H = ((a[0], b[0], c[0]), (a[1], b[1], c[1]), (a[2], b[2], c[2]))
-    origin = (0.0, 0.0, 0.0)
-    dt = context.getIntegrator().getStepSize() / unit.picosecond
-
-    # OpenMM doesn't have images
-    return Snapshot(positions, vel_mass, forces, ids, None, Box(H, origin), dt)
-
-
-def identity(x):
-    return x
 
 
 def safe_divide(v, invm):
@@ -190,14 +195,6 @@ def bind(sampling_context: SamplingContext, callback: Callable, **kwargs):
     context = simulation.context
     check_integrator(context)
     sampling_method = sampling_context.method
-    force = Force()
-    force.add_to(context)  # OpenMM will handle the lifetime of the force
-    sampling_context.view = force.view(context)
+    sampler = Sampler(context, sampling_method, callback)
     sampling_context.run = simulation.step
-    helpers, restore, bias = build_helpers(sampling_context.view, sampling_method)
-    snapshot = take_snapshot(sampling_context)
-    method_bundle = sampling_method.build(snapshot, helpers)
-    sync_and_bias = partial(bias, sync_backend=sampling_context.view.synchronize)
-    sampler = Sampler(method_bundle, sync_and_bias, callback, restore)
-    force.set_callback_in(context, sampler.update)
     return sampler
