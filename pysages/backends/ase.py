@@ -15,8 +15,8 @@ from pysages.backends.snapshot import (
     SnapshotMethods,
     build_data_querier,
 )
-from pysages.backends.utils import view
-from pysages.typing import Callable, NamedTuple
+from pysages.backends.utils import View, view
+from pysages.typing import Callable
 from pysages.utils import ToCPU, copy
 
 
@@ -149,10 +149,6 @@ def build_helpers(context, sampling_method):
     helpers = HelperMethods(build_data_querier(snapshot_methods, flags), dimensionality)
 
     return helpers
-
-
-class View(NamedTuple):
-    synchronize: Callable
 
 
 def bind(sampling_context: SamplingContext, callback: Callable, **kwargs):

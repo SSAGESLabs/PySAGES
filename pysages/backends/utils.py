@@ -8,8 +8,17 @@ import numba
 import numpy
 from numpy.ctypeslib import as_ctypes_type
 
-from pysages.typing import JaxArray
+from pysages.typing import Callable, JaxArray, NamedTuple
 from pysages.utils import dispatch, unsafe_buffer_pointer
+
+
+class View(NamedTuple):
+    """
+    Helper class for backends that don't require or implement a system
+    information accessor class.
+    """
+
+    synchronize: Callable
 
 
 def cupy_helpers():
