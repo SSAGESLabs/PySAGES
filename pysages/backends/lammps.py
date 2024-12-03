@@ -154,6 +154,16 @@ def build_helpers(context, sampling_method, on_gpu, restore_fn):
         def add_bias(forces, biases):
             forces[:, :3] += factor * biases
 
+    def restore_vm(view, snapshot, prev_snapshot):
+        velocities = view(snapshot.vel_mass[0])
+        masses_types = snapshot.vel_mass[1]
+        masses = view(masses_types[0])
+        types = view(masses_types[1])
+        prev_masses_types = prev_snapshot.vel_mass[1]
+        velocities[:] = view(prev_snapshot.vel_mass[0])
+        masses[:] = view(prev_masses_types[0])
+        types[:] = view(prev_masses_types[1])
+
     # TODO: check if this can be sped up.  # pylint: disable=W0511
     def bias(snapshot, state):
         """Adds the computed bias to the forces."""
@@ -166,7 +176,7 @@ def build_helpers(context, sampling_method, on_gpu, restore_fn):
 
     snapshot_methods = build_snapshot_methods(sampling_method, on_gpu)
     flags = sampling_method.snapshot_flags
-    restore = partial(restore_fn, view)
+    restore = partial(restore_fn, view, restore_vm=restore_vm)
     helpers = HelperMethods(build_data_querier(snapshot_methods, flags), lambda: dim)
 
     return helpers, restore, bias
