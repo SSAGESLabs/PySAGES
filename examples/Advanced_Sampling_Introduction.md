@@ -17,13 +17,11 @@ jupyter:
 
 # Introduction to Advanced Sampling
 
-Ludwig Schneider and Juan de Pablo
+Ludwig Schneider, Pablo Zubieta, and Juan de Pablo
 
 Pritzker School of Molecular Engineering
 
 The University of Chicago
-
-Berlin, July 28th, 2022
 
 <!-- #endregion -->
 
@@ -31,19 +29,22 @@ Berlin, July 28th, 2022
 
 # Setting up the environment
 
-First, we are setting up our environment. We use an already compiled and packaged installation of HOOMD-blue and the DLExt plugin.
-We copy it from Google Drive and install PySAGES for it.
+First, we set up our environment. We will be using a pre-compiled and packaged installation of HOOMD-blue and the hoomd-dlext plugin.
+It will be downloaded from Google Drive and made accessible to the Python process running in this Colab instance.
 
 <!-- #endregion -->
 
 ```bash id="3eTbKklCnyd_"
 
-BASE_URL="https://drive.google.com/u/0/uc?id=1hsKkKtdxZTVfHKgqVF6qV2e-4SShmhr7&export=download"
-wget -q --load-cookies /tmp/cookies.txt "$BASE_URL&confirm=$(wget -q --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate $BASE_URL -O- | sed -rn 's/.*confirm=(\w+).*/\1\n/p')" -O pysages-env.zip
-rm -rf /tmp/cookies.txt
+BASE_URL="https://drive.usercontent.google.com/download?id=1hsKkKtdxZTVfHKgqVF6qV2e-4SShmhr7"
+COOKIES="/tmp/cookies.txt"
+CONFIRMATION="$(wget -q --save-cookies $COOKIES --keep-session-cookies --no-check-certificate $BASE_URL -O- | sed -rn 's/.*confirm=(\w+).*/\1\n/p')"
+
+wget -q --load-cookies $COOKIES "$BASE_URL&confirm=$CONFIRMATION" -O pysages-env.zip
+rm -rf $COOKIES
 ```
 
-```python colab={"base_uri": "https://localhost:8080/"} id="KRPmkpd9n_NG" outputId="34bb6ffa-98ad-42dd-acef-30d11fc66459"
+```python colab={"base_uri": "https://localhost:8080/"} id="KRPmkpd9n_NG" outputId="0e3ce982-ab90-4d70-aad6-18768a9e047c"
 %env PYSAGES_ENV=/env/pysages
 ```
 
@@ -60,38 +61,27 @@ import sys
 ver = sys.version_info
 sys.path.append(os.environ["PYSAGES_ENV"] + "/lib/python" + str(ver.major) + "." + str(ver.minor) + "/site-packages/")
 
-os.environ["XLA_FLAGS"] = "--xla_gpu_strict_conv_algorithm_picker=false"
 os.environ["LD_LIBRARY_PATH"] = "/usr/lib/x86_64-linux-gnu:" + os.environ["LD_LIBRARY_PATH"]
+```
+
+<!-- #region id="Wy-75Pt7Bqs1" -->
+We'll also need some additional python dependencies
+<!-- #endregion -->
+
+```python id="LpBucu3V81xm"
+!pip install -qq "numpy<2" gsd > /dev/null
 ```
 
 <!-- #region id="we_mTkFioS6R" -->
 
 ## PySAGES
 
-The next step is to install PySAGES.
-First, we install the jaxlib version that matches the CUDA installation of this Colab setup. See the JAX documentation [here](https://github.com/google/jax) for more details.
+The next step is to install PySAGES. First, we need to install JAX. Fortunately, Colab already ships with JAX pre-installed (to learn how to install it you can look at the [JAX documentation](https://jax.readthedocs.io) for more details). To install PySAGES, we retrieve the latest version from GitHub and add its dependencies via `pip`.
 
 <!-- #endregion -->
 
-```bash id="vK0RZtbroQWe"
-
-pip install -q --upgrade pip
-# Installs the wheel compatible with CUDA
-pip install -q --upgrade "jax[cuda]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html &> /dev/null
-```
-
-<!-- #region id="wAtjM-IroYX8" -->
-
-Now we can finally install PySAGES. We clone the newest version from [here](https://github.com/SSAGESLabs/PySAGES) and build the remaining pure python dependencies and PySAGES itself.
-
-<!-- #endregion -->
-
-```bash id="B-HB9CzioV5j"
-
-rm -rf PySAGES
-git clone https://github.com/SSAGESLabs/PySAGES.git &> /dev/null
-cd PySAGES
-pip install -q . &> /dev/null
+```python id="B-HB9CzioV5j"
+!pip install -qq git+https://github.com/SSAGESLabs/PySAGES.git > /dev/null
 ```
 
 <!-- #region id="KBFVcG1FoeMq" -->
@@ -100,7 +90,7 @@ pip install -q . &> /dev/null
 
 <!-- #endregion -->
 
-```bash colab={"base_uri": "https://localhost:8080/"} id="ppTzMmyyobHB" outputId="9ba2e260-1585-4bd7-8fee-4f0404dd1449"
+```bash id="ppTzMmyyobHB"
 
 mkdir /content/advanced_sampling
 cd /content/advanced_sampling
@@ -116,7 +106,7 @@ Many systems have rugged free-energy landscapes, where different basins are divi
 
 - Protein folding
 - Protein-ligand binding
-- Liqid membrane fusion
+- Liquid membrane fusion
 <!-- #endregion -->
 
 <!-- #region id="mHOcKW-fXoK5" -->
@@ -199,7 +189,7 @@ $$p \propto e^{-\beta \Delta E} \ll 1$$
 
 Let's examine such a system via computer simulations.
 
-- fast to integration
+- fast to integrate
 - custom bond potential to shape the free-energy landscape
 
 $$P(r) = Ar^2 + A(1-e^{-r^2})\cos(r p \pi)$$
@@ -209,15 +199,22 @@ $$P(r) = Ar^2 + A(1-e^{-r^2})\cos(r p \pi)$$
 ```python id="lD3EKXNDRJiL"
 import numpy as np
 
-def potential(x, rmin=0, rmax=100, amplitude=1., roughness=4, periodicity=1):
-  energy = x**2
-  energy += (1-np.exp(-x**2))*roughness*np.cos(periodicity*x*np.pi)
-  energy *= amplitude
-  force = 2*x
-  force -= np.pi*periodicity*roughness*(1-np.exp(-x**2))*np.sin(periodicity*x*np.pi)
-  force += 2*roughness*np.exp(-x**2)*x*np.cos(periodicity*x*np.pi)
-  force *= -amplitude
-  return energy, force
+def energy_and_forces(x, amplitude=1., roughness=5, periodicity=1):
+    omega = np.pi * periodicity
+    energy = x**2
+    energy += (1 - np.exp(-x**2)) * roughness * np.cos(omega * x)
+    energy *= amplitude
+    forces = 2 * x
+    forces -= omega * roughness * (1 - np.exp(-x**2)) * np.sin(omega * x)
+    forces += 2 * roughness * np.exp(-x**2) * x * np.cos(omega * x)
+    forces *= -amplitude
+    return energy, forces
+
+def energy(x, **kwargs):
+    return energy_and_forces(x, **kwargs)[0]
+
+def forces(x, **kwargs):
+    return energy_and_forces(x, **kwargs)[1]
 ```
 
 <!-- #region id="Mx-KolPTSAJR" -->
@@ -226,22 +223,23 @@ def potential(x, rmin=0, rmax=100, amplitude=1., roughness=4, periodicity=1):
 - symmetric around the origin
 <!-- #endregion -->
 
-```python colab={"base_uri": "https://localhost:8080/", "height": 283} id="7N11Y8GOSY1_" outputId="38faa096-7a15-42fc-b1c8-80795a0dade9"
+```python colab={"base_uri": "https://localhost:8080/", "height": 472} id="7N11Y8GOSY1_" outputId="91823ec0-17cc-469b-ddd6-d58185410328"
 import matplotlib.pyplot as plt
+
 fig, ax = plt.subplots()
 ax.set_xlabel(r"$r$ $[\sigma]$")
 ax.set_ylabel(r"$E$ $[k_B T]$")
 ax.set_xlim((0,4))
 
 x = np.linspace(0,4,100)
-ax.plot(x, potential(x)[0], label="reference")
-ax.plot(x, potential(x, roughness=6)[0], label="rougher")
-ax.plot(x, potential(x, amplitude=2)[0], label="steeper")
-ax.plot(x, potential(x, periodicity=2)[0], label="more minima")
+ax.plot(x, energy(x), label="reference")
+ax.plot(x, energy(x, roughness=9), label="rougher")
+ax.plot(x, energy(x, amplitude=2), label="steeper")
+ax.plot(x, energy(x, periodicity=2), label="more minima")
 
-# Uncommet to inspect the forces
-# ax.plot(x, potential(x)[1], label="analytic force")
-# ax.plot(x[:-1], -np.diff(potential(x)[0])/(x[1]-x[0]), label="numeric force")
+# Uncomment to inspect the forces
+# ax.plot(x, forces(x), label="analytic force")
+# ax.plot(x[:-1], -np.diff(energy(x)) / (x[1] - x[0]), label="numeric force")
 
 ax.legend(loc="best")
 fig.show()
@@ -262,24 +260,34 @@ Hence we can obtain the free energy with a logarithmic correction.
 
 <!-- #endregion -->
 
-```python colab={"base_uri": "https://localhost:8080/", "height": 422} id="LH8Pw8MT8naI" outputId="3286b4ec-1a73-4a40-d07a-399ec53c537e"
+```python colab={"base_uri": "https://localhost:8080/", "height": 472} id="LH8Pw8MT8naI" outputId="1100c590-e06f-4bd1-9eb5-27e2b8dccf6e"
 import matplotlib.pyplot as plt
+
 fig, ax = plt.subplots()
 ax.set_xlabel(r"$r$ $[\sigma]$")
 ax.set_ylabel(r"$A$ $[k_B T]$")
 ax.set_xlim((0,4))
 
-def correct_free_energy(x, energy):
-  corrected_free_energy = energy - np.log(2*np.pi*x**2)
-  corrected_free_energy -= corrected_free_energy[1]
-  return corrected_free_energy
+def free_energy(energy, kT: float = 1):
+    """
+    Modifies function energy, such that it returns the free energy
+    with the appropriate logarithmic correction.
+    """
+    beta = 1 / kT
+    tau = 2 * np.pi
 
+    def log_corrected_energy(x):
+        corrected_energy = beta * energy(x) - np.log(tau * x**2)
+        corrected_energy -= corrected_energy[0]
+        return corrected_energy
 
-x = np.linspace(0,4,100)
-ax.plot(x, correct_free_energy(x, potential(x)[0]), label="reference")
-ax.plot(x, correct_free_energy(x,potential(x, roughness=6)[0]), label="rougher")
-ax.plot(x, correct_free_energy(x, potential(x, amplitude=2)[0]), label="steeper")
-ax.plot(x, correct_free_energy(x, potential(x, periodicity=2)[0]), label="more minima")
+    return log_corrected_energy
+
+x = np.linspace(0.01, 4, 100)
+ax.plot(x, free_energy(energy)(x), label="reference")
+ax.plot(x, free_energy(lambda x: energy(x, roughness=9))(x), label="rougher")
+ax.plot(x, free_energy(lambda x: energy(x, amplitude=2))(x), label="steeper")
+ax.plot(x, free_energy(lambda x: energy(x, periodicity=2))(x), label="more minima")
 
 ax.legend(loc="best")
 fig.show()
@@ -294,52 +302,54 @@ HOOMD-blue
 
 ```python id="BBvC7Spoog82"
 import hoomd
-import hoomd.md
+import gsd.hoomd
 
-kBT=1
+kT = 1
+dt = 1e-3
+fes_params = dict(amplitude=1, roughness=5, periodicity=1)
 
-def generate_context(**kwargs):
+def generate_context(kT=kT, dt=dt, fes_params=fes_params, **kwargs):
     """
     Generates a simulation context, we pass this function to the attribute
     `run` of our sampling method.
     """
-    fes_coeffs = kwargs.get("fes_coeffs", {"amplitude": 1., "roughness": 4, "periodicity": 1})
-    hoomd.context.initialize("")
+    sim = hoomd.Simulation(device=hoomd.device.auto_select(), seed=42)
 
-    ### System Definition
-    snapshot = hoomd.data.make_snapshot(
-        N = 2,
-        box = hoomd.data.boxdim(Lx = 50, Ly = 50, Lz = 50),
-        particle_types = ['P', 'G'],
-        bond_types = ["bond"],
-    )
+    # System Definition
+    snapshot = gsd.hoomd.Frame()
 
-    snapshot.particles.typeid[0] = 0
-    snapshot.particles.typeid[1] = 1
+    snapshot.configuration.box = [50, 50, 50, 0, 0, 0]
 
-    # Refernce particle at an extension and a ghost particle at origin
-    positions = np.array([[3.0,  0,  0], [0, 0,  0]])
+    snapshot.particles.N = 2
+    snapshot.particles.types = ['P', 'G']
+    snapshot.particles.typeid = [0, 1]
+    snapshot.particles.position = [[3.0,  0,  0], [0, 0, 0]]
+    snapshot.bonds.N = 1
+    snapshot.bonds.types = ["bond"]
+    snapshot.bonds.typeid = [0]
+    snapshot.bonds.group = [[0, 1]]
 
-    snapshot.particles.position[:] = positions[:]
+    sim.create_state_from_snapshot(snapshot)
+    sim.run(0)
 
-    snapshot.bonds.resize(1)
-    snapshot.bonds.typeid[0] = 0
+    integrator = hoomd.md.Integrator(dt=dt)
 
-    snapshot.bonds.group[:] = [[0, 1]]
+    # Interaction Potential
+    r_min, r_max = 0, 10
+    n_points = 512
+    fes_points = np.linspace(r_min, r_max, n_points)
+    energy, forces = energy_and_forces(fes_points, **fes_params)
+    fes = hoomd.md.bond.Table(n_points)
+    fes.params["bond"] = dict(r_min=r_min, r_max=r_max, U=energy, F=forces)
+    integrator.forces.append(fes)
 
-    hoomd.init.read_snapshot(snapshot)
+    mobile_particles = hoomd.filter.Type("P")
+    langevin = hoomd.md.methods.Langevin(filter=mobile_particles, kT=kT)
+    integrator.methods.append(langevin)
 
-    # Connect custom bond to create energy landscape
-    fes = hoomd.md.bond.table(width=500)
-    fes.bond_coeff.set("bond", func=potential, rmin=0, rmax=10, coeff=fes_coeffs)
+    sim.operations.integrator = integrator
 
-    dt=1e-3
-    hoomd.md.integrate.mode_standard(dt = dt)
-    # We do not integrate the ghost particle
-    integrator = hoomd.md.integrate.nvt(group = hoomd.group.all(), kT = kBT, tau = 100*dt)
-    integrator.randomize_velocities(seed = 42)
-
-    return hoomd.context.current
+    return sim
 ```
 
 <!-- #region id="j3XPDwd0jR1q" -->
@@ -364,7 +374,7 @@ from pysages.colvars import Distance
 import pysages
 
 # Distance from our particle to origin (particle 1)
-cvs = [Distance(([0], [1]))]
+cvs = [Distance([0, 1])]
 ```
 
 <!-- #region id="LknkRvo1o4av" -->
@@ -373,12 +383,13 @@ cvs = [Distance(([0], [1]))]
 
 Next, we are interested in an unbiased simulation.
 
-PySAGES offers a special method for unbiased simulations, that can still record the collective variable.
+PySAGES offers a special method for unbiased simulations, that can record a collective variable.
 
 <!-- #endregion -->
 
 ```python id="B1Z8FWz0o7u_"
 from pysages.methods import Unbiased
+
 method = Unbiased(cvs)
 ```
 
@@ -390,6 +401,7 @@ We also want to track the collective variable over time and as a histogram, so w
 
 ```python id="EKkWWb7PrSzI"
 from pysages.methods.utils import HistogramLogger
+
 hist = HistogramLogger(period=100)
 ```
 
@@ -400,7 +412,7 @@ To investigate the unbiased trajectory and statistics.
 
 <!-- #endregion -->
 
-```python colab={"base_uri": "https://localhost:8080/"} id="K951m4BbpUar" outputId="2051295a-ad51-4b43-e4a7-5daf893b2c87"
+```python id="K951m4BbpUar"
 result = pysages.run(method, generate_context, int(1e5), callback=hist)
 ```
 
@@ -410,35 +422,39 @@ Let's see how the particle moved in this potential landscape.
 
 <!-- #endregion -->
 
-```python colab={"base_uri": "https://localhost:8080/", "height": 383} id="X69d1R7OpW4P" outputId="63ba3b7b-b4fe-4e52-9e0c-1d07e446e30d"
-def plot_one_result(result):
-  histogram_log = result.callbacks[0]
-  cv_log = np.asarray(histogram_log.data)
-  time = np.linspace(0, len(cv_log)*0.1, len(cv_log))
-  fig, ax = plt.subplots()
-  ax.set_xlabel(r"$t$ $[\tau]$")
-  ax.set_ylim((0, 4))
-  ax.set_ylabel(r"$\xi$ $[\sigma]$")
+```python id="olRutIrvc9un"
+def plot_cv_trajectory(result, x_range=(0, 4)):
+    histogram_log = result.callbacks[0]
+    cv_log = np.asarray(histogram_log.data)
+    time = np.linspace(0, 0.1 * len(cv_log), len(cv_log))
 
-  ax.plot(time, cv_log, label="cv trajectory")
+    x = np.linspace(x_range[0] + 0.01, x_range[1], 200)
+    landscape = free_energy(energy)(x)
 
-  ax2 = ax.twiny()
-  ax2.set_xlabel(r"$A(\xi)$ $[k_BT]$")
-  x = np.linspace(0, 4, 200)
-  corrected_free_energy = potential(x)[0]- np.log(2*np.pi*x**2)
-  corrected_free_energy -= corrected_free_energy[1]
-  ax2.plot(correct_free_energy(x, potential(x)[0]), x, label="energy landscape", color="orange")
+    fig, ax = plt.subplots()
 
-  ax.legend(loc="center right")
-  ax2.legend(loc="upper left")
-  fig.show()
-plot_one_result(result)
+    ax.set_xlabel(r"$t$ $[\tau]$")
+    ax.set_ylabel(r"$\xi$ $[\sigma]$")
+    ax.set_ylim(x_range)
+    ax.plot(time, cv_log, label="cv trajectory")
+    ax.legend(loc="center right")
+
+    ax2 = ax.twiny()
+    ax2.set_xlabel(r"$A(\xi)$ $[k_BT]$")
+    ax2.plot(landscape, x, label="energy landscape", color="orange")
+    ax2.legend(loc="upper left")
+
+    fig.show()
+```
+
+```python colab={"base_uri": "https://localhost:8080/", "height": 514} id="XIadmcZhHPTJ" outputId="5d925d2e-c8b3-41b5-aa8c-36fc4ac64f2f"
+plot_cv_trajectory(result)
 ```
 
 <!-- #region id="Kf_CMdih90Cd" -->
 
 We see, that the system never leaves the local minimum around $\xi=3$.
-Since the phase space is not fully explored the prediction of the free energy is not complete. Here the system is not even equilibrated.
+Since the phase space is not fully explored we would be unable to predict the free energy. Actually, the system is not even equilibrated.
 
 The sampling is not ergodic!
 This is common for normal MD (although not as easy to spot usually).
@@ -469,7 +485,7 @@ $$p(\{(r,p)\}) \propto e^{-\beta H^0(\{(p,r)\})} \frac{1}{w(\xi(\{(r,p)\}))} = e
 
 $$\Rightarrow H^w(\{(r,p)\} = k_BT \ln(w(\xi(\{(r,p)\})))$$
 
-Here is where [PySAGES](https://github.com/SSAGESLabs/PySAGES) comes into play! PySAGES allows you to easily (python code) introduce a biasing Hamiltonian into a given MD backend (like [HOOMD-blue](http://glotzerlab.engin.umich.edu/hoomd-blue/), [OpenMM](https://openmm.org), or [ASE](https://wiki.fysik.dtu.dk/ase/)).
+Here is where [PySAGES](https://github.com/SSAGESLabs/PySAGES) comes into play! PySAGES allows you to easily introduce a biasing Hamiltonian into a given MD backend (like [HOOMD-blue](http://glotzerlab.engin.umich.edu/hoomd-blue/), [OpenMM](https://openmm.org), or [ASE](https://wiki.fysik.dtu.dk/ase/)).
 So it is not necessary to modify the MD backend and via [JAX](https://jax.readthedocs.io/en/latest/index.html) we offer automatic differentiation, so forces are calculated automatically.
 
 ## Harmonic Biasing
@@ -478,152 +494,160 @@ We can start biasing by using a simple harmonic biasing, where we bias the syste
 
 $$H^b(r) = \frac{k}{2} (c-r)^2$$
 
-PySAGES offers a pre-implemented method class, that we are utilizing.
+PySAGES offers a pre-defined class that implements this, which we will take advantage of.
 
 In our example toy system, we choose $c=2\sigma$ as a maximum of our external potential.
-
-We don't know a priori what a good spring constant is. Let's start with $k=1 \frac{k_BT}{\sigma^2}$.
-
 <!-- #endregion -->
 
-```python colab={"base_uri": "https://localhost:8080/"} id="Wt4LVNYe0Q_4" outputId="334a584b-bf7e-433c-b773-0e283707f6c8"
+```python id="Wt4LVNYe0Q_4"
 from pysages.methods import HarmonicBias
-method = HarmonicBias(cvs, kspring=1, center=2)
-hist = HistogramLogger(period=100)
-result = pysages.run(method, generate_context, int(1e5), callback=hist)
+
+def apply_harmonic_bias(kspring, center=2, cvs=cvs, timesteps=int(1e5), log_period=100):
+    method = HarmonicBias(cvs, kspring=kspring, center=center)
+    hist = HistogramLogger(period=log_period)
+    result = pysages.run(method, generate_context, timesteps, callback=hist)
+    return result
 ```
 
 <!-- #region id="_PtTExcaOyFt" -->
-
-Ok, we analyze the trajectory as before to see how the energy landscape is explored now.
-
+We don't know a priori what a good spring constant is. Let's start with $k = 10 \frac{k_BT}{\sigma^2}$, and let's analyze the trajectory as before to see how the energy landscape is explored.
 <!-- #endregion -->
 
-```python colab={"base_uri": "https://localhost:8080/", "height": 383} id="238HVay7O3TA" outputId="1d2fe838-12ca-4596-c58a-4d226fa02dfd"
-plot_one_result(result)
+```python colab={"base_uri": "https://localhost:8080/", "height": 514} id="CkR5zrA0hWrN" outputId="3b742357-8642-4328-b75f-d75307410a0c"
+kspring = 10
+result = apply_harmonic_bias(kspring)
+plot_cv_trajectory(result)
 ```
 
 <!-- #region id="Wy1I3QdCPOqm" -->
 
-We observe that the free-energy barrier at $c=2\sigma$ is already much better explored, but the biasing force is only strong enough to pull the particle across the barrier once.
+We observe that the free-energy barrier around $c=2\sigma$ is better explored now, but the biasing force is only strong enough to pull the particle across the barrier a couple of times.
 
-Let's try $k=100\frac{k_BT}{\sigma^2}$.
+Let's try $k = 100 \frac{k_BT}{\sigma^2} = 10^2 \frac{k_BT}{\sigma^2}$.
 
 <!-- #endregion -->
 
-```python colab={"base_uri": "https://localhost:8080/", "height": 540} id="JvHWb-sSO6Qe" outputId="cf24fa42-46c3-4112-c0a5-526d8b0fa499"
-method = HarmonicBias(cvs, kspring=100, center=2)
-hist = HistogramLogger(period=100)
-result = pysages.run(method, generate_context, int(1e5), callback=hist)
-plot_one_result(result)
+```python colab={"base_uri": "https://localhost:8080/", "height": 514} id="VZPrQoN0TlXe" outputId="29d866c2-fd39-4113-dd9f-671ba6fe9b65"
+kspring = 100
+result = apply_harmonic_bias(kspring)
+plot_cv_trajectory(result)
 ```
 
 <!-- #region id="jUxAakh1SnS5" -->
 
-Ok, now the system mostly oscillates around the maximum with two minima, but these two minima are not close to the actual minima of the free-energy landscape.
+Ok, now the system mostly oscillates around the local maximum, but is no longer able to come close to the actual minima of the free-energy landscape.
 
-The spring constant is so strong, that restricts the exploration of the phase space too much. Let's try the middle ground instead $k=10\frac{k_BT}{\sigma^2}$.
-
+The spring constant is so strong, that restricts the exploration of the phase space too much. Let's try the middle ground instead $k = 30 \frac{k_BT}{\sigma^2} \approx 10^{1.5} \frac{k_BT}{\sigma^2}$.
 <!-- #endregion -->
 
-```python colab={"base_uri": "https://localhost:8080/", "height": 540} id="OLwF9M6qTWv5" outputId="4f894a37-5076-48ed-dcf9-dcb7f5c4b331"
-kspring=10
-method = HarmonicBias(cvs, kspring=kspring, center=2)
-hist = HistogramLogger(period=100)
-result = pysages.run(method, generate_context, int(1e5), callback=hist)
-plot_one_result(result)
+```python colab={"base_uri": "https://localhost:8080/", "height": 514} id="oOtsXxhrTtxv" outputId="94c7a792-ca9e-43e6-b2c8-647885d289f2"
+kspring = 30
+result = apply_harmonic_bias(kspring)
+plot_cv_trajectory(result)
 ```
 
 <!-- #region id="XuMle2u3R1MS" -->
 
 This looks much better!
 
-We observe multiple transitions between the minima at $c=1\sigma$ and $c=3\sigma$ (rare events), so the phase space is better explored. We also see that the lower minimum is frequented more than the upper one as expected.
+We observe multiple transitions between the minima at $c \approx 1\sigma$ and $c \approx 3\sigma$ (which initially where rare events), so the phase space is better explored. We also see that the lower minimum is frequented more than the upper one as expected.
 
 We now analyze the histograms of this trajectory to determine the free-energy landscape $A(\xi)$ from the biased simulation.
 
 <!-- #endregion -->
 
-```python colab={"base_uri": "https://localhost:8080/", "height": 283} id="uT8IyjLqR4cE" outputId="17253273-ae96-43ca-d10a-1d35ccb196c3"
+```python id="w4VYI8eBzwng"
 from scipy import integrate
-def plot_one_histogram(result):
-  histogram_log = result.callbacks[0]
 
-  hist, edges = histogram_log.get_histograms(bins=30, range=[(0,4)])
-  fig, ax = plt.subplots()
-  ax.set_xlabel(r"$\xi$ $[\sigma]$")
-  ax.set_ylabel(r"p(\xi)")
-  ax.set_xlim((0, 4))
+def plot_cv_histogram(result, x_range=(0, 4), bins=30):
+    histogram_log = result.callbacks[0]
+    hist, edges = histogram_log.get_histograms(bins=bins, range=[x_range])
+    x_hist = edges[0][:-1] + np.diff(edges[0]) / 2
 
-  x = edges[0][:-1] + np.diff(edges[0])/2
-  ax.plot(x, hist, label=r"biased $p(\xi)$")
-  weight = np.exp(-kBT*kspring/2*(x-2)**2)
-  unbiased_distribution = hist/weight
-  unbiased_distribution /= integrate.simpson(unbiased_distribution, x)
-  ax.plot(x, unbiased_distribution, label=r"unbiased $p_{eq}(\xi)$")
+    weight = np.exp(-kT * kspring / 2 * (x_hist - 2)**2)
+    unbiased_distribution = hist / weight
+    unbiased_distribution /= integrate.simpson(unbiased_distribution, x=x_hist)
 
-  ax.legend(loc="best")
-  fig.show()
-plot_one_histogram(result)
+    fig, ax = plt.subplots()
+
+    ax.set_xlabel(r"$\xi$ $[\sigma]$")
+    ax.set_ylabel(r"p(\xi)")
+    ax.set_xlim(x_range)
+    ax.plot(x_hist, hist, label=r"biased $p(\xi)$")
+    ax.plot(x_hist, unbiased_distribution, label=r"unbiased $p_{eq}(\xi)$")
+    ax.legend(loc="best")
+
+    fig.show()
+```
+
+```python colab={"base_uri": "https://localhost:8080/", "height": 473} id="ilgBwmj2JIFc" outputId="e79eb32c-7522-4021-a049-773ba9de124b"
+plot_cv_histogram(result)
 ```
 
 <!-- #region id="-ki0CfQv8EGU" -->
 
-We can see, that the unbiased distribution puts the minima in the wrong place, but correcting it with the weight gives us the correct minima positions.
-However, we can't be sure that this is the correct profile yet.
+We can't be sure that this is the correct profile yet.
 
 So let's compare to the expected free-energy profile.
 
-$$A(\xi) = -k_BT \ln(p_{eq}(\xi) + C$$
+$$A(\xi) = -k_BT \ln\left( p_{eq}(\xi) \right) + C$$
 
 <!-- #endregion -->
 
-```python colab={"base_uri": "https://localhost:8080/", "height": 318} id="22xGRaXk8jyG" outputId="d70e5c6e-8c34-449f-92d9-30f864187672"
-def plot_one_free_energy(result):
-  histogram_log = result.callbacks[0]
+```python id="r4l3B7-QLt4H"
+def plot_free_energy(result, x_range=(0, 4), bins=30):
+    x = np.linspace(x_range[0] + 0.01, x_range[1], 200)
+    corrected_free_energy = free_energy(energy)(x)
 
-  hist, edges = histogram_log.get_histograms(bins=30, range=[(0,4)])
-  fig, ax = plt.subplots()
-  ax.set_xlabel(r"$\xi$ $[\sigma]$")
-  ax.set_ylabel(r"A(\xi)")
-  ax.set_xlim((0, 4))
+    histogram_log = result.callbacks[0]
+    hist, edges = histogram_log.get_histograms(bins=bins, range=[x_range])
+    x_hist = edges[0][:-1] + np.diff(edges[0]) / 2
 
-  x = edges[0][:-1] + np.diff(edges[0])/2
+    weight = np.exp(-kT * kspring / 2 * (x_hist - 2)**2)
+    unbiased_distribution = hist / weight
+    unbiased_distribution /= integrate.simpson(unbiased_distribution, x=x_hist)
 
-  weight = np.exp(-kBT*kspring/2*(x-2)**2)
-  unbiased_distribution = hist/weight
-  unbiased_distribution /= integrate.simpson(unbiased_distribution, x)
+    mask = unbiased_distribution != 0
+    estimated_profile = -kT * np.log(unbiased_distribution[mask])
+    constant_C = -np.min(estimated_profile) + np.min(corrected_free_energy)
 
-  estimated_profile = -kBT * np.log(unbiased_distribution)
-  constant_C = -np.min(estimated_profile) + np.min(potential(x)[0])
-  ax.plot(x, estimated_profile + constant_C, label=r"estimated $A(\xi)$")
-  ax.plot(x, correct_free_energy(x, potential(x)[0]), label=r"true $A(\xi)$")
+    fig, ax = plt.subplots()
+    ax.set_xlabel(r"$\xi$ $[\sigma]$")
+    ax.set_ylabel(r"A(\xi)")
+    ax.set_xlim(x_range)
 
-  ax.legend(loc="best")
-  fig.show()
-plot_one_free_energy(result)
+    ax.plot(x, corrected_free_energy, label=r"true $A(\xi)$")
+    ax.plot(x_hist[mask], estimated_profile + constant_C, label=r"estimated $A(\xi)$")
+
+    ax.legend(loc="best")
+    fig.show()
 ```
 
-<!-- #region id="e2YtfQlQ8jO9" -->
+```python colab={"base_uri": "https://localhost:8080/", "height": 478} id="kzWTZ93vNDQI" outputId="f5c5bef7-71c0-4d62-f87e-14a40e10288d"
+plot_free_energy(result)
+```
 
+<!-- #region id="Dr3si4QLVppr" -->
 That estimation is not bad.
 We get the approximate right shape in the middle and that could be further improved by running the sampling trajectory longer. Or try a different spring constant. [Try it out!]
 
 But there are still some issues because we still cannot sample the entire space:
 
-- the up trend on the right is uncovered
-- the energy barrier is underestimated
-- the first minimum is under-sampled
+- the right and left barriers are uncovered
+- the height and maximum of the sampled barrier are slightly off
+- the highest local minimum is under-sampled
 
 Can we bias simulations in these regions too, to improve sampling coverage?
+<!-- #endregion -->
 
+<!-- #region id="e2YtfQlQ8jO9" -->
 ## Umbrella Sampling
 
 We want to find the free-energy profile along a given path in the space for collective variables. Usually, this path can be multidimensional.
 
-Example dihedral angles of Alanine Dipeptide. [PySAGES Alanine Dipentide examples](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/examples/openmm/Harmonic_Bias.ipynb)
+Example dihedral angles of Alanine Dipeptide. [PySAGES Alanine Dipeptide examples](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/examples/openmm/Harmonic_Bias.ipynb)
 
-<img src=https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4715807/bin/nihms-706794-f0001.jpg width=500>
+<img src=https://cdn.ncbi.nlm.nih.gov/pmc/blobs/a1dd/4715807/e8dece12c024/nihms-706794-f0001.jpg width=500>
 
 Wu, Xiongwu, Bernard R. Brooks, and Eric Vanden‐Eijnden. Journal of computational chemistry 37.6 (2016): 595-601.
 
@@ -686,25 +710,28 @@ Ideal $e^{-\beta H^b_{i}}(\xi) \propto p_{eq}(\xi)$ and differentiable.
 - combine different points into one analysis
 <!-- #endregion -->
 
-```python colab={"base_uri": "https://localhost:8080/", "height": 322} id="34u5P_jKpcqZ" outputId="d193536c-1ef4-4eaa-abcc-e4d0af9e9501"
+```python colab={"base_uri": "https://localhost:8080/", "height": 479} id="34u5P_jKpcqZ" outputId="165c2cce-f1ad-4006-92d1-c9acfb7f4ff6"
 centers = np.linspace(0, 4, 10)
 kspring = 100
+
+x = np.linspace(0.01, 4, 200)
+landscape = free_energy(energy)(x)
+
 fig, ax = plt.subplots()
+
 ax.set_xlabel(r"$\xi$")
 ax.set_ylabel(r"$H_i(\xi)$")
-ax.set_ylim((-10, 20))
-ax.set_xlim((0,4))
+ax.set_ylim((-12, 20))
+ax.set_xlim((0, 4))
 
-x = np.linspace(0, 4, 200)
-ax.plot(x, correct_free_energy(x, potential(x)[0]), label="potential")
-for point in centers:
-  label = None
-  if point == 0:
-    label = "biasing potential"
-  ax.plot(x, kspring/2*(x-point)**2, label=label)
+for x_c in centers:
+    label = "biasing potential" if x_c == 4 else None
+    ax.plot(x, kspring / 2 * (x - x_c)**2, label=label)
+
+ax.plot(x, landscape, label="potential")
 ax.legend(loc="best")
-fig.show()
 
+fig.show()
 ```
 
 <!-- #region id="Wdb0TKstSz-j" -->
@@ -716,8 +743,9 @@ $$\int \text{d} \xi p_i^b(\xi) p_{i+1}^b(\xi) \gg 0$$
 
 <!-- #endregion -->
 
-```python colab={"base_uri": "https://localhost:8080/"} id="CtaNDUQ0SrTZ" outputId="3255e692-bfbd-4f97-cc21-8659aa2b5b37"
+```python id="CtaNDUQ0SrTZ"
 from pysages.methods import UmbrellaIntegration
+
 method = UmbrellaIntegration(cvs, kspring, centers, 100)
 result = pysages.run(method, generate_context, int(1e5))
 ```
@@ -730,17 +758,29 @@ Let's see what the histograms look like.
 
 <!-- #endregion -->
 
-```python colab={"base_uri": "https://localhost:8080/", "height": 283} id="xdUuQ9z5XCEH" outputId="453c6048-9992-4b30-e91d-e0c81c146b83"
-def plot_multi_histogram(result):
-  fig, ax = plt.subplots()
-  ax.set_xlabel(r"$\xi$ $[\sigma]$")
-  ax.set_ylabel(r"p(\xi)")
-  ax.set_xlim((0, 4))
-  for histogram_log in result.callbacks:
-    hist, edges = histogram_log.get_histograms(bins=30, range=[(0,4)])
-    x = edges[0][:-1] + np.diff(edges[0])/2
-    ax.plot(x, hist, label=r"biased $p(\xi)$")
-  fig.show()
+```python id="xdUuQ9z5XCEH"
+def plot_multi_histogram(result, x_range=(0, 4), bins=30):
+    xs = []
+    histograms = []
+
+    for histogram_log in result.callbacks:
+        hist, edges = histogram_log.get_histograms(bins=bins, range=[x_range])
+        xs.append(edges[0][:-1] + np.diff(edges[0]) / 2)
+        histograms.append(hist)
+
+    fig, ax = plt.subplots()
+
+    ax.set_xlabel(r"$\xi$ $[\sigma]$")
+    ax.set_ylabel(r"p(\xi)")
+    ax.set_xlim(x_range)
+
+    for x, hist in zip(xs, histograms):
+        ax.plot(x, hist, label=r"biased $p(\xi)$")
+
+    fig.show()
+```
+
+```python colab={"base_uri": "https://localhost:8080/", "height": 473} id="eJswUAgwBgBN" outputId="861641a1-bae5-4844-c3a7-a646c498a503"
 plot_multi_histogram(result)
 ```
 
@@ -792,37 +832,42 @@ Let's see how PySAGES analyzes it for us and produces the free-energy result.
 
 <!-- #endregion -->
 
-```python colab={"base_uri": "https://localhost:8080/", "height": 318} id="RpoHwWULX2Nj" outputId="4292617c-3b4a-4278-b484-b40eea8a0fea"
-def plot_umbrella_free_energy(result):
-  processed_result = pysages.analyze(result)
+```python id="RpoHwWULX2Nj"
+def plot_umbrella_free_energy(pre_result, x_range=(0, 4)):
+    x = np.linspace(x_range[0] + 0.01, x_range[1], 50)
+    landscape = free_energy(energy)(x)
 
-  fig, ax = plt.subplots()
-  ax.set_xlabel(r"$\xi$ $[\sigma]$")
-  ax.set_ylabel(r"A(\xi)")
-  ax.set_xlim((0, 4))
+    result = pysages.analyze(pre_result)
+    centers = np.asarray(result["centers"])[:, 0]
+    estimate = np.asarray(result["free_energy"])
+    estimate = estimate - np.min(estimate) + np.min(landscape)
 
-  centers = np.asarray(processed_result["centers"])[:,0]
-  free_energy = np.asarray(processed_result["free_energy"])
-  ax.plot(centers, free_energy, label=r"estimated $A(\xi)$")
-  x = np.linspace(0, 4, 50)
-  ax.plot(x, correct_free_energy(x, potential(x)[0]), label=r"true $A(\xi)$")
-  ax.legend(loc="best")
-  fig.show()
+    fig, ax = plt.subplots()
+
+    ax.set_xlabel(r"$\xi$ $[\sigma]$")
+    ax.set_ylabel(r"A(\xi)")
+    ax.set_xlim(x_range)
+    ax.plot(x, landscape, label=r"true $A(\xi)$")
+    ax.plot(centers, estimate, label=r"estimated $A(\xi)$")
+    ax.legend(loc="best")
+
+    fig.show()
+```
+
+```python colab={"base_uri": "https://localhost:8080/", "height": 478} id="GcWEtXv1Cktp" outputId="7793047d-55a2-47a2-d06d-765901f28a6a"
 plot_umbrella_free_energy(result)
 ```
 
 <!-- #region id="nswuCmWdhvQb" -->
-
-This appears to be much better.
-Even with the crude approximations, we were doing we can estimate the shape of the potential.
+Even with the crude finite-differences approximations we are doing we can estimate the shape of the potential.
 
 Just the second minimum is underestimated, which could be fixed with more sampling and more sampling points in that vicinity. [Try it out!]
 
 Difficulties:
 
 1.  choose a good spring constant
-    > - too large and the histograms don't overlap
-    > - too small and you can sample barriers
+    - if it is too large, the histograms won't overlap
+    - if it too small, you won't be able to sample some barriers
 2.  choose a good number of replicas
 
 Can we do better than this?
@@ -830,6 +875,7 @@ Yes, of course:
 
 - [Meta-dynamics](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/examples/hoomd-blue/Umbrella_Integration.ipynb): approximate one weight function with a sum of Gaussians
 - [ANN](https://colab.research.google.com/github/SSAGESLabs/PySAGES/blob/main/examples/hoomd-blue/Butane_ANN.ipynb): approximate biasing force with artificial neuronal networks (ANN)
+- And many more sampling methods implemented in PySAGES
 
 ## GPU computing
 
@@ -870,7 +916,7 @@ The normal component of the force $\Rightarrow \Delta V^\perp = 0$ is zero.
 General Idea:
 
 Move the string (path) along the perpendicular component $\Delta V^\perp$ at each discretized point $v_i = - \Delta V^\perp$. (Gradient descent)
-The parallel component would move the discretized point just along the path and end up in the minima.
+The parallel component would move the discretized point just along the path and end up in a minimum.
 
 Problem 1:
 
@@ -900,7 +946,7 @@ $\Rightarrow$ smooth path $\xi_0^s(t)$ with $\xi_0^s(t) = \xi(t_i)$.
 
 ### Improved string method
 
-Using the perpendicular component directly does not lead to good convergences.
+Using the perpendicular component directly does not lead to good convergence.
 Instead, we can use the improved string method.
 
 Iterate:
@@ -908,12 +954,10 @@ Iterate:
 1.  Calculate $\Delta V|_{t_i}$
 2.  Move string $\xi_0(t_i)$ += $\alpha \Delta V|_{t_i}$
 3.  Calculate spline $\xi_0^s(t)$
-4.  Re-parametrize the string points.
-    > Such that $|\xi*0^s(t_i) - \xi_0^s(t*{i+1})| = $const.
-    >
-    > - cancels out parallel force component
-    > - well-discretized string
-    > - requires a norm in $\xi$ space. For example $L^2$ norm in $\xi$ space.
+4.  Re-parametrize the string points such that $|\xi_0^s(t_i) - \xi_0^s(t_{i+1})| = const$.
+    - cancels out parallel force component
+    - well-discretized string
+    - requires a norm in $\xi$ space. For example $L^2$ norm in $\xi$ space.
 
 Stop iteration if converged and test $\Delta V^\perp = 0$.
 
@@ -925,15 +969,13 @@ With the converged path, calculate the free-energy profile using umbrella integr
 
 Let us define a committor probability.
 
-For a given point $r_i$ we can define the probability that a simulation started from this point ends in minima $B$ first before it moves through $B$.
+For a given point $r_i$ we can define the probability that a simulation started from this point ends in minimum $B$ first before it moves through $B$.
 $$\text{commitor probability B: } p_B(r_i)$$
 
 This is a probability since we can have multiple realizations of $r_i$ in momentum space (Maxwell-Boltzmann distribution). Each of these realizations has its path and we simulate them and measure if they arrive in $A$ or $B$ first.
-
 <!-- #endregion -->
 
 <!-- #region id="GFT1lolLm13Y" -->
-
 ![commitor.png](data:image/png;base64,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)
 
 <!-- #endregion -->
@@ -945,7 +987,7 @@ And the probability decreases if we move towards $A$ ($t < 1/2$) the probability
 
 <!-- #endregion -->
 
-```python colab={"base_uri": "https://localhost:8080/", "height": 281} id="9N5aSjdbmlZ0" outputId="b69bdb1f-06bc-459e-c593-9dc8b60f5706"
+```python colab={"base_uri": "https://localhost:8080/", "height": 469} id="9N5aSjdbmlZ0" outputId="0eced722-a3dc-465f-a9ce-b830881cf60a"
 fig, ax =plt.subplots()
 ax.set_xlabel("$t$")
 ax.set_xlim((0,1))
@@ -954,9 +996,9 @@ ax.set_ylabel("$ p_B(t)$")
 x = np.linspace(0, 1, 50)
 p_good = np.tan(2*(x-.5))
 p_good -= np.min(p_good)
-p_good /= integrate.simpson(p_good, x)
+p_good /= integrate.simpson(p_good, x=x)
 p_bad = x*0+1
-p_bad /= integrate.simpson(p_bad, x)
+p_bad /= integrate.simpson(p_bad, x=x)
 
 ax.plot(x, p_good, label="good path")
 ax.plot(x, p_bad, label="bad path")

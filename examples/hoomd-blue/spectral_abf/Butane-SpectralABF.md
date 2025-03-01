@@ -14,22 +14,23 @@ jupyter:
 ---
 
 <!-- #region id="T-Qkg9C9n7Cc" -->
-
 # Setting up the environment
 
-First, we are setting up our environment. We use an already compiled and packaged installation of HOOMD-blue and the DLExt plugin.
-We copy it from Google Drive and install PySAGES for it.
-
+First, we set up our environment. We will be using a pre-compiled and packaged installation of HOOMD-blue and the hoomd-dlext plugin.
+It will be downloaded from Google Drive and made accessible to the Python process running in this Colab instance.
 <!-- #endregion -->
 
 ```bash id="3eTbKklCnyd_"
 
-BASE_URL="https://drive.google.com/u/0/uc?id=1hsKkKtdxZTVfHKgqVF6qV2e-4SShmhr7&export=download"
-wget -q --load-cookies /tmp/cookies.txt "$BASE_URL&confirm=$(wget -q --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate $BASE_URL -O- | sed -rn 's/.*confirm=(\w+).*/\1\n/p')" -O pysages-env.zip
-rm -rf /tmp/cookies.txt
+BASE_URL="https://drive.usercontent.google.com/download?id=1hsKkKtdxZTVfHKgqVF6qV2e-4SShmhr7"
+COOKIES="/tmp/cookies.txt"
+CONFIRMATION="$(wget -q --save-cookies $COOKIES --keep-session-cookies --no-check-certificate $BASE_URL -O- | sed -rn 's/.*confirm=(\w+).*/\1\n/p')"
+
+wget -q --load-cookies $COOKIES "$BASE_URL&confirm=$CONFIRMATION" -O pysages-env.zip
+rm -rf $COOKIES
 ```
 
-```python colab={"base_uri": "https://localhost:8080/"} id="KRPmkpd9n_NG" outputId="acc3a92c-182f-415b-d8dc-b5af076b3d01"
+```python colab={"base_uri": "https://localhost:8080/"} id="KRPmkpd9n_NG" outputId="b757f2aa-38cc-4726-c4ab-5197810b9d77"
 %env PYSAGES_ENV=/env/pysages
 ```
 
@@ -46,92 +47,70 @@ import sys
 ver = sys.version_info
 sys.path.append(os.environ["PYSAGES_ENV"] + "/lib/python" + str(ver.major) + "." + str(ver.minor) + "/site-packages/")
 
-os.environ["XLA_FLAGS"] = "--xla_gpu_strict_conv_algorithm_picker=false"
 os.environ["LD_LIBRARY_PATH"] = "/usr/lib/x86_64-linux-gnu:" + os.environ["LD_LIBRARY_PATH"]
 ```
 
-<!-- #region id="we_mTkFioS6R" -->
+<!-- #region id="Wy-75Pt7Bqs1" -->
+We'll also need some additional python dependencies
+<!-- #endregion -->
 
+```python id="LpBucu3V81xm"
+!pip install -qq "numpy<2" gsd > /dev/null
+```
+
+<!-- #region id="we_mTkFioS6R" -->
 ## PySAGES
 
-The next step is to install PySAGES.
-First, we install the jaxlib version that matches the CUDA installation of this Colab setup. See the JAX documentation [here](https://github.com/google/jax) for more details.
-
+Next, we install PySAGES. The latest version is retrieved from GitHub and installed (along with its dependencies) using `pip`.
 <!-- #endregion -->
 
-```bash id="vK0RZtbroQWe"
-
-pip install -q --upgrade pip
-# Installs the wheel compatible with CUDA.
-pip install -q --upgrade "jax[cuda]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html &> /dev/null
-```
-
-<!-- #region id="wAtjM-IroYX8" -->
-
-Now we can finally install PySAGES. We clone the newest version from [here](https://github.com/SSAGESLabs/PySAGES) and build the remaining pure python dependencies and PySAGES itself.
-
-<!-- #endregion -->
-
-```bash id="B-HB9CzioV5j"
-
-rm -rf PySAGES
-git clone https://github.com/SSAGESLabs/PySAGES.git &> /dev/null
-cd PySAGES
-pip install -q . &> /dev/null
-```
-
-```bash id="ppTzMmyyobHB"
-
-mkdir /content/cff
-cd /content/cff
+```python id="B-HB9CzioV5j"
+!pip install -qq git+https://github.com/SSAGESLabs/PySAGES.git > /dev/null
 ```
 
 <!-- #region id="KBFVcG1FoeMq" -->
-
 # SpectralABF-biased simulations
-
 <!-- #endregion -->
 
-<!-- #region id="0W2ukJuuojAl" -->
+```bash id="ppTzMmyyobHB"
 
+mkdir /content/spectral-abf
+cd /content/spectral-abf
+```
+
+<!-- #region id="0W2ukJuuojAl" -->
 SpectralABF gradually learns a better approximation to the coefficients of a basis functions expansion of the free energy of a system, from the generalized mean forces in a similar fashion to the ABF sampling method.
 
-For this Colab, we are using butane as the example molecule.
-
+In this Colab notebook, we will use butane as an example system.
 <!-- #endregion -->
 
 ```python id="BBvC7Spoog82"
 import hoomd
-import hoomd.md
+import gsd.hoomd
+import numpy as np
 
-import numpy
 
-
-pi = numpy.pi
+pi = np.pi
 kT = 0.596161
 dt = 0.02045
-mode = "--mode=gpu"
 
 
-def generate_context(kT = kT, dt = dt, mode = mode):
+def generate_simulation(kT = kT, dt = dt, device = hoomd.device.auto_select(), seed = 42):
     """
-    Generates a simulation context, we pass this function to the attribute
-    `run` of our sampling method.
+    Generates a simulation context to which will attatch our sampling method.
     """
-    hoomd.context.initialize(mode)
+    simulation = hoomd.Simulation(device=device, seed=seed)
 
-    ### System Definition
-    snapshot = hoomd.data.make_snapshot(
-        N = 14,
-        box = hoomd.data.boxdim(Lx = 41, Ly = 41, Lz = 41),
-        particle_types = ['C', 'H'],
-        bond_types = ["CC", "CH"],
-        angle_types = ["CCC", "CCH", "HCH"],
-        dihedral_types = ["CCCC", "HCCC", "HCCH"],
-        pair_types = ["CCCC", "HCCC", "HCCH"],
-        dtype = "double"
-    )
+    snapshot = gsd.hoomd.Frame()
 
+    snapshot.configuration.box = [41, 41, 41, 0, 0, 0]
+
+    snapshot.particles.N = N = 14
+    snapshot.particles.types = ["C", "H"]
+    snapshot.particles.typeid = np.zeros(N, dtype=int)
+    snapshot.particles.position = np.zeros((N, 3))
+    snapshot.particles.mass = np.zeros(N, dtype=float)
+    snapshot.particles.charge = np.zeros(N, dtype=float)
     snapshot.particles.typeid[0] = 0
     snapshot.particles.typeid[1:4] = 1
     snapshot.particles.typeid[4] = 0
@@ -141,52 +120,60 @@ def generate_context(kT = kT, dt = dt, mode = mode):
     snapshot.particles.typeid[10] = 0
     snapshot.particles.typeid[11:14] = 1
 
-    positions = numpy.array([
-        [-2.990196,  0.097881,  0.000091],
-        [-2.634894, -0.911406,  0.001002],
-        [-2.632173,  0.601251, -0.873601],
-        [-4.060195,  0.099327, -0.000736],
-        [-2.476854,  0.823942,  1.257436],
-        [-2.832157,  1.833228,  1.256526],
-        [-2.834877,  0.320572,  2.131128],
-        [-0.936856,  0.821861,  1.258628],
-        [-0.578833,  1.325231,  0.384935],
-        [-0.581553, -0.187426,  1.259538],
-        [-0.423514,  1.547922,  2.515972],
-        [-0.781537,  1.044552,  3.389664],
-        [ 0.646485,  1.546476,  2.516800],
-        [-0.778816,  2.557208,  2.515062]
-    ])
+    positions = np.array(
+        [
+            [-2.990196, 0.097881, 0.000091],
+            [-2.634894, -0.911406, 0.001002],
+            [-2.632173, 0.601251, -0.873601],
+            [-4.060195, 0.099327, -0.000736],
+            [-2.476854, 0.823942, 1.257436],
+            [-2.832157, 1.833228, 1.256526],
+            [-2.834877, 0.320572, 2.131128],
+            [-0.936856, 0.821861, 1.258628],
+            [-0.578833, 1.325231, 0.384935],
+            [-0.581553, -0.187426, 1.259538],
+            [-0.423514, 1.547922, 2.515972],
+            [-0.781537, 1.044552, 3.389664],
+            [0.646485, 1.546476, 2.516800],
+            [-0.778816, 2.557208, 2.515062],
+        ]
+    )
 
-    reference_box_low_coords = numpy.array([-22.206855, -19.677099, -19.241968])
-    box_low_coords = numpy.array([
-        -snapshot.box.Lx / 2,
-        -snapshot.box.Ly / 2,
-        -snapshot.box.Lz / 2
-    ])
-    positions += (box_low_coords - reference_box_low_coords)
+    reference_box_low_coords = np.array([-22.206855, -19.677099, -19.241968])
+    box_low_coords = np.array([-41.0 / 2, -41.0 / 2, -41.0 / 2])
+    positions += box_low_coords - reference_box_low_coords
 
     snapshot.particles.position[:] = positions[:]
 
     mC = 12.00
     mH = 1.008
+
+    # fmt: off
     snapshot.particles.mass[:] = [
+        mC, mH, mH, mH,  # grouped by carbon atoms
+        mC, mH, mH,
+        mC, mH, mH,
         mC, mH, mH, mH,
-        mC, mH, mH,
-        mC, mH, mH,
-        mC, mH, mH, mH
     ]
 
-    reference_charges = numpy.array([
-        -0.180000, 0.060000, 0.060000, 0.060000,
-        -0.120000, 0.060000, 0.060000,
-        -0.120000, 0.060000, 0.060000,
-        -0.180000, 0.060000, 0.060000, 0.060000]
+    reference_charges = np.array(
+        [
+            -0.180000, 0.060000, 0.060000, 0.060000,  # grouped by carbon atoms
+            -0.120000, 0.060000, 0.060000,
+            -0.120000, 0.060000, 0.060000,
+            -0.180000, 0.060000, 0.060000, 0.060000,
+        ]
     )
+    # fmt: on
+
     charge_conversion = 18.22262
     snapshot.particles.charge[:] = charge_conversion * reference_charges[:]
 
-    snapshot.bonds.resize(13)
+    snapshot.particles.validate()
+
+    snapshot.bonds.N = 13
+    snapshot.bonds.types = ["CC", "CH"]
+    snapshot.bonds.typeid = np.zeros(13, dtype=int)
     snapshot.bonds.typeid[0:3] = 1
     snapshot.bonds.typeid[3] = 0
     snapshot.bonds.typeid[4:6] = 1
@@ -195,14 +182,19 @@ def generate_context(kT = kT, dt = dt, mode = mode):
     snapshot.bonds.typeid[9] = 0
     snapshot.bonds.typeid[10:13] = 1
 
+    snapshot.bonds.group = np.zeros((13, 2), dtype=int)
+    # fmt: off
     snapshot.bonds.group[:] = [
-        [0, 2], [0, 1], [0, 3], [0, 4],
+        [0, 2], [0, 1], [0, 3], [0, 4],  # grouped by carbon atoms
         [4, 5], [4, 6], [4, 7],
         [7, 8], [7, 9], [7, 10],
-        [10, 11], [10, 12], [10, 13]
+        [10, 11], [10, 12], [10, 13],
     ]
+    # fmt: on
 
-    snapshot.angles.resize(24)
+    snapshot.angles.N = 24
+    snapshot.angles.types = ["CCC", "CCH", "HCH"]
+    snapshot.angles.typeid = np.zeros(24, dtype=int)
     snapshot.angles.typeid[0:2] = 2
     snapshot.angles.typeid[2] = 1
     snapshot.angles.typeid[3] = 2
@@ -215,18 +207,26 @@ def generate_context(kT = kT, dt = dt, mode = mode):
     snapshot.angles.typeid[16:21] = 1
     snapshot.angles.typeid[21:24] = 2
 
+    snapshot.angles.group = np.zeros((24, 3), dtype=int)
+    # fmt: off
     snapshot.angles.group[:] = [
-        [1, 0, 2], [2, 0, 3], [2, 0, 4],
+        [1, 0, 2], [2, 0, 3], [2, 0, 4],  # grouped by carbon atoms
         [1, 0, 3], [1, 0, 4], [3, 0, 4],
+        # ---
         [0, 4, 5], [0, 4, 6], [0, 4, 7],
         [5, 4, 6], [5, 4, 7], [6, 4, 7],
+        # ---
         [4, 7, 8], [4, 7, 9], [4, 7, 10],
         [8, 7, 9], [8, 7, 10], [9, 7, 10],
+        # ---
         [7, 10, 11], [7, 10, 12], [7, 10, 13],
-        [11, 10, 12], [11, 10, 13], [12, 10, 13]
+        [11, 10, 12], [11, 10, 13], [12, 10, 13],
     ]
+    # fmt: on
 
-    snapshot.dihedrals.resize(27)
+    snapshot.dihedrals.N = 27
+    snapshot.dihedrals.types = ["CCCC", "HCCC", "HCCH"]
+    snapshot.dihedrals.typeid = np.zeros(27, dtype=int)
     snapshot.dihedrals.typeid[0:2] = 2
     snapshot.dihedrals.typeid[2] = 1
     snapshot.dihedrals.typeid[3:5] = 2
@@ -240,87 +240,113 @@ def generate_context(kT = kT, dt = dt, mode = mode):
     snapshot.dihedrals.typeid[17:21] = 1
     snapshot.dihedrals.typeid[21:27] = 2
 
+    snapshot.dihedrals.group = np.zeros((27, 4), dtype=int)
+    # fmt: off
     snapshot.dihedrals.group[:] = [
-        [2, 0, 4, 5], [2, 0, 4, 6], [2, 0, 4, 7],
+        [2, 0, 4, 5], [2, 0, 4, 6], [2, 0, 4, 7],  # grouped by pairs of central atoms
         [1, 0, 4, 5], [1, 0, 4, 6], [1, 0, 4, 7],
         [3, 0, 4, 5], [3, 0, 4, 6], [3, 0, 4, 7],
+        # ---
         [0, 4, 7, 8], [0, 4, 7, 9], [0, 4, 7, 10],
         [5, 4, 7, 8], [5, 4, 7, 9], [5, 4, 7, 10],
         [6, 4, 7, 8], [6, 4, 7, 9], [6, 4, 7, 10],
+        # ---
         [4, 7, 10, 11], [4, 7, 10, 12], [4, 7, 10, 13],
         [8, 7, 10, 11], [8, 7, 10, 12], [8, 7, 10, 13],
-        [9, 7, 10, 11], [9, 7, 10, 12], [9, 7, 10, 13]
+        [9, 7, 10, 11], [9, 7, 10, 12], [9, 7, 10, 13],
     ]
+    # fmt: on
 
-    snapshot.pairs.resize(27)
+    snapshot.pairs.N = 27
+    snapshot.pairs.types = ["CCCC", "HCCC", "HCCH"]
+    snapshot.pairs.typeid = np.zeros(27, dtype=int)
     snapshot.pairs.typeid[0:1] = 0
     snapshot.pairs.typeid[1:11] = 1
     snapshot.pairs.typeid[11:27] = 2
+    snapshot.pairs.group = np.zeros((27, 2), dtype=int)
+    # fmt: off
     snapshot.pairs.group[:] = [
         # CCCC
         [0, 10],
         # HCCC
-        [0, 8], [0, 9], [5, 10], [6, 10],
+        [0, 8],
+        [0, 9],
+        [5, 10], [6, 10],
         [1, 7], [2, 7], [3, 7],
         [11, 4], [12, 4], [13, 4],
         # HCCH
-        [1, 5], [1, 6], [2, 5], [2, 6], [3, 5], [3, 6],
-        [5, 8], [6, 8], [5, 9], [6, 9],
-        [8, 11], [8, 12], [8, 13], [9, 11], [9, 12], [9, 13]
+        [1, 5], [1, 6],
+        [2, 5], [2, 6],
+        [3, 5], [3, 6],
+        [5, 8], [6, 8],
+        [5, 9], [6, 9],
+        [8, 11], [8, 12], [8, 13],
+        [9, 11], [9, 12], [9, 13],
     ]
+    # fmt: on
 
-    hoomd.init.read_snapshot(snapshot)
+    simulation.create_state_from_snapshot(snapshot, domain_decomposition=(None, None, None))
+    simulation.run(0)
 
-    ### Set interactions
-    nl_ex = hoomd.md.nlist.cell()
-    nl_ex.reset_exclusions(exclusions = ["1-2", "1-3", "1-4"])
+    exclusions = ["bond", "1-3", "1-4"]
+    nl = hoomd.md.nlist.Cell(buffer=0.4, exclusions=exclusions)
+    lj = hoomd.md.pair.LJ(nlist=nl, default_r_cut=12.0)
+    lj.params[("C", "C")] = dict(epsilon=0.07, sigma=3.55)
+    lj.params[("H", "H")] = dict(epsilon=0.03, sigma=2.42)
+    lj.params[("C", "H")] = dict(epsilon=np.sqrt(0.07 * 0.03), sigma=np.sqrt(3.55 * 2.42))
 
-    lj = hoomd.md.pair.lj(r_cut = 12.0, nlist = nl_ex)
-    lj.pair_coeff.set('C', 'C', epsilon = 0.07, sigma = 3.55)
-    lj.pair_coeff.set('H', 'H', epsilon = 0.03, sigma = 2.42)
-    lj.pair_coeff.set('C', 'H', epsilon = numpy.sqrt(0.07*0.03), sigma = numpy.sqrt(3.55*2.42))
-
-    coulomb = hoomd.md.charge.pppm(hoomd.group.charged(), nlist = nl_ex)
-    coulomb.set_params(Nx = 64, Ny = 64, Nz = 64, order = 6, rcut = 12.0)
-
-    harmonic = hoomd.md.bond.harmonic()
-    harmonic.bond_coeff.set("CC", k = 2*268.0, r0 = 1.529)
-    harmonic.bond_coeff.set("CH", k = 2*340.0, r0 = 1.09)
-
-    angle = hoomd.md.angle.harmonic()
-    angle.angle_coeff.set("CCC", k = 2*58.35, t0 = 112.7 * pi / 180)
-    angle.angle_coeff.set("CCH", k = 2*37.5, t0 = 110.7 * pi / 180)
-    angle.angle_coeff.set("HCH", k = 2*33.0, t0 = 107.8 * pi / 180)
-
-
-    dihedral = hoomd.md.dihedral.opls()
-    dihedral.dihedral_coeff.set("CCCC", k1 = 1.3, k2 = -0.05, k3 = 0.2, k4 = 0.0)
-    dihedral.dihedral_coeff.set("HCCC", k1 = 0.0, k2 = 0.0, k3 = 0.3, k4 = 0.0)
-    dihedral.dihedral_coeff.set("HCCH", k1 = 0.0, k2 = 0.0, k3 = 0.3, k4 = 0.0)
-
-    lj_special_pairs = hoomd.md.special_pair.lj()
-    lj_special_pairs.pair_coeff.set("CCCC", epsilon = 0.07, sigma = 3.55, r_cut = 12.0)
-    lj_special_pairs.pair_coeff.set("HCCH", epsilon = 0.03, sigma = 2.42, r_cut = 12.0)
-    lj_special_pairs.pair_coeff.set("HCCC",
-        epsilon = numpy.sqrt(0.07 * 0.03), sigma = numpy.sqrt(3.55 * 2.42), r_cut = 12.0
+    coulomb = hoomd.md.long_range.pppm.make_pppm_coulomb_forces(
+        nlist=nl, resolution=[64, 64, 64], order=6, r_cut=12.0
     )
 
-    coulomb_special_pairs = hoomd.md.special_pair.coulomb()
-    coulomb_special_pairs.pair_coeff.set("CCCC", alpha = 0.5, r_cut = 12.0)
-    coulomb_special_pairs.pair_coeff.set("HCCC", alpha = 0.5, r_cut = 12.0)
-    coulomb_special_pairs.pair_coeff.set("HCCH", alpha = 0.5, r_cut = 12.0)
+    harmonic = hoomd.md.bond.Harmonic()
+    harmonic.params["CC"] = dict(k=2 * 268.0, r0=1.529)
+    harmonic.params["CH"] = dict(k=2 * 340.0, r0=1.09)
 
-    hoomd.md.integrate.mode_standard(dt = dt)
-    integrator = hoomd.md.integrate.nvt(group = hoomd.group.all(), kT = kT, tau = 100*dt)
-    integrator.randomize_velocities(seed = 42)
+    angle = hoomd.md.angle.Harmonic()
+    angle.params["CCC"] = dict(k=2 * 58.35, t0=112.7 * pi / 180)
+    angle.params["CCH"] = dict(k=2 * 37.5, t0=110.7 * pi / 180)
+    angle.params["HCH"] = dict(k=2 * 33.0, t0=107.8 * pi / 180)
 
-    return hoomd.context.current
+    dihedral = hoomd.md.dihedral.OPLS()
+    dihedral.params["CCCC"] = dict(k1=1.3, k2=-0.05, k3=0.2, k4=0.0)
+    dihedral.params["HCCC"] = dict(k1=0.0, k2=0.0, k3=0.3, k4=0.0)
+    dihedral.params["HCCH"] = dict(k1=0.0, k2=0.0, k3=0.3, k4=0.0)
+
+    lj_special_pairs = hoomd.md.special_pair.LJ()
+    lj_special_pairs.params["CCCC"] = dict(epsilon=0.07, sigma=3.55)
+    lj_special_pairs.params["HCCH"] = dict(epsilon=0.03, sigma=2.42)
+    lj_special_pairs.params["HCCC"] = dict(epsilon=np.sqrt(0.07 * 0.03), sigma=np.sqrt(3.55 * 2.42))
+    lj_special_pairs.r_cut["CCCC"] = 12.0
+    lj_special_pairs.r_cut["HCCC"] = 12.0
+    lj_special_pairs.r_cut["HCCH"] = 12.0
+    coulomb_special_pairs = hoomd.md.special_pair.Coulomb()
+    coulomb_special_pairs.params["CCCC"] = dict(alpha=0.5)
+    coulomb_special_pairs.params["HCCC"] = dict(alpha=0.5)
+    coulomb_special_pairs.params["HCCH"] = dict(alpha=0.5)
+    coulomb_special_pairs.r_cut["HCCH"] = 12.0
+    coulomb_special_pairs.r_cut["CCCC"] = 12.0
+    coulomb_special_pairs.r_cut["HCCC"] = 12.0
+
+    nvt = hoomd.md.methods.Langevin(filter=hoomd.filter.All(), kT=kT)
+
+    integrator = hoomd.md.Integrator(dt=dt)
+    integrator.forces.append(lj)
+    integrator.forces.append(coulomb[0])
+    integrator.forces.append(coulomb[1])
+    integrator.forces.append(harmonic)
+    integrator.forces.append(angle)
+    integrator.forces.append(dihedral)
+    integrator.forces.append(lj_special_pairs)
+    integrator.forces.append(coulomb_special_pairs)
+    integrator.methods.append(nvt)
+    simulation.operations.integrator = integrator
+
+    return simulation
 ```
 
 <!-- #region id="3UrzENm_oo6U" -->
-
-Next, we load PySAGES and the relevant classes and methods for our problem
-
+Next, we import PySAGES and the necessary classes and methods for our simulation
 <!-- #endregion -->
 
 ```python id="fpMg-o8WomAA"
@@ -332,11 +358,9 @@ import pysages
 ```
 
 <!-- #region id="LknkRvo1o4av" -->
-
 The next step is to define the collective variable (CV). In this case, we choose the central dihedral angle.
 
 We define a grid, which will be used to indicate how we want to bin the forces that will be used to approximate the biasing potential and its gradient.
-
 <!-- #endregion -->
 
 ```python id="B1Z8FWz0o7u_"
@@ -348,22 +372,18 @@ method = SpectralABF(cvs, grid)
 ```
 
 <!-- #region id="Fz8BfU34pA_N" -->
-
-We now simulate $5\times10^5$ time steps.
-Make sure to run with GPU support, otherwise, it can take a very long time.
-
+We will now run a simulation for $5\times10^5$ time steps.
+For optimal performance, ensure that the simulation is executed with GPU acceleration. Otherwise, it may take a considerably longer time to complete.
 <!-- #endregion -->
 
 ```python colab={"base_uri": "https://localhost:8080/"} id="K951m4BbpUar" outputId="8005b8a9-2967-4eb9-f9db-e0dc0d523835"
-run_result = pysages.run(method, generate_context, timesteps)
+run_result = pysages.run(method, generate_simulation, timesteps)
 ```
 
 <!-- #region id="26zdu6yAht5Y" -->
 
 ## Analysis
-
 PySAGES provides an `analyze` method that makes it easier to get the free energy of different simulation runs.
-
 <!-- #endregion -->
 
 ```python id="2NWmahlfhoj8"
@@ -371,9 +391,7 @@ result = pysages.analyze(run_result)
 ```
 
 <!-- #region id="PXBKUfK0p9T2" -->
-
 Let's plot now the free energy!
-
 <!-- #endregion -->
 
 ```python id="X69d1R7OpW4P"
@@ -393,7 +411,7 @@ fig, ax = plt.subplots()
 
 ax.set_xlabel(r"Dihedral Angle, $\xi$")
 ax.set_ylabel(r"$A(\xi)$")
-
 ax.plot(mesh, A)
-plt.gca()
+
+fig.show()
 ```
