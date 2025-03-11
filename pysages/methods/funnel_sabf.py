@@ -172,8 +172,6 @@ def _spectral_abf(method, snapshot, helpers):
     get_grid_index = build_indexer(grid)
     fit = build_fitter(method.model)
     fit_forces = build_free_energy_fitter(method, fit)
-    fit_corr = build_corrected_energy_fitter(method, fit)
-    fit_restr = build_restraint_energy_fitter(method, fit)
     estimate_force = build_force_estimator(method)
     ext_force = method.ext_force
 
