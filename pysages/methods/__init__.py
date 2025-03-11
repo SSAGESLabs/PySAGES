@@ -67,6 +67,7 @@ from .core import SamplingMethod
 from .ffs import FFS
 from .funn import FUNN
 from .funnel_abf import Funnel_ABF
+from .funnel_sabf import Funnel_SpectralABF
 from .funnel_function import get_funnel_force
 from .funnel_metad import Funnel_Metadynamics
 from .harmonic_bias import HarmonicBias
