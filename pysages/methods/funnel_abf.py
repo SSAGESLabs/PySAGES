@@ -1,52 +1,35 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 """
 Funnel Adaptive Biasing Force (Funnel_ABF) sampling method.
 
-Funnel_ABF partitions the collective variable space into bins determined by a user
+ABF partitions the collective variable space into bins determined by a user
 provided grid, and keeps a tabulation of the number of visits to each bin
 as well as the sum of generalized forces experienced by the system at each
-configuration bin in the presence of a restraining potential. These provide an estimate for the mean
-generalized force removing the effect of the restraint potential on the CV, which can be integrated
-to yield the free energy.
+configuration bin. These provide an estimate for the mean generalized force,
+which can be integrated to yield the free energy. This update allows to include
+ external restraint and accurately remove their contribution in the free energy
+ calculations.
 
-The implementation of the adaptive biasing force method here closely follows
-Kulhánek, P.; Bouchal, T.; Durník, I.; Štěpán, J.;
-Fuxreiter, M.; Mones, L.; Petřek, M.; Střelcová, Z.
-PMFLib - A Toolkit for Free Energy Calculations; https://pmflib.ncbr.muni.cz, 2018.
 """
-
-from functools import partial
-from typing import NamedTuple
 
 from jax import jit
 from jax import numpy as np
-from jax import vmap
 from jax.lax import cond
-from jax.numpy import linalg
 
-from pysages.approxfun.core import compute_mesh
-from pysages.approxfun.core import scale as _scale
 from pysages.grids import build_indexer
-
-# from pysages.methods.analysis import GradientLearning, _analyze
+from pysages.methods.analysis import GradientLearning, _funnelanalyze
 from pysages.methods.core import GriddedSamplingMethod, Result, generalize
 from pysages.methods.restraints import apply_restraints
 from pysages.methods.utils import numpyfy_vals
-from pysages.ml.models import MLP
-from pysages.ml.objectives import GradientsSSE, L2Regularization
-from pysages.ml.optimizers import LevenbergMarquardt
-from pysages.ml.training import NNData, build_fitting_function, convolve, normalize
-from pysages.ml.utils import blackman_kernel, pack, unpack
 from pysages.typing import JaxArray, NamedTuple
-from pysages.utils import dispatch
-
-# from jax.scipy import linalg as lg
+from pysages.utils import dispatch, linear_solver
 
 
 class FABFState(NamedTuple):
     """
-    ABF internal state.
+    Funnel_ABF internal state.
 
     Parameters
     ----------
@@ -71,6 +54,9 @@ class FABFState(NamedTuple):
 
     Wp_: JaxArray (CV shape)
         Product of W matrix and momenta matrix for the previous step.
+
+    ncalls: int
+        Counts the number of times the method's update has been called.
     """
 
     xi: JaxArray
@@ -79,10 +65,11 @@ class FABFState(NamedTuple):
     Fsum: JaxArray
     force: JaxArray
     Wp: JaxArray
-    p: JaxArray
+    Wp_: JaxArray
     restr: JaxArray
     proj: JaxArray
     Frestr: JaxArray
+    ncalls: int
 
     def __repr__(self):
         return repr("PySAGES " + type(self).__name__)
@@ -105,8 +92,8 @@ class Funnel_ABF(GriddedSamplingMethod):
         Set of user selected collective variable.
 
     grid: Grid
-        Specifies the collective variables domain and number of bins for discretizing
-        the CV space along each CV dimension.
+        Specifies the collective variables domain and number of bins for
+        discretizing the CV space along each CV dimension.
 
     N: Optional[int] = 500
         Threshold parameter before accounting for the full average
@@ -116,8 +103,11 @@ class Funnel_ABF(GriddedSamplingMethod):
         If provided, indicate that harmonic restraints will be applied when any
         collective variable lies outside the box from `restraints.lower` to
         `restraints.upper`.
-    ext_force:
-        External force from the funnel potential
+
+    use_pinv: Optional[Bool] = False
+        If set to True, the product `W @ p` will be estimated using
+        `np.linalg.pinv` rather than using the `scipy.linalg.solve` function.
+        This is computationally more expensive but numerically more stable.
     """
 
     snapshot_flags = {"positions", "indices", "momenta"}
@@ -125,6 +115,7 @@ class Funnel_ABF(GriddedSamplingMethod):
     def __init__(self, cvs, grid, **kwargs):
         super().__init__(cvs, grid, **kwargs)
         self.N = np.asarray(self.kwargs.get("N", 500))
+        self.use_pinv = self.kwargs.get("use_pinv", False)
 
     def build(self, snapshot, helpers, *args, **kwargs):
         """
@@ -156,7 +147,7 @@ def _abf(method, snapshot, helpers):
     Parameters
     ----------
 
-    method: Funnel_ABF
+    method: ABF
         Class that generates the functions.
     snapshot:
         PySAGES snapshot of the simulation (backend dependent).
@@ -174,13 +165,15 @@ def _abf(method, snapshot, helpers):
     dt = snapshot.dt
     dims = grid.shape.size
     natoms = np.size(snapshot.positions, 0)
+    tsolve = linear_solver(method.use_pinv)
     get_grid_index = build_indexer(grid)
     estimate_force = build_force_estimator(method)
     ext_force = method.ext_force
 
     def initialize():
         """
-        Internal function that generates the first FABFstate with correctly shaped JaxArrays.
+        Internal function that generates the first FABFState
+        with correctly shaped JaxArrays.
 
         Returns
         -------
@@ -192,12 +185,12 @@ def _abf(method, snapshot, helpers):
         hist = np.zeros(grid.shape, dtype=np.uint32)
         Fsum = np.zeros((*grid.shape, dims))
         force = np.zeros(dims)
-        Wp = np.zeros((dims, helpers.dimensionality(), natoms))
-        p = np.zeros((natoms, helpers.dimensionality()))
+        Wp = np.zeros(dims)
+        Wp_ = np.zeros(dims)
+        Frestr = np.zeros((*grid.shape, dims))
         restr = np.zeros(dims)
         proj = 0.0
-        Frestr = np.zeros((*grid.shape, dims))
-        return FABFState(xi, bias, hist, Fsum, force, Wp, p, restr, proj, Frestr)
+        return FABFState(xi, bias, hist, Fsum, force, Wp, Wp_, restr, proj, Frestr, 0)
 
     def update(state, data):
         """
@@ -220,35 +213,25 @@ def _abf(method, snapshot, helpers):
         xi, Jxi = cv(data)
 
         p = data.momenta
-        Wp = linalg.inv(Jxi @ Jxi.T) @ Jxi
-        # https://pmflib.ncbr.muni.cz/wiki6/index.php/Adaptive_Biasing_Force_Method
-        F_pot = Wp @ ((p - state.p.reshape(p.shape)) / (dt))
-        F_kin_old = (Wp - state.Wp.reshape(Wp.shape)) @ state.p.reshape(p.shape) / dt
-        F_kin_new = (Wp - state.Wp.reshape(Wp.shape)) @ p / dt
-        F_kin = 0.5 * (F_kin_old + F_kin_new)
-        dWp_dt = F_pot + F_kin
-        I_xi = get_grid_index(xi)
-        force = estimate_force(xi, I_xi, state.Fsum, state.hist).reshape(dims)
-        hist = state.hist.at[I_xi].add(1)
+        Wp = tsolve(Jxi, p)
+        # Restraint force and logger
         e_f, proj = ext_force(data)
-        # Calculate the restraint contribution to the force
-        restr = Wp @ e_f.reshape(p.shape)
-        # Remove the effect of the biasing force
-        Fsum = state.Fsum.at[I_xi].add(dWp_dt + 0.5 * (force + state.force))
+        # Second order backward finite difference
+        dWp_dt = (1.5 * Wp - 2.0 * state.Wp + 0.5 * state.Wp_) / dt
+
+        I_xi = get_grid_index(xi)
+        hist = state.hist.at[I_xi].add(1)
+        # Add previous force to remove bias
+        Fsum = state.Fsum.at[I_xi].add(dWp_dt + state.force)
+
+        force = estimate_force(xi, I_xi, Fsum, hist).reshape(dims)
+        bias = np.reshape(-Jxi.T @ force, state.bias.shape) + np.reshape(-e_f, state.bias.shape)
+        # Restraint contribution to force
+        restr = tsolve(Jxi, e_f.reshape(p.shape))
         Frestr = state.Frestr.at[I_xi].add(restr)
-        bias = np.reshape(-Jxi.T @ force, state.bias.shape) - np.reshape(e_f, state.bias.shape)
 
         return FABFState(
-            xi,
-            bias,
-            hist,
-            Fsum,
-            force,
-            Wp.reshape(state.Wp.shape),
-            p.reshape(state.p.shape),
-            restr,
-            proj,
-            Frestr,
+            xi, bias, hist, Fsum, force, Wp, state.Wp, restr, proj, Frestr, state.ncalls + 1
         )
 
     return snapshot, initialize, generalize(update, helpers)
@@ -289,7 +272,7 @@ def build_force_estimator(method: Funnel_ABF):
 def analyze(result: Result[Funnel_ABF], **kwargs):
     """
     Computes the free energy from the result of an `Funnel_ABF` run.
-    Integrates the forces using Sobolev approximation of functions by gradient learning.
+    Integrates the forces via a gradient learning strategy.
 
     Parameters
     ----------
@@ -297,13 +280,15 @@ def analyze(result: Result[Funnel_ABF], **kwargs):
     result: Result[Funnel_ABF]:
         Result bundle containing method, final ABF state, and callback.
 
-    topology: Optional[Tuple[int]] = (4, 4)
-        Defines the architecture of the neural network (number of nodes of each hidden layer).
+    topology: Optional[Tuple[int]] = (8, 8)
+        Defines the architecture of the neural network
+        (number of nodes in each hidden layer).
 
     Returns
     -------
 
-    dict: A dictionary with the following keys:
+    dict:
+        A dictionary with the following keys:
 
         histogram: JaxArray
             Histogram for the states visited during the method.
@@ -314,139 +299,39 @@ def analyze(result: Result[Funnel_ABF], **kwargs):
         free_energy: JaxArray
             Free Energy at each bin of the CV grid.
 
-        force_corrected: JaxArray
-            Average force at each bin of the CV grid without the restraint contribution.
-
-        free_energy_corrected: JaxArray
-            Free Energy at each bin of the CV grid without the restraint contribution.
-
-        mean_restraint: JaxArray
-            Average force contributio of the restraint at each bin of the CV grid.
-
-        free_energy_restraint: JaxArray
-            Free Energy of the restraint at each bin of the CV grid.
-
         mesh: JaxArray
             Grid used in the method.
 
         fes_fn: Callable[[JaxArray], JaxArray]
-            Function that allows to interpolate the free energy in the CV domain defined
-            by the grid.
+            Function that allows to interpolate the free energy in the
+            CV domain defined by the grid.
 
-        fes_corr: Callable[[JaxArray], JaxArray]
-            Function that allows to interpolate the free energy without restraints in the
-            CV domain defined by the grid.
-        fes_rst: Callable[[JaxArray], JaxArray]
-            Function that allows to interpolate the free energy of the restraint in the
-            CV domain defined by the grid.
+        corrected_force: JaxArray
+            Average mean force without restraint at each bin of the CV grid.
+
+        corrected_energy: JaxArray
+            Free Energy without restraint at each bin of the CV grid.
+
+        corr_fn: Callable[[JaxArray], JaxArray]
+            Function that allows to interpolate the free energy without restraints
+            in the CV domain defined by the grid.
+
+        restraint_force: JaxArray
+            Average mean force of the restraints at each bin of the CV grid.
+
+        restraint_energy: JaxArray
+            Free Energy of the restraints at each bin of the CV grid.
+
+        restr_fn: Callable[[JaxArray], JaxArray]
+            Function that allows to interpolate the free energy of the restraints
+            in the CV domain defined by the grid.
+
+
+
+    NOTE:
+    For multiple-replicas runs we return a list (one item per-replica)
+    for each attribute.
     """
-    topology = kwargs.get("topology", (4, 4))
-    method = result.method
-    state = result.states[0]
-    grid = method.grid
-    inputs = (compute_mesh(grid) + 1) * grid.size / 2 + grid.lower
-
-    model = MLP(grid.shape.size, 1, topology, transform=partial(_scale, grid=grid))
-    optimizer = LevenbergMarquardt(loss=GradientsSSE(), max_iters=2500, reg=L2Regularization(1e-3))
-    fit = build_fitting_function(model, optimizer)
-
-    @vmap
-    def smooth(data):
-        boundary = "wrap" if grid.is_periodic else "edge"
-        kernel = np.float32(blackman_kernel(grid.shape.size, 7))
-        return convolve(data.T, kernel, boundary=boundary).T
-
-    if grid.is_periodic:
-
-        def _normalize(data, axes=None):
-            data, _, std = normalize(data, axes=axes)
-            return std * data / std.max(), std.max()
-
-    else:
-
-        def _normalize(data, axes=None):
-            std = data.std(axis=axes).max()
-            return data / std, std
-
-    def train(nn, data):
-        axes = tuple(range(data.ndim - 1))
-        data, std = _normalize(data, axes=axes)
-        reference = np.float64(smooth(np.float32(data)))
-        params = fit(nn.params, inputs, reference).params
-        return NNData(params, nn.mean, std / reference.std(axis=axes).max())
-
-    def build_fes_fn(state):
-        hist = np.expand_dims(state.hist, state.hist.ndim)
-        F = state.Fsum / np.maximum(hist, 1)
-
-        ps, layout = unpack(model.parameters)
-        nn = train(NNData(ps, 0.0, 1.0), F)
-
-        def fes_fn(x):
-            params = pack(nn.params, layout)
-            A = nn.std * model.apply(params, x) + nn.mean
-            return A.max() - A
-
-        return jit(fes_fn)
-
-    def build_fes_corr(state):
-        hist = np.expand_dims(state.hist, state.hist.ndim)
-        F = (state.Fsum + state.Frestr) / np.maximum(hist, 1)
-
-        ps, layout = unpack(model.parameters)
-        nn = train(NNData(ps, 0.0, 1.0), F)
-
-        def fes_fn(x):
-            params = pack(nn.params, layout)
-            A = nn.std * model.apply(params, x) + nn.mean
-            return A.max() - A
-
-        return jit(fes_fn)
-
-    def build_fes_rst(state):
-        hist = np.expand_dims(state.hist, state.hist.ndim)
-        F = state.Frestr / np.maximum(hist, 1)
-
-        ps, layout = unpack(model.parameters)
-        nn = train(NNData(ps, 0.0, 1.0), F)
-
-        def fes_fn(x):
-            params = pack(nn.params, layout)
-            A = nn.std * model.apply(params, x) + nn.mean
-            return A.max() - A
-
-        return jit(fes_fn)
-
-    def average_forces(state):
-        Fsum = state.Fsum
-        shape = (*Fsum.shape[:-1], 1)
-        return Fsum / np.maximum(state.hist.reshape(shape), 1)
-
-    def average_restraints(state):
-        Fsum = state.Frestr
-        shape = (*Fsum.shape[:-1], 1)
-        return Fsum / np.maximum(state.hist.reshape(shape), 1)
-
-    def average_corrected(state):
-        Fsum = state.Fsum + state.Frestr
-        shape = (*Fsum.shape[:-1], 1)
-        return Fsum / np.maximum(state.hist.reshape(shape), 1)
-
-    fes_fn = build_fes_fn(state)
-    fes_corr = build_fes_corr(state)
-    fes_rst = build_fes_rst(state)
-
-    ana_result = dict(
-        histogram=state.hist,
-        mean_force=average_forces(state),
-        free_energy=fes_fn(inputs).reshape(grid.shape),
-        mesh=inputs,
-        fes_fn=fes_fn,
-        fes_corr=fes_corr,
-        fes_rst=fes_rst,
-        mean_restraint=average_restraints(state),
-        force_corrected=average_corrected(state),
-        free_energy_corrected=fes_corr(inputs).reshape(grid.shape),
-        free_energy_restraint=fes_rst(inputs).reshape(grid.shape),
-    )
-    return numpyfy_vals(ana_result)
+    topology = kwargs.get("topology", (8, 8))
+    _result = _funnelanalyze(result, GradientLearning(), topology)
+    return numpyfy_vals(_result)
