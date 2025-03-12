@@ -214,8 +214,6 @@ def _spectral_abf(method, snapshot, helpers):
             PartialSpectralFABFState(xi, hist, Fsum, I_xi, fun, in_fitting_regime)
         )
         bias = np.reshape(-Jxi.T @ force, state.bias.shape) + np.reshape(-e_f, state.bias.shape)
-        # Restraint force and logger
-        e_f, proj = ext_force(data)
         # Restraint contribution to force
         restr = tsolve(Jxi, e_f.reshape(p.shape))
         Frestr = state.Frestr.at[I_xi].add(restr)
