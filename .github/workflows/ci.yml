@@ -20,19 +20,22 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, macos-latest]
-        python-version: [3.8, 3.9, 3.11]
+        os: [ubuntu-latest, macos-latest]
+        python-version: [3.9, 3.13]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }} on ${{ matrix.os }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install python dependecies
+      - name: Install python dependencies
+        env:
+          JAX_MD_PKG: jax-md-v0.2.${{ matrix.python-version == '3.9' && 24 || 25 }}.zip
         run: |
           python -m pip install --upgrade pip
-          pip install ase dill "dm-haiku<0.0.11" "e3nn-jax!=0.20.4" "jax<=0.4.15" "jaxlib<=0.4.15" "jax-md>=0.2.7" jaxopt pytest matplotlib "scipy<1.13"
+          pip install https://github.com/jax-md/jax-md/archive/refs/tags/${{ env.JAX_MD_PKG }}
+          pip install ase dill pytest matplotlib
 
       - name: Install pysages
         run: pip install .
@@ -44,23 +47,24 @@ jobs:
           mv *.pdf /tmp/test_plots
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: test_plots
+          name: test_plots-${{ matrix.os }}-py${{ matrix.python-version }}
           path: /tmp/test_plots
 
   doc-test:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: 3.9
       - name: Install python dependecies
         run: |
           python -m pip install --upgrade pip
-          pip install dill "dm-haiku<0.0.11" "e3nn-jax!=0.20.4" "jax<=0.4.15" "jaxlib<=0.4.15" "jax-md>=0.2.7" jaxopt pytest pylint flake8
+          pip install https://github.com/jax-md/jax-md/archive/refs/tags/jax-md-v0.2.24.zip
+          pip install dill pytest pylint flake8
           pip install -r docs/requirements.txt
       - name: Install pysages
         run: pip install .
