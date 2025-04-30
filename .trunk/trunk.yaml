@@ -1,8 +1,8 @@
 version: 0.1
 runtimes:
   enabled:
-    - go@1.19.5
-    - node@18.12.1
+    - go@1.21.0
+    - node@18.20.5
     - python@3.10.8
 actions:
   enabled:
@@ -12,27 +12,27 @@ actions:
     - trunk-fmt-pre-commit
     - trunk-check-pre-push
 cli:
-  version: 1.22.5
+  version: 1.22.12
 plugins:
   sources:
     - id: trunk
-      ref: v1.2.1
+      ref: v1.6.8
       uri: https://github.com/trunk-io/plugins
 lint:
   enabled:
-    - oxipng@9.1.2
-    - yamllint@1.35.1
-    - cspell@8.14.4
+    - oxipng@9.1.5
+    - yamllint@1.37.0
+    - cspell@8.19.3
     - svgo@3.3.2
-    - actionlint@1.7.1
-    - black@24.8.0
-    - flake8@7.1.1
+    - actionlint@1.7.7
+    - black@25.1.0
+    - flake8@7.2.0
     - git-diff-check@SYSTEM
-    - gitleaks@8.19.2
-    - hadolint@2.12.0
-    - isort@5.13.2
-    - markdownlint@0.41.0
-    - prettier@3.3.3
+    - gitleaks@8.24.3
+    - hadolint@2.12.1-beta
+    - isort@6.0.1
+    - markdownlint@0.44.0
+    - prettier@3.5.3
     - shellcheck@0.10.0
     - shfmt@3.6.0
     - taplo@0.9.3
@@ -69,10 +69,10 @@ lint:
 merge:
   required_statuses:
     - trunk
-    - test (ubuntu-20.04, 3.8)
-    - test (ubuntu-20.04, 3.9)
-    - test (macos-latest, 3.8)
+    - test (ubuntu-latest, 3.9)
+    - test (ubuntu-latest, 3.13)
     - test (macos-latest, 3.9)
+    - test (macos-latest, 3.13)
     - doc-test
     - forward-flux-sampling
     - abf-alanine-dipeptide-openmm
