@@ -166,9 +166,11 @@ def _spectral_abf(method, snapshot, helpers):
     fit_forces = build_free_energy_fitter(method, fit)
     estimate_force = build_force_estimator(method)
 
+    query, dimensionality, to_force_units = helpers
+
     def initialize():
-        xi, _ = cv(helpers.query(snapshot))
-        bias = np.zeros((natoms, helpers.dimensionality()))
+        xi, _ = cv(query(snapshot))
+        bias = np.zeros((natoms, dimensionality()))
         hist = np.zeros(grid.shape, dtype=np.uint32)
         Fsum = np.zeros((*grid.shape, dims))
         force = np.zeros(dims)
@@ -194,7 +196,7 @@ def _spectral_abf(method, snapshot, helpers):
         #
         I_xi = get_grid_index(xi)
         hist = state.hist.at[I_xi].add(1)
-        Fsum = state.Fsum.at[I_xi].add(dWp_dt + state.force)
+        Fsum = state.Fsum.at[I_xi].add(to_force_units(dWp_dt) + state.force)
         #
         force = estimate_force(
             PartialSpectralABFState(xi, hist, Fsum, I_xi, fun, in_fitting_regime)

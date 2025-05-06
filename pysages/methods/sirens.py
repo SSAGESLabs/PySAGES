@@ -213,6 +213,8 @@ def _sirens(method: Sirens, snapshot, helpers):
     learn_free_energy = build_free_energy_learner(method)
     estimate_force = build_force_estimator(method)
 
+    query, dimensionality, to_force_units = helpers
+
     if method.mode == "cff":
         increase_me_maybe = jit(lambda a, idx, v: a.at[idx].add(v))
     else:
@@ -223,8 +225,8 @@ def _sirens(method: Sirens, snapshot, helpers):
         natoms = np.size(snapshot.positions, 0)
         gshape = grid.shape if dims > 1 else (*grid.shape, 1)
 
-        xi, _ = cv(helpers.query(snapshot))
-        bias = np.zeros((natoms, helpers.dimensionality()))
+        xi, _ = cv(query(snapshot))
+        bias = np.zeros((natoms, dimensionality()))
         hist = np.zeros(gshape, dtype=np.uint32)
         Fsum = np.zeros((*grid.shape, dims))
         force = np.zeros(dims)
@@ -256,7 +258,7 @@ def _sirens(method: Sirens, snapshot, helpers):
         #
         I_xi = get_grid_index(xi)
         hist = state.hist.at[I_xi].add(1)
-        Fsum = state.Fsum.at[I_xi].add(dWp_dt + state.force)
+        Fsum = state.Fsum.at[I_xi].add(to_force_units(dWp_dt) + state.force)
         histp = increase_me_maybe(histp, I_xi, 1)  # Special handling depending on the mode
         #
         force = estimate_force(PartialSirensState(xi, hist, Fsum, I_xi, nn, in_training_regime))
