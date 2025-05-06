@@ -198,13 +198,15 @@ def _cff(method: CFF, snapshot, helpers):
     learn_free_energy = build_free_energy_learner(method)
     estimate_force = build_force_estimator(method)
 
+    query, dimensionality, to_force_units = helpers
+
     def initialize():
         dims = grid.shape.size
         natoms = np.size(snapshot.positions, 0)
         gshape = grid.shape if dims > 1 else (*grid.shape, 1)
 
-        xi, _ = cv(helpers.query(snapshot))
-        bias = np.zeros((natoms, helpers.dimensionality()))
+        xi, _ = cv(query(snapshot))
+        bias = np.zeros((natoms, dimensionality()))
         hist = np.zeros(gshape, dtype=np.uint32)
         histp = np.zeros(gshape, dtype=np.uint32)
         prob = np.zeros(gshape)
@@ -233,7 +235,7 @@ def _cff(method: CFF, snapshot, helpers):
         #
         I_xi = get_grid_index(xi)
         hist = state.hist.at[I_xi].add(1)
-        Fsum = state.Fsum.at[I_xi].add(dWp_dt + state.force)
+        Fsum = state.Fsum.at[I_xi].add(to_force_units(dWp_dt) + state.force)
         histp = histp.at[I_xi].add(1)
         #
         force = estimate_force(PartialCFFState(xi, hist, Fsum, I_xi, fnn, in_training_regime))

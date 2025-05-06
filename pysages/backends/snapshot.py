@@ -5,7 +5,7 @@ from jax import jit
 from jax import numpy as np
 
 from pysages.typing import Callable, JaxArray, NamedTuple, Optional, Tuple, Union
-from pysages.utils import copy, dispatch
+from pysages.utils import copy, dispatch, identity
 
 AbstractBox = NamedTuple("AbstractBox", [("H", JaxArray), ("origin", JaxArray)])
 
@@ -50,6 +50,7 @@ class SnapshotMethods(NamedTuple):
 class HelperMethods(NamedTuple):
     query: Callable
     dimensionality: Callable[[], int]
+    to_force_units: Callable = identity
 
 
 @dispatch(precedence=1)
