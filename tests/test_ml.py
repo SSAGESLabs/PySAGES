@@ -10,9 +10,12 @@ from pysages.approxfun import scale as _scale
 from pysages.grids import Chebyshev, Grid
 from pysages.ml.models import MLP, Siren
 from pysages.ml.objectives import L2Regularization, Sobolev1SSE
-from pysages.ml.optimizers import LevenbergMarquardt
+from pysages.ml.optimizers import JaxOptimizer, LevenbergMarquardt
 from pysages.ml.training import build_fitting_function
 from pysages.ml.utils import pack, unpack
+from pysages.utils import try_import
+
+jopt = try_import("jax.example_libraries.optimizers", "jax.experimental.optimizers")
 
 
 # Test functions
@@ -94,4 +97,30 @@ def test_mlp_training():
     ax.plot(x_plot, vmap(g)(x_plot))
     ax.plot(x_plot, model.apply(pack(params, layout), x_plot), linestyle="dashed")
     fig.savefig("y_mlp_fit.pdf")
+    plt.close(fig)
+
+
+def test_adam_optimizer():
+    grid = Grid[Chebyshev](lower=(-1.0,), upper=(1.0,), shape=(64,))
+
+    x = compute_mesh(grid)
+
+    y = vmap(g)(x.flatten()).reshape(x.shape)
+
+    topology = (4, 4)
+    model = MLP(1, 1, topology)
+    optimizer = JaxOptimizer(jopt.adam)
+    fit = build_fitting_function(model, optimizer)
+
+    params, layout = unpack(model.parameters)
+    params = fit(params, x, y).params
+    y_model = model.apply(pack(params, layout), x)
+
+    assert np.linalg.norm(y - y_model).item() / x.size < 5e-4
+
+    x_plot = np.linspace(-1, 1, 512)
+    fig, ax = plt.subplots()
+    ax.plot(x_plot, vmap(g)(x_plot))
+    ax.plot(x_plot, model.apply(pack(params, layout), x_plot), linestyle="dashed")
+    fig.savefig("y_mlp_adam_fit.pdf")
     plt.close(fig)
