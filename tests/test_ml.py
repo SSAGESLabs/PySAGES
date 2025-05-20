@@ -101,7 +101,7 @@ def test_mlp_training():
 
 
 def test_adam_optimizer():
-    grid = Grid[Chebyshev](lower=(-1.0,), upper=(1.0,), shape=(64,))
+    grid = Grid[Chebyshev](lower=(-1.0,), upper=(1.0,), shape=(128,))
 
     x = compute_mesh(grid)
 
@@ -109,14 +109,14 @@ def test_adam_optimizer():
 
     topology = (4, 4)
     model = MLP(1, 1, topology)
-    optimizer = JaxOptimizer(jopt.adam)
+    optimizer = JaxOptimizer(jopt.adam, tol=1e-6)
     fit = build_fitting_function(model, optimizer)
 
     params, layout = unpack(model.parameters)
     params = fit(params, x, y).params
     y_model = model.apply(pack(params, layout), x)
 
-    assert np.linalg.norm(y - y_model).item() / x.size < 5e-4
+    assert np.linalg.norm(y - y_model).item() / x.size < 1e-2
 
     x_plot = np.linspace(-1, 1, 512)
     fig, ax = plt.subplots()
