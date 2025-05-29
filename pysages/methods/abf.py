@@ -168,6 +168,8 @@ def _abf(method, snapshot, helpers):
     get_grid_index = build_indexer(grid)
     estimate_force = build_force_estimator(method)
 
+    query, dimensionality, to_force_units = helpers
+
     def initialize():
         """
         Internal function that generates the first ABFState
@@ -178,8 +180,8 @@ def _abf(method, snapshot, helpers):
         ABFState
             Initialized State
         """
-        xi, _ = cv(helpers.query(snapshot))
-        bias = np.zeros((natoms, helpers.dimensionality()))
+        xi, _ = cv(query(snapshot))
+        bias = np.zeros((natoms, dimensionality()))
         hist = np.zeros(grid.shape, dtype=np.uint32)
         Fsum = np.zeros((*grid.shape, dims))
         force = np.zeros(dims)
@@ -215,7 +217,7 @@ def _abf(method, snapshot, helpers):
         I_xi = get_grid_index(xi)
         hist = state.hist.at[I_xi].add(1)
         # Add previous force to remove bias
-        Fsum = state.Fsum.at[I_xi].add(dWp_dt + state.force)
+        Fsum = state.Fsum.at[I_xi].add(to_force_units(dWp_dt) + state.force)
 
         force = estimate_force(xi, I_xi, Fsum, hist).reshape(dims)
         bias = np.reshape(-Jxi.T @ force, state.bias.shape)

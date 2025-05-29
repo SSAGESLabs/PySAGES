@@ -13,7 +13,7 @@ from pysages.backends.snapshot import (
     SnapshotMethods,
     build_data_querier,
 )
-from pysages.typing import Callable, NamedTuple
+from pysages.typing import Callable
 from pysages.utils import check_device_array, copy
 
 
@@ -117,10 +117,6 @@ def build_runner(context, sampler, jit_compile=True):
     return run
 
 
-class View(NamedTuple):
-    synchronize: Callable
-
-
 def bind(sampling_context: SamplingContext, callback: Callable, **kwargs):
     context = sampling_context.context
     sampling_method = sampling_context.method
@@ -129,7 +125,6 @@ def bind(sampling_context: SamplingContext, callback: Callable, **kwargs):
     helpers = build_helpers(context, sampling_method)
     method_bundle = sampling_method.build(snapshot, helpers)
     sampler = Sampler(method_bundle, context_state, callback)
-    sampling_context.view = View((lambda: None))
     sampling_context.run = build_runner(
         context, sampler, jit_compile=kwargs.get("jit_compile", True)
     )
