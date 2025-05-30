@@ -5,7 +5,7 @@ ENV DEBIAN_FRONTEND="noninteractive" TZ="Chicago/United States"
 # Install system dependencies
 RUN apt-get update && apt-get upgrade -y
 RUN apt-get update && apt-get install -y python3 cmake nvidia-cuda-toolkit git libopenmpi-dev
-RUN apt-get update && apt-get install -y gcc g++ python-is-python3 python3-pip
+RUN apt-get update && apt-get install -y gcc-10 g++-10 python-is-python3 python3-pip
 RUN apt-get update && apt-get install -y doxygen swig nvidia-cuda-dev nvidia-cuda-toolkit python3-setuptools cython3
 
 # Install python dependencies
@@ -13,8 +13,8 @@ RUN python -m pip install --upgrade pip
 RUN python -m pip install "numpy<2"
 RUN env MPICC=$(which mpicc) python -m pip install mpi4py
 
-ENV CC=gcc
-ENV CXX=g++
+ENV CC=gcc-10
+ENV CXX=g++-10
 
 # Install HOOMD-blue
 RUN git clone https://github.com/glotzerlab/hoomd-blue.git && cd hoomd-blue && git checkout v2.9.7 && mkdir build && cd build && cmake -DCMAKE_INSTALL_PREFIX=/hoomd-install -DENABLE_CUDA=ON -DENABLE_MPI=ON .. && make -j $(nproc) install
