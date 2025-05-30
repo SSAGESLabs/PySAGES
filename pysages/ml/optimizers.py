@@ -22,23 +22,18 @@ from pysages.ml.objectives import (
 )
 from pysages.ml.utils import dispatch, pack, unpack
 from pysages.typing import Any, Callable, JaxArray, NamedTuple, Tuple, Union
-from pysages.utils import solve_pos_def, try_import
-
-jopt = try_import("jax.example_libraries.optimizers", "jax.experimental.optimizers")
-
+from pysages.utils import solve_pos_def
 
 # Optimizers parameters
 
 
-class AdamParams(NamedTuple):
+class JaxOptimizerParams(NamedTuple):
     """
-    Parameters for the ADAM optimizer.
+    Parameters for the jax.example_libraries optimizers.
     """
 
-    step_size: Union[float, Callable] = 1e-2
-    beta_1: float = 0.9
-    beta_2: float = 0.999
-    tol: float = 1e-8
+    step_size: Union[float, Callable] = 1e-3
+    kwargs: dict = {}
 
 
 class LevenbergMarquardtParams(NamedTuple):
@@ -64,6 +59,7 @@ class WrappedState(NamedTuple):
     """
 
     data: Tuple[JaxArray, JaxArray]
+    state: Any
     params: Any
     iters: int = 0
     improved: bool = True
@@ -105,16 +101,20 @@ class Optimizer:
 
 
 @dataclass
-class Adam(Optimizer):
+class JaxOptimizer(Optimizer):
     """
-    ADAM optimizer from stax.example_libraries.optimizers.
+    Setup class for stax.example_libraries.optimizers.
     """
 
-    params: AdamParams = AdamParams()
+    constructor: Callable
+    params: JaxOptimizerParams = JaxOptimizerParams()
     loss: Loss = SSE()
     reg: Regularizer = L2Regularization(0.0)
-    tol: float = 1e-4
+    tol: float = 1e-5
     max_iters: int = 10000
+
+    def __call__(self):
+        return self.constructor(self.params.step_size, **self.params.kwargs)
 
 
 @dataclass
@@ -155,27 +155,31 @@ def build(optimizer, model):  # pylint: disable=W0613
 
 
 @dispatch
-def build(optimizer: Adam, model):
+def build(optimizer: JaxOptimizer, model):
     # pylint: disable=C0116,E0102
-    _init, _update, repack = jopt.adam(*optimizer.params)
+    _init, _update, get_params = optimizer()
     objective = build_objective_function(model, optimizer.loss, optimizer.reg)
     gradient = jax.grad(objective)
     max_iters = optimizer.max_iters
     _, layout = unpack(model.parameters)
 
+    def flatten(params):
+        return unpack(params)[0]
+
     def initialize(params, x, y):
-        wrapped_params = _init(pack(params, layout))
-        return WrappedState((x, y), wrapped_params)
+        state = _init(pack(params, layout))
+        return WrappedState((x, y), state, flatten(get_params(state)))
 
     def keep_iterating(state):
         return state.improved & (state.iters < max_iters)
 
     def update(state):
-        data, params, iters, _ = state
-        dp = gradient(repack(params), *data)
-        params = _update(iters, dp, params)
-        improved = sum_squares(unpack(dp)[0]) > optimizer.tol
-        return WrappedState(data, params, iters + 1, improved)
+        data, opt_state, _, iters, _ = state
+        dp = gradient(get_params(opt_state), *data)
+        opt_state = _update(iters, dp, opt_state)
+        new_params = get_params(opt_state)
+        improved = sum_squares(flatten(dp)) > optimizer.tol
+        return WrappedState(data, opt_state, flatten(new_params), iters + 1, improved)
 
     return initialize, keep_iterating, update
 
