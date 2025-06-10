@@ -71,6 +71,7 @@ from .funnel_metad import Funnel_Metadynamics
 from .funnel_sabf import Funnel_SpectralABF
 from .harmonic_bias import HarmonicBias
 from .metad import Metadynamics
+from .nanoreactor import Nanoreactor
 from .old_fabf import Funnel_ABF
 from .restraints import CVRestraints
 from .sirens import Sirens
