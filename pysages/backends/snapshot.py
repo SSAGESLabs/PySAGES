@@ -4,7 +4,7 @@
 from jax import jit
 from jax import numpy as np
 
-from pysages.typing import Callable, JaxArray, NamedTuple, Optional, Tuple, Union
+from pysages.typing import Callable, JaxArray, NamedTuple, Optional, Tuple, Union, Dict, Any
 from pysages.utils import copy, dispatch
 
 AbstractBox = NamedTuple("AbstractBox", [("H", JaxArray), ("origin", JaxArray)])
@@ -37,12 +37,7 @@ class Snapshot(NamedTuple):
     dt: Union[JaxArray, float]
 
     #Optional thermostat parameters
-    chain_positions : Optional[JaxArray] = None
-    chain_momenta : Optional[JaxArray] = None
-    chain_mass : Optional[Union[JaxArray, float]] = None
-    chain_ekin : Optional[Union[JaxArray, float]] = None
-    chain_tau : Optional[float] = None
-    chain_dof : Optional[int] = None
+    chain_data : Optional[dict[str,Any]] = None
 
     def __repr__(self):
         return "PySAGES " + type(self).__name__

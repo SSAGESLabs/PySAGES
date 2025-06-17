@@ -54,22 +54,12 @@ def update_snapshot(snapshot, state):
     vel_mass = (state.velocity, masses)
     forces = state.force
     if state.chain:
-        chain_positions = state.chain.position
-        chain_momenta = state.chain.momentum
-        chain_mass = state.chain.mass
-        chain_ekin = state.chain.kinetic_energy
-        chain_tau = state.chain.tau
-        chain_dof = state.chain.degrees_of_freedom
+        chain_data = vars(state.chain)
         return snapshot._replace(
-                positions=positions, 
-                vel_mass=vel_mass, 
+                positions=positions,
+                vel_mass=vel_mass,
                 forces=forces,
-                chain_positions=chain_positions, 
-                chain_momenta=chain_momenta, 
-                chain_mass=chain_mass, 
-                chain_ekin=chain_ekin, 
-                chain_tau=chain_tau, 
-                chain_dof=chain_dof)
+                chain_data=chain_data)
     else:
         return snapshot._replace(positions=positions, vel_mass=vel_mass, forces=forces)
 
@@ -113,7 +103,7 @@ def build_runner(context, sampler, jit_compile=True):
         sampler_state = sampler.update(snapshot, sampler_state)  # pysages update
         if sampler_state.bias is not None:  # bias the simulation
             context_state = sampling_context_state.state
-            biased_forces = context_state.force + sampler_state.bias
+            biased_forces = context_state.force #+ sampler_state.bias
             context_state = dataclasses.replace(context_state, force=biased_forces)
             sampling_context_state = sampling_context_state._replace(state=context_state)
         return sampling_context_state, snapshot, sampler_state

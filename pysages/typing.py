@@ -41,6 +41,7 @@ Optional = _typing.Optional
 Sequence = _typing.Sequence
 Tuple = _typing.Tuple
 Union = _typing.Union
+Dict = _typing.Dict
 
 # Union aliases
 Scalar = Union[None, bool, int, float]
