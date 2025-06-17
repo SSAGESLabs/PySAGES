@@ -89,9 +89,9 @@ def build_runner(context, sampler, jit_compile=True):
     step_fn = context.step_fn
 
     def _step(sampling_context_state, snapshot, sampler_state):
+        sampling_context_state = step_fn(sampling_context_state)  # jax_md simulation step
         context_state = sampling_context_state.state
         snapshot = update_snapshot(snapshot, context_state)
-        sampling_context_state = step_fn(sampling_context_state)  # jax_md simulation step
         sampler_state = sampler.update(snapshot, sampler_state)  # pysages update
         if sampler_state.bias is not None:  # bias the simulation
             context_state = sampling_context_state.state
