@@ -53,7 +53,25 @@ def update_snapshot(snapshot, state):
     positions = state.position
     vel_mass = (state.velocity, masses)
     forces = state.force
-    return snapshot._replace(positions=positions, vel_mass=vel_mass, forces=forces)
+    if state.chain:
+        chain_positions = state.chain.position
+        chain_momenta = state.chain.momentum
+        chain_mass = state.chain.mass
+        chain_ekin = state.chain.kinetic_energy
+        chain_tau = state.chain.tau
+        chain_dof = state.chain.degrees_of_freedom
+        return snapshot._replace(
+                positions=positions, 
+                vel_mass=vel_mass, 
+                forces=forces,
+                chain_positions=chain_positions, 
+                chain_momenta=chain_momenta, 
+                chain_mass=chain_mass, 
+                chain_ekin=chain_ekin, 
+                chain_tau=chain_tau, 
+                chain_dof=chain_dof)
+    else:
+        return snapshot._replace(positions=positions, vel_mass=vel_mass, forces=forces)
 
 
 def build_snapshot_methods(context, sampling_method):

@@ -36,6 +36,14 @@ class Snapshot(NamedTuple):
     box: Box
     dt: Union[JaxArray, float]
 
+    #Optional thermostat parameters
+    chain_positions : Optional[JaxArray] = None
+    chain_momenta : Optional[JaxArray] = None
+    chain_mass : Optional[Union[JaxArray, float]] = None
+    chain_ekin : Optional[Union[JaxArray, float]] = None
+    chain_tau : Optional[float] = None
+    chain_dof : Optional[int] = None
+
     def __repr__(self):
         return "PySAGES " + type(self).__name__
 
