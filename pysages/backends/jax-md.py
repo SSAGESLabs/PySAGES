@@ -103,7 +103,7 @@ def build_runner(context, sampler, jit_compile=True):
         sampler_state = sampler.update(snapshot, sampler_state)  # pysages update
         if sampler_state.bias is not None:  # bias the simulation
             context_state = sampling_context_state.state
-            biased_forces = context_state.force #+ sampler_state.bias
+            biased_forces = context_state.force + sampler_state.bias
             context_state = dataclasses.replace(context_state, force=biased_forces)
             sampling_context_state = sampling_context_state._replace(state=context_state)
         return sampling_context_state, snapshot, sampler_state
