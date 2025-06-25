@@ -123,7 +123,11 @@ def build_runner(context, sampler, jit_compile=True):
 
         def _run_body(i, input_states_and_snapshots):
             context_state, snapshot, sampler_state = input_states_and_snapshots
-            return tuple(step(context_state, snapshot, sampler_state))
+            context_state, snapshot, sampler_state = step(context_state, snapshot, sampler_state)
+
+            if sampler.callback:
+                sampler.callback(snapshot, sampler_state, i)
+            return (context_state, snapshot, sampler_state)
 
         run_body = jit(_run_body) if jit_compile else _run_body
     
