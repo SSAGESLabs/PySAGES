@@ -27,6 +27,9 @@ def copy(x: Scalar):
 def copy(t: tuple, *args):  # noqa: F811 # pylint: disable=C0116,E0102
     return tuple(copy(x, *args) for x in t)  # pylint: disable=E1120
 
+@dispatch
+def copy(x: dict):  # noqa: F811 # pylint: disable=C0116,E0102
+    return x.copy()
 
 @dispatch
 def copy(x: JaxArray):  # noqa: F811 # pylint: disable=C0116,E0102
