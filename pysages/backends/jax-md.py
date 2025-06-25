@@ -132,26 +132,30 @@ def build_runner(context, sampler, jit_compile=True):
         run_body = jit(_run_body) if jit_compile else _run_body
     
 
-        jax_fn_container['run_fn'] = run_body
+        if jit_compile:
+            jax_fn_container['run_fn'] = run_body
+        else:
+            jax_fn_container['run_fn'] = step
 
-    def run(timesteps):
-        # TODO: Allow to optionally batch timesteps with `lax.fori_loop`
+    if jit_compile:
+        def run(timesteps):
+            # TODO: Allow to optionally batch timesteps with `lax.fori_loop`
 
-        sampler.context_state, sampler.snapshot, sampler.state = jax.block_until_ready( 
-                jax.lax.fori_loop(0, timesteps, jax_fn_container['run_fn'], (sampler.context_state, sampler.snapshot, sampler.state))
-            )
-
-    #def run(timesteps):
-    #    # TODO: Allow to optionally batch timesteps with `lax.fori_loop`
-    #    for i in range(timesteps):
-    #        context_state, snapshot, state = step(
-    #            sampler.context_state, sampler.snapshot, sampler.state
-    #        )
-    #        sampler.context_state = context_state
-    #        sampler.snapshot = snapshot
-    #        sampler.state = state
-    #        if sampler.callback:
-    #            sampler.callback(sampler.snapshot, sampler.state, i)
+            sampler.context_state, sampler.snapshot, sampler.state = jax.block_until_ready( 
+                    jax.lax.fori_loop(0, timesteps, jax_fn_container['run_fn'], (sampler.context_state, sampler.snapshot, sampler.state))
+                )
+    else:
+        def run(timesteps):
+            # TODO: Allow to optionally batch timesteps with `lax.fori_loop`
+            for i in range(timesteps):
+                context_state, snapshot, state = jax_fn_container['run_fn'](
+                    sampler.context_state, sampler.snapshot, sampler.state
+                )
+                sampler.context_state = context_state
+                sampler.snapshot = snapshot
+                sampler.state = state
+                if sampler.callback:
+                    sampler.callback(sampler.snapshot, sampler.state, i)
 
     #return run
 
