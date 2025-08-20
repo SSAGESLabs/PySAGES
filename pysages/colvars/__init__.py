@@ -27,5 +27,5 @@ try:
     import jaxopt
 
     from .patterns import GeM
-except ImportError:
+except (AttributeError, ImportError):
     pass
