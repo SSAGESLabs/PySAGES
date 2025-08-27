@@ -35,6 +35,7 @@ else:
 # Typing aliases
 Any = _typing.Any
 Callable = _typing.Callable
+Dict = _typing.Dict
 List = _typing.List
 Iterable = _typing.Iterable
 NamedTuple = _typing.NamedTuple

@@ -4,7 +4,16 @@
 from jax import jit
 from jax import numpy as np
 
-from pysages.typing import Callable, JaxArray, NamedTuple, Optional, Tuple, Union
+from pysages.typing import (
+    Any,
+    Callable,
+    Dict,
+    JaxArray,
+    NamedTuple,
+    Optional,
+    Tuple,
+    Union,
+)
 from pysages.utils import copy, dispatch, identity
 
 AbstractBox = NamedTuple("AbstractBox", [("H", JaxArray), ("origin", JaxArray)])
@@ -35,6 +44,7 @@ class Snapshot(NamedTuple):
     images: Optional[JaxArray]
     box: Box
     dt: Union[JaxArray, float]
+    extras: Optional[Dict[str, Any]] = None
 
     def __repr__(self):
         return "PySAGES " + type(self).__name__
