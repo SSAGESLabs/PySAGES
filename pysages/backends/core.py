@@ -32,6 +32,8 @@ class SamplingContext:
             self._backend_name = "ase"
         elif module_name.startswith("hoomd"):
             self._backend_name = "hoomd"
+        elif module_name.startswith("ipi"):
+            self._backend_name = "ipi"
         elif isinstance(context, JaxMDContext):
             self._backend_name = "jax-md"
         elif module_name.startswith("lammps"):
@@ -76,4 +78,4 @@ class SamplingContext:
 
 
 def supported_backends():
-    return ("ase", "hoomd", "jax-md", "lammps", "openmm", "qbox")
+    return ("ase", "hoomd", "ipi", "jax-md", "lammps", "openmm", "qbox")
