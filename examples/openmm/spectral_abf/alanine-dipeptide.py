@@ -104,7 +104,7 @@ def main(argv=[]):
 
     # generate CV values on a grid to evaluate bias potential
     plot_grid = pysages.Grid(lower=(-pi, -pi), upper=(pi, pi), shape=(64, 64), periodic=True)
-    xi = (compute_mesh(plot_grid) + 1) / 2 * plot_grid.size + plot_grid.lower
+    xi = compute_mesh(plot_grid)
 
     # Set min free energy to zero
     A = fes_fn(xi)

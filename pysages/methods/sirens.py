@@ -285,7 +285,7 @@ def build_free_energy_learner(method: Sirens):
 
     dims = grid.shape.size
     shape = (*grid.shape, 1)
-    inputs = f32((compute_mesh(grid) + 1) * grid.size / 2 + grid.lower)
+    inputs = f32(compute_mesh(grid))
     smoothing_kernel = f32(blackman_kernel(dims, 5))
     padding = "wrap" if grid.is_periodic else "edge"
     conv = partial(convolve, kernel=smoothing_kernel, boundary=padding)
@@ -456,7 +456,7 @@ def analyze(result: Result[Sirens]):
     method = result.method
 
     grid = method.grid
-    mesh = (compute_mesh(grid) + 1) * grid.size / 2 + grid.lower
+    mesh = compute_mesh(grid)
     model = method.model
     _, layout = unpack(model.parameters)
 

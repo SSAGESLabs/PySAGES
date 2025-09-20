@@ -182,7 +182,7 @@ def build_free_energy_learner(method: ANN):
     model = method.model
 
     # Training data
-    inputs = (compute_mesh(grid) + 1) * grid.size / 2 + grid.lower
+    inputs = compute_mesh(grid)
     smoothing_kernel = blackman_kernel(dims, 7)
     padding = "wrap" if grid.is_periodic else "edge"
     conv = partial(convolve, kernel=smoothing_kernel, boundary=padding)
@@ -284,7 +284,7 @@ def analyze(result: Result[ANN]):
     method = result.method
 
     grid = method.grid
-    mesh = (compute_mesh(grid) + 1) * grid.size / 2 + grid.lower
+    mesh = compute_mesh(grid)
     model = method.model
     _, layout = unpack(model.parameters)
 

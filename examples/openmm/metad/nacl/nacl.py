@@ -106,7 +106,7 @@ def get_args(argv):
         ("time-steps", "t", int, 5e5, "Number of simulation steps"),
     ]
     parser = argparse.ArgumentParser(description="Example script to run metadynamics")
-    for (name, short, T, val, doc) in available_args:
+    for name, short, T, val, doc in available_args:
         parser.add_argument("--" + name, "-" + short, type=T, default=T(val), help=doc)
     return parser.parse_args(argv)
 
@@ -147,7 +147,7 @@ def main(argv=[]):
 
     # Generate CV values on a grid to evaluate bias potential
     plot_grid = pysages.Grid(lower=(0), upper=(4), shape=(500), periodic=False)
-    xi = (compute_mesh(plot_grid) + 1) / 2 * plot_grid.size + plot_grid.lower
+    xi = compute_mesh(plot_grid)
     xi = xi.flatten()
 
     # Determine bias factor depending on method

@@ -14,4 +14,5 @@ from .core import (
     collect_exponents,
     compute_mesh,
     scale,
+    unit_mesh,
 )

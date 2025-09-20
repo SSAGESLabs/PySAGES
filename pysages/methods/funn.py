@@ -225,7 +225,7 @@ def build_free_energy_grad_learner(method: FUNN):
     model = method.model
 
     # Training data
-    inputs = (compute_mesh(grid) + 1) * grid.size / 2 + grid.lower
+    inputs = compute_mesh(grid)
     smoothing_kernel = blackman_kernel(dims, 7)
     padding = "wrap" if grid.is_periodic else "edge"
     conv = partial(convolve, kernel=smoothing_kernel, boundary=padding)

@@ -10,6 +10,7 @@ from pysages.approxfun import (
     build_fitter,
     build_grad_evaluator,
     compute_mesh,
+    unit_mesh,
 )
 from pysages.grids import Chebyshev, Grid
 
@@ -30,7 +31,7 @@ def f(x):
 def test_fourier_approx():
     grid = Grid(lower=(-np.pi,), upper=(np.pi,), shape=(512,), periodic=True)
 
-    x = np.pi * compute_mesh(grid)
+    x = compute_mesh(grid)
 
     # Periodic function and its gradient
     y = vmap(f)(x.flatten()).reshape(x.shape)
@@ -82,7 +83,7 @@ def test_fourier_approx():
 def test_cheb_approx():
     grid = Grid[Chebyshev](lower=(-1.0,), upper=(1.0,), shape=(256,))
 
-    x = compute_mesh(grid)
+    x = unit_mesh(grid)
 
     y = vmap(g)(x.flatten()).reshape(x.shape)
     dy = vmap(grad(g))(x.flatten()).reshape(x.shape)
