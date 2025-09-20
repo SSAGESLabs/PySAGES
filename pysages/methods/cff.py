@@ -260,7 +260,7 @@ def build_free_energy_learner(method: CFF):
 
     dims = grid.shape.size
     shape = (*grid.shape, 1)
-    inputs = f32((compute_mesh(grid) + 1) * grid.size / 2 + grid.lower)
+    inputs = f32(compute_mesh(grid))
     smoothing_kernel = f32(blackman_kernel(dims, 7))
     padding = "wrap" if grid.is_periodic else "edge"
     conv = partial(convolve, kernel=smoothing_kernel, boundary=padding)
@@ -381,7 +381,7 @@ def analyze(result: Result[CFF]):
     states = result.states
 
     grid = method.grid
-    mesh = (compute_mesh(grid) + 1) * grid.size / 2 + grid.lower
+    mesh = compute_mesh(grid)
     model = method.model
     _, layout = unpack(model.parameters)
 

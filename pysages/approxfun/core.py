@@ -43,7 +43,7 @@ class AbstractFit(ABC):
     def __init__(self, grid: Grid):
         ns = collect_exponents(grid)
         self.grid = grid
-        self.mesh = compute_mesh(grid)
+        self.mesh = unit_mesh(grid)
         self.exponents = ns
         self.pinv = pinv(self)
 
@@ -104,7 +104,15 @@ def scale(x, grid: Grid):
     return (x - grid.lower) * 2 / grid.size - 1
 
 
-def compute_mesh(grid):
+def compute_mesh(grid: Grid):
+    """
+    Returns a dense mesh with the same shape and domain as `grid`.
+    """
+    mesh = unit_mesh(grid)
+    return (mesh + 1) / 2 * grid.size + grid.lower
+
+
+def unit_mesh(grid: Grid):
     """
     Returns a dense mesh with the same shape as `grid`, but on the hypercube [-1, 1]ⁿ,
     where `n` is the dimensionality of `grid`. The resulting mesh is Chebyshev-distributed
@@ -224,7 +232,7 @@ def pinv(model: SpectralSobolev1Fit):  # noqa: F811 # pylint: disable=C0116,E010
 def build_fitter(model: SpectralGradientFit):
     """
     Returns a function which takes an approximation `dy` to the gradient
-    of a function `f` evaluated over the set `x = compute_mesh(model.grid)`,
+    of a function `f` evaluated over the set `x = unit_mesh(model.grid)`,
     and returns a `fun: Fun` object which approximates `f` over
     the domain [-1, 1]ⁿ.
     """
@@ -253,7 +261,7 @@ def build_fitter(model: SpectralGradientFit):
 def build_fitter(model: SpectralSobolev1Fit):  # noqa: F811 # pylint: disable=C0116,E0102
     """
     Returns a function which takes approximations `y` and dy` to a function
-    `f` and its gradient evaluated over the set `x = compute_mesh(model.grid)`,
+    `f` and its gradient evaluated over the set `x = unit_mesh(model.grid)`,
     and in turn returns a `fun: Fun` object which approximates `f` over
     the domain [-1, 1]ⁿ.
     """

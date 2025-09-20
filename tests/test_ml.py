@@ -7,6 +7,7 @@ from jax import vmap
 
 from pysages.approxfun import compute_mesh
 from pysages.approxfun import scale as _scale
+from pysages.approxfun import unit_mesh
 from pysages.grids import Chebyshev, Grid
 from pysages.ml.models import MLP, Siren
 from pysages.ml.objectives import L2Regularization, Sobolev1SSE
@@ -40,8 +41,7 @@ def test_siren_sobolev_training():
     grid = Grid(lower=(-np.pi,), upper=(np.pi,), shape=(64,), periodic=True)
     scale = partial(_scale, grid=grid)
 
-    x_scaled = compute_mesh(grid)
-    x = np.pi * x_scaled
+    x = compute_mesh(grid)
 
     # Periodic function and its gradient
     y = vmap(f)(x.flatten()).reshape(x.shape)
@@ -77,7 +77,7 @@ def test_siren_sobolev_training():
 def test_mlp_training():
     grid = Grid[Chebyshev](lower=(-1.0,), upper=(1.0,), shape=(64,))
 
-    x = compute_mesh(grid)
+    x = unit_mesh(grid)
 
     y = vmap(g)(x.flatten()).reshape(x.shape)
 
@@ -103,7 +103,7 @@ def test_mlp_training():
 def test_adam_optimizer():
     grid = Grid[Chebyshev](lower=(-1.0,), upper=(1.0,), shape=(128,))
 
-    x = compute_mesh(grid)
+    x = unit_mesh(grid)
 
     y = vmap(g)(x.flatten()).reshape(x.shape)
 

@@ -221,7 +221,7 @@ Next we use the biasing potential to estimate the free energy surface. For well-
 ```python id="6W7Xf0ilqAcm"
 # generate CV values on a grid to evaluate bias potential
 plot_grid = pysages.Grid(lower=(0), upper=(4), shape=(500), periodic=False)
-xi = (compute_mesh(plot_grid) + 1) / 2 * plot_grid.size + plot_grid.lower
+xi = compute_mesh(plot_grid)
 xi = xi.flatten()
 
 alpha = 1 if method.deltaT is None else (T.value_in_unit(unit.kelvin) + method.deltaT) / method.deltaT

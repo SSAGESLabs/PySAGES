@@ -304,7 +304,7 @@ def analyze(result: Result[SpectralABF]):
     method = result.method
 
     grid = method.grid
-    mesh = (compute_mesh(grid) + 1) * grid.size / 2 + grid.lower
+    mesh = compute_mesh(grid)
     evaluate = build_evaluator(method.model)
 
     def average_forces(hist, Fsum):

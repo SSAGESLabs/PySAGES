@@ -95,7 +95,7 @@ def _analyze(result: Result, strategy: GradientLearning, topology):
     method = result.method
     states = result.states
     grid = method.grid
-    mesh = inputs = (compute_mesh(grid) + 1) * grid.size / 2 + grid.lower
+    mesh = inputs = compute_mesh(grid)
 
     model = MLP(grid.shape.size, 1, topology, transform=partial(_scale, grid=grid))
     loss = GradientsSSE()
