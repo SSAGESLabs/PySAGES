@@ -48,8 +48,8 @@ if getattr(hoomd, "__version__", "").startswith("2."):
     def get_integrator(context):
         return context.integrator
 
-    def get_run_method(context):
-        return hoomd.run
+    def get_run_method(_context):
+        return hoomd.run  # pylint: disable=E1101
 
     def get_system(context):
         return context.system
@@ -109,6 +109,9 @@ class Sampler(SamplerBase):
         self.callback = callback
         self.dt = initial_snapshot.dt
         self._restore = restore
+        # NOTE: Add optimization: Reuse the initial box information when
+        # no constant-pressure methods are used
+        self._update_box = lambda: get_global_box(sysview)
 
     def restore(self, prev_snapshot):
         def restore_callback(positions, vel_mass, rtags, images, forces, n):
@@ -134,7 +137,7 @@ class Sampler(SamplerBase):
             from_dlpack(forces),
             from_dlpack(rtags),
             from_dlpack(images),
-            self.box,
+            self._update_box(),
             self.dt,
         )
 
@@ -161,6 +164,14 @@ def take_snapshot(sampling_context, location=default_location()):
 
     check_device_array(positions)  # currently, we only support `DeviceArray`s
 
+    box = get_global_box(sysview)
+    dt = get_integrator(context).dt
+
+    return Snapshot(positions, vel_mass, forces, ids, imgs, box, dt)
+
+
+def get_global_box(sysview):
+    """Get the box and origin of a HOOMD-blue simulation."""
     box = sysview.particle_data.getGlobalBox()
     L = box.getL()
     xy = box.getTiltFactorXY()
@@ -169,9 +180,7 @@ def take_snapshot(sampling_context, location=default_location()):
     lo = box.getLo()
     H = ((L.x, xy * L.y, xz * L.z), (0.0, L.y, yz * L.z), (0.0, 0.0, L.z))
     origin = (lo.x, lo.y, lo.z)
-    dt = get_integrator(context).dt
-
-    return Snapshot(positions, vel_mass, forces, ids, imgs, Box(H, origin), dt)
+    return Box(H, origin)
 
 
 def build_snapshot_methods(sampling_method):
