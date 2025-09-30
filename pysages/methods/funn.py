@@ -171,9 +171,11 @@ def _funn(method, snapshot, helpers):
     learn_free_energy_grad = build_free_energy_grad_learner(method)
     estimate_free_energy_grad = build_force_estimator(method)
 
+    query, dimensionality, to_force_units = helpers
+
     def initialize():
-        xi, _ = cv(helpers.query(snapshot))
-        bias = np.zeros((natoms, helpers.dimensionality()))
+        xi, _ = cv(query(snapshot))
+        bias = np.zeros((natoms, dimensionality()))
         hist = np.zeros(grid.shape, dtype=np.uint32)
         Fsum = np.zeros((*grid.shape, dims))
         F = np.zeros(dims)
@@ -198,7 +200,7 @@ def _funn(method, snapshot, helpers):
         #
         I_xi = get_grid_index(xi)
         hist = state.hist.at[I_xi].add(1)
-        Fsum = state.Fsum.at[I_xi].add(dWp_dt + state.F)
+        Fsum = state.Fsum.at[I_xi].add(to_force_units(dWp_dt) + state.F)
         #
         F = estimate_free_energy_grad(
             PartialFUNNState(xi, hist, Fsum, I_xi, nn, in_training_regime)

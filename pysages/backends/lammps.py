@@ -30,7 +30,7 @@ from pysages.backends.snapshot import (
 from pysages.typing import Callable, Optional
 from pysages.utils import copy, identity
 
-kConversionFactors = {"real": 2390.0573615334906, "metal": 1.0364269e-4, "electron": 1.06657236}
+kConversionFactor = {"real": 2390.0573615334906, "metal": 1.0364269e-4, "electron": 1.06657236}
 kDefaultLocation = dlext.kOnHost if not hasattr(ExecutionSpace, "kOnDevice") else dlext.kOnDevice
 
 
@@ -131,7 +131,9 @@ def build_helpers(context, sampling_method, on_gpu, restore_fn):
     utils = importlib.import_module(".utils", package="pysages.backends")
     dim = context.extract_setting("dimension")
     units = context.extract_global("units")
-    factor = kConversionFactors.get(units)
+    factor = kConversionFactor.get(units)
+
+    to_force_units = identity if factor is None else (lambda x: factor * x)
 
     # Depending on the device being used we need to use either cupy or numpy
     # (or numba) to generate a view of jax's DeviceArrays
@@ -143,16 +145,6 @@ def build_helpers(context, sampling_method, on_gpu, restore_fn):
 
         def sync_forces():
             pass
-
-    if factor is None:
-
-        def add_bias(forces, biases):
-            forces[:, :3] += biases
-
-    else:
-
-        def add_bias(forces, biases):
-            forces[:, :3] += factor * biases
 
     def restore_vm(view, snapshot, prev_snapshot):
         velocities = view(snapshot.vel_mass[0])
@@ -171,13 +163,15 @@ def build_helpers(context, sampling_method, on_gpu, restore_fn):
             return
         forces = view(snapshot.forces)
         biases = view(state.bias.block_until_ready())
-        add_bias(forces, biases)
+        forces[:, :3] += biases
         sync_forces()
 
     snapshot_methods = build_snapshot_methods(sampling_method, on_gpu)
     flags = sampling_method.snapshot_flags
     restore = partial(restore_fn, view, restore_vm=restore_vm)
-    helpers = HelperMethods(build_data_querier(snapshot_methods, flags), lambda: dim)
+    helpers = HelperMethods(
+        build_data_querier(snapshot_methods, flags), lambda: dim, to_force_units
+    )
 
     return helpers, restore, bias
 
