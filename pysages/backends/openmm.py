@@ -30,7 +30,7 @@ unit = try_import("openmm.unit", "simtk.unit")
 
 
 class Sampler:
-    def __init__(self, method_bundle, bias, callback: Callable, restore):
+    def __init__(self, method_bundle, context, bias, callback: Callable, restore):
         initial_snapshot, initialize, method_update = method_bundle
         self.state = initialize()
         self.bias = bias
@@ -38,8 +38,10 @@ class Sampler:
         self.snapshot = initial_snapshot
         self._restore = restore
         self._update = method_update
+        self._update_box = lambda: get_box(context)
 
     def update(self, timestep=0):
+        self.snapshot = self.update_snapshot()
         self.state = self._update(self.snapshot, self.state)
         self.bias(self.snapshot, self.state)
         if self.callback:
@@ -50,6 +52,10 @@ class Sampler:
 
     def take_snapshot(self):
         return copy(self.snapshot)
+
+    def update_snapshot(self):
+        box = self._update_box()
+        return self.snapshot._replace(box=box)
 
 
 def is_on_gpu(view: ContextView):
@@ -73,16 +79,21 @@ def take_snapshot(sampling_context):
 
     check_device_array(positions)  # currently, we only support `DeviceArray`s
 
+    box = get_box(context)
+    dt = context.getIntegrator().getStepSize() / unit.picosecond
+
+    # OpenMM doesn't have images
+    return Snapshot(positions, vel_mass, forces, ids, None, box, dt)
+
+
+def get_box(context):
     box_vectors = context.getSystem().getDefaultPeriodicBoxVectors()
     a = box_vectors[0].value_in_unit(unit.nanometer)
     b = box_vectors[1].value_in_unit(unit.nanometer)
     c = box_vectors[2].value_in_unit(unit.nanometer)
     H = ((a[0], b[0], c[0]), (a[1], b[1], c[1]), (a[2], b[2], c[2]))
     origin = (0.0, 0.0, 0.0)
-    dt = context.getIntegrator().getStepSize() / unit.picosecond
-
-    # OpenMM doesn't have images
-    return Snapshot(positions, vel_mass, forces, ids, None, Box(H, origin), dt)
+    return Box(H, origin)
 
 
 def identity(x):
@@ -198,6 +209,6 @@ def bind(sampling_context: SamplingContext, callback: Callable, **kwargs):
     snapshot = take_snapshot(sampling_context)
     method_bundle = sampling_method.build(snapshot, helpers)
     sync_and_bias = partial(bias, sync_backend=sampling_context.view.synchronize)
-    sampler = Sampler(method_bundle, sync_and_bias, callback, restore)
+    sampler = Sampler(method_bundle, context, sync_and_bias, callback, restore)
     force.set_callback_in(context, sampler.update)
     return sampler
