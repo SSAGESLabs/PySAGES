@@ -36,6 +36,7 @@ else:
 Any = _typing.Any
 Callable = _typing.Callable
 List = _typing.List
+Iterable = _typing.Iterable
 NamedTuple = _typing.NamedTuple
 Optional = _typing.Optional
 Sequence = _typing.Sequence

@@ -2,12 +2,13 @@
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 from copy import deepcopy
+from pathlib import Path
 
 import numpy
 from jax import numpy as np
 from plum import Dispatcher
 
-from pysages.typing import JaxArray, Scalar
+from pysages.typing import Iterable, JaxArray, Scalar, Union
 from pysages.utils.compat import solve_pos_def
 
 # PySAGES main dispatcher
@@ -47,12 +48,50 @@ def identity(x):
     return x
 
 
+@dispatch
+def is_file(path: Path):
+    return path.is_file()
+
+
+@dispatch
+def is_file(path: str):
+    return is_file(Path(path))
+
+
 def first_or_all(seq):
     """
     Returns the only element of a sequence `seq` if its length is one,
     otherwise returns `seq` itself.
     """
     return seq[0] if len(seq) == 1 else seq
+
+
+@dispatch
+def last(iterable, default_value=None):
+    elem = default_value
+    for elem in iterable:
+        pass
+    return elem
+
+
+@dispatch
+def last(a: Union[tuple, JaxArray]):
+    return a[-1]
+
+
+def parse_array(s, shape: tuple = (-1, 3), transpose: bool = False):
+    a = np.fromstring(s, sep=" ").reshape(shape)
+    return a.T if transpose else a
+
+
+@dispatch(precedence=1)
+def splitlines(lines: str):
+    return lines.splitlines()
+
+
+@dispatch
+def splitlines(lines: Iterable[str]):
+    return lines
 
 
 def eps(T: type = np.zeros(0).dtype):

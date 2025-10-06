@@ -27,6 +27,10 @@ from .core import (
     first_or_all,
     gaussian,
     identity,
+    is_file,
+    last,
     linear_solver,
+    parse_array,
+    splitlines,
 )
 from .transformations import quaternion_from_euler, quaternion_matrix
