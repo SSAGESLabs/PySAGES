@@ -69,6 +69,7 @@ from .funn import FUNN
 from .funnel_function import get_funnel_force
 from .funnel_metad import Funnel_Metadynamics
 from .funnel_sabf import Funnel_SpectralABF
+from .funnel_metadabf import Funnel_MetaDABF
 from .harmonic_bias import HarmonicBias
 from .metad import Metadynamics
 from .nanoreactor import Nanoreactor
