@@ -40,15 +40,17 @@ class Sampler(FixDLExt):  # pylint: disable=R0902
 
     Parameters
     ----------
-    context: ``lammps.core.lammps``
-        The LAMMPS simulation instance to which the PySAGES sampling
-        machinery will be hooked.
-    sampling_method: ``SamplingMethod``
+
+    context: lammps.core.lammps
+        The LAMMPS simulation instance to which the PySAGES sampling machinery will be hooked.
+
+    sampling_method: pysages.methods.SamplingMethod
         The sampling method used.
-    callbacks: ``Optional[Callback]``
-        An optional callback. Some methods define one for logging,
-        but it can also be user-defined.
-    location: ``lammps.dlext.ExecutionSpace``
+
+    callbacks: Optional[Callback]
+        An optional callback. Some methods define one for logging, but it can also be user-defined.
+
+    location: lammps.dlext.ExecutionSpace
         Device where the simulation data will be retrieved.
     """
 
@@ -64,8 +66,8 @@ class Sampler(FixDLExt):  # pylint: disable=R0902
         self.location = location
         self.view = LAMMPSView(context)
 
-        helpers, restore, bias = build_helpers(context, sampling_method, on_gpu, pbs.restore)
         initial_snapshot = self.take_snapshot()
+        helpers, restore, bias = build_helpers(context, sampling_method, on_gpu, pbs.restore)
         _, initialize, method_update = sampling_method.build(initial_snapshot, helpers)
 
         self.callback = callback
@@ -250,7 +252,6 @@ def bind(sampling_context: SamplingContext, callback: Optional[Callable], **kwar
     context = sampling_context.context
     sampling_method = sampling_context.method
     sampler = Sampler(context, sampling_method, callback)
-    sampling_context.view = sampler.view
     sampling_context.run = lambda n, **kwargs: context.command(f"run {n}")
 
     # We want to support backends that also are context managers as long
