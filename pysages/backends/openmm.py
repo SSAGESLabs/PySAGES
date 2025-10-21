@@ -86,8 +86,7 @@ class Sampler:
         origin = (0.0, 0.0, 0.0)
         dt = context.getIntegrator().getStepSize() / unit.picosecond
 
-        # OpenMM doesn't have images
-        return Snapshot(positions, vel_mass, forces, ids, None, Box(H, origin), dt)
+        return Snapshot(positions, vel_mass, forces, ids, Box(H, origin), dt)
 
 
 def is_on_gpu(view: ContextView):

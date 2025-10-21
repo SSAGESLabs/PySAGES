@@ -112,8 +112,7 @@ def take_snapshot(simulation, forces=None):
     origin = (0.0, 0.0, 0.0)
     dt = simulation.dt
 
-    # ASE doesn't use images explicitely
-    return Snapshot(positions, vel_mass, forces, ids, None, Box(H, origin), dt)
+    return Snapshot(positions, vel_mass, forces, ids, Box(H, origin), dt)
 
 
 def _calculator_defaults(sig, arg, default=[]):
