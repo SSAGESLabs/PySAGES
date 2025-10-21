@@ -151,9 +151,9 @@ class Sampler(SamplerBase):
             from_dlpack(vel_mass),
             from_dlpack(forces),
             from_dlpack(rtags),
-            from_dlpack(images),
             self.update_box(),
             self.dt,
+            dict(images=from_dlpack(images)),  # extras
         )
 
     # NOTE: The order of the callbacks arguments do not match that of the `Snapshot` attributes
@@ -178,7 +178,7 @@ def build_snapshot_methods(sampling_method):
 
         def positions(snapshot):
             L = np.diag(snapshot.box.H)
-            return snapshot.positions[:, :3] + L * snapshot.images
+            return snapshot.positions[:, :3] + L * snapshot.extras["images"]
 
     else:
 
