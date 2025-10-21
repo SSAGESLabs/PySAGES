@@ -41,7 +41,6 @@ class Snapshot(NamedTuple):
     vel_mass: Union[JaxArray, Tuple[JaxArray, JaxArray]]
     forces: JaxArray
     ids: JaxArray
-    images: Optional[JaxArray]
     box: Box
     dt: Union[JaxArray, float]
     extras: Optional[Dict[str, Any]] = None
@@ -91,9 +90,9 @@ def restore(view, snapshot, prev_snapshot, restore_vm=restore_vm):
     # Special handling for velocities and masses
     restore_vm(view, snapshot, prev_snapshot)
     # Overwrite images if the backend uses them
-    if snapshot.images is not None:
-        images = view(snapshot.images)
-        images[:] = view(prev_snapshot.images)
+    if hasattr(snapshot.extras, "images"):
+        images = view(snapshot.extras["images"])
+        images[:] = view(prev_snapshot.extras["images"])
 
 
 def build_data_querier(snapshot_methods, flags):
