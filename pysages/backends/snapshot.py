@@ -48,6 +48,37 @@ class Snapshot(NamedTuple):
     def __repr__(self):
         return "PySAGES " + type(self).__name__
 
+    def __reduce__(self):
+        """Custom pickle serialization to handle backward compatibility."""
+        return _snapshot_reducer, (self.positions, self.vel_mass, self.forces, 
+                                 self.ids, self.box, self.dt, self.extras)
+
+
+def _snapshot_reducer(positions, vel_mass, forces, ids, box, dt, extras):
+    """Reconstruct Snapshot from serialized data."""
+    return Snapshot(positions, vel_mass, forces, ids, box, dt, extras)
+
+
+def _migrate_old_snapshot(old_data):
+    """
+    Migrate old Snapshot format to new format.
+    
+    Handles the transition from:
+    Snapshot(positions, vel_mass, forces, ids, images, box, dt)
+    to:
+    Snapshot(positions, vel_mass, forces, ids, box, dt, extras)
+    """
+    if len(old_data) == 7:
+        # Old format: (positions, vel_mass, forces, ids, images, box, dt)
+        positions, vel_mass, forces, ids, images, box, dt = old_data
+        extras = {"images": images} if images is not None else None
+        return Snapshot(positions, vel_mass, forces, ids, box, dt, extras)
+    elif len(old_data) == 6:
+        # New format: (positions, vel_mass, forces, ids, box, dt, extras)
+        return Snapshot(*old_data)
+    else:
+        raise ValueError(f"Unexpected Snapshot data format with {len(old_data)} fields")
+
 
 class SnapshotMethods(NamedTuple):
     positions: Callable

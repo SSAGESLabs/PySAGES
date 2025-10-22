@@ -17,8 +17,10 @@ These functions assume pickle's `DEFAULT_PROTOCOL` and data format. Use them wit
 if modifications have been made to the saved data structures.
 """
 
+import io
 import dill as pickle
 
+from pysages.backends.snapshot import Snapshot, _migrate_old_snapshot
 from pysages.methods import Metadynamics
 from pysages.methods.core import GriddedSamplingMethod, Result
 from pysages.typing import Callable
@@ -49,8 +51,17 @@ def load(filename) -> Result:
     try:
         return pickle.loads(bytestring)
 
-    except TypeError as e:  # pylint: disable=W0718
-        if "ncalls" not in getattr(e, "message", repr(e)):
+    except (TypeError, AttributeError) as e:  # pylint: disable=W0718
+        # Handle both ncalls and Snapshot format migration
+        error_msg = getattr(e, "message", repr(e))
+        
+        if "ncalls" in error_msg:
+            # Handle ncalls migration (existing logic)
+            pass
+        elif "Snapshot" in error_msg or "images" in error_msg:
+            # Handle Snapshot format migration
+            return _handle_snapshot_migration(bytestring)
+        else:
             raise e
 
         # We know that states preceed callbacks so we try to find all tuples of values
@@ -86,6 +97,43 @@ def load(filename) -> Result:
         result.states = [update(state) for state in result.states]
 
         return result
+
+
+def _handle_snapshot_migration(bytestring):
+    """
+    Handle migration of old Snapshot format during deserialization.
+    
+    This function attempts to deserialize data that contains old Snapshot
+    objects and migrate them to the new format.
+    """
+    # Create a custom unpickler that can handle Snapshot migration
+    class SnapshotMigrationUnpickler(pickle.Unpickler):
+        def find_class(self, module, name):
+            # Intercept Snapshot class loading
+            if name == "Snapshot" and module.endswith("snapshot"):
+                return _create_migrating_snapshot_class()
+            return super().find_class(module, name)
+    
+    def _create_migrating_snapshot_class():
+        """Create a class that can handle both old and new Snapshot formats."""
+        class MigratingSnapshot:
+            def __new__(cls, *args, **kwargs):
+                # If called with old format, migrate it
+                if len(args) == 7:  # old format: (positions, vel_mass, forces, ids, images, box, dt)
+                    return _migrate_old_snapshot(args)
+                elif len(args) == 6:  # new format: (positions, vel_mass, forces, ids, box, dt, extras)
+                    return Snapshot(*args)
+                else:
+                    return Snapshot(*args, **kwargs)
+        
+        return MigratingSnapshot
+    
+    try:
+        unpickler = SnapshotMigrationUnpickler(io.BytesIO(bytestring))
+        return unpickler.load()
+    except Exception:
+        # If migration fails, try the original approach
+        return pickle.loads(bytestring)
 
 
 def save(result: Result, filename) -> None:
