@@ -19,10 +19,26 @@ if modifications have been made to the saved data structures.
 
 import dill as pickle
 
+from pysages.backends.snapshot import Box, Snapshot
 from pysages.methods import Metadynamics
 from pysages.methods.core import GriddedSamplingMethod, Result
 from pysages.typing import Callable
 from pysages.utils import dispatch, identity
+
+
+class CompatUnpickler(pickle.Unpickler):
+    def find_class(self, module, name):
+        if module.endswith("snapshot") and name == "Snapshot":
+            return _recreate_snapshot
+        if module.endswith("dill") and name == "_create_namedtuple":
+            # `dill` handles types that inherit from NamedTuple this way
+            return _recreate_namedutple
+        return super().find_class(module, name)
+
+
+class _CompatSnapshot:
+    def __new__(cls, *args, **kwargs):
+        return _recreate_snapshot(*args, **kwargs)
 
 
 def load(filename) -> Result:
@@ -40,52 +56,21 @@ def load(filename) -> Result:
 
     **Notes:**
 
-    This function attempts to recover from deserialization errors related to missing
-    `ncalls` attributes.
+    This function attempts to maintain backwards compatibility with serialized data
+    structures that have changed in different `pysages` versions.
     """
-    with open(filename, "rb") as io:
-        bytestring = io.read()
+    with open(filename, "rb") as f:
+        unpickler = CompatUnpickler(f)
+        result = unpickler.load()
 
-    try:
-        return pickle.loads(bytestring)
+    if not isinstance(result, Result):
+        raise TypeError("Only loading of `Result` objects is supported.")
 
-    except TypeError as e:  # pylint: disable=W0718
-        if "ncalls" not in getattr(e, "message", repr(e)):
-            raise e
+    # Update results with `ncalls` estimates for each state
+    update_ncalls = _ncalls_estimator(result.method)
+    result.states = [update_ncalls(state) for state in result.states]
 
-        # We know that states preceed callbacks so we try to find all tuples of values
-        # corresponding to each state.
-        j = bytestring.find(b"\x8c\x06states\x94")
-        k = bytestring.find(b"\x8c\tcallbacks\x94")
-        boundary = b"t\x94\x81\x94"
-
-        marks = []
-        while True:
-            i = j
-            j = bytestring.find(boundary, i + 1, k)
-            if j == -1:
-                marks.append((i, len(bytestring)))
-                break
-            marks.append((i, j))
-
-        # We set `ncalls` as zero and adjust it later
-        first = marks[0]
-        last = marks.pop()
-        slices = [
-            bytestring[: first[0]],
-            *(bytestring[i:j] + b"K\x00" for (i, j) in marks),
-            bytestring[last[0] :],  # noqa: E203
-        ]
-        bytestring = b"".join(slices)
-
-        # Try to deserialize again
-        result = pickle.loads(bytestring)
-
-        # Update results with `ncalls` estimates for each state
-        update = _ncalls_estimator(result.method)
-        result.states = [update(state) for state in result.states]
-
-        return result
+    return result
 
 
 def save(result: Result, filename) -> None:
@@ -130,3 +115,22 @@ def _ncalls_estimator(_: GriddedSamplingMethod) -> Callable:
         return state._replace(ncalls=ncalls)
 
     return update
+
+
+def _recreate_namedutple(name, fieldnames, modulename, defaults=None):
+    if modulename.endswith("snapshot") and name == "Snapshot":
+        return _CompatSnapshot
+    return pickle._dill._create_namedtuple(name, fieldnames, modulename, defaults=defaults)
+
+
+@dispatch
+def _recreate_snapshot(*args, **kwargs):
+    # Fallback case: just pass the arguments to the constructor.
+    return Snapshot(*args, **kwargs)
+
+
+@dispatch
+def _recreate_snapshot(positions, vel_mass, forces, ids, images, box: Box, dt):
+    # Older form: `images` argument was required and preceded `box`.
+    _extras = () if images is None else (dict(images=images),)
+    return Snapshot(positions, vel_mass, forces, ids, box, dt, *_extras)
