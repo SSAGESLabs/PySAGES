@@ -64,7 +64,7 @@ class MetadynamicsState(NamedTuple):
     grid_potential: Optional[JaxArray]
     grid_gradient: Optional[JaxArray]
     idx: int
-    ncalls: int
+    ncalls: int = 0
 
     def __repr__(self):
         return repr("PySAGES" + type(self).__name__)
@@ -181,7 +181,7 @@ def _metadynamics(method, snapshot, helpers):
             grid_gradient = np.zeros((*shape, shape.size), dtype=np.float64)
 
         return MetadynamicsState(
-            xi, bias, heights, centers, sigmas, grid_potential, grid_gradient, 0, 0
+            xi, bias, heights, centers, sigmas, grid_potential, grid_gradient, 0
         )
 
     def update(state, data):

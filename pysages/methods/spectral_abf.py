@@ -78,7 +78,7 @@ class SpectralABFState(NamedTuple):
     Wp: JaxArray
     Wp_: JaxArray
     fun: Fun
-    ncalls: int
+    ncalls: int = 0
 
     def __repr__(self):
         return repr("PySAGES " + type(self).__name__)
@@ -177,7 +177,7 @@ def _spectral_abf(method, snapshot, helpers):
         Wp = np.zeros(dims)
         Wp_ = np.zeros(dims)
         fun = fit(Fsum)
-        return SpectralABFState(xi, bias, hist, Fsum, force, Wp, Wp_, fun, 0)
+        return SpectralABFState(xi, bias, hist, Fsum, force, Wp, Wp_, fun)
 
     def update(state, data):
         # During the intial stage use ABF

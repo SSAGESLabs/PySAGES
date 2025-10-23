@@ -31,7 +31,7 @@ class UnbiasedState(NamedTuple):
 
     xi: JaxArray
     bias: Optional[JaxArray]
-    ncalls: int
+    ncalls: int = 0
 
     def __repr__(self):
         return repr("PySAGES" + type(self).__name__)
@@ -66,7 +66,7 @@ def _unbias(method, snapshot, helpers):
 
     def initialize():
         xi = cv(helpers.query(snapshot))
-        return UnbiasedState(xi, None, 0)
+        return UnbiasedState(xi, None)
 
     def update(state, data):
         xi = cv(data)
