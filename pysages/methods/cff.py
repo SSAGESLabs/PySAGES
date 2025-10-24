@@ -93,7 +93,7 @@ class CFFState(NamedTuple):
     Wp_: JaxArray
     nn: NNData
     fnn: NNData
-    ncalls: int
+    ncalls: int = 0
 
     def __repr__(self):
         return repr("PySAGES " + type(self).__name__)
@@ -218,7 +218,7 @@ def _cff(method: CFF, snapshot, helpers):
         nn = NNData(ps, np.array(0.0), np.array(1.0))
         fnn = NNData(fps, np.zeros(dims), np.array(1.0))
 
-        return CFFState(xi, bias, hist, histp, prob, fe, Fsum, force, Wp, Wp_, nn, fnn, 0)
+        return CFFState(xi, bias, hist, histp, prob, fe, Fsum, force, Wp, Wp_, nn, fnn)
 
     def update(state, data):
         # During the intial stage, when there are not enough collected samples, use ABF

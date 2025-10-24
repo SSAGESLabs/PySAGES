@@ -4,7 +4,16 @@
 from jax import jit
 from jax import numpy as np
 
-from pysages.typing import Callable, JaxArray, NamedTuple, Optional, Tuple, Union
+from pysages.typing import (
+    Any,
+    Callable,
+    Dict,
+    JaxArray,
+    NamedTuple,
+    Optional,
+    Tuple,
+    Union,
+)
 from pysages.utils import copy, dispatch, identity
 
 AbstractBox = NamedTuple("AbstractBox", [("H", JaxArray), ("origin", JaxArray)])
@@ -32,9 +41,9 @@ class Snapshot(NamedTuple):
     vel_mass: Union[JaxArray, Tuple[JaxArray, JaxArray]]
     forces: JaxArray
     ids: JaxArray
-    images: Optional[JaxArray]
     box: Box
     dt: Union[JaxArray, float]
+    extras: Optional[Dict[str, Any]] = None
 
     def __repr__(self):
         return "PySAGES " + type(self).__name__
@@ -81,9 +90,9 @@ def restore(view, snapshot, prev_snapshot, restore_vm=restore_vm):
     # Special handling for velocities and masses
     restore_vm(view, snapshot, prev_snapshot)
     # Overwrite images if the backend uses them
-    if snapshot.images is not None:
-        images = view(snapshot.images)
-        images[:] = view(prev_snapshot.images)
+    if hasattr(snapshot.extras, "images"):
+        images = view(snapshot.extras["images"])
+        images[:] = view(prev_snapshot.extras["images"])
 
 
 def build_data_querier(snapshot_methods, flags):

@@ -92,14 +92,15 @@ class Sampler(FixDLExt):  # pylint: disable=R0902
         velocities = from_dlpack(dlext.velocities(self.view, self.location))
         forces = from_dlpack(dlext.forces(self.view, self.location))
         tags_map = from_dlpack(dlext.tags_map(self.view, self.location))
-        imgs = from_dlpack(dlext.images(self.view, self.location))
+        images = from_dlpack(dlext.images(self.view, self.location))
 
         masses = None
         if include_masses:
             masses = from_dlpack(dlext.masses(self.view, self.location))
         vel_mass = (velocities, (masses, types))
+        extras = dict(images=images)
 
-        return Snapshot(positions, vel_mass, forces, tags_map, imgs, None, None)
+        return Snapshot(positions, vel_mass, forces, tags_map, None, None, extras)
 
     def _update_snapshot(self):
         s = self._partial_snapshot()
@@ -109,7 +110,7 @@ class Sampler(FixDLExt):  # pylint: disable=R0902
         box = self._update_box()
         dt = self.snapshot.dt
 
-        return Snapshot(s.positions, vel_mass, s.forces, s.ids[1:], s.images, box, dt)
+        return Snapshot(s.positions, vel_mass, s.forces, s.ids[1:], box, dt, s.extras)
 
     def restore(self, prev_snapshot):
         """Replaces this sampler's snapshot with `prev_snapshot`."""
@@ -122,7 +123,7 @@ class Sampler(FixDLExt):  # pylint: disable=R0902
         dt = get_timestep(self.context)
 
         return Snapshot(
-            copy(s.positions), copy(s.vel_mass), copy(s.forces), s.ids[1:], copy(s.images), box, dt
+            copy(s.positions), copy(s.vel_mass), copy(s.forces), s.ids[1:], box, dt, copy(s.extras)
         )
 
 
@@ -198,7 +199,7 @@ def build_snapshot_methods(sampling_method, on_gpu):
 
         def positions(snapshot):
             L = np.diag(snapshot.box.H)
-            return snapshot.positions[:, :3] + L * vmap(unpack)(snapshot.images)
+            return snapshot.positions[:, :3] + L * vmap(unpack)(snapshot.extras["images"])
 
     else:
 
