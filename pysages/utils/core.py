@@ -25,6 +25,11 @@ def copy(x: Scalar):
 
 
 @dispatch(precedence=1)
+def copy(x: dict, *args):  # noqa: F811 # pylint: disable=C0116,E0102
+    return {k: copy(v, *args) for k, v in x.items()}
+
+
+@dispatch(precedence=1)
 def copy(t: tuple, *args):  # noqa: F811 # pylint: disable=C0116,E0102
     return tuple(copy(x, *args) for x in t)  # pylint: disable=E1120
 

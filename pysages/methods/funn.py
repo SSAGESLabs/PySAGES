@@ -78,7 +78,7 @@ class FUNNState(NamedTuple):
     Wp: JaxArray
     Wp_: JaxArray
     nn: NNData
-    ncalls: int
+    ncalls: int = 0
 
     def __repr__(self):
         return repr("PySAGES " + type(self).__name__)
@@ -182,7 +182,7 @@ def _funn(method, snapshot, helpers):
         Wp = np.zeros(dims)
         Wp_ = np.zeros(dims)
         nn = NNData(ps, F, F)
-        return FUNNState(xi, bias, hist, Fsum, F, Wp, Wp_, nn, 0)
+        return FUNNState(xi, bias, hist, Fsum, F, Wp, Wp_, nn)
 
     def update(state, data):
         # During the intial stage, when there are not enough collected samples, use ABF

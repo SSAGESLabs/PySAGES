@@ -70,7 +70,7 @@ class ANNState(NamedTuple):
     phi: JaxArray
     prob: JaxArray
     nn: NNData
-    ncalls: int
+    ncalls: int = 0
 
     def __repr__(self):
         return repr("PySAGES " + type(self).__name__)
@@ -148,7 +148,7 @@ def _ann(method: ANN, snapshot, helpers):
         phi = np.zeros(shape)
         prob = np.ones(shape)
         nn = NNData(ps, np.array(0.0), np.array(1.0))
-        return ANNState(xi, bias, hist, phi, prob, nn, 0)
+        return ANNState(xi, bias, hist, phi, prob, nn)
 
     def update(state, data):
         ncalls = state.ncalls + 1

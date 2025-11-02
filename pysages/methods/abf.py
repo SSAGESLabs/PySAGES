@@ -69,7 +69,7 @@ class ABFState(NamedTuple):
     force: JaxArray
     Wp: JaxArray
     Wp_: JaxArray
-    ncalls: int
+    ncalls: int = 0
 
     def __repr__(self):
         return repr("PySAGES " + type(self).__name__)
@@ -187,7 +187,7 @@ def _abf(method, snapshot, helpers):
         force = np.zeros(dims)
         Wp = np.zeros(dims)
         Wp_ = np.zeros(dims)
-        return ABFState(xi, bias, hist, Fsum, force, Wp, Wp_, 0)
+        return ABFState(xi, bias, hist, Fsum, force, Wp, Wp_)
 
     def update(state, data):
         """

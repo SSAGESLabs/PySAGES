@@ -90,7 +90,7 @@ class SirensState(NamedTuple):  # pylint: disable=R0903
     Wp: JaxArray
     Wp_: JaxArray
     nn: NNData
-    ncalls: int
+    ncalls: int = 0
 
     def __repr__(self):
         return repr("PySAGES " + type(self).__name__)
@@ -241,7 +241,7 @@ def _sirens(method: Sirens, snapshot, helpers):
         else:
             histp = prob = fe = None
 
-        return SirensState(xi, bias, hist, histp, prob, fe, Fsum, force, Wp, Wp_, nn, 0)
+        return SirensState(xi, bias, hist, histp, prob, fe, Fsum, force, Wp, Wp_, nn)
 
     def update(state, data):
         # During the intial stage, when there are not enough collected samples, use ABF
