@@ -30,6 +30,8 @@ from pysages.backends.snapshot import (
 from pysages.typing import Callable, Optional
 from pysages.utils import copy, identity
 
+from ctypes import c_double
+
 kConversionFactor = {"real": 2390.0573615334906, "metal": 1.0364269e-4, "electron": 1.06657236}
 kDefaultLocation = dlext.kOnHost if not hasattr(ExecutionSpace, "kOnDevice") else dlext.kOnDevice
 
@@ -115,7 +117,19 @@ class Sampler(FixDLExt):  # pylint: disable=R0902
     def restore(self, prev_snapshot):
         """Replaces this sampler's snapshot with `prev_snapshot`."""
         self._restore(self.snapshot, prev_snapshot)
+        
+        positions = self.snapshot.positions[self.snapshot.ids].ravel()
+        x_ctypes = (len(positions) * c_double)(*positions)
+        self.context.scatter_atoms("x", 1, 3, x_ctypes)
 
+        forces = self.snapshot.forces[self.snapshot.ids].ravel()
+        f_ctypes = (len(forces) * c_double)(*forces)
+        self.context.scatter_atoms("f", 1, 3, f_ctypes)
+
+        velocities = self.snapshot.vel_mass[0][self.snapshot.ids].ravel()
+        v_ctypes = (len(velocities) * c_double)(*velocities)
+        self.context.scatter_atoms("v", 1, 3, v_ctypes)
+    
     def take_snapshot(self):
         """Returns a copy of the current snapshot of the system."""
         s = self._partial_snapshot(include_masses=True)
