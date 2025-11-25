@@ -30,7 +30,6 @@ from pysages.backends.snapshot import (
 from pysages.typing import Callable, Optional
 from pysages.utils import copy, identity
 
-import numpy as onp
 from ctypes import c_double
 
 kConversionFactor = {"real": 2390.0573615334906, "metal": 1.0364269e-4, "electron": 1.06657236}
