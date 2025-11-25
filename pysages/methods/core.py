@@ -25,6 +25,8 @@ from pysages.utils import (
     has_method,
     identity,
 )
+import numpy as onp
+from ctypes import c_double
 
 #  Base Classes
 #  ============
@@ -404,6 +406,12 @@ def _run(  # noqa: F811 # pylint: disable=C0116,E0102
         prev_snapshot = copy(prev_snapshot, ToCPU())
     sampler.restore(prev_snapshot)
     sampler.state = result.states
+
+    #positions = sampler.snapshot.positions.ravel()
+    #x = sampling_context.context.gather_atoms('x',1,3)
+    #for i in range(len(positions)):
+    #    x[i] = positions[i]
+    #sampling_context.context.scatter_atoms('x',1,3,x)
 
     with sampling_context:
         sampling_context.run(timesteps, **kwargs)

@@ -71,12 +71,14 @@ from .metad import Metadynamics
 from .restraints import CVRestraints
 from .sirens import Sirens
 from .spectral_abf import SpectralABF
+from .funnel_sabf import Funnel_SpectralABF
 from .spline_string import SplineString
 from .umbrella_integration import UmbrellaIntegration
 from .unbiased import Unbiased
 from .utils import (
     HistogramLogger,
     MetaDLogger,
+    Funnel_Logger,
     ReplicasConfiguration,
     SerialExecutor,
     methods_dispatch,
