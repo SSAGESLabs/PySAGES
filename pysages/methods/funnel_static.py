@@ -23,6 +23,7 @@ from pysages.methods.core import GriddedSamplingMethod, Result, generalize
 from pysages.methods.restraints import apply_restraints
 from pysages.typing import JaxArray, NamedTuple
 import pysages
+from pysages.utils import dispatch
 
 class StaticState(NamedTuple):
     """
