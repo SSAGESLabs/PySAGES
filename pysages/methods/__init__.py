@@ -76,6 +76,7 @@ from .spline_string import SplineString
 from .umbrella_integration import UmbrellaIntegration
 from .unbiased import Unbiased
 from .funnel_static import Static
+from .funnel_metadabf.py import Funnel_MetaDABF
 from .utils import (
     HistogramLogger,
     MetaDLogger,
