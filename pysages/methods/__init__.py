@@ -75,6 +75,7 @@ from .funnel_sabf import Funnel_SpectralABF
 from .spline_string import SplineString
 from .umbrella_integration import UmbrellaIntegration
 from .unbiased import Unbiased
+from .funnel_static import Static
 from .utils import (
     HistogramLogger,
     MetaDLogger,
