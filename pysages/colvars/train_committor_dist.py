@@ -103,6 +103,33 @@ class CommittorNN_PIV(nn.Module):
         x = np.squeeze(x, axis=-1)                                  # (B,)
         return jax.nn.sigmoid(self.sig_k * x) if training else x
 
+class CommittorNN_PIV_shiftsig(nn.Module):
+    indices: np.ndarray   # (M,)
+    blocks: Sequence
+    h1: int = 32
+    h2: int = 16
+    h3: int = 8
+    out_dim: int = 1
+    sig_k: float = 4.0
+
+    @nn.compact
+    def __call__(self, pos: np.ndarray, training: bool = False) -> np.ndarray:
+        # pos: (B, N, 3)
+        sig_shift1 = 1e-3*self.param("sig_shift1", nn.initializers.constant(0.0), ())
+        sig_shift2 = 1e-3*self.param("sig_shift2", nn.initializers.constant(0.0), ())
+
+        x = get_x(pos[:, self.indices, :], self.blocks)
+        x = NormalizedLinear(x.shape[-1], self.h1)(x); x = np.tanh(x)
+        x = NormalizedLinear(self.h1, self.h2)(x);	 x = np.tanh(x)
+        x = NormalizedLinear(self.h2, self.h3)(x);	 x = np.tanh(x)
+        x = NormalizedLinear(self.h3, self.out_dim)(x)              # (B,1)
+        x = np.squeeze(x, axis=-1)                                  # (B,)
+        q = 0.5*jax.nn.sigmoid(self.sig_k * (x-sig_shift1) ) + 0.5*jax.nn.sigmoid(self.sig_k * (x-sig_shift2) )
+        if training:
+            return q, x
+        else:
+            return x
+
 # ------------------------------
 # Losses
 # ------------------------------
