@@ -168,8 +168,9 @@ class Sampler(FFEval):
 
         return work
 
-    def queue(self, atoms, cell, reqid=-1):
-        return super().queue(atoms, cell, reqid, template={"momenta": dstrip(atoms.p)})
+    # def queue(self, atoms, cell, reqid=-1):
+    #     template = {"momenta": dstrip(atoms.p).copy()}
+    #     return super().queue(atoms, cell, reqid=reqid, template=template)
 
     def restore(self, prev_snapshot):
         """Restore the internal state of the replaced force fields."""
@@ -195,14 +196,15 @@ class Sampler(FFEval):
         dt = system.motion.dt
         extras = self.context.get_structures() if extras is None else extras
 
-        return Snapshot(positions, momenta, None, ids, None, box, dt, extras)
+        return Snapshot(positions, momenta, None, ids, box, dt, extras)
 
     def update_snapshot(self, request, extras={}):
         """
         Update the snapshot with the current system state.
         """
+        system = self.context.syslist[0]
         positions = np.asarray(request["pos"]).reshape(-1, 3)
-        momenta = np.asarray(request["momenta"]).reshape(-1, 3)
+        momenta = ipi_to_jax(system.beads.pc).reshape(-1, 3)
         box = self.update_box(request)
         return self.snapshot._replace(positions=positions, vel_mass=momenta, box=box, extras=extras)
 
