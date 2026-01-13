@@ -61,10 +61,10 @@ class Committor_CV_PIV(CollectiveVariable):
         return wrapped_forward
 
 class Committor_CV_PIV_shiftsig(CollectiveVariable):
-    def __init__(self, indices: List, params_path: str, blocks: Sequence):
+    def __init__(self, indices: List, params_path: str, blocks: Sequence, h1=32, h2=16, h3=8, sig_k=3.0):
         super().__init__(indices)
 
-        model = CommittorNN_PIV_shiftsig(indices=np.arange(len(indices)), blocks=blocks, h1=32, h2=16, h3=8, out_dim=1, sig_k=3.0)
+        model = CommittorNN_PIV_shiftsig(indices=np.arange(len(indices)), blocks=blocks, h1=h1, h2=h2, h3=h3, out_dim=1, sig_k=3.0)
 
         rng = jax.random.PRNGKey(0)
         dummy_pos = np.zeros((1, len(indices), 3))
