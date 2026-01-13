@@ -77,6 +77,7 @@ from .umbrella_integration import UmbrellaIntegration
 from .unbiased import Unbiased
 from .funnel_static import Static
 from .funnel_metadabf import Funnel_MetaDABF
+from .funnel_unbiased import Unbias
 from .utils import (
     HistogramLogger,
     MetaDLogger,

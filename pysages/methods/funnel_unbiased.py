@@ -187,7 +187,7 @@ def build_force_estimator(method: Unbias):
     grid = method.grid
 
     def bias_force(data):
-        _, zero = data
+        *_, zero = data
         return zero
 
     if method.restraints is None:
@@ -196,13 +196,13 @@ def build_force_estimator(method: Unbias):
         lo, hi, kl, kh = method.restraints
 
         def restraints_force(data):
-            xi, _ = data
+            xi, *_ = data
             xi = xi.reshape(grid.shape.size)
             return apply_restraints(lo, hi, kl, kh, xi)
 
         def estimate_force(xi, I_xi, zero):
             ob = np.any(np.array(I_xi) == grid.shape)  # Out of bounds condition
-            data = (xi, zero)
+            data = (xi, I_xi, zero)
             return cond(ob, restraints_force, bias_force, data)
 
     return estimate_force
