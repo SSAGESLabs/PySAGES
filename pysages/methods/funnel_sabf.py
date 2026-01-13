@@ -194,23 +194,23 @@ def _spectral_abf(method, snapshot, helpers):
         return SpectralFABFState(xi, bias, hist, Fsum, force, Wp, Wp_, fun, restr, proj, Frestr, 0)
 
     def update(state, data):
-        # During the intial stage use ABF
-        ncalls = state.ncalls + 1
-        in_fitting_regime = ncalls > fit_threshold
-        in_fitting_step = in_fitting_regime & (ncalls % fit_freq == 1) & (ncalls < fit_threshold_upper)
-        # Fit forces
-        fun = fit_forces(state, in_fitting_step)
         # Compute the collective variable and its jacobian
         xi, Jxi = cv(data)
         # Restraint force and logger
         e_f, proj = ext_force(data)
+        # During the intial stage use ABF
+        I_xi = get_grid_index(xi)
+        ncalls = state.ncalls + 1
+        in_fitting_regime = state.hist[I_xi] > fit_threshold
+        in_fitting_step = in_fitting_regime & (ncalls % fit_freq == 1) & (ncalls < fit_threshold_upper)
+        # Fit forces
+        fun = fit_forces(state, in_fitting_step)
         #
         p = data.momenta
         Wp = tsolve(Jxi, p)
         # Second order backward finite difference
         dWp_dt = (1.5 * Wp - 2.0 * state.Wp + 0.5 * state.Wp_) / dt
         #
-        I_xi = get_grid_index(xi)
         hist = state.hist.at[I_xi].add(1)
         Fsum = state.Fsum.at[I_xi].add(to_force_units(dWp_dt) + state.force)
         #
