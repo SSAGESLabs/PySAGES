@@ -142,7 +142,7 @@ def _Unbias(method, snapshot, helpers):
         """
         xi, _ = cv(helpers.query(snapshot))
         bias = np.zeros((natoms, helpers.dimensionality()))
-        zero = np.zeros((natoms, helpers.dimensionality()))
+        zero = np.zeros(dims)
         return UnbiasState(xi, bias, zero)
 
     def update(state, data):
