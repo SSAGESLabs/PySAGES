@@ -5,9 +5,9 @@ from dataclasses import dataclass
 
 from jax import jit
 from jax import numpy as np
-from plum import Union, parametric
+from plum import parametric
 
-from pysages.typing import JaxArray
+from pysages.typing import JaxArray, Union
 from pysages.utils import dispatch, is_generic_subclass, prod
 
 
