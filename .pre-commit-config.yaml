@@ -1,6 +1,6 @@
 repos:
   - repo: https://github.com/mwouts/jupytext
-    rev: v1.19.0bis
+    rev: v1.19.1
     hooks:
       - id: jupytext
         args: [--sync]
