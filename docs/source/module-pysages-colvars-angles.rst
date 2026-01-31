@@ -7,6 +7,7 @@ Angles as collective variables
 
    pysages.colvars.angles.Angle
    pysages.colvars.angles.DihedralAngle
+   pysages.colvars.angles.VectorAngle
    pysages.colvars.angles.RingPuckeringCoordinates
    pysages.colvars.angles.RingPhaseAngle
    pysages.colvars.angles.RingAmplitude
