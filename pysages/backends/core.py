@@ -3,7 +3,7 @@
 
 from importlib import import_module
 
-from pysages.backends.contexts import JaxMDContext
+from pysages.backends.contexts import JaxMDContext, QboxContext
 from pysages.typing import Callable, Optional
 
 
@@ -38,6 +38,8 @@ class SamplingContext:
             self._backend_name = "lammps"
         elif module_name.startswith("simtk.openmm") or module_name.startswith("openmm"):
             self._backend_name = "openmm"
+        elif isinstance(context, QboxContext):
+            self._backend_name = "qbox"
 
         if self._backend_name is None:
             backends = ", ".join(supported_backends())
@@ -74,4 +76,4 @@ class SamplingContext:
 
 
 def supported_backends():
-    return ("ase", "hoomd", "jax-md", "lammps", "openmm")
+    return ("ase", "hoomd", "jax-md", "lammps", "openmm", "qbox")
