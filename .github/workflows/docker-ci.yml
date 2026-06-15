@@ -142,11 +142,11 @@ jobs:
       - name: Load and run test
         run: |
           SCRIPT="cd PySAGES/examples/openmm/umbrella_integration &&"
-          SCRIPT="${SCRIPT} mpirun --allow-run-as-root --oversubscribe -n 6"
+          SCRIPT="${SCRIPT} mpirun --oversubscribe -n 6"
           SCRIPT="${SCRIPT} python3 -m mpi4py.futures"
           SCRIPT="${SCRIPT} integration.py --replicas=5 --time-steps=1000 --mpi"
           docker load --input /tmp/pysages.tar
-          docker run --privileged -t pysages bash -c "${SCRIPT}"
+          docker run --user pysages -e HOME=/home/pysages -t pysages bash -c "${SCRIPT}"
 
   cv-pucker-openmm-unbiased:
     runs-on: ubuntu-latest
@@ -214,11 +214,11 @@ jobs:
       - name: Load and run test
         run: |
           SCRIPT="cd PySAGES/examples/openmm/string &&"
-          SCRIPT="${SCRIPT} mpirun --allow-run-as-root --oversubscribe -n 6"
+          SCRIPT="${SCRIPT} mpirun --oversubscribe -n 6"
           SCRIPT="${SCRIPT} python3 -m mpi4py.futures"
           SCRIPT="${SCRIPT} integration.py --replicas=5 --string-steps=2 --time-steps=1000 --mpi"
           docker load --input /tmp/pysages.tar
-          docker run --privileged -t pysages bash -c "${SCRIPT}"
+          docker run --user pysages -e HOME=/home/pysages -t pysages bash -c "${SCRIPT}"
 
   openmm-nacl-metad-displacement:
     runs-on: ubuntu-latest
@@ -396,12 +396,12 @@ jobs:
         run: |
           SCRIPT="cd PySAGES/examples/hoomd-blue/umbrella_integration &&"
           SCRIPT="${SCRIPT} python3 ./gen_gsd.py &&"
-          SCRIPT="${SCRIPT} mpirun --allow-run-as-root --oversubscribe -n 2"
+          SCRIPT="${SCRIPT} mpirun --oversubscribe -n 2"
           SCRIPT="${SCRIPT} python3 -m mpi4py.futures"
           SCRIPT="${SCRIPT} integration.py --replicas=5 --time-steps=1000 --mpi &&"
           SCRIPT="${SCRIPT} mkdir /tmp/plots && mv *.pdf /tmp/plots/"
           docker load --input /tmp/pysages.tar
-          docker run -v /tmp:/tmp -t pysages bash -c "${SCRIPT}"
+          docker run -v /tmp:/tmp --user pysages -e HOME=/home/pysages -t pysages bash -c "${SCRIPT}"
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:

@@ -11,3 +11,8 @@ RUN python -m pip install --upgrade "dm-haiku<0.0.11" "e3nn-jax!=0.20.4" "jax-md
 
 COPY . /PySAGES
 RUN pip install /PySAGES/
+
+# Disable CAP_SYS_PTRACE requirement for vader's CMA single-copy path.
+ENV OMPI_MCA_btl_vader_single_copy_mechanism=none
+# Non-privileged setups (e.g. MPI CI jobs) can use `docker run --user pysages`.
+RUN useradd -m -u 1000 pysages && chown -R pysages:pysages /PySAGES
