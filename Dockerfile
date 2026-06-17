@@ -10,6 +10,9 @@ RUN python -m pip install ase dill "gsd<3.3" matplotlib "pyparsing<3"
 RUN python -m pip install --upgrade "jax[cuda]==0.4.34" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
 RUN python -m pip install --upgrade "jax==0.4.34" "dm-haiku<0.0.11" "e3nn-jax!=0.20.4" "jax-md>=0.2.7" jaxopt
 
+ARG JAX_PLATFORMS=""
+ENV JAX_PLATFORMS=${JAX_PLATFORMS}
+
 COPY . /PySAGES
 RUN pip install /PySAGES/
 
