@@ -40,18 +40,34 @@ class Angle(ThreePointCV):
         Function that calculates the angle value from a simulation snapshot.
         Look at `pysages.colvars.angles.angle` for details.
         """
+        return lambda p1, p2, p3: angle(p2, p1, p2, p3)
+
+
+class VectorAngle(FourPointCV):
+    """
+    Compute the angle formed by two vectors (four points).
+    Notice that the two vectors are defined as p1->p2, p3->p4.
+    """
+
+    @property
+    def function(self):
+        """
+        Returns
+        --------
+        Functions that calculates the angle value from a simulation snapshot.
+        """
         return angle
 
 
-def angle(p1, p2, p3):
+def angle(p1, p2, p3, p4):
     r"""
-    Calculates angle between 3 points in space.
+    Calculates angle between two vectors (4 points) in space.
 
-    Takes 3 positions in space and calculates the angle between them.
+    Takes 4 positions in space and calculates the angle between them.
 
-    :math:`\vec{q} = \vec{p}_1 - \vec{p}_2`
+    :math:`\vec{q} = \vec{p}_2 - \vec{p}_1`
 
-    :math:`\vec{r} = \vec{p}_3 - \vec{p}_2`
+    :math:`\vec{r} = \vec{p}_4 - \vec{p}_3`
 
     :math:`\theta = \arctan(|\vec{q} \times \vec{r}|, \vec{q} \cdot \vec{r})`
 
@@ -63,14 +79,17 @@ def angle(p1, p2, p3):
        :math:`\vec{p}_2` 3D vector in space
     p3: jax.Array
        :math:`\vec{p}_3` 3D vector in space
+    p4: jax.Array
+       :math:`\vec{p}_3` 3D vector in space
 
     Returns
     -------
     float
        :math:`\theta`
     """
-    q = p1 - p2
-    r = p3 - p2
+
+    q = p2 - p1
+    r = p4 - p3
     return np.arctan2(linalg.norm(np.cross(q, r)), np.dot(q, r))
 
 
@@ -131,7 +150,8 @@ def dihedral_angle(p1, p2, p3, p4):
 @multicomponent
 class RingPuckeringCoordinates(CollectiveVariable):
     """
-    Computes the amplitude and the phase angle of a monocyclic ring by the Cremer-Pople method.
+    Computes the amplitude and the phase angle of a monocyclic ring
+    by the Cremer-Pople method.
     Mathematical definitions can be found in
     [D. Cremer and J. A. Pople, JACS, 1974](https://pubs.acs.org/doi/10.1021/ja00839a011)
     Equations 4-14.
