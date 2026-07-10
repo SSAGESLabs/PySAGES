@@ -20,7 +20,7 @@ if modifications have been made to the saved data structures.
 import dill as pickle
 
 from pysages.backends.snapshot import Box, Snapshot
-from pysages.methods import Metadynamics
+from pysages.methods import Metadynamics, Unbias
 from pysages.methods.core import GriddedSamplingMethod, Result
 from pysages.typing import Callable
 from pysages.utils import dispatch, identity
@@ -98,6 +98,10 @@ def _ncalls_estimator(_) -> Callable:
     # Fallback case. We leave ncalls as zero.
     return identity
 
+@dispatch
+def _ncalls_estimator(_: Unbias) -> Callable:
+    # Fallback case. We leave ncalls as zero.
+    return identity
 
 @dispatch
 def _ncalls_estimator(_: Metadynamics) -> Callable:
