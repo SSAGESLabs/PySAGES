@@ -66,8 +66,14 @@ from .cff import CFF
 from .core import SamplingMethod
 from .ffs import FFS
 from .funn import FUNN
+from .funnel_function import get_funnel_force
+from .funnel_metad import Funnel_Metadynamics
+from .funnel_sabf import Funnel_SpectralABF
+from .funnel_metadabf import Funnel_MetaDABF
 from .harmonic_bias import HarmonicBias
 from .metad import Metadynamics
+from .nanoreactor import Nanoreactor
+from .old_fabf import Funnel_ABF
 from .restraints import CVRestraints
 from .sirens import Sirens
 from .spectral_abf import SpectralABF
@@ -75,6 +81,8 @@ from .spline_string import SplineString
 from .umbrella_integration import UmbrellaIntegration
 from .unbiased import Unbiased
 from .utils import (
+    Funnel_Logger,
+    Funnel_MetadLogger,
     HistogramLogger,
     MetaDLogger,
     ReplicasConfiguration,
