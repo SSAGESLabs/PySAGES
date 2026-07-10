@@ -38,6 +38,8 @@ class SamplingContext:
             self._backend_name = "lammps"
         elif module_name.startswith("simtk.openmm") or module_name.startswith("openmm"):
             self._backend_name = "openmm"
+        elif module_name.startswith("gpumd"):
+            self._backend_name = "gpumd"
 
         if self._backend_name is None:
             backends = ", ".join(supported_backends())
@@ -74,4 +76,4 @@ class SamplingContext:
 
 
 def supported_backends():
-    return ("ase", "hoomd", "jax-md", "lammps", "openmm")
+    return ("ase", "gpumd", "hoomd", "jax-md", "lammps", "openmm")
