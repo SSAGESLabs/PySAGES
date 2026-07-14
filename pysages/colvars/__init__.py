@@ -26,6 +26,17 @@ try:
     import jax_md
     import jaxopt
 
+
+from .piv import (
+    PIV
+)
+
+from .utils import (
+    get_periods,
+    wrap,
+)
+
     from .patterns import GeM
 except (AttributeError, ImportError):
     pass
+
