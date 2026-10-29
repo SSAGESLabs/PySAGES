@@ -8,6 +8,7 @@ from operator import or_
 from sys import modules as sys_modules
 
 from jax import jit
+from jax import numpy as np
 from plum import parametric
 
 from pysages.backends import SamplingContext
@@ -479,3 +480,17 @@ def generalize(concrete_update, helpers, jit_compile=True):
         return _update(state, helpers.query(snapshot))
 
     return _jit(update)
+
+
+@dispatch
+def cell_bias(forces):  # pylint: disable=unused-argument
+    """
+    Biasing force on the box matrix, `-dU/dH`, from the forces on the CVs, `dU/dxi`, and their
+    Jacobian w.r.t. the box (which `build` only returns for box CVs, hence `None` without it).
+    """
+    return None
+
+
+@dispatch
+def cell_bias(forces, Jh):  # noqa: F811 # pylint: disable=C0116,E0102
+    return -np.tensordot(forces, Jh, axes=1)

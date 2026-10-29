@@ -17,8 +17,8 @@ biases the simulations around the collective variable :math:`\\xi_0`.
 from jax import numpy as np
 
 from pysages.methods.bias import Bias
-from pysages.methods.core import generalize
-from pysages.typing import JaxArray, NamedTuple
+from pysages.methods.core import cell_bias, generalize
+from pysages.typing import JaxArray, NamedTuple, Optional
 
 
 class HarmonicBiasState(NamedTuple):
@@ -30,11 +30,15 @@ class HarmonicBiasState(NamedTuple):
 
     bias: JaxArray
         Array with harmonic biasing forces for each particle in the simulation.
+
+    cell_bias: Optional[JaxArray]
+        Biasing force on the box matrix, -dU/dH (only when biasing box CVs).
     """
 
     xi: JaxArray
     bias: JaxArray
     ncalls: int = 0
+    cell_bias: Optional[JaxArray] = None
 
     def __repr__(self):
         return repr("PySAGES" + type(self).__name__)
@@ -46,6 +50,7 @@ class HarmonicBias(Bias):
     """
 
     __special_args__ = Bias.__special_args__.union({"kspring"})
+    supports_box_cvs = True
 
     def __init__(self, cvs, kspring, center, **kwargs):
         """
@@ -117,16 +122,16 @@ def _harmonic_bias(method, snapshot, helpers):
     natoms = np.size(snapshot.positions, 0)
 
     def initialize():
-        xi, _ = cv(helpers.query(snapshot))
+        xi, _, *Jh = cv(helpers.query(snapshot))
         bias = np.zeros((natoms, helpers.dimensionality()))
-        return HarmonicBiasState(xi, bias)
+        return HarmonicBiasState(xi, bias, cell_bias=cell_bias(np.zeros(xi.size), *Jh))
 
     def update(state, data):
-        xi, Jxi = cv(data)
+        xi, Jxi, *Jh = cv(data)  # Jh: the Jacobian w.r.t. the box, only with box CVs
         forces = kspring @ (xi - center).flatten()
         bias = -Jxi.T @ forces.flatten()
         bias = bias.reshape(state.bias.shape)
 
-        return HarmonicBiasState(xi, bias, state.ncalls + 1)
+        return HarmonicBiasState(xi, bias, state.ncalls + 1, cell_bias(forces, *Jh))
 
     return snapshot, initialize, generalize(update, helpers)
