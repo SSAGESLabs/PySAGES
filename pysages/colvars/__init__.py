@@ -11,6 +11,7 @@ PySAGES with your own.
 """
 
 from .angles import Angle, DihedralAngle
+from .cell import BoxVolume
 from .coordinates import Component, Displacement, Distance
 from .shape import (
     Acylindricity,

@@ -38,6 +38,7 @@ class CollectiveVariable(ABC):
     """
 
     _multicomponent = False
+    requires_box = False  # whether `function` takes the box matrix instead of positions
 
     def __init__(self, indices, group_length=None):
         indices, groups = _process_groups(indices)
@@ -181,27 +182,32 @@ def _get_nargs(function: Callable):
     return len(signature(function).parameters)
 
 
-def _build(cv: CollectiveVariable, differentiate: bool = True):
+def _build(cv: CollectiveVariable, differentiate: bool = True, box: bool = False):
     # TODO: Add support for compute weights from masses # pylint:disable=fixme
     xi = cv.function
     idx = cv.indices
     gps = cv.groups
 
-    if _get_nargs(xi) == 1:
+    if cv.requires_box:
 
-        def evaluate(positions: JaxArray, ids: JaxArray, **kwargs):
+        def evaluate(positions: JaxArray, ids: JaxArray, H: JaxArray, **kwargs):
+            return np.asarray(xi(H, **kwargs))
+
+    elif _get_nargs(xi) == 1:
+
+        def evaluate(positions: JaxArray, ids: JaxArray, H: JaxArray, **kwargs):
             pos = positions[ids[idx]]
             return np.asarray(xi(pos, **kwargs))
 
     elif len(gps) == 0:
 
-        def evaluate(positions: JaxArray, ids: JaxArray, **kwargs):
+        def evaluate(positions: JaxArray, ids: JaxArray, H: JaxArray, **kwargs):
             pos = positions[ids[idx]]
             return np.asarray(xi(*pos, **kwargs))
 
     else:
 
-        def evaluate(positions: JaxArray, ids: JaxArray, **kwargs):
+        def evaluate(positions: JaxArray, ids: JaxArray, H: JaxArray, **kwargs):
             pos = positions[ids[idx]]
             pos = [pos[g] for g in gps]
             return np.asarray(xi(*pos, **kwargs))
@@ -210,17 +216,20 @@ def _build(cv: CollectiveVariable, differentiate: bool = True):
 
     if differentiate:
         diff_op = _diff_op(cv)
-        cv_grad = jit(diff_op(evaluate))
+        cv_grad = jit(diff_op(evaluate, argnums=(0, 2) if box else 0))
 
-        def apply(pos: JaxArray, ids: JaxArray, **kwargs):
-            xi = cv_fn(pos, ids, **kwargs).reshape(1, -1)
-            Jxi = cv_grad(pos, ids, **kwargs).reshape(xi.shape[-1], -1)
-            return xi, Jxi
+        def apply(pos: JaxArray, ids: JaxArray, H: JaxArray, **kwargs):
+            xi = cv_fn(pos, ids, H, **kwargs).reshape(1, -1)
+            n = xi.shape[-1]
+            if box:  # also differentiate w.r.t. the box matrix
+                Jxi, Jh = cv_grad(pos, ids, H, **kwargs)
+                return xi, Jxi.reshape(n, -1), Jh.reshape(n, 3, 3)
+            return xi, cv_grad(pos, ids, H, **kwargs).reshape(n, -1)
 
     else:
 
-        def apply(pos: JaxArray, ids: JaxArray, **kwargs):
-            return cv_fn(pos, ids, **kwargs).reshape(1, -1)
+        def apply(pos: JaxArray, ids: JaxArray, H: JaxArray, **kwargs):
+            return cv_fn(pos, ids, H, **kwargs).reshape(1, -1)
 
     return jit(apply)
 
@@ -246,30 +255,28 @@ def build(cv: CollectiveVariable, *cvs: CollectiveVariable, differentiate: bool 
         (and their derivatives if `differentiate` is `True`)
         are computed and returned.
     """
-    cvs = [_build(cv, differentiate=differentiate)] + [
-        _build(cv, differentiate=differentiate) for cv in cvs
-    ]
+    cvs = (cv, *cvs)
+    box = any(cv.requires_box for cv in cvs)  # then `data` must carry the `box`
+    cvs = [_build(cv, differentiate, box) for cv in cvs]
 
     if differentiate:
 
         def apply(data):
             pos = data.positions[:, :3]
             ids = data.indices
+            H = getattr(data, "box", None)
 
-            xis, xis_grads = [], []
-            for cv in cvs:
-                xi, Jxi = cv(pos, ids)
-                xis.append(xi)
-                xis_grads.append(Jxi)
-
-            return np.hstack(xis), np.vstack(xis_grads)
+            # Jacobians w.r.t. the positions, and the box matrix when `box` is set
+            xis, *jacobians = zip(*(cv(pos, ids, H) for cv in cvs))
+            return (np.hstack(xis), *(np.vstack(J) for J in jacobians))
 
     else:
 
         def apply(data):
             pos = data.positions[:, :3]
             ids = data.indices
-            return np.hstack([cv(pos, ids) for cv in cvs])
+            H = getattr(data, "box", None)
+            return np.hstack([cv(pos, ids, H) for cv in cvs])
 
     return jit(apply)
 

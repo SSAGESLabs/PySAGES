@@ -130,6 +130,7 @@ def test_pickle_methods():
 
 COLVAR_ARGS = {
     "Angle": {"indices": [0, 1, 2]},
+    "BoxVolume": {},
     "DihedralAngle": {"indices": [0, 1, 2, 3]},
     "RadiusOfGyration": {"indices": [0, 1, 2, 3]},
     "PrincipalMoment": {"indices": [0, 1, 2, 3], "axis": 0},
