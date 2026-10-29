@@ -3,7 +3,7 @@
 
 from inspect import Parameter, signature
 
-from ase.calculators.calculator import Calculator
+from ase.calculators.calculator import Calculator, compare_atoms
 from jax import jit
 from jax import numpy as np
 
@@ -47,6 +47,7 @@ class Sampler(Calculator):
         self._calculator = atoms.calc
         self._context = context
         self._biased_forces = initial_snapshot.forces
+        self._last_atoms = None  # configuration at the last method update
         self._default_properties = list(_calculator_defaults(sig, "properties"))
         self._default_changes = list(_calculator_defaults(sig, "system_changes"))
         for p in ("energy", "forces"):
@@ -55,8 +56,9 @@ class Sampler(Calculator):
         self._get_forces = atoms.calc.get_forces
         self._md_step = context.step
 
-        # Swap the original step method to add the bias
-        context.step = lambda: self._md_step(self.biased_forces)
+        # Swap the original step method to add the bias (not every integrator takes forces)
+        if "forces" in signature(context.step).parameters:
+            context.step = lambda: self._md_step(self.biased_forces)
         # Swap the atoms calculator with this wrapper
         atoms.calc = self
 
@@ -65,6 +67,8 @@ class Sampler(Calculator):
 
     @property
     def biased_forces(self):
+        if self._last_atoms is None:  # no method update yet (ASE >= 3.27 skips it if nsteps > 0)
+            self.get_forces()
         return view(copy(self._biased_forces, ToCPU()))
 
     def calculate(self, atoms=None, **kwargs):
@@ -73,6 +77,10 @@ class Sampler(Calculator):
         self._calculator.calculate(atoms, properties, system_changes)
 
     def get_forces(self, atoms=None):
+        # ASE asks for the forces several times per step: update once per configuration
+        if self._last_atoms is not None and not compare_atoms(self._last_atoms, self.atoms):
+            return self.biased_forces
+        self._last_atoms = self.atoms.copy()
         forces = self._get_forces(atoms)
         self.snapshot = take_snapshot(self._context, forces)
         self.state = self.update(self.snapshot, self.state)
