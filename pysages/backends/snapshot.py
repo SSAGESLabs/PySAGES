@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: MIT
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
+from operator import attrgetter
+
 from jax import jit
 from jax import numpy as np
 
@@ -54,6 +56,8 @@ class SnapshotMethods(NamedTuple):
     indices: Callable
     momenta: Callable
     masses: Callable
+    box: Callable = attrgetter("box.H")
+    pressure: Optional[Callable] = None  # P - P_ref·I as seen by the barostat, bias included
 
 
 class HelperMethods(NamedTuple):
