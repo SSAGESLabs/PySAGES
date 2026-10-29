@@ -90,13 +90,20 @@ class SamplingMethod(metaclass=SamplingMethodMeta):
 
     __special_args__ = set()
     snapshot_flags = set()
+    supports_box_cvs = False  # whether the method can bias CVs of the box
 
     def __init__(self, cvs, **kwargs):
         self.cvs = cvs
-        self.cv = build(*cvs, differentiate=kwargs.get("cv_grad", True))
+        differentiate = kwargs.get("cv_grad", True)
+        self.cv = build(*cvs, differentiate=differentiate)
         self.requires_box_unwrapping = reduce(
             or_, (cv.requires_box_unwrapping for cv in cvs), False
         )
+        self.requires_box = reduce(or_, (cv.requires_box for cv in cvs), False)
+        if self.requires_box:
+            if differentiate and not self.supports_box_cvs:  # methods without bias just monitor
+                raise ValueError(f"{type(self).__name__} cannot bias box collective variables")
+            self.snapshot_flags = self.snapshot_flags | {"box"}  # a copy, not the class' set
         self.kwargs = kwargs
 
     def __getstate__(self):
