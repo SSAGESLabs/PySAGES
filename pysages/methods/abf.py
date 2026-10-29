@@ -21,12 +21,13 @@ from jax import jit
 from jax import numpy as np
 from jax.lax import cond
 
+from pysages.colvars.cell import BoxVolume
 from pysages.grids import build_indexer
 from pysages.methods.analysis import GradientLearning, _analyze
-from pysages.methods.core import GriddedSamplingMethod, Result, generalize
+from pysages.methods.core import GriddedSamplingMethod, Result, cell_bias, generalize
 from pysages.methods.restraints import apply_restraints
 from pysages.methods.utils import numpyfy_vals
-from pysages.typing import JaxArray, NamedTuple
+from pysages.typing import JaxArray, NamedTuple, Optional
 from pysages.utils import dispatch, linear_solver
 
 
@@ -60,6 +61,9 @@ class ABFState(NamedTuple):
 
     ncalls: int
         Counts the number of times the method's update has been called.
+
+    cell_bias: Optional[JaxArray]
+        Biasing force on the box matrix, -dU/dH (only when biasing the box volume).
     """
 
     xi: JaxArray
@@ -70,6 +74,7 @@ class ABFState(NamedTuple):
     Wp: JaxArray
     Wp_: JaxArray
     ncalls: int = 0
+    cell_bias: Optional[JaxArray] = None
 
     def __repr__(self):
         return repr("PySAGES " + type(self).__name__)
@@ -111,11 +116,16 @@ class ABF(GriddedSamplingMethod):
     """
 
     snapshot_flags = {"positions", "indices", "momenta"}
+    supports_box_cvs = True
 
     def __init__(self, cvs, grid, **kwargs):
         super().__init__(cvs, grid, **kwargs)
         self.N = np.asarray(self.kwargs.get("N", 500))
         self.use_pinv = self.kwargs.get("use_pinv", False)
+        if self.requires_box:  # the mean force then comes from the pressure tensor
+            if not all(isinstance(cv, BoxVolume) for cv in cvs):  # mixed: coupling not done yet
+                raise NotImplementedError("ABF on box CVs supports BoxVolume alone (for now)")
+            self.snapshot_flags = self.snapshot_flags | {"pressure"}
 
     def build(self, snapshot, helpers, *args, **kwargs):
         """
@@ -164,11 +174,11 @@ def _abf(method, snapshot, helpers):
     dt = snapshot.dt
     dims = grid.shape.size
     natoms = np.size(snapshot.positions, 0)
-    tsolve = linear_solver(method.use_pinv)
     get_grid_index = build_indexer(grid)
     estimate_force = build_force_estimator(method)
+    instantaneous_force = build_instantaneous_force_estimator(method, helpers, dt)
 
-    query, dimensionality, to_force_units = helpers
+    query, dimensionality, _ = helpers
 
     def initialize():
         """
@@ -180,14 +190,14 @@ def _abf(method, snapshot, helpers):
         ABFState
             Initialized State
         """
-        xi, _ = cv(query(snapshot))
+        xi, _, *Jh = cv(query(snapshot))
         bias = np.zeros((natoms, dimensionality()))
         hist = np.zeros(grid.shape, dtype=np.uint32)
         Fsum = np.zeros((*grid.shape, dims))
         force = np.zeros(dims)
         Wp = np.zeros(dims)
         Wp_ = np.zeros(dims)
-        return ABFState(xi, bias, hist, Fsum, force, Wp, Wp_)
+        return ABFState(xi, bias, hist, Fsum, force, Wp, Wp_, cell_bias=cell_bias(force, *Jh))
 
     def update(state, data):
         """
@@ -206,25 +216,64 @@ def _abf(method, snapshot, helpers):
         ABFState
             Updated internal state.
         """
-        # Compute the collective variable and its jacobian
-        xi, Jxi = cv(data)
+        # Compute the collective variable and its jacobian (and w.r.t. the box for box CVs)
+        xi, Jxi, *Jh = cv(data)
 
-        p = data.momenta
-        Wp = tsolve(Jxi, p)
-        # Second order backward finite difference
-        dWp_dt = (1.5 * Wp - 2.0 * state.Wp + 0.5 * state.Wp_) / dt
+        F, Wp = instantaneous_force(data, state, Jxi)
 
         I_xi = get_grid_index(xi)
         hist = state.hist.at[I_xi].add(1)
         # Add previous force to remove bias
-        Fsum = state.Fsum.at[I_xi].add(to_force_units(dWp_dt) + state.force)
+        Fsum = state.Fsum.at[I_xi].add(F + state.force)
 
         force = estimate_force(xi, I_xi, Fsum, hist).reshape(dims)
         bias = np.reshape(-Jxi.T @ force, state.bias.shape)
 
-        return ABFState(xi, bias, hist, Fsum, force, Wp, state.Wp, state.ncalls + 1)
+        ncalls = state.ncalls + 1
+        return ABFState(xi, bias, hist, Fsum, force, Wp, state.Wp, ncalls, cell_bias(force, *Jh))
 
     return snapshot, initialize, generalize(update, helpers)
+
+
+def build_instantaneous_force_estimator(method, helpers, dt):
+    """
+    Returns a function `(data, state, Jxi) -> (F, Wp)`: the generalized force along the CVs
+    measured over the last step (bias included), and the projected momenta `W·p`. Each kind of
+    CV estimates its own rows: position CVs from the time derivative of `W·p`
+    (https://doi.org/10.1063/1.2829861), and the box volume from the pressure tensor as
+    `tr(Π - P_ref I) / 3` (for any box shape).
+    """
+    tsolve = linear_solver(method.use_pinv)
+    box = np.array([cv.requires_box for cv in method.cvs])
+    pos, box = np.flatnonzero(~box), np.flatnonzero(box)
+
+    def from_momenta(data, Jxi, Wp_1, Wp_2):
+        Wp = tsolve(Jxi, data.momenta)
+        # Second order backward finite difference
+        dWp_dt = (1.5 * Wp - 2.0 * Wp_1 + 0.5 * Wp_2) / dt
+        return helpers.to_force_units(dWp_dt), Wp
+
+    def from_pressure(data):
+        return np.trace(data.pressure) / 3
+
+    if box.size == 0:
+
+        def instantaneous_force(data, state, Jxi):
+            return from_momenta(data, Jxi, state.Wp, state.Wp_)
+
+    elif pos.size == 0:
+
+        def instantaneous_force(data, state, Jxi):  # pylint: disable=unused-argument
+            return np.full(box.size, from_pressure(data)), state.Wp
+
+    else:  # mixed stacks (`ABF` rejects them until their coupling is accounted for)
+
+        def instantaneous_force(data, state, Jxi):
+            F, Wp = from_momenta(data, Jxi[pos], state.Wp[pos], state.Wp_[pos])
+            F = np.zeros_like(state.force).at[pos].set(F).at[box].set(from_pressure(data))
+            return F, state.Wp.at[pos].set(Wp)
+
+    return instantaneous_force
 
 
 @dispatch
