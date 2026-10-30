@@ -4,6 +4,7 @@
 from inspect import Parameter, signature
 
 from ase.calculators.calculator import Calculator, compare_atoms
+from ase.stress import full_3x3_to_voigt_6_stress, voigt_6_to_full_3x3_stress
 from jax import jit
 from jax import numpy as np
 
@@ -25,7 +26,8 @@ class Sampler(Calculator):
     Thin wrapper around the calculator of the `ase.atoms.Atoms` object of an
     `ase.md.MolecularDynamics` instance. The `get_forces` method will return
     the wrapped calculator forces plus the biasing forces from the sampling
-    method being used.
+    method being used, and `get_stress` the wrapped calculator stress plus the
+    biasing stress (when the method biases the simulation box).
     """
 
     def __init__(self, context, method_bundle, callback: Callable):
@@ -93,6 +95,17 @@ class Sampler(Calculator):
         self._biased_forces = new_forces
         return self.biased_forces
 
+    def get_stress(self, atoms=None):
+        stress = self._calculator.get_stress(atoms)
+        cell_bias = getattr(self.state, "cell_bias", None)
+        if cell_bias is None:
+            return stress
+        # ASE's stress is (1/V) dU/dε, with the lattice vectors as the rows of H, so a bias
+        # U_b(H) adds (1/V) Hᵀ ∂U_b/∂H; `cell_bias` is -∂U_b/∂H
+        H = self.atoms.cell[:]
+        sigma_b = -(H.T @ view(copy(cell_bias, ToCPU()))) / self.atoms.get_volume()
+        return stress + (sigma_b if stress.shape == (3, 3) else full_3x3_to_voigt_6_stress(sigma_b))
+
     def restore(self, prev_snapshot):
         atoms = self.atoms
         momenta, masses = prev_snapshot.vel_mass
@@ -120,7 +133,27 @@ def take_snapshot(simulation, forces=None):
     origin = (0.0, 0.0, 0.0)
     dt = simulation.dt
 
-    return Snapshot(positions, vel_mass, forces, ids, Box(H, origin), dt)
+    extras = None
+    P_ref = get_reference_pressure(simulation)
+    if P_ref is not None:  # P - P_ref as the barostat sees it (bias included), for box CVs
+        stress = atoms.get_stress(voigt=False, include_ideal_gas=True)
+        extras = {"pressure": -np.asarray(stress) - P_ref}
+
+    return Snapshot(positions, vel_mass, forces, ids, Box(H, origin), dt, extras)
+
+
+def get_reference_pressure(simulation):
+    """
+    Target pressure tensor of an `ase.md.MolecularDynamics` barostat, in eV/Å^3 (`None` when
+    `simulation` keeps the volume fixed).
+    """
+    if hasattr(simulation, "_pressure_au"):  # IsotropicMTKNPT, MTKNPT, ... (ASE >= 3.25)
+        return simulation._pressure_au * np.eye(3)  # pylint: disable=protected-access
+    if hasattr(simulation, "pressure"):  # NPTBerendsen (and its inhomogeneous variant)
+        return simulation.pressure * np.eye(3)
+    if hasattr(simulation, "externalstress"):  # NPT (MelchionnaNPT), a stress: σ_ext = -P_ext
+        return -np.asarray(voigt_6_to_full_3x3_stress(simulation.externalstress))
+    return None
 
 
 def _calculator_defaults(sig, arg, default=[]):
@@ -144,7 +177,12 @@ def build_snapshot_methods(context, sampling_method):
         P, _ = snapshot.vel_mass
         return P.flatten()
 
-    return SnapshotMethods(jit(positions), jit(indices), jit(momenta), jit(masses))
+    def pressure(snapshot):
+        return snapshot.extras["pressure"]
+
+    return SnapshotMethods(
+        jit(positions), jit(indices), jit(momenta), jit(masses), pressure=jit(pressure)
+    )
 
 
 def build_helpers(context, sampling_method):
@@ -165,6 +203,11 @@ def bind(sampling_context: SamplingContext, callback: Callable, **kwargs):
     """
     context = sampling_context.context
     sampling_method = sampling_context.method
+    if "box" in sampling_method.snapshot_flags and get_reference_pressure(context) is None:
+        raise ValueError(
+            f"{type(sampling_method).__name__} on box collective variables needs a "
+            f"constant-pressure integrator (got {type(context).__name__})"
+        )
     snapshot = take_snapshot(context)
     helpers = build_helpers(sampling_context, sampling_method)
     method_bundle = sampling_method.build(snapshot, helpers)

@@ -2,7 +2,7 @@
 # See LICENSE.md and CONTRIBUTORS.md at https://github.com/SSAGESLabs/PySAGES
 
 """
-Collective variables of the simulation box (biasing them needs a constant-pressure simulation).
+Collective variables of the simulation box (they need a constant-pressure simulation).
 """
 
 from jax import numpy as np
