@@ -97,13 +97,17 @@ class Sampler(Calculator):
 
     def get_stress(self, atoms=None):
         stress = self._calculator.get_stress(atoms)
-        cell_bias = getattr(self.state, "cell_bias", None)
-        if cell_bias is None:
+        if self.state.bias is None:  # the method does not bias
             return stress
-        # ASE's stress is (1/V) dU/dε, with the lattice vectors as the rows of H, so a bias
-        # U_b(H) adds (1/V) Hᵀ ∂U_b/∂H; `cell_bias` is -∂U_b/∂H
-        H = self.atoms.cell[:]
-        sigma_b = -(H.T @ view(copy(cell_bias, ToCPU()))) / self.atoms.get_volume()
+        # ASE's stress is (1/V) dU/dε at fixed scaled coordinates, with the lattice vectors as
+        # the rows of H: the biasing forces contribute their virial, Xᵀ bias, and a box bias
+        # adds Hᵀ cell_bias (`cell_bias` is -∂U_b/∂H)
+        X, H = self.atoms.get_positions(), self.atoms.cell[:]
+        virial = X.T @ view(copy(self.state.bias, ToCPU()))
+        cell_bias = getattr(self.state, "cell_bias", None)
+        if cell_bias is not None:
+            virial += H.T @ view(copy(cell_bias, ToCPU()))
+        sigma_b = -virial / self.atoms.get_volume()
         return stress + (sigma_b if stress.shape == (3, 3) else full_3x3_to_voigt_6_stress(sigma_b))
 
     def restore(self, prev_snapshot):
